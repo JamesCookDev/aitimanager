@@ -33,6 +33,15 @@ const mockDevice: Device = {
   api_key: 'rpm_a1b923ee1aff44d18e626b3c4c64bdd8',
   last_ping: new Date(Date.now() - 15000).toISOString(),
   current_version_id: 'v1',
+  avatar_config: {
+    colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
+    material: { metalness: 0.1, roughness: 0.8 },
+    animation: 'idle'
+  },
+  model_3d_url: null,
+  is_speaking: false,
+  last_interaction: null,
+  status_details: null,
   created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
   updated_at: new Date().toISOString(),
 };

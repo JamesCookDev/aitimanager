@@ -55,38 +55,53 @@ export type Database = {
       devices: {
         Row: {
           api_key: string
+          avatar_config: Json | null
           created_at: string
           current_version_id: string | null
           description: string | null
           id: string
+          is_speaking: boolean | null
+          last_interaction: string | null
           last_ping: string | null
           location: string | null
+          model_3d_url: string | null
           name: string
           org_id: string
+          status_details: Json | null
           updated_at: string
         }
         Insert: {
           api_key?: string
+          avatar_config?: Json | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
           id?: string
+          is_speaking?: boolean | null
+          last_interaction?: string | null
           last_ping?: string | null
           location?: string | null
+          model_3d_url?: string | null
           name: string
           org_id: string
+          status_details?: Json | null
           updated_at?: string
         }
         Update: {
           api_key?: string
+          avatar_config?: Json | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
           id?: string
+          is_speaking?: boolean | null
+          last_interaction?: string | null
           last_ping?: string | null
           location?: string | null
+          model_3d_url?: string | null
           name?: string
           org_id?: string
+          status_details?: Json | null
           updated_at?: string
         }
         Relationships: [

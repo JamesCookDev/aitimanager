@@ -28,7 +28,7 @@ export function Sidebar() {
       showFor: 'all' as const,
     },
     {
-      title: 'Todos Dispositivos',
+      title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens',
       icon: Cpu,
       path: '/dashboard/devices',
       showFor: 'all' as const,
