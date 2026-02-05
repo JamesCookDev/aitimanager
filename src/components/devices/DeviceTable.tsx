@@ -1,0 +1,173 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from './StatusBadge';
+import { Device, getDeviceStatus } from '@/types/database';
+import { Eye, RotateCcw, MapPin, Building2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface DeviceTableProps {
+  devices: Device[];
+  showOrganization?: boolean;
+  loading?: boolean;
+}
+
+export function DeviceTable({ devices, showOrganization = false, loading }: DeviceTableProps) {
+  const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <div className="card-industrial rounded-lg overflow-hidden">
+        <div className="p-8 text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading fleet data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (devices.length === 0) {
+    return (
+      <div className="card-industrial rounded-lg overflow-hidden">
+        <div className="p-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Devices Found</h3>
+          <p className="text-muted-foreground text-sm">
+            No devices have been registered for this organization yet.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-industrial rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+              Status
+            </TableHead>
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+              Device Name
+            </TableHead>
+            {showOrganization && (
+              <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+                Organization
+              </TableHead>
+            )}
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+              Location
+            </TableHead>
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+              Last Ping
+            </TableHead>
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider text-right">
+              Actions
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {devices.map((device) => {
+            const status = getDeviceStatus(device.last_ping);
+            const lastPingFormatted = device.last_ping
+              ? formatDistanceToNow(new Date(device.last_ping), {
+                  addSuffix: true,
+                  locale: ptBR,
+                })
+              : 'Never';
+
+            return (
+              <TableRow
+                key={device.id}
+                className="table-row-industrial border-border cursor-pointer"
+                onClick={() => navigate(`/dashboard/devices/${device.id}`)}
+              >
+                <TableCell>
+                  <StatusBadge status={status} />
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium text-foreground">{device.name}</p>
+                    {device.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {device.description}
+                      </p>
+                    )}
+                  </div>
+                </TableCell>
+                {showOrganization && (
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal">
+                      <Building2 className="w-3 h-3 mr-1" />
+                      {device.organization?.name || 'Unknown'}
+                    </Badge>
+                  </TableCell>
+                )}
+                <TableCell>
+                  {device.location ? (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {device.location}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      'font-mono text-sm',
+                      status === 'online' ? 'text-success' : 'text-muted-foreground'
+                    )}
+                  >
+                    {lastPingFormatted}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/dashboard/devices/${device.id}`);
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-warning"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Implement restart
+                      }}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
