@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Server, Wifi, Activity, AlertTriangle } from 'lucide-react';
+import { Server, Wifi, Activity, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SocialLogin } from '@/components/auth/SocialLogin';
 
 export default function Auth() {
   const { user, loading, signIn, signUp } = useAuth();
@@ -27,7 +28,7 @@ export default function Auth() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Initializing system...</p>
+          <p className="text-muted-foreground">Inicializando sistema...</p>
         </div>
       </div>
     );
@@ -44,11 +45,11 @@ export default function Auth() {
     const { error } = await signIn(loginEmail, loginPassword);
 
     if (error) {
-      toast.error('Authentication failed', {
+      toast.error('Falha na autenticação', {
         description: error.message,
       });
     } else {
-      toast.success('Access granted');
+      toast.success('Acesso concedido');
     }
 
     setIsSubmitting(false);
@@ -61,12 +62,12 @@ export default function Auth() {
     const { error } = await signUp(signupEmail, signupPassword, signupName);
 
     if (error) {
-      toast.error('Registration failed', {
+      toast.error('Falha no cadastro', {
         description: error.message,
       });
     } else {
-      toast.success('Registration successful', {
-        description: 'Please check your email to verify your account.',
+      toast.success('Cadastro realizado', {
+        description: 'Verifique seu email para confirmar sua conta.',
       });
     }
 
@@ -91,7 +92,7 @@ export default function Auth() {
                 NEXUS<span className="text-primary">.</span>FLEET
               </h1>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Command Center
+                Centro de Comando
               </p>
             </div>
           </div>
@@ -100,11 +101,11 @@ export default function Auth() {
           <div className="hidden md:flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Wifi className="w-4 h-4 text-success" />
-              <span className="text-muted-foreground">Network: <span className="text-success">Online</span></span>
+              <span className="text-muted-foreground">Rede: <span className="text-success">Online</span></span>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-primary" />
-              <span className="text-muted-foreground">System: <span className="text-primary">Ready</span></span>
+              <span className="text-muted-foreground">Sistema: <span className="text-primary">Pronto</span></span>
             </div>
           </div>
         </header>
@@ -115,18 +116,18 @@ export default function Auth() {
             <Card className="card-industrial">
               <CardHeader className="text-center pb-2">
                 <CardTitle className="text-2xl font-bold">
-                  System Access
+                  Acesso ao Sistema
                 </CardTitle>
                 <CardDescription>
-                  Authenticate to access Fleet Command
+                  Autentique-se para acessar o Centro de Comando
                 </CardDescription>
               </CardHeader>
 
               <CardContent>
                 <Tabs defaultValue="login" className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="register">Register</TabsTrigger>
+                    <TabsTrigger value="login">Entrar</TabsTrigger>
+                    <TabsTrigger value="register">Cadastrar</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="login">
@@ -136,7 +137,7 @@ export default function Auth() {
                         <Input
                           id="login-email"
                           type="email"
-                          placeholder="operator@nexus.fleet"
+                          placeholder="operador@nexus.fleet"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           required
@@ -145,7 +146,7 @@ export default function Auth() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="login-password">Password</Label>
+                        <Label htmlFor="login-password">Senha</Label>
                         <Input
                           id="login-password"
                           type="password"
@@ -162,19 +163,39 @@ export default function Auth() {
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? 'Authenticating...' : 'Access System'}
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Autenticando...
+                          </>
+                        ) : (
+                          'Acessar Sistema'
+                        )}
                       </Button>
                     </form>
+
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                          Ou continue com
+                        </span>
+                      </div>
+                    </div>
+
+                    <SocialLogin />
                   </TabsContent>
 
                   <TabsContent value="register">
                     <form onSubmit={handleSignup} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="signup-name">Full Name</Label>
+                        <Label htmlFor="signup-name">Nome Completo</Label>
                         <Input
                           id="signup-name"
                           type="text"
-                          placeholder="Operator Name"
+                          placeholder="Nome do Operador"
                           value={signupName}
                           onChange={(e) => setSignupName(e.target.value)}
                           required
@@ -187,7 +208,7 @@ export default function Auth() {
                         <Input
                           id="signup-email"
                           type="email"
-                          placeholder="operator@nexus.fleet"
+                          placeholder="operador@nexus.fleet"
                           value={signupEmail}
                           onChange={(e) => setSignupEmail(e.target.value)}
                           required
@@ -196,7 +217,7 @@ export default function Auth() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="signup-password">Password</Label>
+                        <Label htmlFor="signup-password">Senha</Label>
                         <Input
                           id="signup-password"
                           type="password"
@@ -214,14 +235,34 @@ export default function Auth() {
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? 'Creating Account...' : 'Request Access'}
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Criando conta...
+                          </>
+                        ) : (
+                          'Solicitar Acesso'
+                        )}
                       </Button>
 
                       <p className="text-xs text-center text-muted-foreground">
                         <AlertTriangle className="w-3 h-3 inline mr-1" />
-                        Email verification required for activation
+                        Verificação de email necessária para ativação
                       </p>
                     </form>
+
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                          Ou continue com
+                        </span>
+                      </div>
+                    </div>
+
+                    <SocialLogin />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -229,7 +270,7 @@ export default function Auth() {
 
             {/* Footer */}
             <p className="text-center text-xs text-muted-foreground mt-6">
-              NEXUS Fleet Command v1.0 • Secure IoT Management
+              NEXUS Fleet Command v1.0 • Gerenciamento Seguro de IoT
             </p>
           </div>
         </main>

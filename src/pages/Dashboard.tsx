@@ -5,6 +5,7 @@ import { MetricCard } from '@/components/devices/MetricCard';
 import { Device, Organization, getDeviceStatus } from '@/types/database';
 import { Activity, Cpu, WifiOff, Zap, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -13,103 +14,85 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Mock data for initial visualization
-const mockOrganizations: Organization[] = [
-  { id: '1', name: 'Porto Futuro', slug: 'porto-futuro', created_at: '', updated_at: '' },
-  { id: '2', name: 'Shopping Bosque', slug: 'shopping-bosque', created_at: '', updated_at: '' },
-  { id: '3', name: 'Estação das Docas', slug: 'estacao-docas', created_at: '', updated_at: '' },
-];
-
-const mockDevices: Device[] = [
-  {
-    id: '1',
-    org_id: '1',
-    name: 'Totem Entrada Principal',
-    description: 'Avatar de recepção - Bloco A',
-    location: 'Entrada Bloco A',
-    api_key: 'rpm_a1b923ee1aff44d18e626b3c4c64bdd8',
-    last_ping: new Date(Date.now() - 15000).toISOString(), // 15 seconds ago - ONLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[0],
-  },
-  {
-    id: '2',
-    org_id: '1',
-    name: 'Totem Praça de Alimentação',
-    description: 'Informações gastronômicas',
-    location: 'Praça de Alimentação',
-    api_key: 'rpm_b2c034ff2bgg55e29f737d4d5e75cef9',
-    last_ping: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago - ONLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[0],
-  },
-  {
-    id: '3',
-    org_id: '1',
-    name: 'Totem Estacionamento',
-    description: 'Orientação de vagas',
-    location: 'Subsolo -1',
-    api_key: 'rpm_c3d145gg3chh66f30g848e5f6f86dfga',
-    last_ping: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago - OFFLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[0],
-  },
-  {
-    id: '4',
-    org_id: '2',
-    name: 'Totem Cinema',
-    description: 'Programação e ingressos',
-    location: '3º Piso',
-    api_key: 'rpm_d4e256hh4dii77g41h959f6g7g97egfb',
-    last_ping: new Date(Date.now() - 45000).toISOString(), // 45 seconds ago - ONLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[1],
-  },
-  {
-    id: '5',
-    org_id: '2',
-    name: 'Totem Loja Âncora',
-    description: 'Promoções especiais',
-    location: 'Térreo - Loja 102',
-    api_key: 'rpm_e5f367ii5ejj88h52i060g7h8h08fhgc',
-    last_ping: new Date(Date.now() - 86400000).toISOString(), // 1 day ago - OFFLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[1],
-  },
-  {
-    id: '6',
-    org_id: '3',
-    name: 'Totem Pier',
-    description: 'Informações turísticas',
-    location: 'Deck Principal',
-    api_key: 'rpm_f6g478jj6fkk99i63j171h8i9i19gihd',
-    last_ping: new Date(Date.now() - 20000).toISOString(), // 20 seconds ago - ONLINE
-    current_version_id: null,
-    created_at: '',
-    updated_at: '',
-    organization: mockOrganizations[2],
-  },
-];
-
 export default function Dashboard() {
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
   const [selectedOrg, setSelectedOrg] = useState<string>('all');
-  const [devices, setDevices] = useState<Device[]>(mockDevices);
-  const [loading, setLoading] = useState(false);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isSuperAdmin = role === 'super_admin';
 
-  // Filter devices based on selected org (simulating RLS)
+  // Fetch data from Supabase
+  useEffect(() => {
+    fetchData();
+  }, [role, profile]);
+
+  // Subscribe to realtime updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('devices-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'devices',
+        },
+        (payload) => {
+          if (payload.eventType === 'UPDATE') {
+            setDevices((prev) =>
+              prev.map((d) =>
+                d.id === payload.new.id ? { ...d, ...payload.new } : d
+              )
+            );
+          } else if (payload.eventType === 'INSERT') {
+            fetchData();
+          } else if (payload.eventType === 'DELETE') {
+            setDevices((prev) => prev.filter((d) => d.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch organizations
+      const { data: orgsData } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('name');
+
+      if (orgsData) {
+        setOrganizations(orgsData as Organization[]);
+      }
+
+      // Fetch devices with organization info
+      const { data: devicesData } = await supabase
+        .from('devices')
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
+        .order('name');
+
+      if (devicesData) {
+        setDevices(devicesData as Device[]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter devices based on selected org
   const filteredDevices =
     selectedOrg === 'all'
       ? devices
@@ -126,11 +109,7 @@ export default function Dashboard() {
   const uptimePercent = totalCount > 0 ? Math.round((onlineCount / totalCount) * 100) : 0;
 
   const handleRefresh = () => {
-    setLoading(true);
-    // Simulate refresh
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    fetchData();
   };
 
   return (
@@ -140,10 +119,10 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Activity className="w-6 h-6 text-primary" />
-            Live Monitor
+            Monitor ao Vivo
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Real-time fleet status and device management
+            Status da frota em tempo real e gerenciamento de dispositivos
           </p>
         </div>
 
@@ -152,11 +131,11 @@ export default function Dashboard() {
           {isSuperAdmin && (
             <Select value={selectedOrg} onValueChange={setSelectedOrg}>
               <SelectTrigger className="w-[200px] bg-input border-border">
-                <SelectValue placeholder="Filter by organization" />
+                <SelectValue placeholder="Filtrar por organização" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Organizations</SelectItem>
-                {mockOrganizations.map((org) => (
+                <SelectItem value="all">Todas as Organizações</SelectItem>
+                {organizations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
                   </SelectItem>
@@ -173,7 +152,7 @@ export default function Dashboard() {
             disabled={loading}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            Atualizar
           </Button>
         </div>
       </div>
@@ -181,29 +160,29 @@ export default function Dashboard() {
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Devices"
+          title="Total de Dispositivos"
           value={totalCount}
-          subtitle="Registered in fleet"
+          subtitle="Registrados na frota"
           icon={Cpu}
         />
         <MetricCard
           title="Online"
           value={onlineCount}
-          subtitle="Last 60 seconds"
+          subtitle="Últimos 60 segundos"
           icon={Zap}
           variant="success"
         />
         <MetricCard
           title="Offline"
           value={offlineCount}
-          subtitle="Needs attention"
+          subtitle="Requer atenção"
           icon={WifiOff}
           variant={offlineCount > 0 ? 'danger' : 'default'}
         />
         <MetricCard
-          title="Uptime"
+          title="Disponibilidade"
           value={`${uptimePercent}%`}
-          subtitle="Fleet availability"
+          subtitle="Uptime da frota"
           icon={Activity}
           variant={uptimePercent >= 90 ? 'success' : uptimePercent >= 70 ? 'warning' : 'danger'}
         />
@@ -211,7 +190,7 @@ export default function Dashboard() {
 
       {/* Device Table */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Fleet Status</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Status da Frota</h2>
         <DeviceTable
           devices={filteredDevices}
           showOrganization={isSuperAdmin && selectedOrg === 'all'}

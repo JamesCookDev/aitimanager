@@ -9,7 +9,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
   Cpu,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -23,25 +22,25 @@ export function Sidebar() {
 
   const navItems = [
     {
-      title: 'Live Monitor',
+      title: 'Monitor ao Vivo',
       icon: Activity,
       path: '/dashboard',
       showFor: 'all' as const,
     },
     {
-      title: 'All Devices',
+      title: 'Todos Dispositivos',
       icon: Cpu,
       path: '/dashboard/devices',
       showFor: 'all' as const,
     },
     {
-      title: 'Organizations',
+      title: 'Organizações',
       icon: Building2,
       path: '/dashboard/organizations',
       showFor: 'super_admin' as const,
     },
     {
-      title: 'Settings',
+      title: 'Configurações',
       icon: Settings,
       path: '/dashboard/settings',
       showFor: 'all' as const,
@@ -71,7 +70,7 @@ export function Sidebar() {
                 NEXUS<span className="text-primary">.</span>FLEET
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                {isSuperAdmin ? 'Super Admin' : 'Organization Admin'}
+                {isSuperAdmin ? 'Super Admin' : 'Admin da Organização'}
               </p>
             </div>
           )}
@@ -104,7 +103,7 @@ export function Sidebar() {
         {!collapsed && profile && (
           <div className="px-3 py-2 bg-sidebar-accent/50 rounded-lg">
             <p className="text-sm font-medium text-foreground truncate">
-              {profile.full_name || 'Operator'}
+              {profile.full_name || 'Operador'}
             </p>
             <p className="text-xs text-muted-foreground truncate">
               {profile.email}
@@ -122,7 +121,7 @@ export function Sidebar() {
           onClick={signOut}
         >
           <LogOut className="w-4 h-4" />
-          {!collapsed && <span className="ml-2">Sign Out</span>}
+          {!collapsed && <span className="ml-2">Sair</span>}
         </Button>
 
         {/* Collapse toggle */}
@@ -140,7 +139,7 @@ export function Sidebar() {
           ) : (
             <>
               <ChevronLeft className="w-4 h-4" />
-              <span className="ml-2">Collapse</span>
+              <span className="ml-2">Recolher</span>
             </>
           )}
         </Button>
