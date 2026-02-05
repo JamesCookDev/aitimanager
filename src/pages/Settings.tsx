@@ -1,26 +1,37 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Settings as SettingsIcon, User, Building2, Key, Bell } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { Settings as SettingsIcon, User, Key, Bell, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 export default function Settings() {
   const { profile, role } = useAuth();
-  const isSuperAdmin = role === 'super_admin';
+
+  if (role !== 'super_admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="p-6 space-y-6 industrial-grid min-h-screen">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <SettingsIcon className="w-6 h-6 text-primary" />
-          Configurações
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Gerencie suas preferências e configurações da conta
-        </p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <SettingsIcon className="w-6 h-6 text-primary" />
+            Configurações
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Painel de configurações do Super Admin
+          </p>
+        </div>
+        <Badge variant="outline" className="ml-auto">
+          <Shield className="w-3 h-3 mr-1" />
+          Super Admin
+        </Badge>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
@@ -44,30 +55,11 @@ export default function Settings() {
             </div>
             <div className="grid gap-2">
               <Label>Função</Label>
-              <Input value={isSuperAdmin ? 'Super Admin' : 'Admin da Organização'} disabled />
+              <Input value="Super Admin" disabled />
             </div>
             <Button>Salvar alterações</Button>
           </CardContent>
         </Card>
-
-        {/* Organização */}
-        {!isSuperAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Organização
-              </CardTitle>
-              <CardDescription>Informações da sua organização</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>ID da Organização</Label>
-                <Input value={profile?.org_id || 'Não definido'} disabled />
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* API Keys */}
         <Card>
@@ -80,11 +72,20 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
-              <Label>URL da API</Label>
+              <Label>URL da API (Edge Functions)</Label>
               <Input value="https://fxjszxvhzojhmcloajpt.supabase.co/functions/v1" readOnly />
             </div>
+            <div className="grid gap-2">
+              <Label>Endpoints disponíveis</Label>
+              <div className="space-y-1 text-sm text-muted-foreground font-mono bg-muted/50 p-3 rounded-md">
+                <p>POST /totem-register</p>
+                <p>POST /totem-heartbeat</p>
+                <p>GET  /totem-config</p>
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
-              Use a API Key de cada dispositivo no header <code className="bg-muted px-1 rounded">x-totem-api-key</code>
+              Use a API Key de cada dispositivo no header{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">x-totem-api-key</code>
             </p>
           </CardContent>
         </Card>
@@ -102,7 +103,9 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Alertas de dispositivo offline</Label>
-                <p className="text-sm text-muted-foreground">Receber notificação quando um totem ficar offline</p>
+                <p className="text-sm text-muted-foreground">
+                  Receber notificação quando um totem ficar offline
+                </p>
               </div>
               <Switch defaultChecked />
             </div>
@@ -110,7 +113,9 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Resumo diário</Label>
-                <p className="text-sm text-muted-foreground">Receber relatório diário por email</p>
+                <p className="text-sm text-muted-foreground">
+                  Receber relatório diário por email
+                </p>
               </div>
               <Switch />
             </div>
