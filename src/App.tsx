@@ -8,6 +8,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DeviceDetail from "./pages/DeviceDetail";
+import Organizations from "./pages/Organizations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="devices/:deviceId" element={<DeviceDetail />} />
+              <Route path="organizations" element={<Organizations />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

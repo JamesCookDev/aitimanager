@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -31,7 +30,7 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
       <div className="card-industrial rounded-lg overflow-hidden">
         <div className="p-8 text-center">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading fleet data...</p>
+          <p className="text-muted-foreground">Carregando dados da frota...</p>
         </div>
       </div>
     );
@@ -44,9 +43,9 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">No Devices Found</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum Dispositivo Encontrado</h3>
           <p className="text-muted-foreground text-sm">
-            No devices have been registered for this organization yet.
+            Nenhum dispositivo foi registrado para esta organização ainda.
           </p>
         </div>
       </div>
@@ -62,21 +61,21 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
               Status
             </TableHead>
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
-              Device Name
+              Nome do Dispositivo
             </TableHead>
             {showOrganization && (
               <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
-                Organization
+                Organização
               </TableHead>
             )}
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
-              Location
+              Localização
             </TableHead>
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
-              Last Ping
+              Último Ping
             </TableHead>
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider text-right">
-              Actions
+              Ações
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -88,7 +87,7 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
                   addSuffix: true,
                   locale: ptBR,
                 })
-              : 'Never';
+              : 'Nunca';
 
             return (
               <TableRow
@@ -113,7 +112,7 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
                   <TableCell>
                     <Badge variant="outline" className="font-normal">
                       <Building2 className="w-3 h-3 mr-1" />
-                      {device.organization?.name || 'Unknown'}
+                      {device.organization?.name || 'Desconhecida'}
                     </Badge>
                   </TableCell>
                 )}
@@ -156,7 +155,7 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
                       className="text-muted-foreground hover:text-warning"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Implement restart
+                        // TODO: Implementar reinício
                       }}
                     >
                       <RotateCcw className="w-4 h-4" />

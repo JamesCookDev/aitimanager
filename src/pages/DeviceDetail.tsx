@@ -72,7 +72,7 @@ export default function DeviceDetail() {
 
   const handleCopyApiKey = () => {
     navigator.clipboard.writeText(device.api_key);
-    toast.success('API Key copied to clipboard');
+    toast.success('API Key copiada para a área de transferência');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -102,21 +102,21 @@ export default function DeviceDetail() {
     if (glbFile) {
       handleUpload(glbFile);
     } else {
-      toast.error('Invalid file type', {
-        description: 'Please upload a .glb or .fbx file',
+      toast.error('Tipo de arquivo inválido', {
+        description: 'Por favor, envie um arquivo .glb ou .fbx',
       });
     }
   }, []);
 
   const handleUpload = async (file: File) => {
     setUploading(true);
-    toast.loading('Uploading 3D model...', { id: 'upload' });
+    toast.loading('Enviando modelo 3D...', { id: 'upload' });
 
     // Simulate upload
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     setUploading(false);
-    toast.success('Model uploaded successfully!', {
+    toast.success('Modelo enviado com sucesso!', {
       id: 'upload',
       description: `${file.name} (${formatFileSize(file.size)})`,
     });
@@ -140,7 +140,7 @@ export default function DeviceDetail() {
           className="text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Monitor
+          Voltar ao Monitor
         </Button>
       </div>
 
@@ -166,7 +166,7 @@ export default function DeviceDetail() {
           className="border-warning text-warning hover:bg-warning/10"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          Restart Device
+          Reiniciar Dispositivo
         </Button>
       </div>
 
@@ -178,10 +178,10 @@ export default function DeviceDetail() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="w-5 h-5 text-primary" />
-                Deploy New Model
+                Implantar Novo Modelo
               </CardTitle>
               <CardDescription>
-                Upload a new 3D avatar model (.glb or .fbx) to update this device
+                Envie um novo modelo de avatar 3D (.glb ou .fbx) para atualizar este dispositivo
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -214,13 +214,13 @@ export default function DeviceDetail() {
                     />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {uploading ? 'Uploading...' : 'Update 3D Model'}
+                    {uploading ? 'Enviando...' : 'Atualizar Modelo 3D'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Drag and drop your .glb or .fbx file here, or click to browse
+                    Arraste e solte seu arquivo .glb ou .fbx aqui, ou clique para selecionar
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Maximum file size: 50MB
+                    Tamanho máximo do arquivo: 50MB
                   </p>
                 </div>
               </div>
@@ -232,10 +232,10 @@ export default function DeviceDetail() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                Version History
+                Histórico de Versões
               </CardTitle>
               <CardDescription>
-                Previously deployed models for this device
+                Modelos implantados anteriormente neste dispositivo
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -266,7 +266,7 @@ export default function DeviceDetail() {
                         {index === 0 && (
                           <Badge className="bg-primary/20 text-primary border-primary/30">
                             <Check className="w-3 h-3 mr-1" />
-                            Active
+                            Ativo
                           </Badge>
                         )}
                       </div>
@@ -293,22 +293,22 @@ export default function DeviceDetail() {
           {/* Device Info */}
           <Card className="card-industrial">
             <CardHeader>
-              <CardTitle className="text-base">Device Information</CardTitle>
+              <CardTitle className="text-base">Informações do Dispositivo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Location
+                  Localização
                 </p>
                 <div className="flex items-center gap-2 text-foreground">
                   <MapPin className="w-4 h-4 text-primary" />
-                  {device.location || 'Not specified'}
+                  {device.location || 'Não especificada'}
                 </div>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Last Ping
+                  Último Ping
                 </p>
                 <p className="text-foreground font-mono text-sm">
                   {device.last_ping
@@ -316,13 +316,13 @@ export default function DeviceDetail() {
                         addSuffix: true,
                         locale: ptBR,
                       })
-                    : 'Never'}
+                    : 'Nunca'}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Created
+                  Criado em
                 </p>
                 <p className="text-foreground text-sm">
                   {format(new Date(device.created_at), "dd 'de' MMMM, yyyy", {
@@ -338,10 +338,10 @@ export default function DeviceDetail() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Key className="w-4 h-4 text-primary" />
-                API Key
+                Chave de API
               </CardTitle>
               <CardDescription>
-                Use this key to authenticate device pings
+                Use esta chave para autenticar os pings do dispositivo
               </CardDescription>
             </CardHeader>
             <CardContent>
