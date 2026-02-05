@@ -25,6 +25,32 @@ export interface UserRole {
   role: AppRole;
 }
 
+export interface AvatarColors {
+  shirt: string;
+  pants: string;
+  shoes: string;
+}
+
+export interface AvatarMaterial {
+  metalness: number;
+  roughness: number;
+}
+
+export interface AvatarConfig {
+  colors: AvatarColors;
+  material: AvatarMaterial;
+  textures?: Record<string, string>;
+  animation: string;
+}
+
+export interface DeviceStatusDetails {
+  version?: string;
+  uptime?: number;
+  memory_usage?: number;
+  cpu_usage?: number;
+  last_error?: string;
+}
+
 export interface Device {
   id: string;
   org_id: string;
@@ -34,6 +60,11 @@ export interface Device {
   api_key: string;
   last_ping: string | null;
   current_version_id: string | null;
+  avatar_config: AvatarConfig | null;
+  model_3d_url: string | null;
+  is_speaking: boolean;
+  last_interaction: string | null;
+  status_details: DeviceStatusDetails | null;
   created_at: string;
   updated_at: string;
   // Computed field
@@ -63,4 +94,18 @@ export function getDeviceStatus(lastPing: string | null): DeviceStatus {
   // Online if pinged within last 60 seconds
   if (diffSeconds < 60) return 'online';
   return 'offline';
+}
+
+// Helper to format time ago in PT-BR
+export function formatTimeAgo(date: string | null): string {
+  if (!date) return 'Nunca';
+  
+  const now = Date.now();
+  const time = new Date(date).getTime();
+  const diffSeconds = Math.floor((now - time) / 1000);
+  
+  if (diffSeconds < 60) return `${diffSeconds}s atrás`;
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}min atrás`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h atrás`;
+  return `${Math.floor(diffSeconds / 86400)}d atrás`;
 }
