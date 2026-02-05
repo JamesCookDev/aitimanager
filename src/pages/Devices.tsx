@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { DeviceTable } from '@/components/devices/DeviceTable';
 import { MetricCard } from '@/components/devices/MetricCard';
+import { NewDeviceDialog } from '@/components/devices/NewDeviceDialog';
 import { Device, getDeviceStatus } from '@/types/database';
 import { Cpu, Zap, WifiOff, RefreshCw, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ export default function Devices() {
   const { profile, role } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNewDevice, setShowNewDevice] = useState(false);
 
   const isSuperAdmin = role === 'super_admin';
 
@@ -105,7 +107,7 @@ export default function Devices() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowNewDevice(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Dispositivo
           </Button>
@@ -120,6 +122,12 @@ export default function Devices() {
       </div>
 
       <DeviceTable devices={devices} showOrganization={isSuperAdmin} loading={loading} />
+
+      <NewDeviceDialog
+        open={showNewDevice}
+        onOpenChange={setShowNewDevice}
+        onDeviceCreated={fetchDevices}
+      />
     </div>
   );
 }
