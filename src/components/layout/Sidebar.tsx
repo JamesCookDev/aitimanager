@@ -43,7 +43,7 @@ export function Sidebar() {
       title: 'Configurações',
       icon: Settings,
       path: '/dashboard/settings',
-      showFor: 'all' as const,
+      showFor: 'super_admin' as const,
     },
   ];
 
