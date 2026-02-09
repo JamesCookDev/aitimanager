@@ -18,6 +18,13 @@ export function OrgAdminDashboard() {
     }
   }, [profile?.org_id]);
 
+  // Force re-render every 15s to recalculate online/offline status
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Subscribe to realtime updates
   useEffect(() => {
     if (!profile?.org_id) return;

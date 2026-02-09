@@ -20,6 +20,13 @@ export function SuperAdminDashboard() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Force re-render every 15s to recalculate online/offline status
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, []);
