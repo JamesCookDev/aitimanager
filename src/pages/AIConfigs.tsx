@@ -23,12 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Brain, Plus, Save, Trash2, Pencil, Sparkles, BookOpen, Mic, Bot } from 'lucide-react';
+import { Brain, Plus, Save, Trash2, Pencil, Sparkles, BookOpen, Mic, Bot, Cpu, ShieldAlert } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { Navigate } from 'react-router-dom';
 
 interface AIConfig {
   id: string;
   org_id: string;
+  device_id: string | null;
   name: string;
   system_prompt: string;
   knowledge_base: string;
@@ -40,6 +42,18 @@ interface AIConfig {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface Device {
+  id: string;
+  name: string;
+  org_id: string;
+  location: string | null;
+}
+
+interface Organization {
+  id: string;
+  name: string;
 }
 
 const VOICE_OPTIONS = [
@@ -128,7 +142,7 @@ Estacionamento: 2 horas gratuitas com validação na recepção.`,
   },
 ];
 
-const emptyConfig: Omit<AIConfig, 'id' | 'org_id' | 'created_at' | 'updated_at'> = {
+const emptyForm = {
   name: '',
   system_prompt: '',
   knowledge_base: '',
@@ -138,42 +152,60 @@ const emptyConfig: Omit<AIConfig, 'id' | 'org_id' | 'created_at' | 'updated_at'>
   avatar_name: 'Assistente',
   voice: 'af_bella',
   is_active: true,
+  device_id: '' as string,
+  org_id: '' as string,
 };
 
 export default function AIConfigs() {
   const { profile, role } = useAuth();
   const [configs, setConfigs] = useState<AIConfig[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<AIConfig | null>(null);
-  const [form, setForm] = useState(emptyConfig);
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
   const isSuperAdmin = role === 'super_admin';
 
   useEffect(() => {
-    fetchConfigs();
-  }, []);
+    if (isSuperAdmin) fetchAll();
+  }, [isSuperAdmin]);
 
-  const fetchConfigs = async () => {
+  // Block non-super_admin (after hooks)
+  if (!isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const fetchAll = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('ai_configs')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [configsRes, devicesRes, orgsRes] = await Promise.all([
+      supabase.from('ai_configs').select('*').order('created_at', { ascending: false }),
+      supabase.from('devices').select('id, name, org_id, location').order('name'),
+      supabase.from('organizations').select('id, name').order('name'),
+    ]);
 
-    if (error) {
-      console.error('Erro ao carregar configs:', error);
-      toast.error('Erro ao carregar configurações de IA');
-    } else {
-      setConfigs((data as any[]) || []);
-    }
+    if (configsRes.data) setConfigs(configsRes.data as any[]);
+    if (devicesRes.data) setDevices(devicesRes.data as any[]);
+    if (orgsRes.data) setOrganizations(orgsRes.data as any[]);
     setLoading(false);
   };
 
+  const getOrgName = (orgId: string) => organizations.find(o => o.id === orgId)?.name || orgId;
+  const getDeviceName = (deviceId: string | null) => {
+    if (!deviceId) return null;
+    const d = devices.find(dev => dev.id === deviceId);
+    return d ? `${d.name}${d.location ? ` (${d.location})` : ''}` : deviceId;
+  };
+
+  const filteredDevices = form.org_id
+    ? devices.filter(d => d.org_id === form.org_id)
+    : devices;
+
   const openCreate = () => {
     setEditingConfig(null);
-    setForm({ ...emptyConfig });
+    setForm({ ...emptyForm });
     setDialogOpen(true);
   };
 
@@ -189,6 +221,8 @@ export default function AIConfigs() {
       avatar_name: config.avatar_name,
       voice: config.voice,
       is_active: config.is_active,
+      device_id: config.device_id || '',
+      org_id: config.org_id,
     });
     setDialogOpen(true);
   };
@@ -196,11 +230,7 @@ export default function AIConfigs() {
   const handleTemplateSelect = (templateId: string) => {
     const template = PROMPT_TEMPLATES.find(t => t.id === templateId);
     if (template) {
-      setForm(prev => ({
-        ...prev,
-        system_prompt: template.prompt,
-        knowledge_base: template.knowledge,
-      }));
+      setForm(prev => ({ ...prev, system_prompt: template.prompt, knowledge_base: template.knowledge }));
     }
   };
 
@@ -209,55 +239,42 @@ export default function AIConfigs() {
       toast.error('Nome e System Prompt são obrigatórios');
       return;
     }
+    if (!editingConfig && !form.org_id) {
+      toast.error('Selecione uma organização');
+      return;
+    }
 
     setSaving(true);
     try {
+      const payload: any = {
+        name: form.name,
+        system_prompt: form.system_prompt,
+        knowledge_base: form.knowledge_base,
+        model: form.model,
+        temperature: form.temperature,
+        max_tokens: form.max_tokens,
+        avatar_name: form.avatar_name,
+        voice: form.voice,
+        is_active: form.is_active,
+        device_id: form.device_id || null,
+      };
+
       if (editingConfig) {
         const { error } = await supabase
           .from('ai_configs')
-          .update({
-            name: form.name,
-            system_prompt: form.system_prompt,
-            knowledge_base: form.knowledge_base,
-            model: form.model,
-            temperature: form.temperature,
-            max_tokens: form.max_tokens,
-            avatar_name: form.avatar_name,
-            voice: form.voice,
-            is_active: form.is_active,
-          } as any)
+          .update(payload)
           .eq('id', editingConfig.id);
-
         if (error) throw error;
         toast.success('Configuração atualizada!');
       } else {
-        const orgId = profile?.org_id;
-        if (!orgId) {
-          toast.error('Organização não encontrada');
-          return;
-        }
-
-        const { error } = await supabase
-          .from('ai_configs')
-          .insert({
-            org_id: orgId,
-            name: form.name,
-            system_prompt: form.system_prompt,
-            knowledge_base: form.knowledge_base,
-            model: form.model,
-            temperature: form.temperature,
-            max_tokens: form.max_tokens,
-            avatar_name: form.avatar_name,
-            voice: form.voice,
-            is_active: form.is_active,
-          } as any);
-
+        payload.org_id = form.org_id;
+        const { error } = await supabase.from('ai_configs').insert(payload);
         if (error) throw error;
         toast.success('Configuração criada!');
       }
 
       setDialogOpen(false);
-      fetchConfigs();
+      fetchAll();
     } catch (error) {
       console.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar configuração');
@@ -268,13 +285,12 @@ export default function AIConfigs() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta configuração?')) return;
-
     const { error } = await supabase.from('ai_configs').delete().eq('id', id);
     if (error) {
       toast.error('Erro ao excluir configuração');
     } else {
       toast.success('Configuração excluída');
-      fetchConfigs();
+      fetchAll();
     }
   };
 
@@ -283,12 +299,8 @@ export default function AIConfigs() {
       .from('ai_configs')
       .update({ is_active: !config.is_active } as any)
       .eq('id', config.id);
-
-    if (error) {
-      toast.error('Erro ao alterar status');
-    } else {
-      fetchConfigs();
-    }
+    if (error) toast.error('Erro ao alterar status');
+    else fetchAll();
   };
 
   return (
@@ -301,7 +313,7 @@ export default function AIConfigs() {
             Configurações de IA
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie o system prompt, knowledge base e parâmetros do modelo para seus totens.
+            Gerencie o system prompt, knowledge base e vincule a dispositivos de cada cliente.
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -338,13 +350,19 @@ export default function AIConfigs() {
                       <Bot className="w-4 h-4 text-primary" />
                       {config.name}
                       {config.is_active && (
-                        <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider">
                           Ativa
                         </span>
                       )}
                     </CardTitle>
-                    <CardDescription className="mt-1">
-                      {config.avatar_name} · {config.model} · Temp: {config.temperature}
+                    <CardDescription className="mt-1 space-y-0.5">
+                      <span className="block">{getOrgName(config.org_id)} · {config.model} · Temp: {config.temperature}</span>
+                      {config.device_id && (
+                        <span className="flex items-center gap-1 text-primary/80 text-xs">
+                          <Cpu className="w-3 h-3" />
+                          {getDeviceName(config.device_id)}
+                        </span>
+                      )}
                     </CardDescription>
                   </div>
                   <div className="flex gap-1">
@@ -381,10 +399,7 @@ export default function AIConfigs() {
                     <Mic className="w-3 h-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">{config.voice}</span>
                   </div>
-                  <Switch
-                    checked={config.is_active}
-                    onCheckedChange={() => handleToggleActive(config)}
-                  />
+                  <Switch checked={config.is_active} onCheckedChange={() => handleToggleActive(config)} />
                 </div>
               </CardContent>
             </Card>
@@ -401,7 +416,7 @@ export default function AIConfigs() {
               {editingConfig ? 'Editar Configuração' : 'Nova Configuração de IA'}
             </DialogTitle>
             <DialogDescription>
-              Configure o comportamento da IA, knowledge base e parâmetros do modelo.
+              Configure o comportamento da IA, knowledge base e vincule a um dispositivo.
             </DialogDescription>
           </DialogHeader>
 
@@ -415,6 +430,46 @@ export default function AIConfigs() {
                 onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="Ex: Config Loja Centro"
               />
+            </div>
+
+            {/* Organization selector (only on create) */}
+            {!editingConfig && (
+              <div className="space-y-2">
+                <Label>Organização *</Label>
+                <Select value={form.org_id} onValueChange={(v) => setForm(p => ({ ...p, org_id: v, device_id: '' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a organização do cliente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map(org => (
+                      <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Device selector */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Cpu className="w-4 h-4" /> Vincular a Dispositivo (opcional)
+              </Label>
+              <Select value={form.device_id} onValueChange={(v) => setForm(p => ({ ...p, device_id: v === '_none' ? '' : v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhum dispositivo vinculado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhum (config geral da org)</SelectItem>
+                  {filteredDevices.map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}{d.location ? ` — ${d.location}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Se vinculado, esta config será usada exclusivamente por este dispositivo.
+              </p>
             </div>
 
             {/* Template selector */}

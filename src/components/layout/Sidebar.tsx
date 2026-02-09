@@ -39,7 +39,7 @@ export function Sidebar() {
       title: 'Configurações IA',
       icon: Brain,
       path: '/dashboard/ai-configs',
-      showFor: 'all' as const,
+      showFor: 'super_admin' as const,
     },
     {
       title: 'Organizações',

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           avatar_name: string | null
           created_at: string
+          device_id: string | null
           id: string
           is_active: boolean | null
           knowledge_base: string
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           avatar_name?: string | null
           created_at?: string
+          device_id?: string | null
           id?: string
           is_active?: boolean | null
           knowledge_base?: string
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           avatar_name?: string | null
           created_at?: string
+          device_id?: string | null
           id?: string
           is_active?: boolean | null
           knowledge_base?: string
@@ -61,6 +64,13 @@ export type Database = {
           voice?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_configs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_configs_org_id_fkey"
             columns: ["org_id"]
