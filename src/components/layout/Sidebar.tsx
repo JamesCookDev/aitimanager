@@ -5,6 +5,7 @@ import {
   Server,
   Activity,
   Building2,
+  Users,
   Settings,
   LogOut,
   ChevronLeft,
@@ -40,6 +41,12 @@ export function Sidebar() {
       showFor: 'super_admin' as const,
     },
     {
+      title: 'Usuários',
+      icon: Users,
+      path: '/dashboard/users',
+      showFor: 'super_admin' as const,
+    },
+    {
       title: 'Configurações',
       icon: Settings,
       path: '/dashboard/settings',
@@ -67,7 +74,7 @@ export function Sidebar() {
           {!collapsed && (
             <div className="animate-slide-in-left">
               <h1 className="text-lg font-bold text-foreground tracking-tight">
-                NEXUS<span className="text-primary">.</span>FLEET
+                AITI<span className="text-primary">.</span>MANAGER
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 {isSuperAdmin ? 'Super Admin' : 'Admin da Organização'}
