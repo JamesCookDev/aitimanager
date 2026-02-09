@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     // Buscar e atualizar dispositivo pela API key
     const { data: device, error: fetchError } = await supabase
       .from('devices')
-      .select('id, name, avatar_config, model_3d_url, current_version_id, pending_command')
+      .select('id, name, avatar_config, model_3d_url, current_version_id, pending_command, ai_prompt')
       .eq('api_key', apiKey)
       .single()
 
@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
         name: device.name,
         config: device.avatar_config,
         model_url: modelUrl,
+        ai_prompt: device.ai_prompt || null,
         command: command,
         timestamp: new Date().toISOString()
       }),
