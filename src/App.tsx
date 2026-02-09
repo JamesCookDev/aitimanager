@@ -11,6 +11,7 @@ import Devices from "./pages/Devices";
 import DeviceDetail from "./pages/DeviceDetail";
 import Settings from "./pages/Settings";
 import Organizations from "./pages/Organizations";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="devices/:deviceId" element={<DeviceDetail />} />
               <Route path="settings" element={<Settings />} />
               <Route path="organizations" element={<Organizations />} />
+              <Route path="users" element={<Users />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
