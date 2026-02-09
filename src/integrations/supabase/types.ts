@@ -56,6 +56,7 @@ export type Database = {
         Row: {
           api_key: string
           avatar_config: Json | null
+          command_sent_at: string | null
           created_at: string
           current_version_id: string | null
           description: string | null
@@ -67,12 +68,14 @@ export type Database = {
           model_3d_url: string | null
           name: string
           org_id: string
+          pending_command: string | null
           status_details: Json | null
           updated_at: string
         }
         Insert: {
           api_key?: string
           avatar_config?: Json | null
+          command_sent_at?: string | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
@@ -84,12 +87,14 @@ export type Database = {
           model_3d_url?: string | null
           name: string
           org_id: string
+          pending_command?: string | null
           status_details?: Json | null
           updated_at?: string
         }
         Update: {
           api_key?: string
           avatar_config?: Json | null
+          command_sent_at?: string | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
@@ -101,6 +106,7 @@ export type Database = {
           model_3d_url?: string | null
           name?: string
           org_id?: string
+          pending_command?: string | null
           status_details?: Json | null
           updated_at?: string
         }
