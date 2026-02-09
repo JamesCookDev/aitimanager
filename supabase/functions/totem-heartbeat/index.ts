@@ -74,6 +74,19 @@ Deno.serve(async (req) => {
       console.error('Erro ao atualizar dispositivo:', updateError)
     }
 
+    // Marcar comando como executado no log
+    if (command) {
+      const { error: logError } = await supabase
+        .from('command_logs')
+        .update({ status: 'executed', executed_at: new Date().toISOString() })
+        .eq('device_id', device.id)
+        .eq('status', 'pending')
+
+      if (logError) {
+        console.error('Erro ao atualizar log de comando:', logError)
+      }
+    }
+
     // Buscar versão atual do modelo se existir
     let modelUrl = device.model_3d_url
     if (device.current_version_id) {

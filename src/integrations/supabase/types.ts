@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      command_logs: {
+        Row: {
+          command: string
+          device_id: string
+          executed_at: string | null
+          id: string
+          sent_at: string
+          sent_by: string
+          status: string
+        }
+        Insert: {
+          command: string
+          device_id: string
+          executed_at?: string | null
+          id?: string
+          sent_at?: string
+          sent_by: string
+          status?: string
+        }
+        Update: {
+          command?: string
+          device_id?: string
+          executed_at?: string | null
+          id?: string
+          sent_at?: string
+          sent_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "command_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_versions: {
         Row: {
           created_at: string
