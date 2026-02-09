@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_configs: {
+        Row: {
+          avatar_name: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          knowledge_base: string
+          max_tokens: number | null
+          model: string
+          name: string
+          org_id: string
+          system_prompt: string
+          temperature: number | null
+          updated_at: string
+          voice: string | null
+        }
+        Insert: {
+          avatar_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          knowledge_base?: string
+          max_tokens?: number | null
+          model?: string
+          name?: string
+          org_id: string
+          system_prompt: string
+          temperature?: number | null
+          updated_at?: string
+          voice?: string | null
+        }
+        Update: {
+          avatar_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          knowledge_base?: string
+          max_tokens?: number | null
+          model?: string
+          name?: string
+          org_id?: string
+          system_prompt?: string
+          temperature?: number | null
+          updated_at?: string
+          voice?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_logs: {
         Row: {
           command: string
