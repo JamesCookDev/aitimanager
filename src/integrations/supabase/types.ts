@@ -17,6 +17,7 @@ export type Database = {
       ai_configs: {
         Row: {
           avatar_name: string | null
+          base_url: string | null
           created_at: string
           device_id: string | null
           id: string
@@ -38,6 +39,7 @@ export type Database = {
         }
         Insert: {
           avatar_name?: string | null
+          base_url?: string | null
           created_at?: string
           device_id?: string | null
           id?: string
@@ -59,6 +61,7 @@ export type Database = {
         }
         Update: {
           avatar_name?: string | null
+          base_url?: string | null
           created_at?: string
           device_id?: string | null
           id?: string
