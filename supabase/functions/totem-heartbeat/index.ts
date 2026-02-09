@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     // Buscar e atualizar dispositivo pela API key
     const { data: device, error: fetchError } = await supabase
       .from('devices')
-      .select('id, name, avatar_config, model_3d_url, current_version_id')
+      .select('id, name, avatar_config, model_3d_url, current_version_id, pending_command')
       .eq('api_key', apiKey)
       .single()
 
@@ -54,14 +54,19 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Atualizar last_ping e status
+    // Capturar comando pendente antes de limpar
+    const command = device.pending_command || null
+
+    // Atualizar last_ping, status e limpar comando pendente
     const { error: updateError } = await supabase
       .from('devices')
       .update({ 
         last_ping: new Date().toISOString(),
         is_speaking: isSpeaking,
         status_details: statusDetails,
-        last_interaction: isSpeaking ? new Date().toISOString() : undefined
+        last_interaction: isSpeaking ? new Date().toISOString() : undefined,
+        pending_command: null,
+        command_sent_at: null,
       })
       .eq('id', device.id)
 
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Retornar configurações atuais
+    // Retornar configurações atuais + comando pendente
     return new Response(
       JSON.stringify({
         success: true,
@@ -91,6 +96,7 @@ Deno.serve(async (req) => {
         name: device.name,
         config: device.avatar_config,
         model_url: modelUrl,
+        command: command,
         timestamp: new Date().toISOString()
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

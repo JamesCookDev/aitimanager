@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -7,6 +7,7 @@ import { Device, DeviceVersion, getDeviceStatus } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -20,52 +21,10 @@ import {
   Key,
   RefreshCw,
   Check,
+  Power,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Mock data
-const mockDevice: Device = {
-  id: '1',
-  org_id: '1',
-  name: 'Totem Entrada Principal',
-  description: 'Avatar de recepção - Bloco A',
-  location: 'Entrada Bloco A',
-  api_key: 'rpm_a1b923ee1aff44d18e626b3c4c64bdd8',
-  last_ping: new Date(Date.now() - 15000).toISOString(),
-  current_version_id: 'v1',
-  avatar_config: {
-    colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
-    material: { metalness: 0.1, roughness: 0.8 },
-    animation: 'idle'
-  },
-  model_3d_url: null,
-  is_speaking: false,
-  last_interaction: null,
-  status_details: null,
-  created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-  updated_at: new Date().toISOString(),
-};
-
-const mockVersions: DeviceVersion[] = [
-  {
-    id: 'v1',
-    device_id: '1',
-    model_url: 'https://storage.example.com/models/avatar-v1.glb',
-    version_notes: 'Avatar padrão - Uniforme azul',
-    file_name: 'avatar-v1.glb',
-    file_size: 15728640, // 15MB
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'v2',
-    device_id: '1',
-    model_url: 'https://storage.example.com/models/avatar-natal.glb',
-    version_notes: 'Skin de Natal - Gorro e tema festivo',
-    file_name: 'avatar-natal.glb',
-    file_size: 18874368, // 18MB
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -73,13 +32,102 @@ export default function DeviceDetail() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [device, setDevice] = useState<Device | null>(null);
+  const [versions, setVersions] = useState<DeviceVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [restarting, setRestarting] = useState(false);
 
-  // In real app, fetch device by ID
-  const device = mockDevice;
-  const versions = mockVersions;
-  const status = getDeviceStatus(device.last_ping);
+  // Force re-render every 15s for status recalculation
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch device data
+  useEffect(() => {
+    if (!deviceId) return;
+    fetchDevice();
+    fetchVersions();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`device-detail-${deviceId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'devices',
+        filter: `id=eq.${deviceId}`,
+      }, (payload) => {
+        setDevice(prev => prev ? { ...prev, ...payload.new } as Device : null);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [deviceId]);
+
+  const fetchDevice = async () => {
+    const { data, error } = await supabase
+      .from('devices')
+      .select('*, organization:organizations(*)')
+      .eq('id', deviceId!)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar dispositivo:', error);
+      toast.error('Dispositivo não encontrado');
+      return;
+    }
+
+    setDevice({
+      ...data,
+      avatar_config: (data.avatar_config as unknown as Device['avatar_config']) || null,
+      model_3d_url: data.model_3d_url || null,
+      is_speaking: data.is_speaking || false,
+      last_interaction: data.last_interaction || null,
+      status_details: (data.status_details as unknown as Device['status_details']) || null,
+    } as unknown as Device);
+    setLoading(false);
+  };
+
+  const fetchVersions = async () => {
+    const { data } = await supabase
+      .from('device_versions')
+      .select('*')
+      .eq('device_id', deviceId!)
+      .order('created_at', { ascending: false });
+
+    if (data) setVersions(data as DeviceVersion[]);
+  };
+
+  const handleRestart = async () => {
+    if (!device) return;
+    setRestarting(true);
+
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          pending_command: 'restart',
+          command_sent_at: new Date().toISOString(),
+        } as any)
+        .eq('id', device.id);
+
+      if (error) throw error;
+
+      toast.success('Comando de reinicialização enviado!', {
+        description: 'O totem será reiniciado no próximo heartbeat (até 30s).',
+      });
+    } catch (error) {
+      console.error('Erro ao enviar comando:', error);
+      toast.error('Erro ao enviar comando de reinicialização');
+    } finally {
+      setRestarting(false);
+    }
+  };
 
   const handleCopyApiKey = () => {
+    if (!device) return;
     navigator.clipboard.writeText(device.api_key);
     toast.success('API Key copiada para a área de transferência');
   };
@@ -121,7 +169,6 @@ export default function DeviceDetail() {
     setUploading(true);
     toast.loading('Enviando modelo 3D...', { id: 'upload' });
 
-    // Simulate upload
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     setUploading(false);
@@ -137,6 +184,32 @@ export default function DeviceDetail() {
       handleUpload(file);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-20 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-64" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!device) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Dispositivo não encontrado.</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate('/dashboard')}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+        </Button>
+      </div>
+    );
+  }
+
+  const status = getDeviceStatus(device.last_ping);
 
   return (
     <div className="p-6 space-y-6 industrial-grid min-h-screen">
@@ -173,9 +246,15 @@ export default function DeviceDetail() {
         <Button
           variant="outline"
           className="border-warning text-warning hover:bg-warning/10"
+          onClick={handleRestart}
+          disabled={restarting}
         >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Reiniciar Dispositivo
+          {restarting ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Power className="w-4 h-4 mr-2" />
+          )}
+          {restarting ? 'Enviando...' : 'Reiniciar Dispositivo'}
         </Button>
       </div>
 
@@ -212,15 +291,9 @@ export default function DeviceDetail() {
                   onChange={handleFileInput}
                   disabled={uploading}
                 />
-
                 <div className="text-center">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                    <Upload
-                      className={cn(
-                        'w-8 h-8 text-primary',
-                        uploading && 'animate-pulse'
-                      )}
-                    />
+                    <Upload className={cn('w-8 h-8 text-primary', uploading && 'animate-pulse')} />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     {uploading ? 'Enviando...' : 'Atualizar Modelo 3D'}
@@ -248,6 +321,11 @@ export default function DeviceDetail() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {versions.length === 0 && (
+                <p className="text-muted-foreground text-sm text-center py-4">
+                  Nenhuma versão implantada ainda
+                </p>
+              )}
               {versions.map((version, index) => (
                 <div
                   key={version.id}
@@ -269,9 +347,7 @@ export default function DeviceDetail() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">
-                          {version.file_name}
-                        </p>
+                        <p className="font-medium text-foreground">{version.file_name}</p>
                         {index === 0 && (
                           <Badge className="bg-primary/20 text-primary border-primary/30">
                             <Check className="w-3 h-3 mr-1" />
@@ -279,9 +355,7 @@ export default function DeviceDetail() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {version.version_notes}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{version.version_notes}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(version.created_at), {
                           addSuffix: true,
@@ -306,37 +380,24 @@ export default function DeviceDetail() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Localização
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Localização</p>
                 <div className="flex items-center gap-2 text-foreground">
                   <MapPin className="w-4 h-4 text-primary" />
                   {device.location || 'Não especificada'}
                 </div>
               </div>
-
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Último Ping
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Último Ping</p>
                 <p className="text-foreground font-mono text-sm">
                   {device.last_ping
-                    ? formatDistanceToNow(new Date(device.last_ping), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })
+                    ? formatDistanceToNow(new Date(device.last_ping), { addSuffix: true, locale: ptBR })
                     : 'Nunca'}
                 </p>
               </div>
-
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Criado em
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Criado em</p>
                 <p className="text-foreground text-sm">
-                  {format(new Date(device.created_at), "dd 'de' MMMM, yyyy", {
-                    locale: ptBR,
-                  })}
+                  {format(new Date(device.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                 </p>
               </div>
             </CardContent>
@@ -357,29 +418,13 @@ export default function DeviceDetail() {
               <div className="bg-input rounded-lg p-3 border border-border">
                 <div className="flex items-center justify-between gap-2">
                   <code className="text-xs font-mono text-foreground break-all">
-                    {showApiKey
-                      ? device.api_key
-                      : '••••••••••••••••••••••••••••••••'}
+                    {showApiKey ? device.api_key : '••••••••••••••••••••••••••••••••'}
                   </code>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                    >
-                      {showApiKey ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowApiKey(!showApiKey)}>
+                      {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={handleCopyApiKey}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyApiKey}>
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
