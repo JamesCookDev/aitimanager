@@ -52,12 +52,15 @@ import {
   Users as UsersIcon,
   Plus,
   Trash2,
+  Pencil,
   Loader2,
   Search,
   RefreshCw,
   Shield,
   Building2,
   Mail,
+  Check,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -87,6 +90,12 @@ export default function UsersPage() {
   const [formOrgId, setFormOrgId] = useState('');
   const [formRole, setFormRole] = useState<string>('org_admin');
   const [formLoading, setFormLoading] = useState(false);
+
+  // Inline edit state
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editOrgId, setEditOrgId] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   const isSuperAdmin = role === 'super_admin';
 
@@ -171,6 +180,48 @@ export default function UsersPage() {
       toast.error(error.message || 'Erro ao remover usuário');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const startEditing = (u: UserWithRole) => {
+    setEditingUserId(u.id);
+    setEditOrgId(u.org_id || '');
+    setEditRole(u.role || 'org_admin');
+  };
+
+  const cancelEditing = () => {
+    setEditingUserId(null);
+    setEditOrgId('');
+    setEditRole('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingUserId || !editOrgId || !editRole) {
+      toast.error('Selecione organização e função');
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'update',
+          user_id: editingUserId,
+          org_id: editOrgId,
+          role: editRole,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success('Usuário atualizado!');
+      cancelEditing();
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao atualizar usuário');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -346,56 +397,121 @@ export default function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((u) => (
-                  <TableRow key={u.id} className="border-border">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <UsersIcon className="w-5 h-5 text-primary" />
+                {filteredUsers.map((u) => {
+                  const isEditing = editingUserId === u.id;
+                  const isSelf = u.id === user?.id;
+
+                  return (
+                    <TableRow key={u.id} className="border-border">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <UsersIcon className="w-5 h-5 text-primary" />
+                          </div>
+                          <span className="font-medium text-foreground">
+                            {u.full_name || 'Sem nome'}
+                          </span>
                         </div>
-                        <span className="font-medium text-foreground">
-                          {u.full_name || 'Sem nome'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        {u.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{getOrgName(u.org_id)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.role === 'super_admin' ? 'default' : 'secondary'}>
-                        <Shield className="w-3 h-3 mr-1" />
-                        {u.role === 'super_admin' ? 'Super Admin' : 'Org Admin'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(u.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {u.id !== user?.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            setSelectedUser(u);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          {u.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Select value={editOrgId} onValueChange={setEditOrgId} disabled={editSaving}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {organizations.map((org) => (
+                                <SelectItem key={org.id} value={org.id}>
+                                  {org.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{getOrgName(u.org_id)}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Select value={editRole} onValueChange={setEditRole} disabled={editSaving}>
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="org_admin">Org Admin</SelectItem>
+                              <SelectItem value="super_admin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={u.role === 'super_admin' ? 'default' : 'secondary'}>
+                            <Shield className="w-3 h-3 mr-1" />
+                            {u.role === 'super_admin' ? 'Super Admin' : 'Org Admin'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(u.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                              onClick={handleSaveEdit}
+                              disabled={editSaving}
+                            >
+                              {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelEditing}
+                              disabled={editSaving}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            {!isSelf && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startEditing(u)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
