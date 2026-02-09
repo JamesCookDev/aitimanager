@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from './StatusBadge';
 import { Device, getDeviceStatus } from '@/types/database';
-import { Eye, RotateCcw, MapPin, Building2 } from 'lucide-react';
+import { Eye, RotateCcw, MapPin, Building2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DeviceTableProps {
@@ -96,7 +96,12 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
                 onClick={() => navigate(`/dashboard/devices/${device.id}`)}
               >
                 <TableCell>
-                  <StatusBadge status={status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={status} />
+                    {(device as any).pending_command && (
+                      <Loader2 className="w-3.5 h-3.5 text-warning animate-spin" />
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div>

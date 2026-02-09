@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { CommandHistory } from '@/components/devices/CommandHistory';
+import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -114,6 +116,16 @@ export default function DeviceDetail() {
         .eq('id', device.id);
 
       if (error) throw error;
+
+      // Log the command
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('command_logs').insert({
+          device_id: device.id,
+          command: 'restart',
+          sent_by: user.id,
+        } as any);
+      }
 
       toast.success('Comando de reinicialização enviado!', {
         description: 'O totem será reiniciado no próximo heartbeat (até 30s).',
@@ -236,6 +248,7 @@ export default function DeviceDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">{device.name}</h1>
               <StatusBadge status={status} />
+              <PendingCommandBadge command={(device as any).pending_command} />
             </div>
             <p className="text-muted-foreground text-sm mt-0.5">
               {device.description}
@@ -308,6 +321,9 @@ export default function DeviceDetail() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Command History */}
+          <CommandHistory deviceId={deviceId!} />
 
           {/* Version History */}
           <Card className="card-industrial">
