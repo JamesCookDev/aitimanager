@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
-import { Settings as SettingsIcon, User, Key, Bell, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, User, Key, Bell, Shield, Copy, Check, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,13 +10,63 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export default function Settings() {
-  const { profile, role } = useAuth();
+  const { profile, role, user } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [saving, setSaving] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showAnonKey, setShowAnonKey] = useState(false);
 
   if (role !== 'super_admin') {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+
+  const handleSaveProfile = async () => {
+    if (!fullName.trim()) {
+      toast.error('Nome não pode estar vazio');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName.trim() })
+        .eq('id', user?.id || '');
+      if (error) throw error;
+      toast.success('Perfil atualizado com sucesso!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar perfil');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success('Copiado!');
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const CopyButton = ({ text, field }: { text: string; field: string }) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 shrink-0"
+      onClick={() => copyToClipboard(text, field)}
+    >
+      {copiedField === field ? (
+        <Check className="w-4 h-4 text-green-500" />
+      ) : (
+        <Copy className="w-4 h-4 text-muted-foreground" />
+      )}
+    </Button>
+  );
 
   return (
     <div className="p-6 space-y-6 industrial-grid min-h-screen">
@@ -47,7 +99,12 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome completo</Label>
-              <Input id="name" defaultValue={profile?.full_name || ''} placeholder="Seu nome" />
+              <Input
+                id="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Seu nome"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -57,7 +114,9 @@ export default function Settings() {
               <Label>Função</Label>
               <Input value="Super Admin" disabled />
             </div>
-            <Button>Salvar alterações</Button>
+            <Button onClick={handleSaveProfile} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar alterações'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -68,25 +127,88 @@ export default function Settings() {
               <Key className="w-5 h-5" />
               Chaves de API
             </CardTitle>
-            <CardDescription>Configure as chaves para integração dos totens</CardDescription>
+            <CardDescription>Credenciais para integração dos totens</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
+            {/* API URL */}
             <div className="grid gap-2">
               <Label>URL da API (Edge Functions)</Label>
-              <Input value="https://fxjszxvhzojhmcloajpt.supabase.co/functions/v1" readOnly />
-            </div>
-            <div className="grid gap-2">
-              <Label>Endpoints disponíveis</Label>
-              <div className="space-y-1 text-sm text-muted-foreground font-mono bg-muted/50 p-3 rounded-md">
-                <p>POST /totem-register</p>
-                <p>POST /totem-heartbeat</p>
-                <p>GET  /totem-config</p>
+              <div className="flex items-center gap-2">
+                <Input value={apiUrl} readOnly className="font-mono text-xs" />
+                <CopyButton text={apiUrl} field="api-url" />
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Use a API Key de cada dispositivo no header{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">x-totem-api-key</code>
-            </p>
+
+            {/* Anon Key */}
+            <div className="grid gap-2">
+              <Label>Chave Pública (Anon Key)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={showAnonKey ? anonKey : '•'.repeat(40)}
+                  readOnly
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => setShowAnonKey(!showAnonKey)}
+                >
+                  {showAnonKey ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
+                <CopyButton text={anonKey} field="anon-key" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Esta é a chave pública. Segura para uso no client-side.
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Endpoints */}
+            <div className="grid gap-2">
+              <Label>Endpoints disponíveis</Label>
+              <div className="space-y-2">
+                {[
+                  { method: 'POST', path: '/totem-register', desc: 'Registra um novo totem' },
+                  { method: 'POST', path: '/totem-heartbeat', desc: 'Envia heartbeat do totem' },
+                  { method: 'GET', path: '/totem-config', desc: 'Busca configuração do totem' },
+                ].map((ep) => (
+                  <div
+                    key={ep.path}
+                    className="flex items-center justify-between bg-muted/50 p-3 rounded-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {ep.method}
+                      </Badge>
+                      <code className="text-sm font-mono">{ep.path}</code>
+                    </div>
+                    <span className="text-xs text-muted-foreground hidden sm:block">{ep.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-2">
+              <p className="text-sm font-medium text-foreground">Como autenticar</p>
+              <p className="text-sm text-muted-foreground">
+                Cada dispositivo possui uma <strong>API Key</strong> única gerada automaticamente.
+                Use-a no header da requisição:
+              </p>
+              <code className="block bg-muted px-3 py-2 rounded text-xs font-mono">
+                x-totem-api-key: {'<api_key_do_dispositivo>'}
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                A API Key de cada dispositivo pode ser encontrada na página de detalhes do dispositivo.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

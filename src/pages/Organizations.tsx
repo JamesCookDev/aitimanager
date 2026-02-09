@@ -38,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   Building2,
@@ -46,22 +47,31 @@ import {
   Trash2,
   Loader2,
   Search,
+  Users,
+  Cpu,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
+import { MetricCard } from '@/components/devices/MetricCard';
+
+interface OrgWithCounts extends Organization {
+  deviceCount: number;
+  userCount: number;
+}
 
 export default function Organizations() {
   const { role } = useAuth();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrgWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
-  
+  const [selectedOrg, setSelectedOrg] = useState<OrgWithCounts | null>(null);
+
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -79,13 +89,29 @@ export default function Organizations() {
   const fetchOrganizations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: orgs, error } = await supabase
         .from('organizations')
         .select('*')
         .order('name');
-
       if (error) throw error;
-      setOrganizations(data as Organization[]);
+
+      // Fetch device counts
+      const { data: devices } = await supabase
+        .from('devices')
+        .select('org_id');
+
+      // Fetch user counts
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('org_id');
+
+      const orgsWithCounts: OrgWithCounts[] = (orgs as Organization[]).map((org) => ({
+        ...org,
+        deviceCount: devices?.filter((d) => d.org_id === org.id).length || 0,
+        userCount: profiles?.filter((p) => p.org_id === org.id).length || 0,
+      }));
+
+      setOrganizations(orgsWithCounts);
     } catch (error) {
       console.error('Erro ao buscar organizações:', error);
       toast.error('Erro ao carregar organizações');
@@ -129,11 +155,8 @@ export default function Organizations() {
       setFormSlug('');
       fetchOrganizations();
     } catch (error: any) {
-      console.error('Erro ao criar organização:', error);
       if (error.code === '23505') {
-        toast.error('Slug já existe', {
-          description: 'Escolha um identificador único',
-        });
+        toast.error('Slug já existe', { description: 'Escolha um identificador único' });
       } else {
         toast.error('Erro ao criar organização');
       }
@@ -152,26 +175,20 @@ export default function Organizations() {
     try {
       const { error } = await supabase
         .from('organizations')
-        .update({
-          name: formName.trim(),
-          slug: formSlug.trim(),
-        })
+        .update({ name: formName.trim(), slug: formSlug.trim() })
         .eq('id', selectedOrg.id);
 
       if (error) throw error;
 
-      toast.success('Organização atualizada com sucesso!');
+      toast.success('Organização atualizada!');
       setEditDialogOpen(false);
       setSelectedOrg(null);
       setFormName('');
       setFormSlug('');
       fetchOrganizations();
     } catch (error: any) {
-      console.error('Erro ao atualizar organização:', error);
       if (error.code === '23505') {
-        toast.error('Slug já existe', {
-          description: 'Escolha um identificador único',
-        });
+        toast.error('Slug já existe');
       } else {
         toast.error('Erro ao atualizar organização');
       }
@@ -183,6 +200,14 @@ export default function Organizations() {
   const handleDelete = async () => {
     if (!selectedOrg) return;
 
+    if (selectedOrg.deviceCount > 0) {
+      toast.error('Não é possível excluir', {
+        description: `Esta organização possui ${selectedOrg.deviceCount} dispositivo(s) vinculado(s).`,
+      });
+      setDeleteDialogOpen(false);
+      return;
+    }
+
     setFormLoading(true);
     try {
       const { error } = await supabase
@@ -192,28 +217,27 @@ export default function Organizations() {
 
       if (error) throw error;
 
-      toast.success('Organização excluída com sucesso!');
+      toast.success('Organização excluída!');
       setDeleteDialogOpen(false);
       setSelectedOrg(null);
       fetchOrganizations();
     } catch (error) {
-      console.error('Erro ao excluir organização:', error);
       toast.error('Erro ao excluir organização', {
-        description: 'Verifique se não há dispositivos vinculados',
+        description: 'Verifique se não há dispositivos ou usuários vinculados',
       });
     } finally {
       setFormLoading(false);
     }
   };
 
-  const openEditDialog = (org: Organization) => {
+  const openEditDialog = (org: OrgWithCounts) => {
     setSelectedOrg(org);
     setFormName(org.name);
     setFormSlug(org.slug);
     setEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (org: Organization) => {
+  const openDeleteDialog = (org: OrgWithCounts) => {
     setSelectedOrg(org);
     setDeleteDialogOpen(true);
   };
@@ -223,6 +247,9 @@ export default function Organizations() {
       org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       org.slug.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalDevices = organizations.reduce((sum, org) => sum + org.deviceCount, 0);
+  const totalUsers = organizations.reduce((sum, org) => sum + org.userCount, 0);
 
   if (!isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;
@@ -242,65 +269,74 @@ export default function Organizations() {
           </p>
         </div>
 
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Organização
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova Organização</DialogTitle>
-              <DialogDescription>
-                Adicione uma nova organização ao sistema
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-name">Nome da Organização</Label>
-                <Input
-                  id="create-name"
-                  placeholder="Ex: Porto Futuro"
-                  value={formName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  className="bg-input border-border"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-slug">Identificador (Slug)</Label>
-                <Input
-                  id="create-slug"
-                  placeholder="ex: porto-futuro"
-                  value={formSlug}
-                  onChange={(e) => setFormSlug(e.target.value)}
-                  className="bg-input border-border font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Usado para URLs e identificação única
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setCreateDialogOpen(false)}
-              >
-                Cancelar
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={fetchOrganizations} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Organização
               </Button>
-              <Button onClick={handleCreate} disabled={formLoading}>
-                {formLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Criando...
-                  </>
-                ) : (
-                  'Criar Organização'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Organização</DialogTitle>
+                <DialogDescription>
+                  Adicione uma nova organização ao sistema
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="create-name">Nome da Organização</Label>
+                  <Input
+                    id="create-name"
+                    placeholder="Ex: Porto Futuro"
+                    value={formName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-slug">Identificador (Slug)</Label>
+                  <Input
+                    id="create-slug"
+                    placeholder="ex: porto-futuro"
+                    value={formSlug}
+                    onChange={(e) => setFormSlug(e.target.value)}
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Usado para URLs e identificação única
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate} disabled={formLoading}>
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    'Criar Organização'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MetricCard title="Organizações" value={organizations.length} subtitle="Total cadastradas" icon={Building2} />
+        <MetricCard title="Dispositivos" value={totalDevices} subtitle="Em todas as orgs" icon={Cpu} />
+        <MetricCard title="Usuários" value={totalUsers} subtitle="Vinculados" icon={Users} />
       </div>
 
       {/* Search */}
@@ -312,7 +348,7 @@ export default function Organizations() {
               placeholder="Buscar organizações..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-input border-border"
+              className="pl-10"
             />
           </div>
         </CardContent>
@@ -334,9 +370,7 @@ export default function Organizations() {
             <div className="text-center py-12">
               <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {searchQuery
-                  ? 'Nenhuma organização encontrada'
-                  : 'Nenhuma organização cadastrada'}
+                {searchQuery ? 'Nenhuma organização encontrada' : 'Nenhuma organização cadastrada'}
               </p>
             </div>
           ) : (
@@ -345,6 +379,8 @@ export default function Organizations() {
                 <TableRow className="border-border">
                   <TableHead className="text-muted-foreground">Nome</TableHead>
                   <TableHead className="text-muted-foreground">Slug</TableHead>
+                  <TableHead className="text-muted-foreground text-center">Dispositivos</TableHead>
+                  <TableHead className="text-muted-foreground text-center">Usuários</TableHead>
                   <TableHead className="text-muted-foreground">Criado em</TableHead>
                   <TableHead className="text-muted-foreground text-right">Ações</TableHead>
                 </TableRow>
@@ -357,9 +393,7 @@ export default function Organizations() {
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                           <Building2 className="w-5 h-5 text-primary" />
                         </div>
-                        <span className="font-medium text-foreground">
-                          {org.name}
-                        </span>
+                        <span className="font-medium text-foreground">{org.name}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -367,18 +401,22 @@ export default function Organizations() {
                         {org.slug}
                       </code>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={org.deviceCount > 0 ? 'default' : 'secondary'}>
+                        {org.deviceCount}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={org.userCount > 0 ? 'default' : 'secondary'}>
+                        {org.userCount}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(org.created_at), "dd 'de' MMM, yyyy", {
-                        locale: ptBR,
-                      })}
+                      {format(new Date(org.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(org)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(org)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
                         <Button
@@ -404,34 +442,20 @@ export default function Organizations() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Organização</DialogTitle>
-            <DialogDescription>
-              Atualize as informações da organização
-            </DialogDescription>
+            <DialogDescription>Atualize as informações da organização</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nome da Organização</Label>
-              <Input
-                id="edit-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className="bg-input border-border"
-              />
+              <Input id="edit-name" value={formName} onChange={(e) => setFormName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-slug">Identificador (Slug)</Label>
-              <Input
-                id="edit-slug"
-                value={formSlug}
-                onChange={(e) => setFormSlug(e.target.value)}
-                className="bg-input border-border font-mono"
-              />
+              <Input id="edit-slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} className="font-mono" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleEdit} disabled={formLoading}>
               {formLoading ? (
                 <>
@@ -446,14 +470,18 @@ export default function Organizations() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Organização</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a organização "{selectedOrg?.name}"?
-              Esta ação não pode ser desfeita e todos os dados associados serão perdidos.
+              {selectedOrg && selectedOrg.deviceCount > 0 && (
+                <span className="block mt-2 text-destructive font-medium">
+                  ⚠️ Esta organização possui {selectedOrg.deviceCount} dispositivo(s). Remova-os antes de excluir.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -461,6 +489,7 @@ export default function Organizations() {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={selectedOrg?.deviceCount ? selectedOrg.deviceCount > 0 : false}
             >
               {formLoading ? (
                 <>
