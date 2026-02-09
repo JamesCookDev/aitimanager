@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { Organization } from '@/types/database';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -28,9 +36,33 @@ export function NewDeviceDialog({ open, onOpenChange, onDeviceCreated }: NewDevi
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [orgId, setOrgId] = useState('');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
 
   const isSuperAdmin = role === 'super_admin';
+
+  useEffect(() => {
+    if (open && isSuperAdmin) {
+      fetchOrganizations();
+    }
+  }, [open, isSuperAdmin]);
+
+  const fetchOrganizations = async () => {
+    setLoadingOrgs(true);
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setOrganizations(data as Organization[]);
+    } catch (error) {
+      console.error('Erro ao buscar organizações:', error);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +72,10 @@ export function NewDeviceDialog({ open, onOpenChange, onDeviceCreated }: NewDevi
       return;
     }
 
-    const targetOrgId = isSuperAdmin ? orgId.trim() : profile?.org_id;
+    const targetOrgId = isSuperAdmin ? orgId : profile?.org_id;
 
     if (!targetOrgId) {
-      toast.error('Organização não identificada. Verifique sua conta.');
+      toast.error('Selecione uma organização.');
       return;
     }
 
@@ -124,14 +156,19 @@ export function NewDeviceDialog({ open, onOpenChange, onDeviceCreated }: NewDevi
 
           {isSuperAdmin && (
             <div className="space-y-2">
-              <Label htmlFor="device-org">ID da Organização *</Label>
-              <Input
-                id="device-org"
-                placeholder="UUID da organização"
-                value={orgId}
-                onChange={(e) => setOrgId(e.target.value)}
-                disabled={saving}
-              />
+              <Label>Organização *</Label>
+              <Select value={orgId} onValueChange={setOrgId} disabled={saving || loadingOrgs}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingOrgs ? 'Carregando...' : 'Selecione uma organização'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
