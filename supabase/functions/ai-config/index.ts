@@ -41,15 +41,37 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Buscar configuração ativa da IA para a organização do dispositivo
-    const { data: aiConfig, error: configError } = await supabase
+    // Buscar configuração: primeiro por device_id, depois pela org
+    let aiConfig = null
+    let configError = null
+
+    // 1. Tentar config específica do dispositivo
+    const { data: deviceConfig, error: deviceConfigError } = await supabase
       .from('ai_configs')
       .select('*')
-      .eq('org_id', device.org_id)
+      .eq('device_id', device.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
+
+    if (deviceConfig) {
+      aiConfig = deviceConfig
+    } else {
+      // 2. Fallback: config geral da org (sem device_id)
+      const { data: orgConfig, error: orgConfigError } = await supabase
+        .from('ai_configs')
+        .select('*')
+        .eq('org_id', device.org_id)
+        .is('device_id', null)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      aiConfig = orgConfig
+      configError = orgConfigError
+    }
 
     // Config padrão caso não exista registro na tabela ai_configs
     const defaultConfig = {
