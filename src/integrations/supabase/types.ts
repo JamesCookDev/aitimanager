@@ -92,6 +92,7 @@ export type Database = {
       }
       devices: {
         Row: {
+          ai_prompt: string | null
           api_key: string
           avatar_config: Json | null
           command_sent_at: string | null
@@ -111,6 +112,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_prompt?: string | null
           api_key?: string
           avatar_config?: Json | null
           command_sent_at?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_prompt?: string | null
           api_key?: string
           avatar_config?: Json | null
           command_sent_at?: string | null
