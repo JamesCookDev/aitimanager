@@ -39,6 +39,8 @@ interface AIConfig {
   max_tokens: number;
   avatar_name: string;
   voice: string;
+  tts_url: string | null;
+  stt_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -200,6 +202,8 @@ const emptyForm = {
   max_tokens: 50,
   avatar_name: 'Assistente',
   voice: 'af_bella',
+  tts_url: '',
+  stt_url: '',
   is_active: true,
   device_id: '' as string,
   org_id: '' as string,
@@ -269,6 +273,8 @@ export default function AIConfigs() {
       max_tokens: config.max_tokens,
       avatar_name: config.avatar_name,
       voice: config.voice,
+      tts_url: config.tts_url || '',
+      stt_url: config.stt_url || '',
       is_active: config.is_active,
       device_id: config.device_id || '',
       org_id: config.org_id,
@@ -304,6 +310,8 @@ export default function AIConfigs() {
         max_tokens: form.max_tokens,
         avatar_name: form.avatar_name,
         voice: form.voice,
+        tts_url: form.tts_url || null,
+        stt_url: form.stt_url || null,
         is_active: form.is_active,
         device_id: form.device_id || null,
       };
@@ -641,7 +649,34 @@ export default function AIConfigs() {
               </div>
             </div>
 
-            {/* Active toggle */}
+            {/* TTS / STT URLs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tts_url">URL do TTS (Kokoro)</Label>
+                <Input
+                  id="tts_url"
+                  value={form.tts_url}
+                  onChange={(e) => setForm(p => ({ ...p, tts_url: e.target.value }))}
+                  placeholder="http://localhost:8880/v1/audio/speech"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe vazio para usar o .env local do totem
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stt_url">URL do STT (Whisper)</Label>
+                <Input
+                  id="stt_url"
+                  value={form.stt_url}
+                  onChange={(e) => setForm(p => ({ ...p, stt_url: e.target.value }))}
+                  placeholder="http://localhost:8000/transcribe"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe vazio para usar o .env local do totem
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               <Switch
                 checked={form.is_active}
