@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
       voice: 'af_bella',
       tts_url: null,
       stt_url: null,
+      llm_url: null,
+      tts_speed: 1,
+      tts_model: 'kokoro',
     }
 
     if (configError || !aiConfig) {
@@ -112,6 +115,9 @@ Deno.serve(async (req) => {
           voice: aiConfig.voice || 'af_bella',
           tts_url: aiConfig.tts_url || null,
           stt_url: aiConfig.stt_url || null,
+          llm_url: aiConfig.llm_url || null,
+          tts_speed: aiConfig.tts_speed ?? 1,
+          tts_model: aiConfig.tts_model || 'kokoro',
           updated_at: aiConfig.updated_at,
         },
         source: 'database',
