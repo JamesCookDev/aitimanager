@@ -22,6 +22,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           knowledge_base: string
+          llm_url: string | null
           max_tokens: number | null
           model: string
           name: string
@@ -29,6 +30,8 @@ export type Database = {
           stt_url: string | null
           system_prompt: string
           temperature: number | null
+          tts_model: string | null
+          tts_speed: number | null
           tts_url: string | null
           updated_at: string
           voice: string | null
@@ -40,6 +43,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           knowledge_base?: string
+          llm_url?: string | null
           max_tokens?: number | null
           model?: string
           name?: string
@@ -47,6 +51,8 @@ export type Database = {
           stt_url?: string | null
           system_prompt: string
           temperature?: number | null
+          tts_model?: string | null
+          tts_speed?: number | null
           tts_url?: string | null
           updated_at?: string
           voice?: string | null
@@ -58,6 +64,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           knowledge_base?: string
+          llm_url?: string | null
           max_tokens?: number | null
           model?: string
           name?: string
@@ -65,6 +72,8 @@ export type Database = {
           stt_url?: string | null
           system_prompt?: string
           temperature?: number | null
+          tts_model?: string | null
+          tts_speed?: number | null
           tts_url?: string | null
           updated_at?: string
           voice?: string | null

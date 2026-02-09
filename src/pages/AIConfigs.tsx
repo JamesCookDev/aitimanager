@@ -41,6 +41,9 @@ interface AIConfig {
   voice: string;
   tts_url: string | null;
   stt_url: string | null;
+  llm_url: string | null;
+  tts_speed: number | null;
+  tts_model: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -204,6 +207,9 @@ const emptyForm = {
   voice: 'af_bella',
   tts_url: '',
   stt_url: '',
+  llm_url: '',
+  tts_speed: 1,
+  tts_model: 'kokoro',
   is_active: true,
   device_id: '' as string,
   org_id: '' as string,
@@ -275,6 +281,9 @@ export default function AIConfigs() {
       voice: config.voice,
       tts_url: config.tts_url || '',
       stt_url: config.stt_url || '',
+      llm_url: (config as any).llm_url || '',
+      tts_speed: (config as any).tts_speed ?? 1,
+      tts_model: (config as any).tts_model || 'kokoro',
       is_active: config.is_active,
       device_id: config.device_id || '',
       org_id: config.org_id,
@@ -312,6 +321,9 @@ export default function AIConfigs() {
         voice: form.voice,
         tts_url: form.tts_url || null,
         stt_url: form.stt_url || null,
+        llm_url: form.llm_url || null,
+        tts_speed: form.tts_speed,
+        tts_model: form.tts_model || null,
         is_active: form.is_active,
         device_id: form.device_id || null,
       };
@@ -674,6 +686,43 @@ export default function AIConfigs() {
                 <p className="text-xs text-muted-foreground">
                   Deixe vazio para usar o .env local do totem
                 </p>
+              </div>
+            </div>
+
+            {/* LLM URL + TTS Speed/Model */}
+            <div className="space-y-2">
+              <Label htmlFor="llm_url">URL do LLM (Ollama)</Label>
+              <Input
+                id="llm_url"
+                value={(form as any).llm_url}
+                onChange={(e) => setForm(p => ({ ...p, llm_url: e.target.value }))}
+                placeholder="http://localhost:11434"
+              />
+              <p className="text-xs text-muted-foreground">
+                Deixe vazio para usar o .env local do totem
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Velocidade TTS: {(form as any).tts_speed}</Label>
+                <Slider
+                  value={[(form as any).tts_speed]}
+                  onValueChange={([v]) => setForm(p => ({ ...p, tts_speed: parseFloat(v.toFixed(1)) }))}
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                />
+                <p className="text-xs text-muted-foreground">0.5 = lento · 1 = normal · 2 = rápido</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tts_model">Modelo TTS</Label>
+                <Input
+                  id="tts_model"
+                  value={(form as any).tts_model}
+                  onChange={(e) => setForm(p => ({ ...p, tts_model: e.target.value }))}
+                  placeholder="kokoro"
+                />
               </div>
             </div>
 
