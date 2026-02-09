@@ -82,6 +82,8 @@ Deno.serve(async (req) => {
       max_tokens: 50,
       avatar_name: 'Assistente',
       voice: 'af_bella',
+      tts_url: null,
+      stt_url: null,
     }
 
     if (configError || !aiConfig) {
@@ -108,6 +110,8 @@ Deno.serve(async (req) => {
           max_tokens: aiConfig.max_tokens ?? 50,
           avatar_name: aiConfig.avatar_name || 'Assistente',
           voice: aiConfig.voice || 'af_bella',
+          tts_url: aiConfig.tts_url || null,
+          stt_url: aiConfig.stt_url || null,
           updated_at: aiConfig.updated_at,
         },
         source: 'database',

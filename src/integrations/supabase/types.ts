@@ -26,8 +26,10 @@ export type Database = {
           model: string
           name: string
           org_id: string
+          stt_url: string | null
           system_prompt: string
           temperature: number | null
+          tts_url: string | null
           updated_at: string
           voice: string | null
         }
@@ -42,8 +44,10 @@ export type Database = {
           model?: string
           name?: string
           org_id: string
+          stt_url?: string | null
           system_prompt: string
           temperature?: number | null
+          tts_url?: string | null
           updated_at?: string
           voice?: string | null
         }
@@ -58,8 +62,10 @@ export type Database = {
           model?: string
           name?: string
           org_id?: string
+          stt_url?: string | null
           system_prompt?: string
           temperature?: number | null
+          tts_url?: string | null
           updated_at?: string
           voice?: string | null
         }
