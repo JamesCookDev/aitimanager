@@ -12,6 +12,7 @@ import DeviceDetail from "./pages/DeviceDetail";
 import Settings from "./pages/Settings";
 import Organizations from "./pages/Organizations";
 import Users from "./pages/Users";
+import AIConfigs from "./pages/AIConfigs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="settings" element={<Settings />} />
               <Route path="organizations" element={<Organizations />} />
               <Route path="users" element={<Users />} />
+              <Route path="ai-configs" element={<AIConfigs />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

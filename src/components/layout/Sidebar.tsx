@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Brain,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,12 @@ export function Sidebar() {
       title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens',
       icon: Cpu,
       path: '/dashboard/devices',
+      showFor: 'all' as const,
+    },
+    {
+      title: 'Configurações IA',
+      icon: Brain,
+      path: '/dashboard/ai-configs',
       showFor: 'all' as const,
     },
     {
