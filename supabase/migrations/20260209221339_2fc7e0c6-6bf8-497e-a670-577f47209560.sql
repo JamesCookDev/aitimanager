@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_configs ADD COLUMN base_url text DEFAULT NULL;

@@ -44,6 +44,7 @@ interface AIConfig {
   llm_url: string | null;
   tts_speed: number | null;
   tts_model: string | null;
+  base_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -210,6 +211,7 @@ const emptyForm = {
   llm_url: '',
   tts_speed: 1,
   tts_model: 'kokoro',
+  base_url: '',
   is_active: true,
   device_id: '' as string,
   org_id: '' as string,
@@ -284,6 +286,7 @@ export default function AIConfigs() {
       llm_url: (config as any).llm_url || '',
       tts_speed: (config as any).tts_speed ?? 1,
       tts_model: (config as any).tts_model || 'kokoro',
+      base_url: (config as any).base_url || '',
       is_active: config.is_active,
       device_id: config.device_id || '',
       org_id: config.org_id,
@@ -324,6 +327,7 @@ export default function AIConfigs() {
         llm_url: form.llm_url || null,
         tts_speed: form.tts_speed,
         tts_model: form.tts_model || null,
+        base_url: form.base_url || null,
         is_active: form.is_active,
         device_id: form.device_id || null,
       };
@@ -661,6 +665,24 @@ export default function AIConfigs() {
               </div>
             </div>
 
+            {/* Base URL (Docker network) */}
+            <div className="space-y-2">
+              <Label htmlFor="base_url" className="flex items-center gap-1">
+                🐳 Base URL / Host IP
+              </Label>
+              <Input
+                id="base_url"
+                value={(form as any).base_url}
+                onChange={(e) => setForm(p => ({ ...p, base_url: e.target.value }))}
+                placeholder="http://192.168.1.100 ou http://host.docker.internal"
+              />
+              <p className="text-xs text-muted-foreground">
+                IP ou hostname da máquina que roda os containers Docker (Ollama, Kokoro, Whisper).
+                Se preenchido, os campos de URL abaixo podem usar caminhos relativos.
+                Deixe vazio para usar localhost.
+              </p>
+            </div>
+
             {/* TTS / STT URLs */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -669,10 +691,10 @@ export default function AIConfigs() {
                   id="tts_url"
                   value={form.tts_url}
                   onChange={(e) => setForm(p => ({ ...p, tts_url: e.target.value }))}
-                  placeholder="http://localhost:8880/v1/audio/speech"
+                  placeholder="http://kokoro:8880/v1/audio/speech"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Deixe vazio para usar o .env local do totem
+                  Deixe vazio para derivar do Base URL + porta 8880
                 </p>
               </div>
               <div className="space-y-2">
@@ -681,10 +703,10 @@ export default function AIConfigs() {
                   id="stt_url"
                   value={form.stt_url}
                   onChange={(e) => setForm(p => ({ ...p, stt_url: e.target.value }))}
-                  placeholder="http://localhost:8000/transcribe"
+                  placeholder="http://whisper:9000/asr"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Deixe vazio para usar o .env local do totem
+                  Deixe vazio para derivar do Base URL + porta 9000
                 </p>
               </div>
             </div>
@@ -699,7 +721,7 @@ export default function AIConfigs() {
                 placeholder="http://localhost:11434"
               />
               <p className="text-xs text-muted-foreground">
-                Deixe vazio para usar o .env local do totem
+                Deixe vazio para derivar do Base URL + porta 11434
               </p>
             </div>
 
