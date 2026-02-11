@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Server, Wifi, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import { Wifi, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import logoAitinet from '@/assets/logo-aitinet.png';
 import { toast } from 'sonner';
 import { SocialLogin } from '@/components/auth/SocialLogin';
 
@@ -84,12 +85,10 @@ export default function Auth() {
         {/* Header */}
         <header className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center glow-cyan">
-              <Server className="w-5 h-5 text-primary" />
-            </div>
+            <img src={logoAitinet} alt="AITINET Logo" className="h-12 w-auto" />
             <div>
               <h1 className="text-xl font-bold text-foreground tracking-tight">
-                NEXUS<span className="text-primary">.</span>FLEET
+                AITI<span className="text-primary">.</span>MANAGER
               </h1>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Centro de Comando
@@ -270,7 +269,7 @@ export default function Auth() {
 
             {/* Footer */}
             <p className="text-center text-xs text-muted-foreground mt-6">
-              NEXUS Fleet Command v1.0 • Gerenciamento Seguro de IoT
+              AITI Manager v1.0 • Gerenciamento Seguro de IoT
             </p>
           </div>
         </main>

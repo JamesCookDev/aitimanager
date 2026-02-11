@@ -2,7 +2,6 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import {
-  Server,
   Activity,
   Building2,
   Users,
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import logoAitinet from '@/assets/logo-aitinet.png';
 
 export function Sidebar() {
   const { profile, role, signOut } = useAuth();
@@ -75,9 +75,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-            <Server className="w-5 h-5 text-primary" />
-          </div>
+          <img src={logoAitinet} alt="AITINET" className="h-9 w-auto flex-shrink-0" />
           {!collapsed && (
             <div className="animate-slide-in-left">
               <h1 className="text-lg font-bold text-foreground tracking-tight">
