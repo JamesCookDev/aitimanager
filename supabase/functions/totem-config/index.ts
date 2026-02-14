@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         avatar_position: 'center',
         avatar_scale: 1.5,
         chat_position: 'right',
+        show_chat_menu: true,
         bg_type: 'solid',
         bg_color: '#0f3460',
         bg_gradient: '',
