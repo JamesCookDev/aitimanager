@@ -24,6 +24,8 @@ import {
   Check,
   Power,
   CopyPlus,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +47,8 @@ export default function DeviceDetail() {
   const [loading, setLoading] = useState(true);
   const [restarting, setRestarting] = useState(false);
   const [cloning, setCloning] = useState(false);
+  const [editingField, setEditingField] = useState<'name' | 'description' | 'location' | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // Force re-render every 15s for status recalculation
   const [, setTick] = useState(0);
@@ -172,6 +176,41 @@ export default function DeviceDetail() {
     toast.success('API Key copiada para a área de transferência');
   };
 
+  const startEditing = (field: 'name' | 'description' | 'location') => {
+    if (!device) return;
+    setEditingField(field);
+    setEditValue(
+      field === 'name' ? device.name :
+      field === 'description' ? (device.description || '') :
+      (device.location || '')
+    );
+  };
+
+  const cancelEditing = () => {
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const saveField = async () => {
+    if (!device || !editingField) return;
+    const updateData: Record<string, string> = { [editingField]: editValue.trim() };
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .update(updateData)
+        .eq('id', device.id);
+      if (error) throw error;
+      setDevice(prev => prev ? { ...prev, ...updateData } as Device : null);
+      toast.success('Campo atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar campo:', error);
+      toast.error('Erro ao atualizar campo');
+    } finally {
+      setEditingField(null);
+      setEditValue('');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
@@ -246,11 +285,46 @@ export default function DeviceDetail() {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{device.name}</h1>
+              {editingField === 'name' ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    className="text-2xl font-bold text-foreground bg-transparent border-b-2 border-primary outline-none"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') cancelEditing(); }}
+                    autoFocus
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveField}><Check className="w-4 h-4 text-green-500" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}><X className="w-4 h-4 text-destructive" /></Button>
+                </div>
+              ) : (
+                <h1 className="text-2xl font-bold text-foreground cursor-pointer hover:text-primary transition-colors group flex items-center gap-2" onClick={() => startEditing('name')}>
+                  {device.name}
+                  <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                </h1>
+              )}
               <StatusBadge status={status} />
               <PendingCommandBadge command={(device as any).pending_command} />
             </div>
-            <p className="text-muted-foreground text-sm mt-0.5">{device.description}</p>
+            {editingField === 'description' ? (
+              <div className="flex items-center gap-2 mt-0.5">
+                <input
+                  className="text-sm text-muted-foreground bg-transparent border-b-2 border-primary outline-none flex-1"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') cancelEditing(); }}
+                  autoFocus
+                  placeholder="Descrição do dispositivo"
+                />
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={saveField}><Check className="w-3 h-3 text-green-500" /></Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}><X className="w-3 h-3 text-destructive" /></Button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm mt-0.5 cursor-pointer hover:text-foreground transition-colors group flex items-center gap-1" onClick={() => startEditing('description')}>
+                {device.description || 'Sem descrição'}
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </p>
+            )}
           </div>
         </div>
 
@@ -392,10 +466,27 @@ export default function DeviceDetail() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Localização</p>
-                <div className="flex items-center gap-2 text-foreground text-sm">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  {device.location || 'Não especificada'}
-                </div>
+                {editingField === 'location' ? (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                    <input
+                      className="text-sm text-foreground bg-transparent border-b-2 border-primary outline-none flex-1"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') cancelEditing(); }}
+                      autoFocus
+                      placeholder="Localização"
+                    />
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={saveField}><Check className="w-3 h-3 text-green-500" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}><X className="w-3 h-3 text-destructive" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-foreground text-sm cursor-pointer hover:text-primary transition-colors group" onClick={() => startEditing('location')}>
+                    <MapPin className="w-4 h-4 text-primary" />
+                    {device.location || 'Não especificada'}
+                    <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Último Ping</p>
