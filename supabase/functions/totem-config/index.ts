@@ -69,11 +69,23 @@ Deno.serve(async (req) => {
         avatar_position: 'center',
         avatar_scale: 1.5,
         chat_position: 'right',
+        bg_type: 'solid',
         bg_color: '#0f3460',
+        bg_gradient: '',
+        bg_image: '',
+        show_floor: true,
         floor_color: '#1a1a2e',
+        show_wall: true,
+        show_particles: true,
       },
-      quick_actions: [
-        { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }
+      menu_categories: [
+        {
+          category_title: 'Geral',
+          category_icon: '⚡',
+          buttons: [
+            { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }
+          ]
+        }
       ]
     }
 

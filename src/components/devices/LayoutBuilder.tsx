@@ -4,80 +4,115 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Monitor, Save, User, MessageSquare, Paintbrush, LayoutTemplate } from 'lucide-react';
+import { Monitor, Save, User, MessageSquare, Paintbrush, LayoutTemplate, Image, Layers, Sparkles } from 'lucide-react';
 
 interface LayoutConfig {
   avatar_position: 'left' | 'center' | 'right';
   avatar_scale: number;
   chat_position: 'left' | 'right';
+  bg_type: 'solid' | 'gradient' | 'image';
   bg_color: string;
+  bg_gradient: string;
+  bg_image: string;
+  show_floor: boolean;
   floor_color: string;
+  show_wall: boolean;
+  show_particles: boolean;
 }
 
 const DEFAULT_LAYOUT: LayoutConfig = {
   avatar_position: 'center',
   avatar_scale: 1.5,
   chat_position: 'right',
+  bg_type: 'solid',
   bg_color: '#0f3460',
+  bg_gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
+  bg_image: '',
+  show_floor: true,
   floor_color: '#1a1a2e',
+  show_wall: true,
+  show_particles: true,
 };
 
-const LAYOUT_TEMPLATES: { name: string; icon: string; description: string; layout: LayoutConfig }[] = [
+const LAYOUT_TEMPLATES: { name: string; icon: string; description: string; layout: Partial<LayoutConfig> }[] = [
   {
     name: 'Recepção',
     icon: '🏢',
     description: 'Avatar à esquerda com chat à direita, ideal para lobbies',
-    layout: { avatar_position: 'left', avatar_scale: 1.8, chat_position: 'right', bg_color: '#1a1a2e', floor_color: '#2d2d44' },
+    layout: { avatar_position: 'left', avatar_scale: 1.8, chat_position: 'right', bg_type: 'solid', bg_color: '#1a1a2e', floor_color: '#2d2d44' },
   },
   {
     name: 'Quiosque',
     icon: '🖥️',
     description: 'Avatar centralizado e compacto para totens de autoatendimento',
-    layout: { avatar_position: 'center', avatar_scale: 1.3, chat_position: 'right', bg_color: '#0a192f', floor_color: '#112240' },
+    layout: { avatar_position: 'center', avatar_scale: 1.3, chat_position: 'right', bg_type: 'solid', bg_color: '#0a192f', floor_color: '#112240' },
   },
   {
     name: 'Palco',
     icon: '🎭',
     description: 'Avatar grande e centralizado para apresentações e eventos',
-    layout: { avatar_position: 'center', avatar_scale: 2.2, chat_position: 'right', bg_color: '#0f0f23', floor_color: '#1a1a3e' },
+    layout: { avatar_position: 'center', avatar_scale: 2.2, chat_position: 'right', bg_type: 'gradient', bg_color: '#0f0f23', bg_gradient: 'linear-gradient(135deg, #0f0f23, #1a1a3e)', floor_color: '#1a1a3e' },
   },
   {
     name: 'Loja',
     icon: '🛍️',
     description: 'Avatar à direita com chat à esquerda, perfeito para vitrines',
-    layout: { avatar_position: 'right', avatar_scale: 1.6, chat_position: 'left', bg_color: '#1b2838', floor_color: '#2a3f54' },
+    layout: { avatar_position: 'right', avatar_scale: 1.6, chat_position: 'left', bg_type: 'solid', bg_color: '#1b2838', floor_color: '#2a3f54' },
   },
   {
     name: 'Hospital',
     icon: '🏥',
     description: 'Layout limpo e acolhedor para ambientes de saúde',
-    layout: { avatar_position: 'left', avatar_scale: 1.5, chat_position: 'right', bg_color: '#0d2137', floor_color: '#162d4a' },
+    layout: { avatar_position: 'left', avatar_scale: 1.5, chat_position: 'right', bg_type: 'solid', bg_color: '#0d2137', floor_color: '#162d4a' },
   },
 ];
 
 interface LayoutBuilderProps {
   deviceId: string;
-  initialLayout?: LayoutConfig | null;
+  initialLayout?: Partial<LayoutConfig> | null;
   fullUiConfig?: Record<string, any> | null;
 }
 
 export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutBuilderProps) {
-  const [layout, setLayout] = useState<LayoutConfig>(initialLayout || DEFAULT_LAYOUT);
+  const [layout, setLayout] = useState<LayoutConfig>({ ...DEFAULT_LAYOUT, ...initialLayout });
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [gradColor1, setGradColor1] = useState('#1e3a8a');
+  const [gradColor2, setGradColor2] = useState('#0f172a');
 
   useEffect(() => {
     if (initialLayout) {
-      setLayout(initialLayout);
+      setLayout({ ...DEFAULT_LAYOUT, ...initialLayout });
+      // Parse gradient colors if available
+      if (initialLayout.bg_gradient) {
+        const match = initialLayout.bg_gradient.match(/#[0-9a-fA-F]{6}/g);
+        if (match && match.length >= 2) {
+          setGradColor1(match[0]);
+          setGradColor2(match[1]);
+        }
+      }
     }
   }, [initialLayout]);
 
   const update = <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) => {
     setLayout(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
+  };
+
+  const updateGradient = (c1: string, c2: string) => {
+    setGradColor1(c1);
+    setGradColor2(c2);
+    update('bg_gradient', `linear-gradient(135deg, ${c1}, ${c2})`);
+  };
+
+  const getPreviewBg = (): string => {
+    if (layout.bg_type === 'gradient') return layout.bg_gradient;
+    if (layout.bg_type === 'image' && layout.bg_image) return `url(${layout.bg_image}) center/cover no-repeat`;
+    return layout.bg_color;
   };
 
   const handleSave = async () => {
@@ -113,7 +148,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
               Layout do Cenário
             </CardTitle>
             <CardDescription>
-              Configure a posição do avatar, chat e cores do ambiente 3D
+              Configure a posição do avatar, chat, fundo e elementos 3D
             </CardDescription>
           </div>
           <Button onClick={handleSave} disabled={saving || !hasChanges} size="sm">
@@ -126,19 +161,34 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
         {/* Preview */}
         <div
           className="rounded-xl border border-border overflow-hidden"
-          style={{ background: layout.bg_color }}
+          style={{ background: getPreviewBg() }}
         >
           <div className="relative h-48 flex items-end">
+            {/* Wall indicator */}
+            {!layout.show_wall && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] text-white/30 bg-black/30 px-2 py-1 rounded">Parede oculta</span>
+              </div>
+            )}
+
+            {/* Particles indicator */}
+            {layout.show_particles && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse"
+                    style={{ left: `${15 + i * 15}%`, top: `${20 + (i % 3) * 25}%`, animationDelay: `${i * 0.3}s` }}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Avatar placeholder */}
             <div
               className="absolute bottom-0 flex flex-col items-center"
               style={{
-                left:
-                  layout.avatar_position === 'left'
-                    ? '15%'
-                    : layout.avatar_position === 'center'
-                    ? '50%'
-                    : '85%',
+                left: layout.avatar_position === 'left' ? '15%' : layout.avatar_position === 'center' ? '50%' : '85%',
                 transform: `translateX(-50%) scale(${layout.avatar_scale / 2})`,
                 transformOrigin: 'bottom center',
               }}
@@ -151,9 +201,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
             {/* Chat placeholder */}
             <div
               className="absolute top-4 w-32 h-24 rounded-lg bg-background/20 backdrop-blur-sm border border-white/10 p-2"
-              style={{
-                [layout.chat_position === 'left' ? 'left' : 'right']: '8%',
-              }}
+              style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '8%' }}
             >
               <div className="flex items-center gap-1 mb-1">
                 <MessageSquare className="w-3 h-3 text-white/60" />
@@ -166,10 +214,9 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
             </div>
 
             {/* Floor */}
-            <div
-              className="w-full h-8 rounded-b-xl"
-              style={{ background: layout.floor_color }}
-            />
+            {layout.show_floor && (
+              <div className="w-full h-8 rounded-b-xl" style={{ background: layout.floor_color }} />
+            )}
           </div>
           <p className="text-[10px] text-white/40 text-center py-1.5 uppercase tracking-widest">
             Pré-visualização do cenário
@@ -188,7 +235,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
                 key={tpl.name}
                 type="button"
                 onClick={() => {
-                  setLayout({ ...tpl.layout });
+                  setLayout(prev => ({ ...prev, ...tpl.layout }));
                   setHasChanges(true);
                   toast.info(`Template "${tpl.name}" aplicado`, { description: 'Clique em Salvar para confirmar.' });
                 }}
@@ -266,9 +313,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
         {/* Avatar Scale */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Tamanho do Avatar
-            </Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tamanho do Avatar</Label>
             <span className="text-sm font-mono font-medium text-foreground bg-muted px-2 py-0.5 rounded">
               {layout.avatar_scale.toFixed(1)}
             </span>
@@ -286,47 +331,166 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
           </div>
         </div>
 
-        {/* Colors */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Paintbrush className="w-3.5 h-3.5" />
-              Cor do Fundo (Parede)
-            </Label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={layout.bg_color}
-                onChange={(e) => update('bg_color', e.target.value)}
-                className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
-              />
+        {/* Background Type */}
+        <div className="space-y-4">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Paintbrush className="w-3.5 h-3.5" />
+            Tipo de Fundo
+          </Label>
+          <RadioGroup
+            value={layout.bg_type}
+            onValueChange={(v) => update('bg_type', v as LayoutConfig['bg_type'])}
+            className="flex gap-4"
+          >
+            {[
+              { value: 'solid', label: '🎨 Cor Sólida' },
+              { value: 'gradient', label: '🌈 Gradiente' },
+              { value: 'image', label: '🖼️ Imagem' },
+            ].map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${
+                  layout.bg_type === opt.value
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border bg-muted/30 text-muted-foreground hover:border-border/80'
+                }`}
+              >
+                <RadioGroupItem value={opt.value} />
+                <span className="text-sm font-medium">{opt.label}</span>
+              </label>
+            ))}
+          </RadioGroup>
+
+          {/* Solid Color */}
+          {layout.bg_type === 'solid' && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Cor de Fundo</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={layout.bg_color}
+                  onChange={(e) => update('bg_color', e.target.value)}
+                  className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                />
+                <Input
+                  value={layout.bg_color}
+                  onChange={(e) => update('bg_color', e.target.value)}
+                  placeholder="#0f3460"
+                  className="font-mono text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Gradient */}
+          {layout.bg_type === 'gradient' && (
+            <div className="space-y-3">
+              <Label className="text-xs text-muted-foreground">Cores do Gradiente</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={gradColor1}
+                    onChange={(e) => updateGradient(e.target.value, gradColor2)}
+                    className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                  />
+                  <Input
+                    value={gradColor1}
+                    onChange={(e) => updateGradient(e.target.value, gradColor2)}
+                    placeholder="#1e3a8a"
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={gradColor2}
+                    onChange={(e) => updateGradient(gradColor1, e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                  />
+                  <Input
+                    value={gradColor2}
+                    onChange={(e) => updateGradient(gradColor1, e.target.value)}
+                    placeholder="#0f172a"
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </div>
+              <div className="h-8 rounded-lg border border-border" style={{ background: layout.bg_gradient }} />
+            </div>
+          )}
+
+          {/* Image */}
+          {layout.bg_type === 'image' && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                <Image className="w-3.5 h-3.5" />
+                URL da Imagem de Fundo
+              </Label>
               <Input
-                value={layout.bg_color}
-                onChange={(e) => update('bg_color', e.target.value)}
-                placeholder="#0f3460"
+                value={layout.bg_image}
+                onChange={(e) => update('bg_image', e.target.value)}
+                placeholder="https://exemplo.com/imagem.jpg"
                 className="font-mono text-sm"
               />
+              {layout.bg_image && (
+                <div
+                  className="h-20 rounded-lg border border-border bg-cover bg-center"
+                  style={{ backgroundImage: `url(${layout.bg_image})` }}
+                />
+              )}
             </div>
+          )}
+        </div>
+
+        {/* Floor Color */}
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Paintbrush className="w-3.5 h-3.5" />
+            Cor do Chão
+          </Label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={layout.floor_color}
+              onChange={(e) => update('floor_color', e.target.value)}
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+            />
+            <Input
+              value={layout.floor_color}
+              onChange={(e) => update('floor_color', e.target.value)}
+              placeholder="#1a1a2e"
+              className="font-mono text-sm"
+            />
           </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Paintbrush className="w-3.5 h-3.5" />
-              Cor do Chão
-            </Label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={layout.floor_color}
-                onChange={(e) => update('floor_color', e.target.value)}
-                className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
-              />
-              <Input
-                value={layout.floor_color}
-                onChange={(e) => update('floor_color', e.target.value)}
-                placeholder="#1a1a2e"
-                className="font-mono text-sm"
-              />
-            </div>
+        </div>
+
+        {/* 3D Element Visibility Switches */}
+        <div className="space-y-4">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Layers className="w-3.5 h-3.5" />
+            Visibilidade de Elementos 3D
+          </Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { key: 'show_floor' as const, label: 'Mostrar Chão 3D', icon: '🟫' },
+              { key: 'show_wall' as const, label: 'Mostrar Parede 3D', icon: '🧱' },
+              { key: 'show_particles' as const, label: 'Partículas/Efeitos', icon: '✨' },
+            ].map((item) => (
+              <div
+                key={item.key}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="text-sm font-medium text-foreground">{item.label}</span>
+                </div>
+                <Switch
+                  checked={layout[item.key]}
+                  onCheckedChange={(checked) => update(item.key, checked)}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>

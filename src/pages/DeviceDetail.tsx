@@ -281,7 +281,7 @@ export default function DeviceDetail() {
           <AIPromptEditor deviceId={deviceId!} initialPrompt={(device as any).ai_prompt} />
 
           {/* Menu Builder */}
-          <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config} />
+          <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config || null} />
 
           {/* Layout Builder */}
           <LayoutBuilder
