@@ -29,6 +29,7 @@ import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { MenuBuilder } from '@/components/devices/MenuBuilder';
+import { LayoutBuilder } from '@/components/devices/LayoutBuilder';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -281,6 +282,13 @@ export default function DeviceDetail() {
 
           {/* Menu Builder */}
           <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config} />
+
+          {/* Layout Builder */}
+          <LayoutBuilder
+            deviceId={deviceId!}
+            initialLayout={(device as any).ui_config?.layout || null}
+            fullUiConfig={(device as any).ui_config}
+          />
 
           {/* Upload Zone */}
           <Card className="card-industrial">
