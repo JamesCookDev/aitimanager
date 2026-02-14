@@ -15,6 +15,7 @@ interface LayoutConfig {
   avatar_position: 'left' | 'center' | 'right';
   avatar_scale: number;
   chat_position: 'left' | 'right';
+  show_chat_menu: boolean;
   bg_type: 'solid' | 'gradient' | 'image';
   bg_color: string;
   bg_gradient: string;
@@ -29,6 +30,7 @@ const DEFAULT_LAYOUT: LayoutConfig = {
   avatar_position: 'center',
   avatar_scale: 1.5,
   chat_position: 'right',
+  show_chat_menu: true,
   bg_type: 'solid',
   bg_color: '#0f3460',
   bg_gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
@@ -604,8 +606,9 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
             <Layers className="w-3.5 h-3.5" />
             Visibilidade de Elementos 3D
           </Label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[
+              { key: 'show_chat_menu' as const, label: 'Botão Chat/Menu', icon: '💬' },
               { key: 'show_floor' as const, label: 'Mostrar Chão 3D', icon: '🟫' },
               { key: 'show_wall' as const, label: 'Mostrar Parede 3D', icon: '🧱' },
               { key: 'show_particles' as const, label: 'Partículas/Efeitos', icon: '✨' },
