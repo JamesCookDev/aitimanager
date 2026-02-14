@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Wand2, Eye, Check } from 'lucide-react';
+import { Wand2, Eye, Check, BookmarkPlus, Save, Trash2, Sparkles } from 'lucide-react';
 
 interface QuickAction {
   emoji: string;
@@ -335,9 +337,47 @@ interface EnvironmentPresetsProps {
   onApplied: () => void;
 }
 
+interface CustomEnvTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  description: string | null;
+  config: FullUiConfig;
+}
+
 export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: EnvironmentPresetsProps) {
   const [previewPreset, setPreviewPreset] = useState<EnvironmentPreset | null>(null);
   const [applying, setApplying] = useState(false);
+  const [customTemplates, setCustomTemplates] = useState<CustomEnvTemplate[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newIcon, setNewIcon] = useState('🎯');
+  const [newDesc, setNewDesc] = useState('');
+  const [savingCustom, setSavingCustom] = useState(false);
+
+  const fetchCustomTemplates = useCallback(async () => {
+    const { data } = await supabase
+      .from('layout_templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) {
+      // Filter only full environment templates (those with menu_categories in layout)
+      setCustomTemplates(data
+        .filter((t: any) => t.layout?.menu_categories)
+        .map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          icon: t.icon,
+          description: t.description,
+          config: t.layout as FullUiConfig,
+        }))
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomTemplates();
+  }, [fetchCustomTemplates]);
 
   const handleApply = async (preset: EnvironmentPreset) => {
     setApplying(true);
@@ -367,6 +407,61 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
     }
   };
 
+  const handleSaveCurrentAsTemplate = async () => {
+    if (!newName.trim()) { toast.error('Digite um nome'); return; }
+    if (!currentUiConfig) { toast.error('Nenhuma configuração atual para salvar'); return; }
+    setSavingCustom(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+      const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single();
+      if (!profile?.org_id) throw new Error('Organização não encontrada');
+
+      const { error } = await supabase.from('layout_templates').insert({
+        org_id: profile.org_id,
+        created_by: user.id,
+        name: newName.trim(),
+        icon: newIcon || '🎯',
+        description: newDesc.trim() || null,
+        layout: currentUiConfig as any, // Save full ui_config as the "layout" field
+      } as any);
+
+      if (error) throw error;
+      toast.success(`Ambiente "${newName}" salvo como template!`);
+      setShowSaveDialog(false);
+      setNewName('');
+      setNewIcon('🎯');
+      setNewDesc('');
+      fetchCustomTemplates();
+    } catch (error) {
+      console.error('Erro ao salvar template:', error);
+      toast.error('Erro ao salvar template');
+    } finally {
+      setSavingCustom(false);
+    }
+  };
+
+  const handleDeleteCustomTemplate = async (id: string, name: string) => {
+    const { error } = await supabase.from('layout_templates').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success(`Template "${name}" excluído`);
+    fetchCustomTemplates();
+  };
+
+  const handleApplyCustomTemplate = async (tpl: CustomEnvTemplate) => {
+    setApplying(true);
+    try {
+      const { error } = await supabase.from('devices').update({ ui_config: tpl.config as any }).eq('id', deviceId);
+      if (error) throw error;
+      toast.success(`Ambiente "${tpl.name}" aplicado!`);
+      onApplied();
+    } catch (error) {
+      toast.error('Erro ao aplicar template');
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const getPreviewBg = (layout: LayoutConfig): string => {
     if (layout.bg_type === 'gradient') return layout.bg_gradient;
     if (layout.bg_type === 'image' && layout.bg_image) return `url(${layout.bg_image}) center/cover no-repeat`;
@@ -377,15 +472,23 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
     <>
       <Card className="card-industrial">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-primary" />
-            Ambientes Pré-configurados
-          </CardTitle>
-          <CardDescription>
-            Aplique um ambiente completo com um clique — configura menu, layout e cenário de uma vez
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-primary" />
+                Ambientes Pré-configurados
+              </CardTitle>
+              <CardDescription>
+                Aplique um ambiente completo com um clique — configura menu, layout e cenário de uma vez
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={!currentUiConfig}>
+              <BookmarkPlus className="w-4 h-4 mr-1" />
+              Salvar Ambiente Atual
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {PRESETS.map((preset) => (
               <button
@@ -394,7 +497,6 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                 onClick={() => setPreviewPreset(preset)}
                 className="group relative flex flex-col items-start gap-2 p-4 rounded-xl border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all text-left overflow-hidden"
               >
-                {/* Mini preview background */}
                 <div
                   className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity"
                   style={{ background: getPreviewBg(preset.config.layout) }}
@@ -419,6 +521,38 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
               </button>
             ))}
           </div>
+
+          {/* Custom Templates */}
+          {customTemplates.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                Meus Ambientes Salvos
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {customTemplates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="group relative flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                    onClick={() => handleApplyCustomTemplate(tpl)}
+                  >
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteCustomTemplate(tpl.id, tpl.name); }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <span className="text-2xl">{tpl.icon}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground group-hover:text-primary truncate">{tpl.name}</p>
+                      {tpl.description && <p className="text-[10px] text-muted-foreground truncate">{tpl.description}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -504,6 +638,39 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
             </DialogFooter>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Save Current Environment Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar Ambiente como Template</DialogTitle>
+            <DialogDescription>Salva menu, layout e cenário atuais para reutilizar em outros dispositivos</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Ícone</Label>
+                <Input value={newIcon} onChange={(e) => setNewIcon(e.target.value)} placeholder="🎯" className="text-center text-lg" />
+              </div>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs text-muted-foreground">Nome</Label>
+                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Meu ambiente personalizado" autoFocus />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Descrição (opcional)</Label>
+              <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Breve descrição do ambiente" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancelar</Button>
+            <Button onClick={handleSaveCurrentAsTemplate} disabled={savingCustom}>
+              <Save className="w-4 h-4 mr-2" />
+              {savingCustom ? 'Salvando...' : 'Salvar Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
