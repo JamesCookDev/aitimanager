@@ -193,6 +193,7 @@ export type Database = {
           org_id: string
           pending_command: string | null
           status_details: Json | null
+          ui_config: Json | null
           updated_at: string
         }
         Insert: {
@@ -213,6 +214,7 @@ export type Database = {
           org_id: string
           pending_command?: string | null
           status_details?: Json | null
+          ui_config?: Json | null
           updated_at?: string
         }
         Update: {
@@ -233,6 +235,7 @@ export type Database = {
           org_id?: string
           pending_command?: string | null
           status_details?: Json | null
+          ui_config?: Json | null
           updated_at?: string
         }
         Relationships: [
