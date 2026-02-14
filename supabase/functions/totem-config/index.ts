@@ -65,6 +65,13 @@ Deno.serve(async (req) => {
     const defaultUiConfig = {
       title: 'Assistente Virtual',
       subtitle: 'Como posso ajudar?',
+      layout: {
+        avatar_position: 'center',
+        avatar_scale: 1.5,
+        chat_position: 'right',
+        bg_color: '#0f3460',
+        floor_color: '#1a1a2e',
+      },
       quick_actions: [
         { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }
       ]
