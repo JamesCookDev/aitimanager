@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Monitor, Save, User, MessageSquare, Paintbrush } from 'lucide-react';
+import { Monitor, Save, User, MessageSquare, Paintbrush, LayoutTemplate } from 'lucide-react';
 
 interface LayoutConfig {
   avatar_position: 'left' | 'center' | 'right';
@@ -24,6 +24,39 @@ const DEFAULT_LAYOUT: LayoutConfig = {
   bg_color: '#0f3460',
   floor_color: '#1a1a2e',
 };
+
+const LAYOUT_TEMPLATES: { name: string; icon: string; description: string; layout: LayoutConfig }[] = [
+  {
+    name: 'Recepção',
+    icon: '🏢',
+    description: 'Avatar à esquerda com chat à direita, ideal para lobbies',
+    layout: { avatar_position: 'left', avatar_scale: 1.8, chat_position: 'right', bg_color: '#1a1a2e', floor_color: '#2d2d44' },
+  },
+  {
+    name: 'Quiosque',
+    icon: '🖥️',
+    description: 'Avatar centralizado e compacto para totens de autoatendimento',
+    layout: { avatar_position: 'center', avatar_scale: 1.3, chat_position: 'right', bg_color: '#0a192f', floor_color: '#112240' },
+  },
+  {
+    name: 'Palco',
+    icon: '🎭',
+    description: 'Avatar grande e centralizado para apresentações e eventos',
+    layout: { avatar_position: 'center', avatar_scale: 2.2, chat_position: 'right', bg_color: '#0f0f23', floor_color: '#1a1a3e' },
+  },
+  {
+    name: 'Loja',
+    icon: '🛍️',
+    description: 'Avatar à direita com chat à esquerda, perfeito para vitrines',
+    layout: { avatar_position: 'right', avatar_scale: 1.6, chat_position: 'left', bg_color: '#1b2838', floor_color: '#2a3f54' },
+  },
+  {
+    name: 'Hospital',
+    icon: '🏥',
+    description: 'Layout limpo e acolhedor para ambientes de saúde',
+    layout: { avatar_position: 'left', avatar_scale: 1.5, chat_position: 'right', bg_color: '#0d2137', floor_color: '#162d4a' },
+  },
+];
 
 interface LayoutBuilderProps {
   deviceId: string;
@@ -141,6 +174,32 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
           <p className="text-[10px] text-white/40 text-center py-1.5 uppercase tracking-widest">
             Pré-visualização do cenário
           </p>
+        </div>
+
+        {/* Templates */}
+        <div className="space-y-3">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <LayoutTemplate className="w-3.5 h-3.5" />
+            Templates Pré-configurados
+          </Label>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {LAYOUT_TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.name}
+                type="button"
+                onClick={() => {
+                  setLayout({ ...tpl.layout });
+                  setHasChanges(true);
+                  toast.info(`Template "${tpl.name}" aplicado`, { description: 'Clique em Salvar para confirmar.' });
+                }}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all text-center group"
+              >
+                <span className="text-2xl">{tpl.icon}</span>
+                <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{tpl.name}</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">{tpl.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Avatar Position */}
