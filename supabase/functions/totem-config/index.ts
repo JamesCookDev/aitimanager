@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
         avatar_config, 
         model_3d_url,
         current_version_id,
+        ui_config,
         organization:organizations(name)
       `)
       .eq('api_key', apiKey)
@@ -61,28 +62,40 @@ Deno.serve(async (req) => {
     // Estruturar resposta para o cliente Avatar
     const config = device.avatar_config || {}
     
+    const defaultUiConfig = {
+      title: 'Assistente Virtual',
+      subtitle: 'Como posso ajudar?',
+      quick_actions: [
+        { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }
+      ]
+    }
+
     return new Response(
       JSON.stringify({
-        device_id: device.id,
-        device_name: device.name,
-        organization: device.organization?.name || 'Sem organização',
-        colors: config.colors || {
-          shirt: '#1E3A8A',
-          pants: '#1F2937',
-          shoes: '#000000'
-        },
-        material: config.material || {
-          metalness: 0.1,
-          roughness: 0.8
-        },
-        textures: config.textures || {},
-        animation: config.animation || 'idle',
-        model: modelData ? {
-          url: modelData.model_url,
-          version_notes: modelData.version_notes,
-          file_name: modelData.file_name,
-          updated_at: modelData.created_at
-        } : null
+        success: true,
+        config: {
+          device_id: device.id,
+          device_name: device.name,
+          organization: device.organization?.name || 'Sem organização',
+          colors: config.colors || {
+            shirt: '#1E3A8A',
+            pants: '#1F2937',
+            shoes: '#000000'
+          },
+          material: config.material || {
+            metalness: 0.1,
+            roughness: 0.8
+          },
+          textures: config.textures || {},
+          animation: config.animation || 'idle',
+          model: modelData ? {
+            url: modelData.model_url,
+            version_notes: modelData.version_notes,
+            file_name: modelData.file_name,
+            updated_at: modelData.created_at
+          } : null,
+          ui: device.ui_config || defaultUiConfig
+        }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

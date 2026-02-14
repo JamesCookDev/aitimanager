@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
+import { MenuBuilder } from '@/components/devices/MenuBuilder';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -277,6 +278,9 @@ export default function DeviceDetail() {
         <div className="lg:col-span-2 space-y-6">
           {/* AI Prompt Editor */}
           <AIPromptEditor deviceId={deviceId!} initialPrompt={(device as any).ai_prompt} />
+
+          {/* Menu Builder */}
+          <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config} />
 
           {/* Upload Zone */}
           <Card className="card-industrial">
