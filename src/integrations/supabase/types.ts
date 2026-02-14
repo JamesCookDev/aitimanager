@@ -255,6 +255,47 @@ export type Database = {
           },
         ]
       }
+      layout_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          icon: string
+          id: string
+          layout: Json
+          name: string
+          org_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          icon?: string
+          id?: string
+          layout: Json
+          name: string
+          org_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          layout?: Json
+          name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string

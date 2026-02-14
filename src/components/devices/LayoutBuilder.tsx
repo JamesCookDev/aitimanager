@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Monitor, Save, User, MessageSquare, Paintbrush, LayoutTemplate, Image, Layers, Sparkles } from 'lucide-react';
+import { Monitor, Save, User, MessageSquare, Paintbrush, LayoutTemplate, Image, Layers, Sparkles, Plus, Trash2, BookmarkPlus } from 'lucide-react';
 
 interface LayoutConfig {
   avatar_position: 'left' | 'center' | 'right';
@@ -77,17 +78,50 @@ interface LayoutBuilderProps {
   fullUiConfig?: Record<string, any> | null;
 }
 
+interface CustomTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  description: string | null;
+  layout: LayoutConfig;
+}
+
 export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutBuilderProps) {
   const [layout, setLayout] = useState<LayoutConfig>({ ...DEFAULT_LAYOUT, ...initialLayout });
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [gradColor1, setGradColor1] = useState('#1e3a8a');
   const [gradColor2, setGradColor2] = useState('#0f172a');
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newTplName, setNewTplName] = useState('');
+  const [newTplIcon, setNewTplIcon] = useState('🎨');
+  const [newTplDesc, setNewTplDesc] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const fetchCustomTemplates = useCallback(async () => {
+    const { data } = await supabase
+      .from('layout_templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) {
+      setCustomTemplates(data.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        icon: t.icon,
+        description: t.description,
+        layout: t.layout as LayoutConfig,
+      })));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomTemplates();
+  }, [fetchCustomTemplates]);
 
   useEffect(() => {
     if (initialLayout) {
       setLayout({ ...DEFAULT_LAYOUT, ...initialLayout });
-      // Parse gradient colors if available
       if (initialLayout.bg_gradient) {
         const match = initialLayout.bg_gradient.match(/#[0-9a-fA-F]{6}/g);
         if (match && match.length >= 2) {
@@ -97,6 +131,65 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
       }
     }
   }, [initialLayout]);
+
+  const handleSaveTemplate = async () => {
+    if (!newTplName.trim()) {
+      toast.error('Digite um nome para o template');
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('org_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.org_id) throw new Error('Organização não encontrada');
+
+      const { error } = await supabase
+        .from('layout_templates')
+        .insert({
+          org_id: profile.org_id,
+          created_by: user.id,
+          name: newTplName.trim(),
+          icon: newTplIcon || '🎨',
+          description: newTplDesc.trim() || null,
+          layout: layout as any,
+        } as any);
+
+      if (error) throw error;
+
+      toast.success(`Template "${newTplName}" salvo!`);
+      setShowSaveDialog(false);
+      setNewTplName('');
+      setNewTplIcon('🎨');
+      setNewTplDesc('');
+      fetchCustomTemplates();
+    } catch (error) {
+      console.error('Erro ao salvar template:', error);
+      toast.error('Erro ao salvar template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string, name: string) => {
+    const { error } = await supabase
+      .from('layout_templates')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erro ao excluir template');
+      return;
+    }
+    toast.success(`Template "${name}" excluído`);
+    fetchCustomTemplates();
+  };
 
   const update = <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) => {
     setLayout(prev => ({ ...prev, [key]: value }));
@@ -225,10 +318,16 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
 
         {/* Templates */}
         <div className="space-y-3">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <LayoutTemplate className="w-3.5 h-3.5" />
-            Templates Pré-configurados
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <LayoutTemplate className="w-3.5 h-3.5" />
+              Templates Pré-configurados
+            </Label>
+            <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
+              <BookmarkPlus className="w-4 h-4 mr-1" />
+              Salvar como Template
+            </Button>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {LAYOUT_TEMPLATES.map((tpl) => (
               <button
@@ -247,6 +346,40 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
               </button>
             ))}
           </div>
+
+          {/* Custom Templates */}
+          {customTemplates.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                Meus Templates
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {customTemplates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="relative flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all text-center group cursor-pointer"
+                    onClick={() => {
+                      setLayout(prev => ({ ...prev, ...tpl.layout }));
+                      setHasChanges(true);
+                      toast.info(`Template "${tpl.name}" aplicado`, { description: 'Clique em Salvar para confirmar.' });
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(tpl.id, tpl.name); }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <span className="text-2xl">{tpl.icon}</span>
+                    <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{tpl.name}</span>
+                    {tpl.description && <span className="text-[10px] text-muted-foreground leading-tight">{tpl.description}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Avatar Position */}
@@ -493,6 +626,58 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
             ))}
           </div>
         </div>
+
+        {/* Save Template Dialog */}
+        <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Salvar Layout como Template</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Ícone</Label>
+                  <Input
+                    value={newTplIcon}
+                    onChange={(e) => setNewTplIcon(e.target.value)}
+                    placeholder="🎨"
+                    className="text-center text-lg"
+                  />
+                </div>
+                <div className="col-span-3 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Nome do Template</Label>
+                  <Input
+                    value={newTplName}
+                    onChange={(e) => setNewTplName(e.target.value)}
+                    placeholder="Meu layout personalizado"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Descrição (opcional)</Label>
+                <Input
+                  value={newTplDesc}
+                  onChange={(e) => setNewTplDesc(e.target.value)}
+                  placeholder="Breve descrição do template"
+                />
+              </div>
+              <div
+                className="h-16 rounded-lg border border-border overflow-hidden"
+                style={{ background: getPreviewBg() }}
+              >
+                <p className="text-[9px] text-white/40 text-center pt-1 uppercase tracking-widest">Preview</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancelar</Button>
+              <Button onClick={handleSaveTemplate} disabled={savingTemplate}>
+                <Save className="w-4 h-4 mr-2" />
+                {savingTemplate ? 'Salvando...' : 'Salvar Template'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
