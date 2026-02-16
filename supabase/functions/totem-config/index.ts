@@ -64,20 +64,27 @@ Deno.serve(async (req) => {
     
     const defaultUiConfig = {
       title: 'Assistente Virtual',
-      subtitle: 'Como posso ajudar?',
+      subtitle: 'Totem Interativo',
+      header_icon: '📍',
+      cta_text: 'Como posso ajudar?',
+      cta_icon: '💬',
+      menu_title: 'Escolha uma opção',
+      menu_subtitle: 'Respostas rápidas disponíveis',
       layout: {
         avatar_position: 'center',
         avatar_scale: 1.5,
         chat_position: 'right',
-        show_chat_menu: true,
         bg_type: 'solid',
         bg_color: '#0f3460',
-        bg_gradient: '',
+        bg_gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
         bg_image: '',
         show_floor: true,
         floor_color: '#1a1a2e',
         show_wall: true,
         show_particles: true,
+        show_chat_menu: true,
+        show_header: true,
+        primary_color: '#4ade80',
       },
       menu_categories: [
         {
