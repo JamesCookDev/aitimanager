@@ -11,6 +11,8 @@ interface FullscreenPreviewProps {
 }
 
 export function FullscreenPreview({ open, onOpenChange, config }: FullscreenPreviewProps) {
+  const isVertical = config.canvas.orientation === 'vertical';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 rounded-none bg-black [&>button]:hidden">
@@ -28,8 +30,17 @@ export function FullscreenPreview({ open, onOpenChange, config }: FullscreenPrev
           <span className="text-xs text-white/70 font-medium">Preview em Tela Cheia</span>
         </div>
 
-        <div className="w-full h-full flex items-center justify-center p-8">
-          <TotemCanvas config={config} className="max-h-full max-w-full" />
+        <div className="w-full h-full flex items-center justify-center p-6">
+          <div
+            className="relative"
+            style={{
+              height: '90vh',
+              aspectRatio: isVertical ? '9/16' : '16/9',
+              maxWidth: '95vw',
+            }}
+          >
+            <TotemCanvas config={config} className="w-full h-full" />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

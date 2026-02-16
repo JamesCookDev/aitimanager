@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -24,7 +25,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { ChatInterfaceComponent, MenuCategory, MenuButton } from '@/types/page-builder';
+import type { ChatInterfaceComponent, ChatStyle, MenuCategory, MenuButton } from '@/types/page-builder';
 
 const COLOR_PRESETS = [
   { label: 'Teal / Cyan', value: 'from-teal-400 to-cyan-400' },
@@ -176,6 +177,10 @@ export function ChatInterfaceModule({ chatInterface, onChange }: ChatInterfaceMo
     onChange({ ...chatInterface, ...partial });
   };
 
+  const updateStyle = (partial: Partial<ChatStyle>) => {
+    onChange({ ...chatInterface, style: { ...chatInterface.style, ...partial } });
+  };
+
   const updateHeader = (partial: Partial<ChatInterfaceComponent['header']>) => {
     onChange({ ...chatInterface, header: { ...chatInterface.header, ...partial } });
   };
@@ -235,6 +240,39 @@ export function ChatInterfaceModule({ chatInterface, onChange }: ChatInterfaceMo
                     {opt.label}
                   </button>
                 ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Style (Opacity & Blur) */}
+          <AccordionItem value="style" className="border-b border-border px-1">
+            <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">Estilo Visual</AccordionTrigger>
+            <AccordionContent className="pb-3 space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-muted-foreground">Opacidade</Label>
+                  <span className="text-[10px] text-muted-foreground font-mono">{Math.round((chatInterface.style?.opacity ?? 0.85) * 100)}%</span>
+                </div>
+                <Slider
+                  value={[chatInterface.style?.opacity ?? 0.85]}
+                  onValueChange={([v]) => updateStyle({ opacity: v })}
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-muted-foreground">Blur (Desfoque)</Label>
+                  <span className="text-[10px] text-muted-foreground font-mono">{chatInterface.style?.blur ?? 12}px</span>
+                </div>
+                <Slider
+                  value={[chatInterface.style?.blur ?? 12]}
+                  onValueChange={([v]) => updateStyle({ blur: v })}
+                  min={0}
+                  max={24}
+                  step={1}
+                />
               </div>
             </AccordionContent>
           </AccordionItem>

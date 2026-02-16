@@ -9,6 +9,7 @@ interface TotemCanvasProps {
 export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
   const { canvas, components } = config;
   const isVertical = canvas.orientation === 'vertical';
+  const chatStyle = components.chat_interface.style || { opacity: 0.85, blur: 12 };
 
   const getBackground = (): React.CSSProperties => {
     const bg = canvas.background;
@@ -19,6 +20,27 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
 
   const chatSide = components.chat_interface.position.includes('right') ? 'right' : 'left';
   const chatVertical = components.chat_interface.position.includes('top') ? 'top' : 'bottom';
+
+  const panelStyle: React.CSSProperties = {
+    backgroundColor: `rgba(0, 0, 0, ${chatStyle.opacity * 0.4})`,
+    backdropFilter: `blur(${chatStyle.blur}px)`,
+    WebkitBackdropFilter: `blur(${chatStyle.blur}px)`,
+  };
+
+  // Logo position mapping
+  const logoPositionStyle = (): React.CSSProperties => {
+    const logo = components.logo;
+    if (!logo) return {};
+    const base: React.CSSProperties = { position: 'absolute', zIndex: 20 };
+    switch (logo.position) {
+      case 'top_left': return { ...base, top: '4%', left: '4%' };
+      case 'top_right': return { ...base, top: '4%', right: '4%' };
+      case 'center_top': return { ...base, top: '4%', left: '50%', transform: 'translateX(-50%)' };
+      case 'bottom_left': return { ...base, bottom: '14%', left: '4%' };
+      case 'bottom_right': return { ...base, bottom: '14%', right: '4%' };
+      default: return { ...base, top: '4%', left: '4%' };
+    }
+  };
 
   return (
     <div
@@ -48,6 +70,22 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
         </div>
       )}
 
+      {/* Logo */}
+      {components.logo?.enabled && components.logo.url && (
+        <div style={logoPositionStyle()}>
+          <img
+            src={components.logo.url}
+            alt="Logo"
+            className="object-contain pointer-events-none"
+            style={{
+              height: `${components.logo.scale * 32}px`,
+              maxWidth: '40%',
+            }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+      )}
+
       {/* Avatar */}
       {components.avatar.enabled && (
         <div
@@ -65,11 +103,10 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
           }}
         >
           <div
-            className="w-20 h-28 rounded-xl border-2 border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm relative"
-            style={{ backgroundColor: components.avatar.colors.shirt + '99' }}
+            className="w-20 h-28 rounded-xl border-2 border-white/20 flex items-center justify-center shadow-2xl relative"
+            style={{ backgroundColor: components.avatar.colors.shirt + '99', ...panelStyle }}
           >
             <User className="w-10 h-10 text-white/70" />
-            {/* Animation indicator */}
             {components.avatar.animation === 'talking' && (
               <div className="absolute -top-3 -right-2 text-sm animate-bounce">💬</div>
             )}
@@ -89,7 +126,10 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
 
       {/* Header */}
       {components.chat_interface.enabled && components.chat_interface.header.show && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/40 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+        <div
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full px-4 py-2 border border-white/10"
+          style={panelStyle}
+        >
           <span className="text-base">{components.chat_interface.header.icon}</span>
           <div>
             <p className="text-[10px] font-bold text-white leading-tight">{components.chat_interface.header.title}</p>
@@ -108,7 +148,10 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
           }}
         >
           {/* CTA bubble */}
-          <div className="bg-black/30 backdrop-blur-md rounded-xl border border-white/10 p-3 mb-2">
+          <div
+            className="rounded-xl border border-white/10 p-3 mb-2"
+            style={panelStyle}
+          >
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-sm">{components.chat_interface.menu.cta_icon}</span>
               <span className="text-[9px] text-white/80 font-medium">{components.chat_interface.menu.cta_text}</span>

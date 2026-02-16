@@ -34,6 +34,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'left', scale: 1.7, animation: 'idle', colors: { shirt: '#8B4513', pants: '#1F2937' } },
         chat_interface: {
           enabled: true, position: 'bottom_right',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '🍽️', title: 'Bem-vindo ao Restaurante', subtitle: 'O que gostaria de saber?' },
           menu: {
             cta_icon: '💬', cta_text: 'Posso ajudar?',
@@ -52,6 +53,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
@@ -70,6 +72,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'right', scale: 1.6, animation: 'idle', colors: { shirt: '#1E3A8A', pants: '#1F2937' } },
         chat_interface: {
           enabled: true, position: 'bottom_left',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '🛍️', title: 'Bem-vindo ao Shopping', subtitle: 'Como posso ajudar?' },
           menu: {
             cta_icon: '💬', cta_text: 'Posso ajudar?',
@@ -90,6 +93,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
@@ -108,6 +112,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'left', scale: 1.5, animation: 'idle', colors: { shirt: '#FFFFFF', pants: '#0d2137' } },
         chat_interface: {
           enabled: true, position: 'bottom_right',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '🏥', title: 'Central de Informações', subtitle: 'Estou aqui para orientar' },
           menu: {
             cta_icon: '💬', cta_text: 'Como posso ajudar?',
@@ -124,6 +129,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
@@ -142,6 +148,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'center', scale: 1.8, animation: 'idle', colors: { shirt: '#0f172a', pants: '#1e293b' } },
         chat_interface: {
           enabled: true, position: 'bottom_right',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '🏨', title: 'Concierge Virtual', subtitle: 'Em que posso ser útil?' },
           menu: {
             cta_icon: '💬', cta_text: 'Posso ajudar?',
@@ -158,6 +165,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
@@ -176,6 +184,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'left', scale: 1.6, animation: 'idle', colors: { shirt: '#4A1A8A', pants: '#1F2937' } },
         chat_interface: {
           enabled: true, position: 'bottom_right',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '🏛️', title: 'Guia do Museu', subtitle: 'Descubra nossas exposições' },
           menu: {
             cta_icon: '💬', cta_text: 'Explore!',
@@ -192,6 +201,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
@@ -210,6 +220,7 @@ const PRESETS: EnvironmentPreset[] = [
         avatar: { enabled: true, position: 'center', scale: 1.5, animation: 'idle', colors: { shirt: '#1E3A8A', pants: '#0f172a' } },
         chat_interface: {
           enabled: true, position: 'bottom_right',
+          style: { opacity: 0.85, blur: 12 },
           header: { show: true, icon: '✈️', title: 'Assistente do Aeroporto', subtitle: 'Boa viagem!' },
           menu: {
             cta_icon: '💬', cta_text: 'Posso ajudar?',
@@ -227,6 +238,7 @@ const PRESETS: EnvironmentPreset[] = [
             ],
           },
         },
+        logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
       },
     },
   },
