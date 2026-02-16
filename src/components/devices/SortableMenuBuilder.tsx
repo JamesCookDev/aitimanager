@@ -41,6 +41,11 @@ interface MenuCategory {
 interface UiConfig {
   title: string;
   subtitle: string;
+  header_icon: string;
+  cta_text: string;
+  cta_icon: string;
+  menu_title: string;
+  menu_subtitle: string;
   quick_actions?: QuickAction[];
   menu_categories?: MenuCategory[];
 }
@@ -266,7 +271,12 @@ interface SortableMenuBuilderProps {
 
 export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBuilderProps) {
   const [title, setTitle] = useState(initialConfig?.title || 'Assistente Virtual');
-  const [subtitle, setSubtitle] = useState(initialConfig?.subtitle || 'Como posso ajudar?');
+  const [subtitle, setSubtitle] = useState(initialConfig?.subtitle || 'Totem Interativo');
+  const [headerIcon, setHeaderIcon] = useState(initialConfig?.header_icon || '📍');
+  const [ctaText, setCtaText] = useState(initialConfig?.cta_text || 'Como posso ajudar?');
+  const [ctaIcon, setCtaIcon] = useState(initialConfig?.cta_icon || '💬');
+  const [menuTitle, setMenuTitle] = useState(initialConfig?.menu_title || 'Escolha uma opcao');
+  const [menuSubtitle, setMenuSubtitle] = useState(initialConfig?.menu_subtitle || 'Respostas rapidas disponiveis');
   const [categories, setCategories] = useState<MenuCategory[]>(
     initialConfig?.menu_categories ||
     (initialConfig?.quick_actions?.length
@@ -285,7 +295,12 @@ export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBui
   useEffect(() => {
     if (initialConfig) {
       setTitle(initialConfig.title || 'Assistente Virtual');
-      setSubtitle(initialConfig.subtitle || 'Como posso ajudar?');
+      setSubtitle(initialConfig.subtitle || 'Totem Interativo');
+      setHeaderIcon(initialConfig.header_icon || '📍');
+      setCtaText(initialConfig.cta_text || 'Como posso ajudar?');
+      setCtaIcon(initialConfig.cta_icon || '💬');
+      setMenuTitle(initialConfig.menu_title || 'Escolha uma opcao');
+      setMenuSubtitle(initialConfig.menu_subtitle || 'Respostas rapidas disponiveis');
       if (initialConfig.menu_categories?.length) {
         setCategories(initialConfig.menu_categories);
       } else if (initialConfig.quick_actions?.length) {
@@ -358,7 +373,17 @@ export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBui
     setSaving(true);
     try {
       const existingConfig = initialConfig || {};
-      const newConfig: any = { ...existingConfig, title, subtitle, menu_categories: categories };
+      const newConfig: any = {
+        ...existingConfig,
+        title,
+        subtitle,
+        header_icon: headerIcon,
+        cta_text: ctaText,
+        cta_icon: ctaIcon,
+        menu_title: menuTitle,
+        menu_subtitle: menuSubtitle,
+        menu_categories: categories,
+      };
       delete newConfig.quick_actions;
 
       const { error } = await supabase
@@ -399,8 +424,8 @@ export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBui
         </Button>
       </div>
 
-      {/* Title & Subtitle */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Title, Subtitle & Header */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label className="text-xs uppercase tracking-wider text-muted-foreground">Titulo da Interface</Label>
           <Input
@@ -414,7 +439,55 @@ export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBui
           <Input
             value={subtitle}
             onChange={(e) => { setSubtitle(e.target.value); markChanged(); }}
+            placeholder="Totem Interativo"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Icone do Header</Label>
+          <Input
+            value={headerIcon}
+            onChange={(e) => { setHeaderIcon(e.target.value); markChanged(); }}
+            placeholder="📍"
+            className="text-center text-lg"
+          />
+        </div>
+      </div>
+
+      {/* CTA & Menu Labels */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Texto do CTA</Label>
+          <Input
+            value={ctaText}
+            onChange={(e) => { setCtaText(e.target.value); markChanged(); }}
             placeholder="Como posso ajudar?"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Icone do CTA</Label>
+          <Input
+            value={ctaIcon}
+            onChange={(e) => { setCtaIcon(e.target.value); markChanged(); }}
+            placeholder="💬"
+            className="text-center text-lg"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Titulo do Menu</Label>
+          <Input
+            value={menuTitle}
+            onChange={(e) => { setMenuTitle(e.target.value); markChanged(); }}
+            placeholder="Escolha uma opcao"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Subtitulo do Menu</Label>
+          <Input
+            value={menuSubtitle}
+            onChange={(e) => { setMenuSubtitle(e.target.value); markChanged(); }}
+            placeholder="Respostas rapidas disponiveis"
           />
         </div>
       </div>

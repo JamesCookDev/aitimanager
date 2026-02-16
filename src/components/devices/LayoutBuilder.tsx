@@ -27,6 +27,8 @@ interface LayoutConfig {
   floor_color: string;
   show_wall: boolean;
   show_particles: boolean;
+  show_header: boolean;
+  primary_color: string;
 }
 
 const DEFAULT_LAYOUT: LayoutConfig = {
@@ -42,6 +44,8 @@ const DEFAULT_LAYOUT: LayoutConfig = {
   floor_color: '#1a1a2e',
   show_wall: true,
   show_particles: true,
+  show_header: true,
+  primary_color: '#4ade80',
 };
 
 const LAYOUT_TEMPLATES: { name: string; description: string; layout: Partial<LayoutConfig> }[] = [
@@ -376,6 +380,9 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
 
             {/* Floor color */}
             <ColorPickerPopover color={layout.floor_color} onChange={(c) => update('floor_color', c)} label="Cor do Chao" />
+
+            {/* Primary color */}
+            <ColorPickerPopover color={layout.primary_color || '#4ade80'} onChange={(c) => update('primary_color', c)} label="Cor Primaria (Botoes e Destaques)" />
           </AccordionContent>
         </AccordionItem>
 
@@ -387,6 +394,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
           <AccordionContent className="pb-4">
             <div className="grid grid-cols-2 gap-3">
               {[
+                { key: 'show_header' as const, label: 'Cabecalho (Header)' },
                 { key: 'show_chat_menu' as const, label: 'Botao Chat/Menu' },
                 { key: 'show_floor' as const, label: 'Chao 3D' },
                 { key: 'show_wall' as const, label: 'Parede 3D' },
@@ -436,7 +444,12 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
         onOpenChange={setShowFullscreen}
         layout={layout}
         title={fullUiConfig?.title || 'Assistente Virtual'}
-        subtitle={fullUiConfig?.subtitle || 'Como posso ajudar?'}
+        subtitle={fullUiConfig?.subtitle || 'Totem Interativo'}
+        headerIcon={fullUiConfig?.header_icon || '📍'}
+        ctaText={fullUiConfig?.cta_text || 'Como posso ajudar?'}
+        ctaIcon={fullUiConfig?.cta_icon || '💬'}
+        menuTitle={fullUiConfig?.menu_title || 'Escolha uma opcao'}
+        menuSubtitle={fullUiConfig?.menu_subtitle || 'Respostas rapidas disponiveis'}
         categories={menuCategories}
       />
     </div>

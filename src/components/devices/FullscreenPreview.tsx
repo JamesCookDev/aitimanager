@@ -15,6 +15,8 @@ interface LayoutConfig {
   floor_color: string;
   show_wall: boolean;
   show_particles: boolean;
+  show_header: boolean;
+  primary_color: string;
 }
 
 interface MenuCategory {
@@ -29,10 +31,15 @@ interface FullscreenPreviewProps {
   layout: LayoutConfig;
   title: string;
   subtitle: string;
+  headerIcon: string;
+  ctaText: string;
+  ctaIcon: string;
+  menuTitle: string;
+  menuSubtitle: string;
   categories: MenuCategory[];
 }
 
-export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle, categories }: FullscreenPreviewProps) {
+export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle, headerIcon, ctaText, ctaIcon, menuTitle, menuSubtitle, categories }: FullscreenPreviewProps) {
   const getPreviewBg = (): string => {
     if (layout.bg_type === 'gradient') return layout.bg_gradient;
     if (layout.bg_type === 'image' && layout.bg_image) return `url(${layout.bg_image}) center/cover no-repeat`;
@@ -101,25 +108,30 @@ export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle,
             </div>
           </div>
 
-          {/* Chat panel */}
+          {/* Header */}
+          {layout.show_header !== false && (
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/30 backdrop-blur-md rounded-full px-5 py-2.5 border border-white/10">
+              <span className="text-lg">{headerIcon || '📍'}</span>
+              <div>
+                <h3 className="text-sm font-bold text-white leading-tight">{title || 'Assistente Virtual'}</h3>
+                <p className="text-xs text-white/60">{subtitle || 'Totem Interativo'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
           <div
-            className="absolute top-8 w-80 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 p-6 transition-all duration-500"
+            className="absolute top-24 w-80 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 p-6 transition-all duration-500"
             style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '5%' }}
           >
             <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-4 h-4 text-white/60" />
-              <span className="text-sm text-white/60 font-medium">Chat</span>
+              <span className="text-lg">{ctaIcon || '💬'}</span>
+              <span className="text-sm text-white/80 font-medium">{ctaText || 'Como posso ajudar?'}</span>
             </div>
-            <div className="space-y-3">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-white">{title || 'Assistente Virtual'}</h3>
-                <p className="text-sm text-white/60">{subtitle || 'Como posso ajudar?'}</p>
-              </div>
-              <div className="space-y-2">
-                <div className="h-2 w-4/5 rounded-full bg-white/15" />
-                <div className="h-2 w-3/5 rounded-full bg-white/10" />
-                <div className="h-2 w-2/3 rounded-full bg-white/8" />
-              </div>
+            <div className="space-y-2">
+              <div className="h-2 w-4/5 rounded-full bg-white/15" />
+              <div className="h-2 w-3/5 rounded-full bg-white/10" />
+              <div className="h-2 w-2/3 rounded-full bg-white/8" />
             </div>
           </div>
 
@@ -129,6 +141,12 @@ export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle,
               className="absolute bottom-32 w-96 transition-all duration-500"
               style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '5%' }}
             >
+              {menuTitle && (
+                <div className="mb-3">
+                  <p className="text-sm font-bold text-white/80">{menuTitle}</p>
+                  {menuSubtitle && <p className="text-xs text-white/50">{menuSubtitle}</p>}
+                </div>
+              )}
               {categories.map((cat, ci) => (
                 <div key={ci} className="mb-4">
                   <p className="text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
