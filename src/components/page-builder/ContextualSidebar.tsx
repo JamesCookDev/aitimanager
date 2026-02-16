@@ -972,9 +972,9 @@ export function ContextualSidebar({ config, selectedElement, onChange, onSelectE
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1">
-        <div className="p-3">{renderContent()}</div>
+    <div className="h-full flex flex-col overflow-hidden">
+      <ScrollArea className="flex-1 h-0">
+        <div className="p-3 pb-6">{renderContent()}</div>
       </ScrollArea>
     </div>
   );
