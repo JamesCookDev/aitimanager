@@ -63,6 +63,50 @@ function SortableButton({ btn, idx, onRemove, onUpdate }: {
   );
 }
 
+// ── Sortable Layer Item ─────────────────────────────────────────────
+function SortableLayerItem({ layer, layerTypeIcons, layerTypeLabels, selected, onSelect, onToggleVisible, onRemove }: {
+  layer: Layer;
+  layerTypeIcons: Record<string, typeof ImageIcon>;
+  layerTypeLabels: Record<string, string>;
+  selected: boolean;
+  onSelect: () => void;
+  onToggleVisible: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: layer.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const Icon = layerTypeIcons[layer.type] || Square;
+
+  return (
+    <div ref={setNodeRef} style={style}
+      className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer group ${selected ? 'border-primary bg-primary/5' : 'border-border bg-muted/30 hover:border-primary/40'}`}
+      onClick={onSelect}
+    >
+      <div className="flex items-center gap-2">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-muted" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
+        </div>
+        <div className="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
+          <Icon className="w-3 h-3 text-accent-foreground" />
+        </div>
+        <div>
+          <span className="text-xs font-medium text-foreground">{layer.label}</span>
+          <p className="text-[10px] text-muted-foreground">{layerTypeLabels[layer.type]} • {layer.visible ? 'Visível' : 'Oculto'}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onToggleVisible(); }}>
+          {layer.visible ? <Eye className="w-3 h-3 text-muted-foreground" /> : <EyeOff className="w-3 h-3 text-muted-foreground" />}
+        </Button>
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+          <Trash2 className="w-3 h-3" />
+        </Button>
+        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary" />
+      </div>
+    </div>
+  );
+}
+
 // ── Sortable Category ───────────────────────────────────────────────
 function SortableCat({ cat, idx, expanded, onToggle, onRemove, onUpdateField, onAddButton, onRemoveButton, onUpdateButton, onReorderButtons }: {
   cat: MenuCategory; idx: number; expanded: boolean;
@@ -676,36 +720,37 @@ export function ContextualSidebar({ config, selectedElement, onChange, onSelectE
 
               {/* Existing layers */}
               {layers.length > 0 && (
-                <div className="space-y-1.5">
-                  {layers.map((layer) => {
-                    const Icon = layerTypeIcons[layer.type] || Square;
-                    return (
-                      <div key={layer.id}
-                        className="flex items-center justify-between p-2 rounded-lg border border-border bg-muted/30 hover:border-primary/40 transition-all cursor-pointer group"
-                        onClick={() => onSelectElement?.(layer.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
-                            <Icon className="w-3 h-3 text-accent-foreground" />
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-foreground">{layer.label}</span>
-                            <p className="text-[10px] text-muted-foreground">{layerTypeLabels[layer.type]} • {layer.visible ? 'Visível' : 'Oculto'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateLayer(layer.id, { visible: !layer.visible }); }}>
-                            {layer.visible ? <Eye className="w-3 h-3 text-muted-foreground" /> : <EyeOff className="w-3 h-3 text-muted-foreground" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); removeLayer(layer.id); }}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary" />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <DndContext
+                  sensors={catSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => {
+                    const { active, over } = e;
+                    if (over && active.id !== over.id) {
+                      const oldIndex = layers.findIndex(l => l.id === active.id);
+                      const newIndex = layers.findIndex(l => l.id === over.id);
+                      if (oldIndex !== -1 && newIndex !== -1) {
+                        updateLayers(arrayMove(layers, oldIndex, newIndex));
+                      }
+                    }
+                  }}
+                >
+                  <SortableContext items={layers.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-1.5">
+                      {layers.map((layer) => (
+                        <SortableLayerItem
+                          key={layer.id}
+                          layer={layer}
+                          layerTypeIcons={layerTypeIcons}
+                          layerTypeLabels={layerTypeLabels}
+                          selected={selectedElement === layer.id}
+                          onSelect={() => onSelectElement?.(layer.id)}
+                          onToggleVisible={() => updateLayer(layer.id, { visible: !layer.visible })}
+                          onRemove={() => removeLayer(layer.id)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               )}
 
               {/* Add layer buttons */}
