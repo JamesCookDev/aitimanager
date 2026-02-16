@@ -265,8 +265,12 @@ export function TotemCanvas({
       {/* Header */}
       {components.chat_interface.enabled && components.chat_interface.header.show && (
         <div
-          className={`absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full px-4 py-2 border border-white/10 transition-all ${selRing('chat')} ${interactive ? 'cursor-grab active:cursor-grabbing' : ''}`}
-          style={panelStyle}
+          className={`absolute z-10 flex items-center gap-2 rounded-full px-4 py-2 border border-white/10 transition-all ${selRing('chat')} ${interactive ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          style={{
+            ...panelStyle,
+            [chatVertical]: chatVertical === 'top' ? '3%' : '3%',
+            [chatSide]: '4%',
+          }}
           onClick={(e) => handleClick('chat', e)}
           onMouseDown={(e) => startDrag('chat', e)}
         >
