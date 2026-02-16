@@ -24,8 +24,8 @@ import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
-import { TotemCanvas } from '@/components/page-builder/TotemCanvas';
-import { PageBuilderSidebar } from '@/components/page-builder/PageBuilderSidebar';
+import { TotemCanvas, type CanvasSelection } from '@/components/page-builder/TotemCanvas';
+import { ContextualSidebar } from '@/components/page-builder/ContextualSidebar';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -46,6 +46,7 @@ export default function DeviceDetail() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('builder');
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<CanvasSelection>(null);
 
   // Force re-render every 15s for status
   const [, setTick] = useState(0);
@@ -325,17 +326,12 @@ export default function DeviceDetail() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4 items-start">
-            {/* Sidebar - Controls */}
-            <div className="rounded-xl border border-border bg-card p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-12rem)] lg:overflow-hidden flex flex-col">
-              <PageBuilderSidebar config={builderConfig} onChange={handleBuilderChange} />
-            </div>
-
-            {/* Canvas - Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start" style={{ minHeight: 'calc(100vh - 14rem)' }}>
+            {/* Canvas - Preview (70%) */}
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center justify-between w-full px-2">
                 <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   Preview em Tempo Real
                 </div>
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowFullscreen(true)}>
@@ -344,10 +340,26 @@ export default function DeviceDetail() {
               </div>
               <div className={cn(
                 'w-full flex justify-center',
-                builderConfig.canvas.orientation === 'vertical' ? 'max-w-[400px] mx-auto' : 'max-w-full',
+                builderConfig.canvas.orientation === 'vertical' ? 'max-w-[450px] mx-auto' : 'max-w-full',
               )}>
-                <TotemCanvas config={builderConfig} className="w-full" />
+                <TotemCanvas
+                  config={builderConfig}
+                  className="w-full"
+                  interactive
+                  selectedElement={selectedElement}
+                  onSelectElement={setSelectedElement}
+                  onUpdateConfig={handleBuilderChange}
+                />
               </div>
+            </div>
+
+            {/* Contextual Sidebar (30%) */}
+            <div className="rounded-xl border border-border bg-card lg:sticky lg:top-4 lg:max-h-[calc(100vh-14rem)] lg:overflow-hidden flex flex-col">
+              <ContextualSidebar
+                config={builderConfig}
+                selectedElement={selectedElement}
+                onChange={handleBuilderChange}
+              />
             </div>
           </div>
 
