@@ -375,7 +375,7 @@ export default function DeviceDetail() {
               </TabsTrigger>
               <TabsTrigger value="visual" className="flex items-center gap-1.5">
                 <Palette className="w-4 h-4" />
-                Identidade Visual
+                Prompt de IA
               </TabsTrigger>
               <TabsTrigger value="interacoes" className="flex items-center gap-1.5">
                 <MousePointerClick className="w-4 h-4" />

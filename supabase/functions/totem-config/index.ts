@@ -97,6 +97,23 @@ Deno.serve(async (req) => {
       ]
     }
 
+    // Merge stored config with defaults to guarantee all contract fields
+    const storedUi = device.ui_config || {}
+    const mergedUi = {
+      title: storedUi.title || defaultUiConfig.title,
+      subtitle: storedUi.subtitle || defaultUiConfig.subtitle,
+      header_icon: storedUi.header_icon || defaultUiConfig.header_icon,
+      cta_text: storedUi.cta_text || defaultUiConfig.cta_text,
+      cta_icon: storedUi.cta_icon || defaultUiConfig.cta_icon,
+      menu_title: storedUi.menu_title || defaultUiConfig.menu_title,
+      menu_subtitle: storedUi.menu_subtitle || defaultUiConfig.menu_subtitle,
+      layout: {
+        ...defaultUiConfig.layout,
+        ...(storedUi.layout || {}),
+      },
+      menu_categories: storedUi.menu_categories || defaultUiConfig.menu_categories,
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -121,7 +138,7 @@ Deno.serve(async (req) => {
             file_name: modelData.file_name,
             updated_at: modelData.created_at
           } : null,
-          ui: device.ui_config || defaultUiConfig
+          ui: mergedUi
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
