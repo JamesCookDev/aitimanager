@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { X, Maximize2, User, MessageSquare } from 'lucide-react';
 
 interface LayoutConfig {
+  layout_style: 'fullscreen' | 'split' | 'box';
   avatar_position: 'left' | 'center' | 'right';
   avatar_scale: number;
   chat_position: 'left' | 'right';

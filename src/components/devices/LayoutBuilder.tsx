@@ -15,6 +15,7 @@ import { UnsplashImagePicker } from './UnsplashImagePicker';
 import { FullscreenPreview } from './FullscreenPreview';
 
 interface LayoutConfig {
+  layout_style: 'fullscreen' | 'split' | 'box';
   avatar_position: 'left' | 'center' | 'right';
   avatar_scale: number;
   chat_position: 'left' | 'right';
@@ -32,6 +33,7 @@ interface LayoutConfig {
 }
 
 const DEFAULT_LAYOUT: LayoutConfig = {
+  layout_style: 'fullscreen',
   avatar_position: 'center',
   avatar_scale: 1.5,
   chat_position: 'right',
@@ -241,6 +243,33 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
               <span className="text-[9px] text-white/20">Chao oculto</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Layout Style Selector */}
+      <div className="space-y-3">
+        <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Estilo da Tela</Label>
+        <div className="grid grid-cols-3 gap-3">
+          {([
+            { value: 'fullscreen' as const, label: 'Tela Cheia', desc: 'Avatar e chat ocupam a tela inteira', icon: '🖥️' },
+            { value: 'split' as const, label: 'Tela Dividida', desc: 'Avatar de um lado, chat do outro', icon: '📐' },
+            { value: 'box' as const, label: 'Avatar em Janela', desc: 'Avatar em uma caixa flutuante (PiP)', icon: '🪟' },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update('layout_style', opt.value)}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center ${
+                layout.layout_style === opt.value
+                  ? 'border-primary bg-primary/10 shadow-md'
+                  : 'border-border bg-muted/30 hover:border-primary/40 hover:bg-primary/5'
+              }`}
+            >
+              <span className="text-2xl">{opt.icon}</span>
+              <span className="text-sm font-semibold text-foreground">{opt.label}</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</span>
+            </button>
+          ))}
         </div>
       </div>
 
