@@ -170,7 +170,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
   const menuCategories = fullUiConfig?.menu_categories || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-xl border border-border bg-card p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
