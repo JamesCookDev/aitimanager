@@ -369,7 +369,21 @@ export function SortableMenuBuilder({ deviceId, initialConfig }: SortableMenuBui
     markChanged();
   };
 
+  const validateFields = (): string | null => {
+    if (!title.trim()) return 'O campo "Titulo da Interface" e obrigatorio.';
+    if (!subtitle.trim()) return 'O campo "Subtitulo" e obrigatorio.';
+    if (!ctaText.trim()) return 'O campo "Texto do CTA" e obrigatorio.';
+    if (!menuTitle.trim()) return 'O campo "Titulo do Menu" e obrigatorio.';
+    return null;
+  };
+
   const handleSave = async () => {
+    const validationError = validateFields();
+    if (validationError) {
+      toast.error('Campos obrigatorios', { description: validationError });
+      return;
+    }
+
     setSaving(true);
     try {
       const existingConfig = initialConfig || {};
