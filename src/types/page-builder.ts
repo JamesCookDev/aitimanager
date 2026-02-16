@@ -79,10 +79,27 @@ export interface LogoComponent {
   scale: number;  // 0.5-3
 }
 
+export interface TextBannerItem {
+  id: string;
+  text: string;
+  position: 'top_left' | 'top_center' | 'top_right' | 'center' | 'bottom_left' | 'bottom_center' | 'bottom_right';
+  fontSize: 'sm' | 'md' | 'lg' | 'xl';
+  color: string;
+  bgColor: string;
+  bgEnabled: boolean;
+  bold: boolean;
+}
+
+export interface TextBannerComponent {
+  enabled: boolean;
+  items: TextBannerItem[];
+}
+
 export interface PageBuilderComponents {
   avatar: AvatarComponent;
   chat_interface: ChatInterfaceComponent;
   logo: LogoComponent;
+  text_banners: TextBannerComponent;
 }
 
 export interface PageBuilderConfig {
@@ -137,6 +154,10 @@ export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
       position: 'top_left',
       scale: 1,
     },
+    text_banners: {
+      enabled: false,
+      items: [],
+    },
   },
 };
 
@@ -152,6 +173,9 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
     }
     if (!config.components.logo) {
       config.components.logo = { enabled: false, url: '', position: 'top_left', scale: 1 };
+    }
+    if (!config.components.text_banners) {
+      config.components.text_banners = { enabled: false, items: [] };
     }
     return config;
   }
@@ -215,6 +239,10 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
         url: '',
         position: 'top_left',
         scale: 1,
+      },
+      text_banners: {
+        enabled: false,
+        items: [],
       },
     },
   };
