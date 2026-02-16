@@ -323,7 +323,7 @@ export function MenuBuilder({ deviceId, initialConfig }: MenuBuilderProps) {
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Emoji</Label>
+                            <Label className="text-xs text-muted-foreground">Ícone</Label>
                             <Input
                               value={btn.emoji}
                               onChange={(e) => updateButton(catIdx, btnIdx, 'emoji', e.target.value)}
