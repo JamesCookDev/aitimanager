@@ -354,7 +354,7 @@ export default function DeviceDetail() {
             </div>
 
             {/* Contextual Sidebar (30%) */}
-            <div className="rounded-xl border border-border bg-card lg:sticky lg:top-4 lg:max-h-[calc(100vh-14rem)] lg:overflow-hidden flex flex-col">
+            <div className="rounded-xl border border-border bg-card lg:sticky lg:top-4 lg:h-[calc(100vh-10rem)] flex flex-col overflow-hidden">
               <ContextualSidebar
                 config={builderConfig}
                 selectedElement={selectedElement}
