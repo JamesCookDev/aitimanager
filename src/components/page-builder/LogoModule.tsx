@@ -11,12 +11,12 @@ interface LogoModuleProps {
 }
 
 const POSITION_OPTIONS = [
-  { value: 'top_left', label: '↖ Superior Esquerda' },
-  { value: 'top_right', label: '↗ Superior Direita' },
-  { value: 'center_top', label: '↑ Centro Superior' },
-  { value: 'bottom_left', label: '↙ Inferior Esquerda' },
-  { value: 'bottom_right', label: '↘ Inferior Direita' },
-] as const;
+  { value: 'top_left' as const, label: '↖ Superior Esquerda' },
+  { value: 'top_right' as const, label: '↗ Superior Direita' },
+  { value: 'top_center' as const, label: '↑ Centro Superior' },
+  { value: 'bottom_left' as const, label: '↙ Inferior Esquerda' },
+  { value: 'bottom_right' as const, label: '↘ Inferior Direita' },
+];
 
 export function LogoModule({ logo, onChange }: LogoModuleProps) {
   const update = (partial: Partial<LogoComponent>) => {

@@ -1,5 +1,12 @@
-// New modular ui_config contract for the Totem Page Builder
+// ============= Page Builder Types =============
 
+// ── Snap Position (9-point grid) ──────────────────────────────────────
+export type SnapPosition =
+  | 'top_left' | 'top_center' | 'top_right'
+  | 'center_left' | 'center' | 'center_right'
+  | 'bottom_left' | 'bottom_center' | 'bottom_right';
+
+// ── Canvas ────────────────────────────────────────────────────────────
 export interface CanvasBackground {
   type: 'solid' | 'gradient' | 'image';
   color: string;
@@ -19,6 +26,7 @@ export interface CanvasConfig {
   environment: CanvasEnvironment;
 }
 
+// ── Avatar ────────────────────────────────────────────────────────────
 export interface AvatarColors {
   shirt: string;
   pants: string;
@@ -33,6 +41,7 @@ export interface AvatarComponent {
   colors: AvatarColors;
 }
 
+// ── Chat Interface ────────────────────────────────────────────────────
 export interface ChatHeader {
   show: boolean;
   icon: string;
@@ -60,8 +69,8 @@ export interface ChatMenu {
 }
 
 export interface ChatStyle {
-  opacity: number;  // 0-1
-  blur: number;     // 0-20 px
+  opacity: number;
+  blur: number;
 }
 
 export interface ChatInterfaceComponent {
@@ -72,17 +81,19 @@ export interface ChatInterfaceComponent {
   style: ChatStyle;
 }
 
+// ── Logo ──────────────────────────────────────────────────────────────
 export interface LogoComponent {
   enabled: boolean;
   url: string;
-  position: 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right' | 'center_top';
-  scale: number;  // 0.5-3
+  position: SnapPosition;
+  scale: number;
 }
 
+// ── Text Banners ──────────────────────────────────────────────────────
 export interface TextBannerItem {
   id: string;
   text: string;
-  position: 'top_left' | 'top_center' | 'top_right' | 'center' | 'bottom_left' | 'bottom_center' | 'bottom_right';
+  position: SnapPosition;
   fontSize: 'sm' | 'md' | 'lg' | 'xl';
   color: string;
   bgColor: string;
@@ -95,6 +106,52 @@ export interface TextBannerComponent {
   items: TextBannerItem[];
 }
 
+// ── Generic Layers ────────────────────────────────────────────────────
+export interface BaseLayer {
+  id: string;
+  type: string;
+  position: SnapPosition;
+  visible: boolean;
+  label: string;
+}
+
+export interface ImageLayer extends BaseLayer {
+  type: 'image';
+  url: string;
+  scale: number;
+  opacity: number;
+  borderRadius: number;
+}
+
+export interface VideoLayer extends BaseLayer {
+  type: 'video';
+  url: string;
+  scale: number;
+  autoplay: boolean;
+  loop: boolean;
+  muted: boolean;
+}
+
+export interface ShapeLayer extends BaseLayer {
+  type: 'shape';
+  shape: 'rectangle' | 'circle' | 'divider';
+  color: string;
+  width: number;
+  height: number;
+  opacity: number;
+}
+
+export interface ClockLayer extends BaseLayer {
+  type: 'clock';
+  format: '12h' | '24h';
+  showDate: boolean;
+  color: string;
+  fontSize: 'sm' | 'md' | 'lg' | 'xl';
+}
+
+export type Layer = ImageLayer | VideoLayer | ShapeLayer | ClockLayer;
+
+// ── Components ────────────────────────────────────────────────────────
 export interface PageBuilderComponents {
   avatar: AvatarComponent;
   chat_interface: ChatInterfaceComponent;
@@ -102,24 +159,19 @@ export interface PageBuilderComponents {
   text_banners: TextBannerComponent;
 }
 
+// ── Full Config ───────────────────────────────────────────────────────
 export interface PageBuilderConfig {
   canvas: CanvasConfig;
   components: PageBuilderComponents;
+  layers?: Layer[];
 }
 
-// Default config
+// ── Defaults ──────────────────────────────────────────────────────────
 export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
   canvas: {
     orientation: 'vertical',
-    background: {
-      type: 'solid',
-      color: '#0f3460',
-    },
-    environment: {
-      show_floor: true,
-      show_particles: true,
-      floor_color: '#1a1a2e',
-    },
+    background: { type: 'solid', color: '#0f3460' },
+    environment: { show_floor: true, show_particles: true, floor_color: '#1a1a2e' },
   },
   components: {
     avatar: {
@@ -138,34 +190,21 @@ export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
         cta_icon: '💬',
         cta_text: 'Posso ajudar?',
         categories: [
-          {
-            title: 'Geral',
-            icon: '⚡',
-            buttons: [
-              { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' },
-            ],
-          },
+          { title: 'Geral', icon: '⚡', buttons: [{ emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }] },
         ],
       },
     },
-    logo: {
-      enabled: false,
-      url: '',
-      position: 'top_left',
-      scale: 1,
-    },
-    text_banners: {
-      enabled: false,
-      items: [],
-    },
+    logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
+    text_banners: { enabled: false, items: [] },
   },
+  layers: [],
 };
 
-// Migration helper: convert old ui_config to new format
+// ── Migration helper ──────────────────────────────────────────────────
 export function migrateUiConfig(old: Record<string, any> | null): PageBuilderConfig {
   if (!old) return { ...DEFAULT_PAGE_BUILDER_CONFIG };
 
-  // If already new format - fill missing new fields
+  // Already new format
   if (old.canvas && old.components) {
     const config = old as PageBuilderConfig;
     if (!config.components.chat_interface.style) {
@@ -176,6 +215,9 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
     }
     if (!config.components.text_banners) {
       config.components.text_banners = { enabled: false, items: [] };
+    }
+    if (!config.layers) {
+      config.layers = [];
     }
     return config;
   }
@@ -203,11 +245,7 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
         position: layout.avatar_position || 'center',
         scale: layout.avatar_scale || 1.5,
         animation: 'idle',
-        colors: {
-          shirt: '#1E3A8A',
-          pants: '#1F2937',
-          shoes: '#000000',
-        },
+        colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
       },
       chat_interface: {
         enabled: layout.show_chat_menu !== false,
@@ -226,24 +264,60 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
             title: cat.category_title || cat.title || 'Geral',
             icon: cat.category_icon || cat.icon || '⚡',
             buttons: (cat.buttons || []).map((btn: any) => ({
-              emoji: btn.emoji,
-              label: btn.label,
-              prompt: btn.prompt,
-              color: btn.color,
+              emoji: btn.emoji, label: btn.label, prompt: btn.prompt, color: btn.color,
             })),
           })),
         },
       },
-      logo: {
-        enabled: false,
-        url: '',
-        position: 'top_left',
-        scale: 1,
-      },
-      text_banners: {
-        enabled: false,
-        items: [],
-      },
+      logo: { enabled: false, url: '', position: 'top_left', scale: 1 },
+      text_banners: { enabled: false, items: [] },
     },
+    layers: [],
   };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+export function getSnapFromRelative(relX: number, relY: number): SnapPosition {
+  const col = relX < 0.33 ? 'left' : relX > 0.66 ? 'right' : 'center';
+  const row = relY < 0.33 ? 'top' : relY > 0.66 ? 'bottom' : 'center';
+  if (row === 'center' && col === 'center') return 'center';
+  if (row === 'center') return `center_${col}` as SnapPosition;
+  if (col === 'center') return `${row}_center` as SnapPosition;
+  return `${row}_${col}` as SnapPosition;
+}
+
+export function snapPositionToStyle(pos: SnapPosition): React.CSSProperties {
+  const s: React.CSSProperties = { position: 'absolute', zIndex: 15 };
+  // Vertical
+  if (pos.startsWith('top')) s.top = '6%';
+  else if (pos.startsWith('bottom')) s.bottom = '14%';
+  else if (pos === 'center' || pos.startsWith('center')) { s.top = '50%'; }
+  // Horizontal
+  if (pos.endsWith('left')) s.left = '4%';
+  else if (pos.endsWith('right')) s.right = '4%';
+  else { s.left = '50%'; }
+  // Transform
+  const transforms: string[] = [];
+  if (pos === 'center') { transforms.push('translate(-50%, -50%)'); }
+  else if (pos === 'center_left' || pos === 'center_right') { transforms.push('translateY(-50%)'); }
+  else if (pos.endsWith('center') || pos === 'top_center' || pos === 'bottom_center') { transforms.push('translateX(-50%)'); }
+  // Fix: center_left and center_right don't need translateX
+  if (transforms.length > 0) s.transform = transforms.join(' ');
+  return s;
+}
+
+export function createLayer(type: Layer['type']): Layer {
+  const id = `layer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const base = { id, position: 'center' as SnapPosition, visible: true };
+
+  switch (type) {
+    case 'image':
+      return { ...base, type: 'image', label: 'Imagem', url: '', scale: 1, opacity: 1, borderRadius: 0 };
+    case 'video':
+      return { ...base, type: 'video', label: 'Vídeo', url: '', scale: 1, autoplay: true, loop: true, muted: true };
+    case 'shape':
+      return { ...base, type: 'shape', label: 'Forma', shape: 'rectangle', color: '#ffffff', width: 80, height: 40, opacity: 0.8 };
+    case 'clock':
+      return { ...base, type: 'clock', label: 'Relógio', format: '24h', showDate: true, color: '#ffffff', fontSize: 'lg' };
+  }
 }
