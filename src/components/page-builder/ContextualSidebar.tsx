@@ -9,7 +9,7 @@ import { ColorPickerPopover } from '@/components/devices/ColorPickerPopover';
 import { UnsplashImagePicker } from '@/components/devices/UnsplashImagePicker';
 import {
   Paintbrush, User, MessageSquare, ImageIcon, Settings, ChevronDown,
-  FolderPlus, Plus, Trash2, GripVertical, ChevronRight, ArrowLeft, Upload, Loader2,
+  FolderPlus, Plus, Trash2, GripVertical, ChevronRight, ArrowLeft, Upload, Loader2, Type,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import type {
   PageBuilderConfig, CanvasConfig, AvatarComponent,
   ChatInterfaceComponent, LogoComponent, MenuCategory, MenuButton, ChatStyle,
+  TextBannerComponent, TextBannerItem,
 } from '@/types/page-builder';
 import type { CanvasSelection } from './TotemCanvas';
 
@@ -171,6 +172,28 @@ export function ContextualSidebar({ config, selectedElement, onChange, onSelectE
   const updateHeader = (partial: Partial<ChatInterfaceComponent['header']>) => updateChat({ header: { ...config.components.chat_interface.header, ...partial } });
   const updateMenu = (partial: Partial<ChatInterfaceComponent['menu']>) => updateChat({ menu: { ...config.components.chat_interface.menu, ...partial } });
   const updateLogo = (partial: Partial<LogoComponent>) => onChange({ ...config, components: { ...config.components, logo: { ...config.components.logo, ...partial } } });
+  const updateTextBanners = (partial: Partial<TextBannerComponent>) => onChange({ ...config, components: { ...config.components, text_banners: { ...config.components.text_banners, ...partial } } });
+  const updateTextItem = (id: string, partial: Partial<TextBannerItem>) => {
+    const items = (config.components.text_banners?.items || []).map(i => i.id === id ? { ...i, ...partial } : i);
+    updateTextBanners({ items });
+  };
+  const addTextItem = () => {
+    const newItem: TextBannerItem = {
+      id: `txt-${Date.now()}`,
+      text: 'Novo Texto',
+      position: 'top_center',
+      fontSize: 'md',
+      color: '#ffffff',
+      bgColor: '#000000',
+      bgEnabled: false,
+      bold: false,
+    };
+    updateTextBanners({ enabled: true, items: [...(config.components.text_banners?.items || []), newItem] });
+  };
+  const removeTextItem = (id: string) => {
+    const items = (config.components.text_banners?.items || []).filter(i => i.id !== id);
+    updateTextBanners({ items });
+  };
   const setCategories = (fn: (prev: MenuCategory[]) => MenuCategory[]) => updateMenu({ categories: fn(config.components.chat_interface.menu.categories) });
 
   const goBack = () => onSelectElement?.(null);
@@ -255,6 +278,7 @@ export function ContextualSidebar({ config, selectedElement, onChange, onSelectE
     { key: 'avatar' as CanvasSelection, label: 'Avatar 3D', icon: User, enabled: config.components.avatar.enabled, toggle: (v: boolean) => updateAvatar({ enabled: v }) },
     { key: 'chat' as CanvasSelection, label: 'Interface / Menu', icon: MessageSquare, enabled: config.components.chat_interface.enabled, toggle: (v: boolean) => updateChat({ enabled: v }) },
     { key: 'logo' as CanvasSelection, label: 'Logo / Marca', icon: ImageIcon, enabled: config.components.logo.enabled, toggle: (v: boolean) => updateLogo({ enabled: v }) },
+    { key: 'text_banners' as CanvasSelection, label: 'Textos / Banners', icon: Type, enabled: config.components.text_banners?.enabled || false, toggle: (v: boolean) => updateTextBanners({ enabled: v }) },
   ];
 
   const renderContent = () => {
@@ -622,6 +646,127 @@ export function ContextualSidebar({ config, selectedElement, onChange, onSelectE
                     <Slider value={[config.components.logo.scale]} onValueChange={([v]) => updateLogo({ scale: v })} min={0.3} max={3} step={0.1} />
                   </div>
                 </AdvancedSection>
+              </>
+            )}
+          </div>
+        );
+
+      // ── TEXT BANNERS ────────────────────────────────────────
+      case 'text_banners':
+        return (
+          <div className="space-y-4">
+            <BackHeader title="Textos / Banners" icon={<Type className="w-4 h-4" />} onBack={goBack} />
+
+            <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
+              <span className="text-xs font-medium text-foreground">Visível</span>
+              <Switch checked={config.components.text_banners?.enabled || false} onCheckedChange={(v) => updateTextBanners({ enabled: v })} />
+            </div>
+
+            {config.components.text_banners?.enabled && (
+              <>
+                <Button variant="outline" size="sm" className="w-full gap-2" onClick={addTextItem}>
+                  <Plus className="w-4 h-4" /> Adicionar Texto
+                </Button>
+
+                <div className="space-y-3">
+                  {(config.components.text_banners.items || []).map((item) => (
+                    <div key={item.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-foreground truncate max-w-[180px]">"{item.text}"</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => removeTextItem(item.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <Input
+                        value={item.text}
+                        onChange={(e) => updateTextItem(item.id, { text: e.target.value })}
+                        placeholder="Digite o texto..."
+                        className="h-8 text-xs"
+                      />
+
+                      {/* Position */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Posição</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { v: 'top_left', l: '↖' }, { v: 'top_center', l: '↑' }, { v: 'top_right', l: '↗' },
+                            { v: 'center', l: '•', span: true },
+                            { v: 'bottom_left', l: '↙' }, { v: 'bottom_center', l: '↓' }, { v: 'bottom_right', l: '↘' },
+                          ].map((p) => (
+                            <button
+                              key={p.v}
+                              type="button"
+                              onClick={() => updateTextItem(item.id, { position: p.v as any })}
+                              className={`py-1.5 rounded border text-xs transition-all ${
+                                item.position === p.v
+                                  ? 'border-primary bg-primary/10 text-foreground'
+                                  : 'border-border bg-muted/30 text-muted-foreground'
+                              } ${'span' in p ? 'col-start-2' : ''}`}
+                            >
+                              {p.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Font size */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Tamanho</Label>
+                        <div className="flex gap-1">
+                          {[
+                            { v: 'sm' as const, l: 'P' },
+                            { v: 'md' as const, l: 'M' },
+                            { v: 'lg' as const, l: 'G' },
+                            { v: 'xl' as const, l: 'XL' },
+                          ].map((s) => (
+                            <button
+                              key={s.v}
+                              type="button"
+                              onClick={() => updateTextItem(item.id, { fontSize: s.v })}
+                              className={`flex-1 py-1.5 rounded border text-xs font-bold transition-all ${
+                                item.fontSize === s.v
+                                  ? 'border-primary bg-primary/10 text-foreground'
+                                  : 'border-border bg-muted/30 text-muted-foreground'
+                              }`}
+                            >
+                              {s.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Style */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <ColorPickerPopover color={item.color} onChange={(c) => updateTextItem(item.id, { color: c })} label="Cor" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateTextItem(item.id, { bold: !item.bold })}
+                          className={`px-3 py-1.5 rounded border text-xs font-bold transition-all ${
+                            item.bold ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-muted/30 text-muted-foreground'
+                          }`}
+                        >
+                          B
+                        </button>
+                      </div>
+
+                      {/* Background */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Switch checked={item.bgEnabled} onCheckedChange={(v) => updateTextItem(item.id, { bgEnabled: v })} />
+                          <span className="text-[10px] text-muted-foreground">Fundo</span>
+                        </div>
+                        {item.bgEnabled && (
+                          <div className="flex-1">
+                            <ColorPickerPopover color={item.bgColor} onChange={(c) => updateTextItem(item.id, { bgColor: c })} label="Cor Fundo" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { User, MessageSquare } from 'lucide-react';
 import type { PageBuilderConfig } from '@/types/page-builder';
 
-export type CanvasSelection = 'background' | 'avatar' | 'chat' | 'logo' | null;
+export type CanvasSelection = 'background' | 'avatar' | 'chat' | 'logo' | 'text_banners' | null;
 
 interface TotemCanvasProps {
   config: PageBuilderConfig;
@@ -337,6 +337,41 @@ export function TotemCanvas({
           )}
         </div>
       )}
+
+      {/* Text Banners */}
+      {components.text_banners?.enabled && components.text_banners.items.map((item) => {
+        const posStyle: React.CSSProperties = { position: 'absolute', zIndex: 15, maxWidth: '90%' };
+        const fontSize = item.fontSize === 'sm' ? '10px' : item.fontSize === 'md' ? '14px' : item.fontSize === 'lg' ? '20px' : '28px';
+        if (item.position.includes('top')) posStyle.top = '6%';
+        if (item.position.includes('bottom')) posStyle.bottom = '14%';
+        if (item.position === 'center') { posStyle.top = '50%'; posStyle.left = '50%'; posStyle.transform = 'translate(-50%, -50%)'; }
+        if (item.position.includes('left')) posStyle.left = '4%';
+        if (item.position.includes('right')) posStyle.right = '4%';
+        if (item.position.includes('center') && item.position !== 'center') { posStyle.left = '50%'; posStyle.transform = 'translateX(-50%)'; }
+
+        return (
+          <div
+            key={item.id}
+            style={posStyle}
+            className={`transition-all rounded ${selRing('text_banners')}`}
+            onClick={(e) => handleClick('text_banners', e)}
+          >
+            <span
+              style={{
+                fontSize,
+                color: item.color,
+                fontWeight: item.bold ? 700 : 400,
+                backgroundColor: item.bgEnabled ? item.bgColor : 'transparent',
+                padding: item.bgEnabled ? '2px 8px' : '0',
+                borderRadius: '4px',
+                lineHeight: 1.3,
+              }}
+            >
+              {item.text}
+            </span>
+          </div>
+        );
+      })}
 
       {/* Floor */}
       {canvas.environment.show_floor && (
