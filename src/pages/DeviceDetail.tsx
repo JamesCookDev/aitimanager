@@ -33,9 +33,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
-import { MenuBuilder } from '@/components/devices/MenuBuilder';
+import { SortableMenuBuilder } from '@/components/devices/SortableMenuBuilder';
 import { LayoutBuilder } from '@/components/devices/LayoutBuilder';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
+import { Palette, Layers, MousePointerClick } from 'lucide-react';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -365,25 +366,34 @@ export default function DeviceDetail() {
             />
           )}
 
-          {/* Tabbed builders */}
-          <Tabs defaultValue="menu" className="w-full">
+          {/* Premium Page Builder Tabs */}
+          <Tabs defaultValue="ambiente" className="w-full">
             <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="menu">Menu</TabsTrigger>
-              <TabsTrigger value="layout">Layout</TabsTrigger>
-              <TabsTrigger value="ai">IA</TabsTrigger>
+              <TabsTrigger value="ambiente" className="flex items-center gap-1.5">
+                <Layers className="w-4 h-4" />
+                Ambiente e Cenario
+              </TabsTrigger>
+              <TabsTrigger value="visual" className="flex items-center gap-1.5">
+                <Palette className="w-4 h-4" />
+                Identidade Visual
+              </TabsTrigger>
+              <TabsTrigger value="interacoes" className="flex items-center gap-1.5">
+                <MousePointerClick className="w-4 h-4" />
+                Interacoes e Menus
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="menu" className="mt-4">
-              <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config || null} />
-            </TabsContent>
-            <TabsContent value="layout" className="mt-4">
+            <TabsContent value="ambiente" className="mt-4">
               <LayoutBuilder
                 deviceId={deviceId!}
                 initialLayout={(device as any).ui_config?.layout || null}
                 fullUiConfig={(device as any).ui_config}
               />
             </TabsContent>
-            <TabsContent value="ai" className="mt-4">
+            <TabsContent value="visual" className="mt-4">
               <AIPromptEditor deviceId={deviceId!} initialPrompt={(device as any).ai_prompt} />
+            </TabsContent>
+            <TabsContent value="interacoes" className="mt-4">
+              <SortableMenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config || null} />
             </TabsContent>
           </Tabs>
 
