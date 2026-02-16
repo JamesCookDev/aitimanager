@@ -359,6 +359,7 @@ export default function DeviceDetail() {
                 config={builderConfig}
                 selectedElement={selectedElement}
                 onChange={handleBuilderChange}
+                onSelectElement={setSelectedElement}
               />
             </div>
           </div>

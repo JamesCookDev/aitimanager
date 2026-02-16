@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ColorPickerPopover } from '@/components/devices/ColorPickerPopover';
 import { UnsplashImagePicker } from '@/components/devices/UnsplashImagePicker';
 import {
   Paintbrush, User, MessageSquare, ImageIcon, Settings, ChevronDown,
-  Monitor, Layers, FolderPlus, Plus, Trash2, GripVertical, ChevronRight,
+  FolderPlus, Plus, Trash2, GripVertical, ChevronRight, ArrowLeft, Upload, Loader2,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -22,6 +21,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type {
   PageBuilderConfig, CanvasConfig, AvatarComponent,
   ChatInterfaceComponent, LogoComponent, MenuCategory, MenuButton, ChatStyle,
@@ -152,10 +153,13 @@ interface ContextualSidebarProps {
   config: PageBuilderConfig;
   selectedElement: CanvasSelection;
   onChange: (config: PageBuilderConfig) => void;
+  onSelectElement?: (el: CanvasSelection) => void;
 }
 
-export function ContextualSidebar({ config, selectedElement, onChange }: ContextualSidebarProps) {
+export function ContextualSidebar({ config, selectedElement, onChange, onSelectElement }: ContextualSidebarProps) {
   const [expandedCats, setExpandedCats] = useState<Set<number>>(new Set([0]));
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helpers
   const updateCanvas = (partial: Partial<CanvasConfig>) => onChange({ ...config, canvas: { ...config.canvas, ...partial } });
@@ -168,6 +172,48 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
   const updateMenu = (partial: Partial<ChatInterfaceComponent['menu']>) => updateChat({ menu: { ...config.components.chat_interface.menu, ...partial } });
   const updateLogo = (partial: Partial<LogoComponent>) => onChange({ ...config, components: { ...config.components, logo: { ...config.components.logo, ...partial } } });
   const setCategories = (fn: (prev: MenuCategory[]) => MenuCategory[]) => updateMenu({ categories: fn(config.components.chat_interface.menu.categories) });
+
+  const goBack = () => onSelectElement?.(null);
+
+  // Logo upload handler
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      updateLogo({ url: publicUrl, enabled: true });
+      toast.success('Logo enviado com sucesso!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Erro ao enviar logo');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -203,13 +249,21 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
     { label: 'G', value: 2.0 },
   ];
 
+  // ── Element list items for the default/hub view ──
+  const elements = [
+    { key: 'background' as CanvasSelection, label: 'Cenário / Fundo', icon: Paintbrush, enabled: true, noToggle: true },
+    { key: 'avatar' as CanvasSelection, label: 'Avatar 3D', icon: User, enabled: config.components.avatar.enabled, toggle: (v: boolean) => updateAvatar({ enabled: v }) },
+    { key: 'chat' as CanvasSelection, label: 'Interface / Menu', icon: MessageSquare, enabled: config.components.chat_interface.enabled, toggle: (v: boolean) => updateChat({ enabled: v }) },
+    { key: 'logo' as CanvasSelection, label: 'Logo / Marca', icon: ImageIcon, enabled: config.components.logo.enabled, toggle: (v: boolean) => updateLogo({ enabled: v }) },
+  ];
+
   const renderContent = () => {
     switch (selectedElement) {
       // ── BACKGROUND ──────────────────────────────────────────
       case 'background':
         return (
           <div className="space-y-4">
-            <SectionTitle icon={<Paintbrush className="w-4 h-4" />} title="Cenário" />
+            <BackHeader title="Cenário" icon={<Paintbrush className="w-4 h-4" />} onBack={goBack} />
 
             {/* Orientation */}
             <div className="space-y-2">
@@ -288,7 +342,7 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
       case 'avatar':
         return (
           <div className="space-y-4">
-            <SectionTitle icon={<User className="w-4 h-4" />} title="Avatar 3D" />
+            <BackHeader title="Avatar 3D" icon={<User className="w-4 h-4" />} onBack={goBack} />
 
             <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
               <span className="text-xs font-medium text-foreground">Visível</span>
@@ -364,7 +418,7 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
       case 'chat':
         return (
           <div className="space-y-4">
-            <SectionTitle icon={<MessageSquare className="w-4 h-4" />} title="Interface / Menu" />
+            <BackHeader title="Interface / Menu" icon={<MessageSquare className="w-4 h-4" />} onBack={goBack} />
 
             <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
               <span className="text-xs font-medium text-foreground">Visível</span>
@@ -469,7 +523,7 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
       case 'logo':
         return (
           <div className="space-y-4">
-            <SectionTitle icon={<ImageIcon className="w-4 h-4" />} title="Logo / Marca" />
+            <BackHeader title="Logo / Marca" icon={<ImageIcon className="w-4 h-4" />} onBack={goBack} />
 
             <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
               <span className="text-xs font-medium text-foreground">Visível</span>
@@ -478,11 +532,36 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
 
             {config.components.logo.enabled && (
               <>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">URL da Imagem</Label>
-                  <Input value={config.components.logo.url} onChange={(e) => updateLogo({ url: e.target.value })} placeholder="https://..." className="text-xs h-8" />
+                {/* Upload */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Imagem do Logo</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 h-9"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {uploading ? 'Enviando...' : 'Enviar Imagem'}
+                  </Button>
+                  <div className="relative">
+                    <Input
+                      value={config.components.logo.url}
+                      onChange={(e) => updateLogo({ url: e.target.value })}
+                      placeholder="ou cole uma URL..."
+                      className="text-xs h-8"
+                    />
+                  </div>
                   {config.components.logo.url && (
-                    <div className="mt-1 p-2 rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                    <div className="p-2 rounded-lg border border-border bg-muted/30 flex items-center justify-center">
                       <img src={config.components.logo.url} alt="Logo" className="max-h-12 max-w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     </div>
                   )}
@@ -548,32 +627,44 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
           </div>
         );
 
-      // ── NO SELECTION ────────────────────────────────────────
+      // ── NO SELECTION (HUB) ─────────────────────────────────
       default:
         return (
-          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-              <Paintbrush className="w-7 h-7 text-muted-foreground" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b border-border">
+              <Paintbrush className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Elementos</h3>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Selecione um elemento</p>
-              <p className="text-xs text-muted-foreground mt-1">Clique no fundo, avatar, menu ou logo<br />no canvas ao lado para editá-lo</p>
-            </div>
+            <p className="text-[10px] text-muted-foreground">Clique num elemento abaixo ou diretamente no canvas para editá-lo.</p>
 
-            {/* Quick toggles */}
-            <div className="w-full space-y-1.5 pt-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Elementos</p>
-              {[
-                { label: 'Avatar 3D', enabled: config.components.avatar.enabled, toggle: (v: boolean) => updateAvatar({ enabled: v }), icon: User },
-                { label: 'Interface / Menu', enabled: config.components.chat_interface.enabled, toggle: (v: boolean) => updateChat({ enabled: v }), icon: MessageSquare },
-                { label: 'Logo', enabled: config.components.logo.enabled, toggle: (v: boolean) => updateLogo({ enabled: v }), icon: ImageIcon },
-              ].map((el) => (
-                <div key={el.label} className="flex items-center justify-between p-2 rounded-lg border border-border bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <el.icon className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground">{el.label}</span>
+            <div className="space-y-1.5">
+              {elements.map((el) => (
+                <div
+                  key={el.key}
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
+                  onClick={() => onSelectElement?.(el.key)}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
+                      <el.icon className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-foreground">{el.label}</span>
+                      {!el.noToggle && (
+                        <p className="text-[10px] text-muted-foreground">{el.enabled ? 'Ativo' : 'Desativado'}</p>
+                      )}
+                    </div>
                   </div>
-                  <Switch checked={el.enabled} onCheckedChange={el.toggle} />
+                  <div className="flex items-center gap-2">
+                    {!el.noToggle && (
+                      <Switch
+                        checked={el.enabled}
+                        onCheckedChange={(v) => { el.toggle?.(v); }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -593,9 +684,16 @@ export function ContextualSidebar({ config, selectedElement, onChange }: Context
   );
 }
 
-function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+function BackHeader({ title, icon, onBack }: { title: string; icon: React.ReactNode; onBack: () => void }) {
   return (
     <div className="flex items-center gap-2 pb-1 border-b border-border">
+      <button
+        type="button"
+        onClick={onBack}
+        className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="w-4 h-4" />
+      </button>
       <div className="text-primary">{icon}</div>
       <h3 className="text-sm font-bold text-foreground">{title}</h3>
     </div>
