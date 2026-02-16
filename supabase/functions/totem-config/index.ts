@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
       menu_title: 'Escolha uma opção',
       menu_subtitle: 'Respostas rápidas disponíveis',
       layout: {
+        layout_style: 'fullscreen',
         avatar_position: 'center',
         avatar_scale: 1.5,
         chat_position: 'right',
