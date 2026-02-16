@@ -41,34 +41,29 @@ const DEFAULT_LAYOUT: LayoutConfig = {
   show_particles: true,
 };
 
-const LAYOUT_TEMPLATES: { name: string; icon: string; description: string; layout: Partial<LayoutConfig> }[] = [
+const LAYOUT_TEMPLATES: { name: string; description: string; layout: Partial<LayoutConfig> }[] = [
   {
     name: 'Recepção',
-    icon: '🏢',
     description: 'Avatar à esquerda com chat à direita, ideal para lobbies',
     layout: { avatar_position: 'left', avatar_scale: 1.8, chat_position: 'right', bg_type: 'solid', bg_color: '#1a1a2e', floor_color: '#2d2d44' },
   },
   {
     name: 'Quiosque',
-    icon: '🖥️',
     description: 'Avatar centralizado e compacto para totens de autoatendimento',
     layout: { avatar_position: 'center', avatar_scale: 1.3, chat_position: 'right', bg_type: 'solid', bg_color: '#0a192f', floor_color: '#112240' },
   },
   {
     name: 'Palco',
-    icon: '🎭',
     description: 'Avatar grande e centralizado para apresentações e eventos',
     layout: { avatar_position: 'center', avatar_scale: 2.2, chat_position: 'right', bg_type: 'gradient', bg_color: '#0f0f23', bg_gradient: 'linear-gradient(135deg, #0f0f23, #1a1a3e)', floor_color: '#1a1a3e' },
   },
   {
     name: 'Loja',
-    icon: '🛍️',
     description: 'Avatar à direita com chat à esquerda, perfeito para vitrines',
     layout: { avatar_position: 'right', avatar_scale: 1.6, chat_position: 'left', bg_type: 'solid', bg_color: '#1b2838', floor_color: '#2a3f54' },
   },
   {
     name: 'Hospital',
-    icon: '🏥',
     description: 'Layout limpo e acolhedor para ambientes de saúde',
     layout: { avatar_position: 'left', avatar_scale: 1.5, chat_position: 'right', bg_type: 'solid', bg_color: '#0d2137', floor_color: '#162d4a' },
   },
@@ -391,7 +386,6 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
                 }}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all text-center group"
               >
-                <span className="text-2xl">{tpl.icon}</span>
                 <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{tpl.name}</span>
                 <span className="text-[10px] text-muted-foreground leading-tight">{tpl.description}</span>
               </button>
@@ -423,7 +417,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
-                    <span className="text-2xl">{tpl.icon}</span>
+                    <LayoutTemplate className="w-4 h-4 text-primary" />
                     <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{tpl.name}</span>
                     {tpl.description && <span className="text-[10px] text-muted-foreground leading-tight">{tpl.description}</span>}
                   </div>
@@ -527,9 +521,9 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
             className="flex gap-4"
           >
             {[
-              { value: 'solid', label: '🎨 Cor Sólida' },
-              { value: 'gradient', label: '🌈 Gradiente' },
-              { value: 'image', label: '🖼️ Imagem' },
+              { value: 'solid', label: 'Cor Sólida' },
+              { value: 'gradient', label: 'Gradiente' },
+              { value: 'image', label: 'Imagem' },
             ].map((opt) => (
               <label
                 key={opt.value}
@@ -657,19 +651,16 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
           </Label>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { key: 'show_chat_menu' as const, label: 'Botão Chat/Menu', icon: '💬' },
-              { key: 'show_floor' as const, label: 'Mostrar Chão 3D', icon: '🟫' },
-              { key: 'show_wall' as const, label: 'Mostrar Parede 3D', icon: '🧱' },
-              { key: 'show_particles' as const, label: 'Partículas/Efeitos', icon: '✨' },
+              { key: 'show_chat_menu' as const, label: 'Botão Chat/Menu' },
+              { key: 'show_floor' as const, label: 'Chão 3D' },
+              { key: 'show_wall' as const, label: 'Parede 3D' },
+              { key: 'show_particles' as const, label: 'Partículas/Efeitos' },
             ].map((item) => (
               <div
                 key={item.key}
                 className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-sm font-medium text-foreground">{item.label}</span>
-                </div>
+                <span className="text-sm font-medium text-foreground">{item.label}</span>
                 <Switch
                   checked={layout[item.key]}
                   onCheckedChange={(checked) => update(item.key, checked)}

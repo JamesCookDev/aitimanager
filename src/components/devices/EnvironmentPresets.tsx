@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Wand2, Eye, Check, BookmarkPlus, Save, Trash2, Sparkles } from 'lucide-react';
+import { Wand2, Eye, Check, BookmarkPlus, Save, Trash2, Sparkles, Building2, ShoppingBag, Hospital, Hotel, Palette, Plane } from 'lucide-react';
 
 interface QuickAction {
   emoji: string;
@@ -45,7 +45,7 @@ interface FullUiConfig {
 
 interface EnvironmentPreset {
   name: string;
-  icon: string;
+  icon: React.ReactNode;
   description: string;
   tags: string[];
   config: FullUiConfig;
@@ -54,7 +54,7 @@ interface EnvironmentPreset {
 const PRESETS: EnvironmentPreset[] = [
   {
     name: 'Restaurante',
-    icon: '🍽️',
+    icon: <Building2 className="w-5 h-5" />,
     description: 'Ambiente acolhedor para restaurantes e food courts com categorias de cardápio',
     tags: ['Alimentação', 'Cardápio'],
     config: {
@@ -98,7 +98,7 @@ const PRESETS: EnvironmentPreset[] = [
   },
   {
     name: 'Shopping Center',
-    icon: '🛍️',
+    icon: <ShoppingBag className="w-5 h-5" />,
     description: 'Guia interativo para shoppings com mapa de lojas e serviços',
     tags: ['Varejo', 'Navegação'],
     config: {
@@ -149,7 +149,7 @@ const PRESETS: EnvironmentPreset[] = [
   },
   {
     name: 'Hospital / Clínica',
-    icon: '🏥',
+    icon: <Hospital className="w-5 h-5" />,
     description: 'Interface acessível e clara para ambientes de saúde',
     tags: ['Saúde', 'Acessibilidade'],
     config: {
@@ -200,7 +200,7 @@ const PRESETS: EnvironmentPreset[] = [
   },
   {
     name: 'Hotel',
-    icon: '🏨',
+    icon: <Hotel className="w-5 h-5" />,
     description: 'Concierge virtual para hóspedes com serviços e informações',
     tags: ['Hospitalidade', 'Turismo'],
     config: {
@@ -244,7 +244,7 @@ const PRESETS: EnvironmentPreset[] = [
   },
   {
     name: 'Museu / Exposição',
-    icon: '🎨',
+    icon: <Palette className="w-5 h-5" />,
     description: 'Guia interativo para museus e espaços culturais',
     tags: ['Cultura', 'Educação'],
     config: {
@@ -287,7 +287,7 @@ const PRESETS: EnvironmentPreset[] = [
   },
   {
     name: 'Aeroporto',
-    icon: '✈️',
+    icon: <Plane className="w-5 h-5" />,
     description: 'Assistente de embarque e informações de voo',
     tags: ['Transporte', 'Viagem'],
     config: {
@@ -351,7 +351,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
   const [customTemplates, setCustomTemplates] = useState<CustomEnvTemplate[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newIcon, setNewIcon] = useState('🎯');
+  const [newIcon, setNewIcon] = useState('*');
   const [newDesc, setNewDesc] = useState('');
   const [savingCustom, setSavingCustom] = useState(false);
 
@@ -421,7 +421,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
         org_id: profile.org_id,
         created_by: user.id,
         name: newName.trim(),
-        icon: newIcon || '🎯',
+        icon: newIcon || '*',
         description: newDesc.trim() || null,
         layout: currentUiConfig as any, // Save full ui_config as the "layout" field
       } as any);
@@ -502,7 +502,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                   style={{ background: getPreviewBg(preset.config.layout) }}
                 />
                 <div className="relative z-10 flex items-center gap-3 w-full">
-                  <span className="text-3xl">{preset.icon}</span>
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">{preset.icon}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">{preset.name}</p>
                     <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{preset.description}</p>
@@ -543,7 +543,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
-                    <span className="text-2xl">{tpl.icon}</span>
+                    <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground group-hover:text-primary truncate">{tpl.name}</p>
                       {tpl.description && <p className="text-[10px] text-muted-foreground truncate">{tpl.description}</p>}
@@ -562,7 +562,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-3">
-                <span className="text-3xl">{previewPreset.icon}</span>
+                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">{previewPreset.icon}</div>
                 {previewPreset.name}
               </DialogTitle>
               <DialogDescription>{previewPreset.description}</DialogDescription>

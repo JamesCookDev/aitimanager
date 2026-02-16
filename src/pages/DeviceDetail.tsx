@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { StatusBadge } from '@/components/devices/StatusBadge';
@@ -39,6 +40,7 @@ import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
 export default function DeviceDetail() {
   const { deviceId } = useParams();
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [showApiKey, setShowApiKey] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -354,19 +356,21 @@ export default function DeviceDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Environment Presets */}
-          <EnvironmentPresets
-            deviceId={deviceId!}
-            currentUiConfig={(device as any).ui_config || null}
-            onApplied={() => { fetchDevice(); }}
-          />
+          {/* Environment Presets - Super Admin only */}
+          {role === 'super_admin' && (
+            <EnvironmentPresets
+              deviceId={deviceId!}
+              currentUiConfig={(device as any).ui_config || null}
+              onApplied={() => { fetchDevice(); }}
+            />
+          )}
 
-          {/* Tabbed builders to reduce page height */}
+          {/* Tabbed builders */}
           <Tabs defaultValue="menu" className="w-full">
             <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="menu">🎯 Menu</TabsTrigger>
-              <TabsTrigger value="layout">🖥️ Layout</TabsTrigger>
-              <TabsTrigger value="ai">🤖 IA</TabsTrigger>
+              <TabsTrigger value="menu">Menu</TabsTrigger>
+              <TabsTrigger value="layout">Layout</TabsTrigger>
+              <TabsTrigger value="ai">IA</TabsTrigger>
             </TabsList>
             <TabsContent value="menu" className="mt-4">
               <MenuBuilder deviceId={deviceId!} initialConfig={(device as any).ui_config || null} />
