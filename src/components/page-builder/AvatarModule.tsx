@@ -6,6 +6,13 @@ import { ColorPickerPopover } from '@/components/devices/ColorPickerPopover';
 import { User, UserMinus, UserPlus } from 'lucide-react';
 import type { AvatarComponent } from '@/types/page-builder';
 
+const ANIMATIONS = [
+  { value: 'idle', label: '🧍 Parado', desc: 'Posição neutra' },
+  { value: 'talking', label: '💬 Falando', desc: 'Gestos ao falar' },
+  { value: 'waving', label: '👋 Acenando', desc: 'Acena para o usuário' },
+  { value: 'thinking', label: '🤔 Pensando', desc: 'Expressão pensativa' },
+];
+
 interface AvatarModuleProps {
   avatar: AvatarComponent;
   onChange: (avatar: AvatarComponent) => void;
@@ -63,6 +70,28 @@ export function AvatarModule({ avatar, onChange }: AvatarModuleProps) {
                 className="flex-1"
               />
               <UserPlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </div>
+          </div>
+
+          {/* Animation */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Animação Base</Label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ANIMATIONS.map((anim) => (
+                <button
+                  key={anim.value}
+                  type="button"
+                  onClick={() => update({ animation: anim.value })}
+                  className={`flex flex-col items-start px-3 py-2 rounded-lg border text-xs transition-all ${
+                    avatar.animation === anim.value
+                      ? 'border-primary bg-primary/10 text-foreground'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:border-border/80'
+                  }`}
+                >
+                  <span className="font-medium">{anim.label}</span>
+                  <span className="text-[10px] opacity-70">{anim.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
 

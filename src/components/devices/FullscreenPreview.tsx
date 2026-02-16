@@ -1,56 +1,19 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, Maximize2, User, MessageSquare } from 'lucide-react';
-
-interface LayoutConfig {
-  layout_style: 'fullscreen' | 'split' | 'box';
-  avatar_position: 'left' | 'center' | 'right';
-  avatar_scale: number;
-  chat_position: 'left' | 'right';
-  show_chat_menu: boolean;
-  bg_type: 'solid' | 'gradient' | 'image';
-  bg_color: string;
-  bg_gradient: string;
-  bg_image: string;
-  show_floor: boolean;
-  floor_color: string;
-  show_wall: boolean;
-  show_particles: boolean;
-  show_header: boolean;
-  primary_color: string;
-}
-
-interface MenuCategory {
-  category_title: string;
-  category_icon: string;
-  buttons: { emoji: string; label: string; prompt: string; color: string }[];
-}
+import { X, Maximize2 } from 'lucide-react';
+import { TotemCanvas } from '@/components/page-builder/TotemCanvas';
+import type { PageBuilderConfig } from '@/types/page-builder';
 
 interface FullscreenPreviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  layout: LayoutConfig;
-  title: string;
-  subtitle: string;
-  headerIcon: string;
-  ctaText: string;
-  ctaIcon: string;
-  menuTitle: string;
-  menuSubtitle: string;
-  categories: MenuCategory[];
+  config: PageBuilderConfig;
 }
 
-export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle, headerIcon, ctaText, ctaIcon, menuTitle, menuSubtitle, categories }: FullscreenPreviewProps) {
-  const getPreviewBg = (): string => {
-    if (layout.bg_type === 'gradient') return layout.bg_gradient;
-    if (layout.bg_type === 'image' && layout.bg_image) return `url(${layout.bg_image}) center/cover no-repeat`;
-    return layout.bg_color;
-  };
-
+export function FullscreenPreview({ open, onOpenChange, config }: FullscreenPreviewProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 rounded-none bg-black [&>button]:hidden">
-        {/* Close button */}
         <Button
           variant="ghost"
           size="icon"
@@ -60,119 +23,13 @@ export function FullscreenPreview({ open, onOpenChange, layout, title, subtitle,
           <X className="w-5 h-5" />
         </Button>
 
-        {/* Label */}
         <div className="absolute top-4 left-4 z-50 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
           <Maximize2 className="w-3.5 h-3.5 text-white/70" />
           <span className="text-xs text-white/70 font-medium">Preview em Tela Cheia</span>
         </div>
 
-        {/* Totem simulation */}
-        <div className="w-full h-full relative overflow-hidden" style={{ background: getPreviewBg() }}>
-          {/* Wall */}
-          {layout.show_wall && (
-            <div className="absolute inset-0 pointer-events-none" style={{
-              background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.2) 100%)',
-            }} />
-          )}
-
-          {/* Particles */}
-          {layout.show_particles && (
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(30)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute rounded-full bg-white/15 animate-pulse"
-                  style={{
-                    width: `${3 + (i % 4)}px`,
-                    height: `${3 + (i % 4)}px`,
-                    left: `${5 + i * 3}%`,
-                    top: `${5 + (i % 8) * 12}%`,
-                    animationDelay: `${i * 0.2}s`,
-                    animationDuration: `${2 + (i % 3) * 0.6}s`,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Avatar */}
-          <div
-            className="absolute bottom-0 flex flex-col items-center transition-all duration-500"
-            style={{
-              left: layout.avatar_position === 'left' ? '20%' : layout.avatar_position === 'center' ? '50%' : '80%',
-              transform: `translateX(-50%) scale(${layout.avatar_scale / 1.5})`,
-              transformOrigin: 'bottom center',
-            }}
-          >
-            <div className="w-32 h-48 rounded-2xl bg-primary/40 border-2 border-primary/30 flex items-center justify-center mb-2 shadow-2xl backdrop-blur-sm">
-              <User className="w-16 h-16 text-primary-foreground/60" />
-            </div>
-          </div>
-
-          {/* Header */}
-          {layout.show_header !== false && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/30 backdrop-blur-md rounded-full px-5 py-2.5 border border-white/10">
-              <span className="text-lg">{headerIcon || '📍'}</span>
-              <div>
-                <h3 className="text-sm font-bold text-white leading-tight">{title || 'Assistente Virtual'}</h3>
-                <p className="text-xs text-white/60">{subtitle || 'Totem Interativo'}</p>
-              </div>
-            </div>
-          )}
-
-          {/* CTA */}
-          <div
-            className="absolute top-24 w-80 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 p-6 transition-all duration-500"
-            style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '5%' }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">{ctaIcon || '💬'}</span>
-              <span className="text-sm text-white/80 font-medium">{ctaText || 'Como posso ajudar?'}</span>
-            </div>
-            <div className="space-y-2">
-              <div className="h-2 w-4/5 rounded-full bg-white/15" />
-              <div className="h-2 w-3/5 rounded-full bg-white/10" />
-              <div className="h-2 w-2/3 rounded-full bg-white/8" />
-            </div>
-          </div>
-
-          {/* Menu categories */}
-          {layout.show_chat_menu && (
-            <div
-              className="absolute bottom-32 w-96 transition-all duration-500"
-              style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '5%' }}
-            >
-              {menuTitle && (
-                <div className="mb-3">
-                  <p className="text-sm font-bold text-white/80">{menuTitle}</p>
-                  {menuSubtitle && <p className="text-xs text-white/50">{menuSubtitle}</p>}
-                </div>
-              )}
-              {categories.map((cat, ci) => (
-                <div key={ci} className="mb-4">
-                  <p className="text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                    {cat.category_icon} {cat.category_title}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {cat.buttons.map((btn, bi) => (
-                      <div
-                        key={bi}
-                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r ${btn.color} text-white text-sm font-medium shadow-lg cursor-pointer hover:scale-105 transition-transform`}
-                      >
-                        <span>{btn.emoji}</span>
-                        <span>{btn.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Floor */}
-          {layout.show_floor && (
-            <div className="absolute bottom-0 w-full h-24 transition-all duration-500" style={{ background: layout.floor_color }} />
-          )}
+        <div className="w-full h-full flex items-center justify-center p-8">
+          <TotemCanvas config={config} className="max-h-full max-w-full" />
         </div>
       </DialogContent>
     </Dialog>

@@ -7,239 +7,158 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Wand2, Eye, Check, BookmarkPlus, Save, Trash2, Sparkles, Building2, ShoppingBag, Hospital, Hotel, Palette, Plane } from 'lucide-react';
-
-interface QuickAction {
-  emoji: string;
-  label: string;
-  prompt: string;
-  color: string;
-}
-
-interface MenuCategory {
-  category_title: string;
-  category_icon: string;
-  buttons: QuickAction[];
-}
-
-interface LayoutConfig {
-  avatar_position: string;
-  avatar_scale: number;
-  chat_position: string;
-  bg_type: string;
-  bg_color: string;
-  bg_gradient: string;
-  bg_image: string;
-  show_floor: boolean;
-  floor_color: string;
-  show_wall: boolean;
-  show_particles: boolean;
-}
-
-interface FullUiConfig {
-  title: string;
-  subtitle: string;
-  layout: LayoutConfig;
-  menu_categories: MenuCategory[];
-}
+import { Wand2, Check, BookmarkPlus, Save, Trash2, Sparkles, Building2, ShoppingBag, Hospital, Hotel, Palette, Plane } from 'lucide-react';
+import type { PageBuilderConfig } from '@/types/page-builder';
 
 interface EnvironmentPreset {
   name: string;
   icon: React.ReactNode;
   description: string;
   tags: string[];
-  config: FullUiConfig;
+  config: PageBuilderConfig;
 }
 
 const PRESETS: EnvironmentPreset[] = [
   {
     name: 'Restaurante',
     icon: <Building2 className="w-5 h-5" />,
-    description: 'Ambiente acolhedor para restaurantes e food courts com categorias de cardápio',
+    description: 'Ambiente acolhedor para restaurantes e food courts',
     tags: ['Alimentação', 'Cardápio'],
     config: {
-      title: 'Bem-vindo ao Restaurante',
-      subtitle: 'O que gostaria de saber?',
-      layout: {
-        avatar_position: 'left',
-        avatar_scale: 1.7,
-        chat_position: 'right',
-        bg_type: 'gradient',
-        bg_color: '#1a0a00',
-        bg_gradient: 'linear-gradient(135deg, #1a0a00, #2d1810)',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#3d2817',
-        show_wall: true,
-        show_particles: true,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'gradient', color: '#1a0a00', gradient: 'linear-gradient(135deg, #1a0a00, #2d1810)' },
+        environment: { show_floor: true, show_particles: true, floor_color: '#3d2817' },
       },
-      menu_categories: [
-        {
-          category_title: 'Cardápio',
-          category_icon: '📋',
-          buttons: [
-            { emoji: '🍕', label: 'Pizzas', prompt: 'Quais pizzas vocês têm no cardápio?', color: 'from-orange-400 to-red-400' },
-            { emoji: '🍔', label: 'Hambúrgueres', prompt: 'Me mostre os hambúrgueres disponíveis', color: 'from-yellow-400 to-orange-400' },
-            { emoji: '🥗', label: 'Saladas', prompt: 'Quais opções de salada vocês oferecem?', color: 'from-green-400 to-emerald-400' },
-            { emoji: '🍰', label: 'Sobremesas', prompt: 'Quais sobremesas estão disponíveis?', color: 'from-pink-400 to-rose-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'left', scale: 1.7, animation: 'idle', colors: { shirt: '#8B4513', pants: '#1F2937' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_right',
+          header: { show: true, icon: '🍽️', title: 'Bem-vindo ao Restaurante', subtitle: 'O que gostaria de saber?' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Posso ajudar?',
+            categories: [
+              { title: 'Cardápio', icon: '📋', buttons: [
+                { emoji: '🍕', label: 'Pizzas', prompt: 'Quais pizzas vocês têm?', color: 'from-orange-400 to-red-400' },
+                { emoji: '🍔', label: 'Hambúrgueres', prompt: 'Me mostre os hambúrgueres', color: 'from-yellow-400 to-orange-400' },
+                { emoji: '🥗', label: 'Saladas', prompt: 'Opções de salada?', color: 'from-green-400 to-emerald-400' },
+                { emoji: '🍰', label: 'Sobremesas', prompt: 'Sobremesas disponíveis?', color: 'from-pink-400 to-rose-400' },
+              ]},
+              { title: 'Informações', icon: 'ℹ️', buttons: [
+                { emoji: '⏰', label: 'Horários', prompt: 'Horários de funcionamento?', color: 'from-blue-400 to-indigo-400' },
+                { emoji: '📍', label: 'Localização', prompt: 'Onde vocês ficam?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '📞', label: 'Reservas', prompt: 'Como faço reserva?', color: 'from-purple-400 to-pink-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Informações',
-          category_icon: 'ℹ️',
-          buttons: [
-            { emoji: '⏰', label: 'Horários', prompt: 'Quais são os horários de funcionamento?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '📍', label: 'Localização', prompt: 'Onde vocês ficam localizados?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '📞', label: 'Reservas', prompt: 'Como faço uma reserva?', color: 'from-purple-400 to-pink-400' },
-          ],
-        },
-      ],
+      },
     },
   },
   {
     name: 'Shopping Center',
     icon: <ShoppingBag className="w-5 h-5" />,
-    description: 'Guia interativo para shoppings com mapa de lojas e serviços',
+    description: 'Guia interativo para shoppings com mapa de lojas',
     tags: ['Varejo', 'Navegação'],
     config: {
-      title: 'Bem-vindo ao Shopping',
-      subtitle: 'Como posso te ajudar hoje?',
-      layout: {
-        avatar_position: 'right',
-        avatar_scale: 1.6,
-        chat_position: 'left',
-        bg_type: 'gradient',
-        bg_color: '#0a0a1a',
-        bg_gradient: 'linear-gradient(135deg, #0a0a1a, #1a1a3e)',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#1e1e3a',
-        show_wall: true,
-        show_particles: true,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'gradient', color: '#0a0a1a', gradient: 'linear-gradient(135deg, #0a0a1a, #1a1a3e)' },
+        environment: { show_floor: true, show_particles: true, floor_color: '#1e1e3a' },
       },
-      menu_categories: [
-        {
-          category_title: 'Lojas',
-          category_icon: '🏪',
-          buttons: [
-            { emoji: '👗', label: 'Moda', prompt: 'Quais lojas de moda têm no shopping?', color: 'from-pink-400 to-rose-400' },
-            { emoji: '📱', label: 'Tecnologia', prompt: 'Onde encontro lojas de eletrônicos e tecnologia?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '🏠', label: 'Casa & Decoração', prompt: 'Quais lojas de casa e decoração estão disponíveis?', color: 'from-orange-400 to-yellow-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'right', scale: 1.6, animation: 'idle', colors: { shirt: '#1E3A8A', pants: '#1F2937' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_left',
+          header: { show: true, icon: '🛍️', title: 'Bem-vindo ao Shopping', subtitle: 'Como posso ajudar?' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Posso ajudar?',
+            categories: [
+              { title: 'Lojas', icon: '🏪', buttons: [
+                { emoji: '👗', label: 'Moda', prompt: 'Lojas de moda?', color: 'from-pink-400 to-rose-400' },
+                { emoji: '📱', label: 'Tecnologia', prompt: 'Lojas de eletrônicos?', color: 'from-blue-400 to-indigo-400' },
+                { emoji: '🏠', label: 'Casa', prompt: 'Lojas de decoração?', color: 'from-orange-400 to-yellow-400' },
+              ]},
+              { title: 'Alimentação', icon: '🍔', buttons: [
+                { emoji: '🍕', label: 'Praça', prompt: 'O que tem na praça?', color: 'from-orange-400 to-red-400' },
+                { emoji: '☕', label: 'Cafeterias', prompt: 'Cafeterias?', color: 'from-yellow-700 to-orange-400' },
+              ]},
+              { title: 'Serviços', icon: '🔧', buttons: [
+                { emoji: '🅿️', label: 'Estacionamento', prompt: 'Como funciona?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '🎬', label: 'Cinema', prompt: 'Filmes em cartaz?', color: 'from-purple-400 to-pink-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Alimentação',
-          category_icon: '🍔',
-          buttons: [
-            { emoji: '🍕', label: 'Praça de Alimentação', prompt: 'O que tem na praça de alimentação?', color: 'from-orange-400 to-red-400' },
-            { emoji: '☕', label: 'Cafeterias', prompt: 'Quais cafeterias existem no shopping?', color: 'from-yellow-700 to-orange-400' },
-          ],
-        },
-        {
-          category_title: 'Serviços',
-          category_icon: '🔧',
-          buttons: [
-            { emoji: '🅿️', label: 'Estacionamento', prompt: 'Como funciona o estacionamento?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '🎬', label: 'Cinema', prompt: 'Quais filmes estão em cartaz?', color: 'from-purple-400 to-pink-400' },
-            { emoji: '🚻', label: 'Banheiros', prompt: 'Onde ficam os banheiros mais próximos?', color: 'from-green-400 to-emerald-400' },
-          ],
-        },
-      ],
+      },
     },
   },
   {
     name: 'Hospital / Clínica',
     icon: <Hospital className="w-5 h-5" />,
-    description: 'Interface acessível e clara para ambientes de saúde',
+    description: 'Interface acessível para ambientes de saúde',
     tags: ['Saúde', 'Acessibilidade'],
     config: {
-      title: 'Central de Informações',
-      subtitle: 'Estou aqui para te orientar',
-      layout: {
-        avatar_position: 'left',
-        avatar_scale: 1.5,
-        chat_position: 'right',
-        bg_type: 'solid',
-        bg_color: '#0d2137',
-        bg_gradient: '',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#162d4a',
-        show_wall: true,
-        show_particles: false,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'solid', color: '#0d2137' },
+        environment: { show_floor: true, show_particles: false, floor_color: '#162d4a' },
       },
-      menu_categories: [
-        {
-          category_title: 'Atendimento',
-          category_icon: '🩺',
-          buttons: [
-            { emoji: '📋', label: 'Agendar Consulta', prompt: 'Como faço para agendar uma consulta?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '🔬', label: 'Exames', prompt: 'Quais exames vocês realizam e como agendar?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '💊', label: 'Farmácia', prompt: 'Onde fica a farmácia e qual o horário?', color: 'from-green-400 to-emerald-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'left', scale: 1.5, animation: 'idle', colors: { shirt: '#FFFFFF', pants: '#0d2137' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_right',
+          header: { show: true, icon: '🏥', title: 'Central de Informações', subtitle: 'Estou aqui para orientar' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Como posso ajudar?',
+            categories: [
+              { title: 'Atendimento', icon: '🩺', buttons: [
+                { emoji: '📋', label: 'Agendar', prompt: 'Como agendar consulta?', color: 'from-blue-400 to-indigo-400' },
+                { emoji: '🔬', label: 'Exames', prompt: 'Quais exames realizam?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '💊', label: 'Farmácia', prompt: 'Onde fica a farmácia?', color: 'from-green-400 to-emerald-400' },
+              ]},
+              { title: 'Navegação', icon: '🗺️', buttons: [
+                { emoji: '🚑', label: 'Emergência', prompt: 'Onde fica a emergência?', color: 'from-rose-400 to-red-400' },
+                { emoji: '🛗', label: 'Andares', prompt: 'Especialidades por andar?', color: 'from-purple-400 to-pink-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Navegação',
-          category_icon: '🗺️',
-          buttons: [
-            { emoji: '🚑', label: 'Emergência', prompt: 'Onde fica a emergência?', color: 'from-rose-400 to-red-400' },
-            { emoji: '🛗', label: 'Andares', prompt: 'Quais especialidades ficam em cada andar?', color: 'from-purple-400 to-pink-400' },
-            { emoji: '🅿️', label: 'Estacionamento', prompt: 'Como funciona o estacionamento?', color: 'from-orange-400 to-yellow-400' },
-          ],
-        },
-        {
-          category_title: 'Informações',
-          category_icon: 'ℹ️',
-          buttons: [
-            { emoji: '⏰', label: 'Horários', prompt: 'Quais são os horários de funcionamento?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '📞', label: 'Contato', prompt: 'Qual o telefone e email de contato?', color: 'from-teal-400 to-cyan-400' },
-          ],
-        },
-      ],
+      },
     },
   },
   {
     name: 'Hotel',
     icon: <Hotel className="w-5 h-5" />,
-    description: 'Concierge virtual para hóspedes com serviços e informações',
+    description: 'Concierge virtual para hóspedes',
     tags: ['Hospitalidade', 'Turismo'],
     config: {
-      title: 'Concierge Virtual',
-      subtitle: 'Em que posso ser útil?',
-      layout: {
-        avatar_position: 'center',
-        avatar_scale: 1.8,
-        chat_position: 'right',
-        bg_type: 'gradient',
-        bg_color: '#0f172a',
-        bg_gradient: 'linear-gradient(135deg, #0f172a, #1e293b)',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#1e293b',
-        show_wall: true,
-        show_particles: true,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'gradient', color: '#0f172a', gradient: 'linear-gradient(135deg, #0f172a, #1e293b)' },
+        environment: { show_floor: true, show_particles: true, floor_color: '#1e293b' },
       },
-      menu_categories: [
-        {
-          category_title: 'Serviços do Hotel',
-          category_icon: '🛎️',
-          buttons: [
-            { emoji: '🍳', label: 'Café da manhã', prompt: 'Qual o horário e local do café da manhã?', color: 'from-orange-400 to-yellow-400' },
-            { emoji: '🏊', label: 'Piscina & Spa', prompt: 'Quais são os horários da piscina e spa?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '🧹', label: 'Serviço de Quarto', prompt: 'Como solicitar serviço de quarto?', color: 'from-purple-400 to-pink-400' },
-            { emoji: '📶', label: 'Wi-Fi', prompt: 'Qual a senha do Wi-Fi?', color: 'from-blue-400 to-indigo-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'center', scale: 1.8, animation: 'idle', colors: { shirt: '#0f172a', pants: '#1e293b' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_right',
+          header: { show: true, icon: '🏨', title: 'Concierge Virtual', subtitle: 'Em que posso ser útil?' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Posso ajudar?',
+            categories: [
+              { title: 'Serviços', icon: '🛎️', buttons: [
+                { emoji: '🍳', label: 'Café', prompt: 'Horário do café?', color: 'from-orange-400 to-yellow-400' },
+                { emoji: '🏊', label: 'Piscina & Spa', prompt: 'Horários piscina/spa?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '📶', label: 'Wi-Fi', prompt: 'Senha do Wi-Fi?', color: 'from-blue-400 to-indigo-400' },
+              ]},
+              { title: 'Explorar', icon: '🗺️', buttons: [
+                { emoji: '🍽️', label: 'Restaurantes', prompt: 'Restaurantes na região?', color: 'from-orange-400 to-red-400' },
+                { emoji: '🎭', label: 'Passeios', prompt: 'Passeios disponíveis?', color: 'from-green-400 to-emerald-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Explorar a Região',
-          category_icon: '🗺️',
-          buttons: [
-            { emoji: '🏖️', label: 'Praias', prompt: 'Quais praias ficam perto do hotel?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '🍽️', label: 'Restaurantes', prompt: 'Quais restaurantes você recomenda na região?', color: 'from-orange-400 to-red-400' },
-            { emoji: '🎭', label: 'Passeios', prompt: 'Quais passeios turísticos estão disponíveis?', color: 'from-green-400 to-emerald-400' },
-          ],
-        },
-      ],
+      },
     },
   },
   {
@@ -248,41 +167,32 @@ const PRESETS: EnvironmentPreset[] = [
     description: 'Guia interativo para museus e espaços culturais',
     tags: ['Cultura', 'Educação'],
     config: {
-      title: 'Guia do Museu',
-      subtitle: 'Descubra nossas exposições',
-      layout: {
-        avatar_position: 'left',
-        avatar_scale: 1.6,
-        chat_position: 'right',
-        bg_type: 'solid',
-        bg_color: '#0f0f1a',
-        bg_gradient: '',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#1a1a2e',
-        show_wall: true,
-        show_particles: true,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'solid', color: '#0f0f1a' },
+        environment: { show_floor: true, show_particles: true, floor_color: '#1a1a2e' },
       },
-      menu_categories: [
-        {
-          category_title: 'Exposições',
-          category_icon: '🖼️',
-          buttons: [
-            { emoji: '🎭', label: 'Em Cartaz', prompt: 'Quais exposições estão em cartaz atualmente?', color: 'from-purple-400 to-pink-400' },
-            { emoji: '📅', label: 'Programação', prompt: 'Qual a programação desta semana?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '🎟️', label: 'Ingressos', prompt: 'Como compro ingressos e qual o preço?', color: 'from-orange-400 to-yellow-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'left', scale: 1.6, animation: 'idle', colors: { shirt: '#4A1A8A', pants: '#1F2937' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_right',
+          header: { show: true, icon: '🏛️', title: 'Guia do Museu', subtitle: 'Descubra nossas exposições' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Explore!',
+            categories: [
+              { title: 'Exposições', icon: '🖼️', buttons: [
+                { emoji: '🎭', label: 'Em Cartaz', prompt: 'Exposições atuais?', color: 'from-purple-400 to-pink-400' },
+                { emoji: '📅', label: 'Programação', prompt: 'Programação da semana?', color: 'from-blue-400 to-indigo-400' },
+                { emoji: '🎟️', label: 'Ingressos', prompt: 'Como comprar ingressos?', color: 'from-orange-400 to-yellow-400' },
+              ]},
+              { title: 'Informações', icon: 'ℹ️', buttons: [
+                { emoji: '🗺️', label: 'Mapa', prompt: 'Mapa do museu?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '♿', label: 'Acessibilidade', prompt: 'Recursos de acessibilidade?', color: 'from-green-400 to-emerald-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Informações',
-          category_icon: 'ℹ️',
-          buttons: [
-            { emoji: '🗺️', label: 'Mapa do Museu', prompt: 'Pode me mostrar o mapa do museu?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '♿', label: 'Acessibilidade', prompt: 'Quais recursos de acessibilidade vocês oferecem?', color: 'from-green-400 to-emerald-400' },
-            { emoji: '📍', label: 'Como Chegar', prompt: 'Como chego ao museu de transporte público?', color: 'from-rose-400 to-red-400' },
-          ],
-        },
-      ],
+      },
     },
   },
   {
@@ -291,50 +201,41 @@ const PRESETS: EnvironmentPreset[] = [
     description: 'Assistente de embarque e informações de voo',
     tags: ['Transporte', 'Viagem'],
     config: {
-      title: 'Assistente do Aeroporto',
-      subtitle: 'Boa viagem! Como posso ajudar?',
-      layout: {
-        avatar_position: 'center',
-        avatar_scale: 1.5,
-        chat_position: 'right',
-        bg_type: 'gradient',
-        bg_color: '#020617',
-        bg_gradient: 'linear-gradient(135deg, #020617, #0f172a)',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#1e293b',
-        show_wall: true,
-        show_particles: false,
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'gradient', color: '#020617', gradient: 'linear-gradient(135deg, #020617, #0f172a)' },
+        environment: { show_floor: true, show_particles: false, floor_color: '#1e293b' },
       },
-      menu_categories: [
-        {
-          category_title: 'Voos',
-          category_icon: '✈️',
-          buttons: [
-            { emoji: '🛫', label: 'Partidas', prompt: 'Quais são os próximos voos de partida?', color: 'from-blue-400 to-indigo-400' },
-            { emoji: '🛬', label: 'Chegadas', prompt: 'Quais voos estão chegando agora?', color: 'from-teal-400 to-cyan-400' },
-            { emoji: '🚪', label: 'Portões', prompt: 'Onde fica o meu portão de embarque?', color: 'from-purple-400 to-pink-400' },
-          ],
+      components: {
+        avatar: { enabled: true, position: 'center', scale: 1.5, animation: 'idle', colors: { shirt: '#1E3A8A', pants: '#0f172a' } },
+        chat_interface: {
+          enabled: true, position: 'bottom_right',
+          header: { show: true, icon: '✈️', title: 'Assistente do Aeroporto', subtitle: 'Boa viagem!' },
+          menu: {
+            cta_icon: '💬', cta_text: 'Posso ajudar?',
+            categories: [
+              { title: 'Voos', icon: '✈️', buttons: [
+                { emoji: '🛫', label: 'Partidas', prompt: 'Próximos voos?', color: 'from-blue-400 to-indigo-400' },
+                { emoji: '🛬', label: 'Chegadas', prompt: 'Voos chegando?', color: 'from-teal-400 to-cyan-400' },
+                { emoji: '🚪', label: 'Portões', prompt: 'Meu portão?', color: 'from-purple-400 to-pink-400' },
+              ]},
+              { title: 'Serviços', icon: '🔧', buttons: [
+                { emoji: '🧳', label: 'Bagagem', prompt: 'Esteira de bagagens?', color: 'from-orange-400 to-yellow-400' },
+                { emoji: '🛒', label: 'Duty Free', prompt: 'Lojas duty free?', color: 'from-pink-400 to-rose-400' },
+                { emoji: '🍽️', label: 'Alimentação', prompt: 'Restaurantes no aeroporto?', color: 'from-green-400 to-emerald-400' },
+              ]},
+            ],
+          },
         },
-        {
-          category_title: 'Serviços',
-          category_icon: '🔧',
-          buttons: [
-            { emoji: '🧳', label: 'Bagagem', prompt: 'Onde fica a esteira de bagagens?', color: 'from-orange-400 to-yellow-400' },
-            { emoji: '🛒', label: 'Duty Free', prompt: 'Onde ficam as lojas duty free?', color: 'from-pink-400 to-rose-400' },
-            { emoji: '🍽️', label: 'Alimentação', prompt: 'Quais restaurantes e cafés tem no aeroporto?', color: 'from-green-400 to-emerald-400' },
-            { emoji: '💱', label: 'Câmbio', prompt: 'Onde posso fazer câmbio de moeda?', color: 'from-yellow-400 to-orange-400' },
-          ],
-        },
-      ],
+      },
     },
   },
 ];
 
 interface EnvironmentPresetsProps {
   deviceId: string;
-  currentUiConfig: Record<string, any> | null;
-  onApplied: () => void;
+  currentConfig: PageBuilderConfig;
+  onApply: (config: PageBuilderConfig) => void;
 }
 
 interface CustomEnvTemplate {
@@ -342,16 +243,16 @@ interface CustomEnvTemplate {
   name: string;
   icon: string;
   description: string | null;
-  config: FullUiConfig;
+  config: PageBuilderConfig;
 }
 
-export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: EnvironmentPresetsProps) {
+export function EnvironmentPresets({ deviceId, currentConfig, onApply }: EnvironmentPresetsProps) {
   const [previewPreset, setPreviewPreset] = useState<EnvironmentPreset | null>(null);
   const [applying, setApplying] = useState(false);
   const [customTemplates, setCustomTemplates] = useState<CustomEnvTemplate[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newIcon, setNewIcon] = useState('*');
+  const [newIcon, setNewIcon] = useState('🎯');
   const [newDesc, setNewDesc] = useState('');
   const [savingCustom, setSavingCustom] = useState(false);
 
@@ -361,55 +262,29 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
       .select('*')
       .order('created_at', { ascending: false });
     if (data) {
-      // Filter only full environment templates (those with menu_categories in layout)
       setCustomTemplates(data
-        .filter((t: any) => t.layout?.menu_categories)
+        .filter((t: any) => t.layout?.canvas && t.layout?.components)
         .map((t: any) => ({
           id: t.id,
           name: t.name,
           icon: t.icon,
           description: t.description,
-          config: t.layout as FullUiConfig,
+          config: t.layout as PageBuilderConfig,
         }))
       );
     }
   }, []);
 
-  useEffect(() => {
-    fetchCustomTemplates();
-  }, [fetchCustomTemplates]);
+  useEffect(() => { fetchCustomTemplates(); }, [fetchCustomTemplates]);
 
-  const handleApply = async (preset: EnvironmentPreset) => {
-    setApplying(true);
-    try {
-      // Merge with any existing layout_templates or other custom fields
-      const newConfig: any = {
-        ...preset.config,
-      };
-
-      const { error } = await supabase
-        .from('devices')
-        .update({ ui_config: newConfig })
-        .eq('id', deviceId);
-
-      if (error) throw error;
-
-      toast.success(`Ambiente "${preset.name}" aplicado com sucesso!`, {
-        description: 'Menu, layout e cenário foram configurados. Recarregue para ver as mudanças nos editores abaixo.',
-      });
-      setPreviewPreset(null);
-      onApplied();
-    } catch (error) {
-      console.error('Erro ao aplicar preset:', error);
-      toast.error('Erro ao aplicar ambiente');
-    } finally {
-      setApplying(false);
-    }
+  const handleApply = (preset: EnvironmentPreset) => {
+    onApply(preset.config);
+    setPreviewPreset(null);
+    toast.success(`Ambiente "${preset.name}" aplicado!`, { description: 'Clique em Salvar para persistir as mudanças.' });
   };
 
   const handleSaveCurrentAsTemplate = async () => {
     if (!newName.trim()) { toast.error('Digite um nome'); return; }
-    if (!currentUiConfig) { toast.error('Nenhuma configuração atual para salvar'); return; }
     setSavingCustom(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -421,13 +296,13 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
         org_id: profile.org_id,
         created_by: user.id,
         name: newName.trim(),
-        icon: newIcon || '*',
+        icon: newIcon || '🎯',
         description: newDesc.trim() || null,
-        layout: currentUiConfig as any, // Save full ui_config as the "layout" field
+        layout: currentConfig as any,
       } as any);
 
       if (error) throw error;
-      toast.success(`Ambiente "${newName}" salvo como template!`);
+      toast.success(`Ambiente "${newName}" salvo!`);
       setShowSaveDialog(false);
       setNewName('');
       setNewIcon('🎯');
@@ -448,24 +323,9 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
     fetchCustomTemplates();
   };
 
-  const handleApplyCustomTemplate = async (tpl: CustomEnvTemplate) => {
-    setApplying(true);
-    try {
-      const { error } = await supabase.from('devices').update({ ui_config: tpl.config as any }).eq('id', deviceId);
-      if (error) throw error;
-      toast.success(`Ambiente "${tpl.name}" aplicado!`);
-      onApplied();
-    } catch (error) {
-      toast.error('Erro ao aplicar template');
-    } finally {
-      setApplying(false);
-    }
-  };
-
-  const getPreviewBg = (layout: LayoutConfig): string => {
-    if (layout.bg_type === 'gradient') return layout.bg_gradient;
-    if (layout.bg_type === 'image' && layout.bg_image) return `url(${layout.bg_image}) center/cover no-repeat`;
-    return layout.bg_color;
+  const handleApplyCustomTemplate = (tpl: CustomEnvTemplate) => {
+    onApply(tpl.config);
+    toast.success(`Ambiente "${tpl.name}" aplicado!`, { description: 'Clique em Salvar para persistir.' });
   };
 
   return (
@@ -479,10 +339,10 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                 Ambientes Pré-configurados
               </CardTitle>
               <CardDescription>
-                Aplique um ambiente completo com um clique — configura menu, layout e cenário de uma vez
+                Aplique um ambiente completo — configura menu, layout e cenário de uma vez
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={!currentUiConfig}>
+            <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
               <BookmarkPlus className="w-4 h-4 mr-1" />
               Salvar Ambiente Atual
             </Button>
@@ -497,10 +357,6 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                 onClick={() => setPreviewPreset(preset)}
                 className="group relative flex flex-col items-start gap-2 p-4 rounded-xl border border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5 transition-all text-left overflow-hidden"
               >
-                <div
-                  className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity"
-                  style={{ background: getPreviewBg(preset.config.layout) }}
-                />
                 <div className="relative z-10 flex items-center gap-3 w-full">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">{preset.icon}</div>
                   <div className="flex-1 min-w-0">
@@ -510,24 +366,20 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
                 </div>
                 <div className="relative z-10 flex flex-wrap gap-1 mt-1">
                   {preset.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {tag}
-                    </Badge>
+                    <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">{tag}</Badge>
                   ))}
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    {preset.config.menu_categories.reduce((s, c) => s + c.buttons.length, 0)} botões
+                    {preset.config.components.chat_interface.menu.categories.reduce((s, c) => s + c.buttons.length, 0)} botões
                   </Badge>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Custom Templates */}
           {customTemplates.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                Meus Ambientes Salvos
+                <Sparkles className="w-3.5 h-3.5" /> Meus Ambientes Salvos
               </Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {customTemplates.map((tpl) => (
@@ -569,57 +421,29 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              {/* Scene preview */}
-              <div
-                className="rounded-xl border border-border overflow-hidden h-32"
-                style={{ background: getPreviewBg(previewPreset.config.layout) }}
-              >
-                <div className="relative h-full flex items-end">
-                  {previewPreset.config.layout.show_particles && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      {[...Array(5)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse"
-                          style={{ left: `${15 + i * 17}%`, top: `${20 + (i % 3) * 25}%`, animationDelay: `${i * 0.3}s` }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {previewPreset.config.layout.show_floor && (
-                    <div className="w-full h-6" style={{ background: previewPreset.config.layout.floor_color }} />
-                  )}
-                </div>
-              </div>
-
-              {/* Info */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
                   <p className="text-xs text-muted-foreground mb-1">Título</p>
-                  <p className="font-semibold text-foreground">{previewPreset.config.title}</p>
-                  <p className="text-xs text-muted-foreground">{previewPreset.config.subtitle}</p>
+                  <p className="font-semibold text-foreground">{previewPreset.config.components.chat_interface.header.title}</p>
+                  <p className="text-xs text-muted-foreground">{previewPreset.config.components.chat_interface.header.subtitle}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
                   <p className="text-xs text-muted-foreground mb-1">Estrutura</p>
-                  <p className="font-semibold text-foreground">{previewPreset.config.menu_categories.length} categorias</p>
+                  <p className="font-semibold text-foreground">{previewPreset.config.components.chat_interface.menu.categories.length} categorias</p>
                   <p className="text-xs text-muted-foreground">
-                    {previewPreset.config.menu_categories.reduce((s, c) => s + c.buttons.length, 0)} botões no total
+                    {previewPreset.config.components.chat_interface.menu.categories.reduce((s, c) => s + c.buttons.length, 0)} botões
                   </p>
                 </div>
               </div>
 
-              {/* Categories preview */}
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Menu incluído</p>
-                {previewPreset.config.menu_categories.map((cat, ci) => (
+                {previewPreset.config.components.chat_interface.menu.categories.map((cat, ci) => (
                   <div key={ci} className="p-3 rounded-lg border border-border bg-card">
-                    <p className="text-sm font-semibold mb-2">{cat.category_icon} {cat.category_title}</p>
+                    <p className="text-sm font-semibold mb-2">{cat.icon} {cat.title}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {cat.buttons.map((btn, bi) => (
-                        <span
-                          key={bi}
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r ${btn.color} text-white text-xs font-medium shadow-sm`}
-                        >
+                        <span key={bi} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r ${btn.color} text-white text-xs font-medium shadow-sm`}>
                           {btn.emoji} {btn.label}
                         </span>
                       ))}
@@ -633,19 +457,19 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
               <Button variant="outline" onClick={() => setPreviewPreset(null)}>Cancelar</Button>
               <Button onClick={() => handleApply(previewPreset)} disabled={applying}>
                 <Check className="w-4 h-4 mr-2" />
-                {applying ? 'Aplicando...' : 'Aplicar Ambiente Completo'}
+                {applying ? 'Aplicando...' : 'Aplicar Ambiente'}
               </Button>
             </DialogFooter>
           </DialogContent>
         )}
       </Dialog>
 
-      {/* Save Current Environment Dialog */}
+      {/* Save Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Salvar Ambiente como Template</DialogTitle>
-            <DialogDescription>Salva menu, layout e cenário atuais para reutilizar em outros dispositivos</DialogDescription>
+            <DialogDescription>Salva a configuração atual para reutilizar em outros dispositivos</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-4 gap-3">
@@ -660,7 +484,7 @@ export function EnvironmentPresets({ deviceId, currentUiConfig, onApplied }: Env
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Descrição (opcional)</Label>
-              <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Breve descrição do ambiente" />
+              <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Breve descrição" />
             </div>
           </div>
           <DialogFooter>
