@@ -59,16 +59,30 @@ export interface ChatMenu {
   categories: MenuCategory[];
 }
 
+export interface ChatStyle {
+  opacity: number;  // 0-1
+  blur: number;     // 0-20 px
+}
+
 export interface ChatInterfaceComponent {
   enabled: boolean;
   position: 'bottom_left' | 'bottom_right' | 'top_left' | 'top_right';
   header: ChatHeader;
   menu: ChatMenu;
+  style: ChatStyle;
+}
+
+export interface LogoComponent {
+  enabled: boolean;
+  url: string;
+  position: 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right' | 'center_top';
+  scale: number;  // 0.5-3
 }
 
 export interface PageBuilderComponents {
   avatar: AvatarComponent;
   chat_interface: ChatInterfaceComponent;
+  logo: LogoComponent;
 }
 
 export interface PageBuilderConfig {
@@ -101,6 +115,7 @@ export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
     chat_interface: {
       enabled: true,
       position: 'bottom_right',
+      style: { opacity: 0.85, blur: 12 },
       header: { show: true, icon: '📍', title: 'Assistente', subtitle: 'Totem Interativo' },
       menu: {
         cta_icon: '💬',
@@ -116,6 +131,12 @@ export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
         ],
       },
     },
+    logo: {
+      enabled: false,
+      url: '',
+      position: 'top_left',
+      scale: 1,
+    },
   },
 };
 
@@ -123,8 +144,17 @@ export const DEFAULT_PAGE_BUILDER_CONFIG: PageBuilderConfig = {
 export function migrateUiConfig(old: Record<string, any> | null): PageBuilderConfig {
   if (!old) return { ...DEFAULT_PAGE_BUILDER_CONFIG };
 
-  // If already new format
-  if (old.canvas && old.components) return old as PageBuilderConfig;
+  // If already new format - fill missing new fields
+  if (old.canvas && old.components) {
+    const config = old as PageBuilderConfig;
+    if (!config.components.chat_interface.style) {
+      config.components.chat_interface.style = { opacity: 0.85, blur: 12 };
+    }
+    if (!config.components.logo) {
+      config.components.logo = { enabled: false, url: '', position: 'top_left', scale: 1 };
+    }
+    return config;
+  }
 
   // Migrate from old layout-based format
   const layout = old.layout || {};
@@ -158,6 +188,7 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
       chat_interface: {
         enabled: layout.show_chat_menu !== false,
         position: layout.chat_position === 'left' ? 'bottom_left' : 'bottom_right',
+        style: { opacity: 0.85, blur: 12 },
         header: {
           show: layout.show_header !== false,
           icon: old.header_icon || '📍',
@@ -178,6 +209,12 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
             })),
           })),
         },
+      },
+      logo: {
+        enabled: false,
+        url: '',
+        position: 'top_left',
+        scale: 1,
       },
     },
   };

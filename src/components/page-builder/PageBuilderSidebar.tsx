@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paintbrush, User, MessageSquare } from 'lucide-react';
+import { Paintbrush, User, MessageSquare, ImageIcon } from 'lucide-react';
 import { BackgroundModule } from './BackgroundModule';
 import { AvatarModule } from './AvatarModule';
 import { ChatInterfaceModule } from './ChatInterfaceModule';
+import { LogoModule } from './LogoModule';
 import type { PageBuilderConfig } from '@/types/page-builder';
 
 interface PageBuilderSidebarProps {
@@ -14,7 +15,7 @@ interface PageBuilderSidebarProps {
 export function PageBuilderSidebar({ config, onChange }: PageBuilderSidebarProps) {
   return (
     <Tabs defaultValue="background" className="w-full h-full flex flex-col">
-      <TabsList className="w-full grid grid-cols-3 shrink-0">
+      <TabsList className="w-full grid grid-cols-4 shrink-0">
         <TabsTrigger value="background" className="text-xs gap-1">
           <Paintbrush className="w-3.5 h-3.5" /> Cenário
         </TabsTrigger>
@@ -23,6 +24,9 @@ export function PageBuilderSidebar({ config, onChange }: PageBuilderSidebarProps
         </TabsTrigger>
         <TabsTrigger value="interface" className="text-xs gap-1">
           <MessageSquare className="w-3.5 h-3.5" /> Interface
+        </TabsTrigger>
+        <TabsTrigger value="logo" className="text-xs gap-1">
+          <ImageIcon className="w-3.5 h-3.5" /> Logo
         </TabsTrigger>
       </TabsList>
 
@@ -43,6 +47,12 @@ export function PageBuilderSidebar({ config, onChange }: PageBuilderSidebarProps
           <ChatInterfaceModule
             chatInterface={config.components.chat_interface}
             onChange={(chat_interface) => onChange({ ...config, components: { ...config.components, chat_interface } })}
+          />
+        </TabsContent>
+        <TabsContent value="logo" className="mt-0 px-1">
+          <LogoModule
+            logo={config.components.logo}
+            onChange={(logo) => onChange({ ...config, components: { ...config.components, logo } })}
           />
         </TabsContent>
       </ScrollArea>
