@@ -51,7 +51,12 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
       {/* Avatar */}
       {components.avatar.enabled && (
         <div
-          className="absolute bottom-0 flex flex-col items-center transition-all duration-300"
+          className={`absolute bottom-0 flex flex-col items-center transition-all duration-300 ${
+            components.avatar.animation === 'waving' ? 'animate-[wave_1.5s_ease-in-out_infinite]' :
+            components.avatar.animation === 'talking' ? 'animate-[talk_1s_ease-in-out_infinite]' :
+            components.avatar.animation === 'thinking' ? 'animate-[think_2s_ease-in-out_infinite]' :
+            ''
+          }`}
           style={{
             left: components.avatar.position === 'left' ? '20%' : components.avatar.position === 'center' ? '50%' : '80%',
             transform: `translateX(-50%) scale(${components.avatar.scale / 1.8})`,
@@ -60,10 +65,20 @@ export function TotemCanvas({ config, className = '' }: TotemCanvasProps) {
           }}
         >
           <div
-            className="w-20 h-28 rounded-xl border-2 border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm"
+            className="w-20 h-28 rounded-xl border-2 border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm relative"
             style={{ backgroundColor: components.avatar.colors.shirt + '99' }}
           >
             <User className="w-10 h-10 text-white/70" />
+            {/* Animation indicator */}
+            {components.avatar.animation === 'talking' && (
+              <div className="absolute -top-3 -right-2 text-sm animate-bounce">💬</div>
+            )}
+            {components.avatar.animation === 'waving' && (
+              <div className="absolute -top-3 -right-2 text-sm animate-bounce">👋</div>
+            )}
+            {components.avatar.animation === 'thinking' && (
+              <div className="absolute -top-3 -right-2 text-sm animate-pulse">🤔</div>
+            )}
           </div>
           <div
             className="w-12 h-8 rounded-b-lg -mt-1"

@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Copy as CopyIcon, Eye, EyeOff, Upload, FileBox, Clock,
   MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save,
-  Wand2,
+  Wand2, Maximize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +23,7 @@ import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
+import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
 import { TotemCanvas } from '@/components/page-builder/TotemCanvas';
 import { PageBuilderSidebar } from '@/components/page-builder/PageBuilderSidebar';
 
@@ -44,6 +45,7 @@ export default function DeviceDetail() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('builder');
+  const [showFullscreen, setShowFullscreen] = useState(false);
 
   // Force re-render every 15s for status
   const [, setTick] = useState(0);
@@ -282,12 +284,10 @@ export default function DeviceDetail() {
         </div>
 
         <div className="flex items-center gap-2">
-          {hasChanges && (
-            <Button onClick={handleSaveBuilder} disabled={saving} size="sm" className="gap-1.5">
-              <Save className="w-4 h-4" />
-              {saving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          )}
+          <Button onClick={handleSaveBuilder} disabled={saving || !hasChanges} size="sm" className="gap-1.5">
+            <Save className="w-4 h-4" />
+            {saving ? 'Salvando...' : hasChanges ? 'Salvar' : 'Salvo'}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleCloneDevice} disabled={cloning}>
             <CopyPlus className="w-4 h-4 mr-1" /> {cloning ? 'Clonando...' : 'Clonar'}
           </Button>
@@ -319,8 +319,8 @@ export default function DeviceDetail() {
             <div className="mb-4">
               <EnvironmentPresets
                 deviceId={deviceId!}
-                currentUiConfig={builderConfig as any}
-                onApplied={() => fetchDevice()}
+                currentConfig={builderConfig}
+                onApply={(config) => handleBuilderChange(config)}
               />
             </div>
           )}
@@ -333,9 +333,14 @@ export default function DeviceDetail() {
 
             {/* Canvas - Preview */}
             <div className="flex flex-col items-center gap-3">
-              <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                Preview em Tempo Real
+              <div className="flex items-center justify-between w-full px-2">
+                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                  Preview em Tempo Real
+                </div>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowFullscreen(true)}>
+                  <Maximize2 className="w-3.5 h-3.5" /> Tela Cheia
+                </Button>
               </div>
               <div className={cn(
                 'w-full flex justify-center',
@@ -345,6 +350,8 @@ export default function DeviceDetail() {
               </div>
             </div>
           </div>
+
+          <FullscreenPreview open={showFullscreen} onOpenChange={setShowFullscreen} config={builderConfig} />
         </TabsContent>
 
         {/* AI PROMPT TAB */}

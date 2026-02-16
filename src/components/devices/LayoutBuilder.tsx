@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Monitor, Save, User, UserMinus, UserPlus, MessageSquare, Paintbrush, LayoutTemplate, Layers, Sparkles, Trash2, BookmarkPlus, Maximize2 } from 'lucide-react';
 import { ColorPickerPopover } from './ColorPickerPopover';
 import { UnsplashImagePicker } from './UnsplashImagePicker';
-import { FullscreenPreview } from './FullscreenPreview';
+// FullscreenPreview removed - use new PageBuilder instead
 
 interface LayoutConfig {
   layout_style: 'fullscreen' | 'split' | 'box';
@@ -467,20 +467,7 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
         </DialogContent>
       </Dialog>
 
-      {/* Fullscreen Preview */}
-      <FullscreenPreview
-        open={showFullscreen}
-        onOpenChange={setShowFullscreen}
-        layout={layout}
-        title={fullUiConfig?.title || 'Assistente Virtual'}
-        subtitle={fullUiConfig?.subtitle || 'Totem Interativo'}
-        headerIcon={fullUiConfig?.header_icon || '📍'}
-        ctaText={fullUiConfig?.cta_text || 'Como posso ajudar?'}
-        ctaIcon={fullUiConfig?.cta_icon || '💬'}
-        menuTitle={fullUiConfig?.menu_title || 'Escolha uma opcao'}
-        menuSubtitle={fullUiConfig?.menu_subtitle || 'Respostas rapidas disponiveis'}
-        categories={menuCategories}
-      />
+      {/* Fullscreen Preview - deprecated, use PageBuilder instead */}
     </div>
   );
 }
