@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Buscar dispositivo pela API key
     const { data: device, error: fetchError } = await supabase
       .from('devices')
       .select(`
@@ -47,7 +46,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Buscar versão atual do modelo
     let modelData = null
     if (device.current_version_id) {
       const { data: version } = await supabase
@@ -55,64 +53,116 @@ Deno.serve(async (req) => {
         .select('*')
         .eq('id', device.current_version_id)
         .single()
-      
       modelData = version
     }
 
-    // Estruturar resposta para o cliente Avatar
-    const config = device.avatar_config || {}
-    
-    const defaultUiConfig = {
-      title: 'Assistente Virtual',
-      subtitle: 'Totem Interativo',
-      header_icon: '📍',
-      cta_text: 'Como posso ajudar?',
-      cta_icon: '💬',
-      menu_title: 'Escolha uma opção',
-      menu_subtitle: 'Respostas rápidas disponíveis',
-      layout: {
-        layout_style: 'fullscreen',
-        avatar_position: 'center',
-        avatar_scale: 1.5,
-        chat_position: 'right',
-        bg_type: 'solid',
-        bg_color: '#0f3460',
-        bg_gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
-        bg_image: '',
-        show_floor: true,
-        floor_color: '#1a1a2e',
-        show_wall: true,
-        show_particles: true,
-        show_chat_menu: true,
-        show_header: true,
-        primary_color: '#4ade80',
+    const avatarConfig = device.avatar_config || {}
+
+    // Default new modular config
+    const defaultConfig = {
+      canvas: {
+        orientation: 'vertical',
+        background: { type: 'solid', color: '#0f3460' },
+        environment: { show_floor: true, show_particles: true, floor_color: '#1a1a2e' },
       },
-      menu_categories: [
-        {
-          category_title: 'Geral',
-          category_icon: '⚡',
-          buttons: [
-            { emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }
-          ]
-        }
-      ]
+      components: {
+        avatar: {
+          enabled: true,
+          position: 'center',
+          scale: 1.5,
+          animation: 'idle',
+          colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
+        },
+        chat_interface: {
+          enabled: true,
+          position: 'bottom_right',
+          header: { show: true, icon: '📍', title: 'Assistente', subtitle: 'Totem Interativo' },
+          menu: {
+            cta_icon: '💬',
+            cta_text: 'Posso ajudar?',
+            categories: [
+              { title: 'Geral', icon: '⚡', buttons: [{ emoji: 'ℹ️', label: 'Informações', prompt: 'Quem é você?', color: 'from-teal-400 to-cyan-400' }] }
+            ],
+          },
+        },
+      },
     }
 
-    // Merge stored config with defaults to guarantee all contract fields
     const storedUi = device.ui_config || {}
-    const mergedUi = {
-      title: storedUi.title || defaultUiConfig.title,
-      subtitle: storedUi.subtitle || defaultUiConfig.subtitle,
-      header_icon: storedUi.header_icon || defaultUiConfig.header_icon,
-      cta_text: storedUi.cta_text || defaultUiConfig.cta_text,
-      cta_icon: storedUi.cta_icon || defaultUiConfig.cta_icon,
-      menu_title: storedUi.menu_title || defaultUiConfig.menu_title,
-      menu_subtitle: storedUi.menu_subtitle || defaultUiConfig.menu_subtitle,
-      layout: {
-        ...defaultUiConfig.layout,
-        ...(storedUi.layout || {}),
-      },
-      menu_categories: storedUi.menu_categories || defaultUiConfig.menu_categories,
+    let mergedUi: any
+
+    // Check if stored config is new modular format
+    if (storedUi.canvas && storedUi.components) {
+      mergedUi = {
+        canvas: {
+          orientation: storedUi.canvas?.orientation || defaultConfig.canvas.orientation,
+          background: { ...defaultConfig.canvas.background, ...(storedUi.canvas?.background || {}) },
+          environment: { ...defaultConfig.canvas.environment, ...(storedUi.canvas?.environment || {}) },
+        },
+        components: {
+          avatar: { ...defaultConfig.components.avatar, ...(storedUi.components?.avatar || {}) },
+          chat_interface: {
+            ...defaultConfig.components.chat_interface,
+            ...(storedUi.components?.chat_interface || {}),
+            header: { ...defaultConfig.components.chat_interface.header, ...(storedUi.components?.chat_interface?.header || {}) },
+            menu: {
+              ...defaultConfig.components.chat_interface.menu,
+              ...(storedUi.components?.chat_interface?.menu || {}),
+              categories: storedUi.components?.chat_interface?.menu?.categories || defaultConfig.components.chat_interface.menu.categories,
+            },
+          },
+        },
+      }
+    } else {
+      // Legacy format: migrate on-the-fly for backward compat
+      const layout = storedUi.layout || {}
+      mergedUi = {
+        canvas: {
+          orientation: 'vertical',
+          background: {
+            type: layout.bg_type || 'solid',
+            color: layout.bg_color || '#0f3460',
+            gradient: layout.bg_gradient || undefined,
+            image_url: layout.bg_image || undefined,
+          },
+          environment: {
+            show_floor: layout.show_floor ?? true,
+            show_particles: layout.show_particles ?? true,
+            floor_color: layout.floor_color || '#1a1a2e',
+          },
+        },
+        components: {
+          avatar: {
+            enabled: true,
+            position: layout.avatar_position || 'center',
+            scale: layout.avatar_scale || 1.5,
+            animation: 'idle',
+            colors: avatarConfig.colors || defaultConfig.components.avatar.colors,
+          },
+          chat_interface: {
+            enabled: layout.show_chat_menu !== false,
+            position: layout.chat_position === 'left' ? 'bottom_left' : 'bottom_right',
+            header: {
+              show: layout.show_header !== false,
+              icon: storedUi.header_icon || '📍',
+              title: storedUi.title || 'Assistente',
+              subtitle: storedUi.subtitle || 'Totem Interativo',
+            },
+            menu: {
+              cta_icon: storedUi.cta_icon || '💬',
+              cta_text: storedUi.cta_text || 'Posso ajudar?',
+              categories: (storedUi.menu_categories || []).map((cat: any) => ({
+                title: cat.category_title || cat.title || 'Geral',
+                icon: cat.category_icon || cat.icon || '⚡',
+                buttons: cat.buttons || [],
+              })),
+            },
+          },
+        },
+      }
+      if (mergedUi.components.chat_interface.menu.categories.length === 0) {
+        mergedUi.components.chat_interface.menu.categories = defaultConfig.components.chat_interface.menu.categories
+      }
     }
 
     return new Response(
@@ -122,24 +172,14 @@ Deno.serve(async (req) => {
           device_id: device.id,
           device_name: device.name,
           organization: device.organization?.name || 'Sem organização',
-          colors: config.colors || {
-            shirt: '#1E3A8A',
-            pants: '#1F2937',
-            shoes: '#000000'
-          },
-          material: config.material || {
-            metalness: 0.1,
-            roughness: 0.8
-          },
-          textures: config.textures || {},
-          animation: config.animation || 'idle',
+          avatar: avatarConfig,
           model: modelData ? {
             url: modelData.model_url,
             version_notes: modelData.version_notes,
             file_name: modelData.file_name,
             updated_at: modelData.created_at
           } : null,
-          ui: mergedUi
+          ui: mergedUi,
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
