@@ -258,64 +258,113 @@ export function LayoutBuilder({ deviceId, initialLayout, fullUiConfig }: LayoutB
           className="rounded-xl border border-border overflow-hidden"
           style={{ background: getPreviewBg() }}
         >
-          <div className="relative h-48 flex items-end">
-            {/* Wall indicator */}
-            {!layout.show_wall && (
-              <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative h-56 flex items-end">
+            {/* Wall effect */}
+            {layout.show_wall ? (
+              <div className="absolute inset-0 pointer-events-none" style={{
+                background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.15) 100%)',
+              }} />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span className="text-[10px] text-white/30 bg-black/30 px-2 py-1 rounded">Parede oculta</span>
               </div>
             )}
 
-            {/* Particles indicator */}
+            {/* Particles */}
             {layout.show_particles && (
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(6)].map((_, i) => (
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {[...Array(12)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse"
-                    style={{ left: `${15 + i * 15}%`, top: `${20 + (i % 3) * 25}%`, animationDelay: `${i * 0.3}s` }}
+                    className="absolute rounded-full bg-white/20 animate-pulse"
+                    style={{
+                      width: `${2 + (i % 3)}px`,
+                      height: `${2 + (i % 3)}px`,
+                      left: `${8 + i * 7.5}%`,
+                      top: `${10 + (i % 5) * 18}%`,
+                      animationDelay: `${i * 0.25}s`,
+                      animationDuration: `${1.5 + (i % 3) * 0.5}s`,
+                    }}
                   />
                 ))}
               </div>
             )}
 
-            {/* Avatar placeholder */}
+            {/* Avatar */}
             <div
-              className="absolute bottom-0 flex flex-col items-center"
+              className="absolute bottom-0 flex flex-col items-center transition-all duration-300"
               style={{
-                left: layout.avatar_position === 'left' ? '15%' : layout.avatar_position === 'center' ? '50%' : '85%',
+                left: layout.avatar_position === 'left' ? '20%' : layout.avatar_position === 'center' ? '50%' : '80%',
                 transform: `translateX(-50%) scale(${layout.avatar_scale / 2})`,
                 transformOrigin: 'bottom center',
               }}
             >
-              <div className="w-12 h-16 rounded-lg bg-primary/60 border-2 border-primary/40 flex items-center justify-center mb-1">
-                <User className="w-6 h-6 text-primary-foreground" />
+              <div className="w-14 h-20 rounded-lg bg-primary/60 border-2 border-primary/40 flex items-center justify-center mb-1 shadow-lg">
+                <User className="w-7 h-7 text-primary-foreground" />
               </div>
             </div>
 
-            {/* Chat placeholder */}
+            {/* Chat panel */}
             <div
-              className="absolute top-4 w-32 h-24 rounded-lg bg-background/20 backdrop-blur-sm border border-white/10 p-2"
-              style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '8%' }}
+              className="absolute top-4 w-36 rounded-lg bg-background/20 backdrop-blur-sm border border-white/10 p-2 transition-all duration-300"
+              style={{
+                [layout.chat_position === 'left' ? 'left' : 'right']: '6%',
+                opacity: 1,
+              }}
             >
-              <div className="flex items-center gap-1 mb-1">
+              <div className="flex items-center gap-1.5 mb-2">
                 <MessageSquare className="w-3 h-3 text-white/60" />
                 <span className="text-[9px] text-white/60 font-medium">Chat</span>
               </div>
-              <div className="space-y-1">
-                <div className="h-1.5 w-3/4 rounded-full bg-white/20" />
-                <div className="h-1.5 w-1/2 rounded-full bg-white/20" />
+              <div className="space-y-1.5">
+                <div className="h-1.5 w-4/5 rounded-full bg-white/20" />
+                <div className="h-1.5 w-3/5 rounded-full bg-white/15" />
+                <div className="h-1.5 w-2/3 rounded-full bg-white/10" />
               </div>
             </div>
 
+            {/* Chat/Menu button */}
+            {layout.show_chat_menu ? (
+              <div
+                className="absolute bottom-3 rounded-full bg-primary/70 border border-primary/50 px-3 py-1.5 flex items-center gap-1.5 shadow-lg transition-all duration-300"
+                style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '6%' }}
+              >
+                <MessageSquare className="w-3 h-3 text-white/90" />
+                <span className="text-[9px] text-white/90 font-semibold">Menu</span>
+              </div>
+            ) : (
+              <div
+                className="absolute bottom-3 rounded-full bg-black/20 border border-white/10 border-dashed px-3 py-1.5 flex items-center gap-1.5 transition-all duration-300"
+                style={{ [layout.chat_position === 'left' ? 'left' : 'right']: '6%' }}
+              >
+                <MessageSquare className="w-3 h-3 text-white/20" />
+                <span className="text-[9px] text-white/20 font-semibold line-through">Menu</span>
+              </div>
+            )}
+
             {/* Floor */}
-            {layout.show_floor && (
-              <div className="w-full h-8 rounded-b-xl" style={{ background: layout.floor_color }} />
+            {layout.show_floor ? (
+              <div className="w-full h-10 rounded-b-xl transition-all duration-300" style={{ background: layout.floor_color }} />
+            ) : (
+              <div className="w-full h-10 rounded-b-xl border-t border-dashed border-white/10 flex items-center justify-center">
+                <span className="text-[9px] text-white/20">Chão oculto</span>
+              </div>
             )}
           </div>
-          <p className="text-[10px] text-white/40 text-center py-1.5 uppercase tracking-widest">
-            Pré-visualização do cenário
-          </p>
+
+          {/* Status indicators */}
+          <div className="flex items-center justify-center gap-3 py-2 bg-black/20">
+            {[
+              { label: 'Chat/Menu', active: layout.show_chat_menu },
+              { label: 'Chão', active: layout.show_floor },
+              { label: 'Parede', active: layout.show_wall },
+              { label: 'Partículas', active: layout.show_particles },
+            ].map((s) => (
+              <span key={s.label} className={`text-[9px] px-1.5 py-0.5 rounded-full ${s.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                {s.active ? '●' : '○'} {s.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Templates */}
