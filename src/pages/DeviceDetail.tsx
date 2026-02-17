@@ -328,10 +328,7 @@ export default function DeviceDetail() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start" style={{ minHeight: 'calc(100vh - 14rem)' }}>
             {/* Canvas Preview */}
-            <div className={cn(
-              'flex justify-center',
-              builderConfig.canvas.orientation === 'vertical' ? 'max-w-[480px] mx-auto w-full' : 'w-full',
-            )}>
+            <div className="flex justify-center w-full">
               <TotemPreviewFrame
                 config={builderConfig}
                 selectedElement={selectedElement}

@@ -76,7 +76,7 @@ export function TotemPreviewFrame({
         <div className={cn(
           'relative rounded-[1.5rem] p-3 bg-gradient-to-b from-[hsl(217,25%,18%)] to-[hsl(222,47%,8%)]',
           'border border-[hsl(217,25%,25%)] shadow-2xl',
-          isVertical ? 'max-w-[420px]' : 'max-w-full',
+          isVertical ? 'w-full max-w-full' : 'w-full max-w-full',
         )}>
           {/* Top bezel bar — simulated device chrome */}
           <div className="flex items-center justify-between px-3 py-2 mb-2">
