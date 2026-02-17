@@ -14,8 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Copy as CopyIcon, Eye, EyeOff, Upload, FileBox, Clock,
-  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save,
-  Wand2, Maximize2,
+  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save, Wand2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +23,8 @@ import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
-import { TotemCanvas, type CanvasSelection } from '@/components/page-builder/TotemCanvas';
+import { TotemPreviewFrame } from '@/components/page-builder/TotemPreviewFrame';
+import type { CanvasSelection } from '@/components/page-builder/TotemCanvas';
 import { ContextualSidebar } from '@/components/page-builder/ContextualSidebar';
 
 export default function DeviceDetail() {
@@ -327,30 +327,20 @@ export default function DeviceDetail() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start" style={{ minHeight: 'calc(100vh - 14rem)' }}>
-            {/* Canvas - Preview (70%) */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center justify-between w-full px-2">
-                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Preview em Tempo Real
-                </div>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowFullscreen(true)}>
-                  <Maximize2 className="w-3.5 h-3.5" /> Tela Cheia
-                </Button>
-              </div>
-              <div className={cn(
-                'w-full flex justify-center',
-                builderConfig.canvas.orientation === 'vertical' ? 'max-w-[450px] mx-auto' : 'max-w-full',
-              )}>
-                <TotemCanvas
-                  config={builderConfig}
-                  className="w-full"
-                  interactive
-                  selectedElement={selectedElement}
-                  onSelectElement={setSelectedElement}
-                  onUpdateConfig={handleBuilderChange}
-                />
-              </div>
+            {/* Canvas Preview */}
+            <div className={cn(
+              'flex justify-center',
+              builderConfig.canvas.orientation === 'vertical' ? 'max-w-[480px] mx-auto w-full' : 'w-full',
+            )}>
+              <TotemPreviewFrame
+                config={builderConfig}
+                selectedElement={selectedElement}
+                onSelectElement={setSelectedElement}
+                onUpdateConfig={handleBuilderChange}
+                onFullscreen={() => setShowFullscreen(true)}
+                deviceName={device.name}
+                isOnline={status === 'online'}
+              />
             </div>
 
             {/* Contextual Sidebar (30%) */}
@@ -364,7 +354,7 @@ export default function DeviceDetail() {
             </div>
           </div>
 
-          <FullscreenPreview open={showFullscreen} onOpenChange={setShowFullscreen} config={builderConfig} />
+          <FullscreenPreview open={showFullscreen} onOpenChange={setShowFullscreen} config={builderConfig} deviceName={device.name} isOnline={status === 'online'} />
         </TabsContent>
 
         {/* AI PROMPT TAB */}
