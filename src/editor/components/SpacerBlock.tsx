@@ -1,4 +1,5 @@
 import { useNode, UserComponent } from '@craftjs/core';
+import { SpacerBlockSettings } from '../settings/SpacerBlockSettings';
 
 export interface SpacerBlockProps {
   height: number;
@@ -28,23 +29,6 @@ export const SpacerBlock: UserComponent<Partial<SpacerBlockProps>> = ({
 
 SpacerBlock.craft = {
   props: { height: 32 },
-  related: {
-    settings: () => {
-      // inline settings
-      const { useNode } = require('@craftjs/core');
-      const { actions: { setProp }, props } = useNode((node: any) => ({ props: node.data.props }));
-      return (
-        <div className="space-y-3 p-3">
-          <label className="text-xs text-muted-foreground">Altura (px)</label>
-          <input
-            type="range" min={8} max={200} value={props.height}
-            onChange={(e) => setProp((p: any) => { p.height = Number(e.target.value); })}
-            className="w-full"
-          />
-          <span className="text-xs text-foreground">{props.height}px</span>
-        </div>
-      );
-    },
-  },
+  related: { settings: SpacerBlockSettings },
   displayName: 'Espaçador',
 };
