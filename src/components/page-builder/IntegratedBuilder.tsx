@@ -3,7 +3,7 @@ import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
-  Menu, Sparkles, Tag, CreditCard,
+  Menu, Sparkles, Tag, CreditCard, LayoutTemplate,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +24,7 @@ import { CardBlock } from '@/editor/components/CardBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
+import { TemplatePicker } from '@/editor/components/TemplatePicker';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
 
@@ -97,6 +98,7 @@ function IntegratedBuilderInner({
     canRedo: q.history.canRedo(),
   }));
 
+  const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
   const loadedRef = useRef(false);
   const prevCraftBlocksRef = useRef(config.craft_blocks);
 
@@ -225,32 +227,62 @@ function IntegratedBuilderInner({
       {/* ═══ 3-COLUMN LAYOUT ═══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ─── LEFT SIDEBAR: Craft.js Blocks ─── */}
+        {/* ─── LEFT SIDEBAR: Blocks + Templates ─── */}
         {!previewMode && (
           <div className="w-56 shrink-0 border-r border-border bg-card flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
-              <div className="p-3 space-y-5">
-                {BLOCK_CATEGORIES.map((cat) => (
-                  <div key={cat.label}>
-                    <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                      {cat.label}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {cat.blocks.map((block) => (
-                        <div
-                          key={block.name}
-                          ref={(ref) => { if (ref) connectors.create(ref, block.element); }}
-                          className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-primary/10 hover:border-primary/30 cursor-grab active:cursor-grabbing transition-all active:scale-95 group"
-                        >
-                          <block.icon className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{block.name}</span>
-                        </div>
-                      ))}
+            {/* Tab switcher */}
+            <div className="flex border-b border-border shrink-0">
+              <button
+                onClick={() => setLeftTab('blocks')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors border-b-2',
+                  leftTab === 'blocks'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" /> Blocos
+              </button>
+              <button
+                onClick={() => setLeftTab('templates')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors border-b-2',
+                  leftTab === 'templates'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <LayoutTemplate className="w-3.5 h-3.5" /> Templates
+              </button>
+            </div>
+
+            {leftTab === 'blocks' ? (
+              <ScrollArea className="flex-1">
+                <div className="p-3 space-y-5">
+                  {BLOCK_CATEGORIES.map((cat) => (
+                    <div key={cat.label}>
+                      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                        {cat.label}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {cat.blocks.map((block) => (
+                          <div
+                            key={block.name}
+                            ref={(ref) => { if (ref) connectors.create(ref, block.element); }}
+                            className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-primary/10 hover:border-primary/30 cursor-grab active:cursor-grabbing transition-all active:scale-95 group"
+                          >
+                            <block.icon className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{block.name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <TemplatePicker onApplied={() => syncCraftState()} />
+            )}
           </div>
         )}
 
