@@ -56,10 +56,15 @@ interface IntegratedBuilderProps {
 
 export function IntegratedBuilder(props: IntegratedBuilderProps) {
   const [previewMode, setPreviewMode] = useState(false);
+  const nodesChangedRef = useRef<(() => void) | null>(null);
+
+  const handleNodesChange = useCallback((query: any) => {
+    nodesChangedRef.current?.();
+  }, []);
 
   return (
-    <Editor resolver={resolver} enabled={!previewMode}>
-      <IntegratedBuilderInner {...props} previewMode={previewMode} setPreviewMode={setPreviewMode} />
+    <Editor resolver={resolver} enabled={!previewMode} onNodesChange={handleNodesChange}>
+      <IntegratedBuilderInner {...props} previewMode={previewMode} setPreviewMode={setPreviewMode} nodesChangedRef={nodesChangedRef} />
     </Editor>
   );
 }
@@ -118,8 +123,8 @@ const BLOCK_CATEGORIES = [
 function IntegratedBuilderInner({
   config, onUpdateConfig, onFullscreen,
   deviceName = 'Totem', isOnline = false,
-  previewMode, setPreviewMode, builderRef,
-}: IntegratedBuilderProps & { previewMode: boolean; setPreviewMode: (v: boolean) => void }) {
+  previewMode, setPreviewMode, builderRef, nodesChangedRef,
+}: IntegratedBuilderProps & { previewMode: boolean; setPreviewMode: (v: boolean) => void; nodesChangedRef: React.MutableRefObject<(() => void) | null> }) {
   const { actions, query, connectors, canUndo, canRedo } = useEditor((state, q) => ({
     canUndo: q.history.canUndo(),
     canRedo: q.history.canRedo(),
@@ -128,6 +133,14 @@ function IntegratedBuilderInner({
   const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
   const loadedRef = useRef(false);
   const prevCraftBlocksRef = useRef(config.craft_blocks);
+  const configRef = useRef(config);
+  const onUpdateConfigRef = useRef(onUpdateConfig);
+  const lastSyncedJsonRef = useRef<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep refs up to date without causing re-renders
+  useEffect(() => { configRef.current = config; }, [config]);
+  useEffect(() => { onUpdateConfigRef.current = onUpdateConfig; }, [onUpdateConfig]);
 
   // Load saved craft.js blocks from config (re-load on device switch)
   useEffect(() => {
@@ -137,73 +150,85 @@ function IntegratedBuilderInner({
     if (loadedRef.current && !craftBlocksChanged) return;
 
     if (config.craft_blocks) {
-      try { actions.deserialize(config.craft_blocks); } catch { /* ignore */ }
+      try {
+        actions.deserialize(config.craft_blocks);
+        lastSyncedJsonRef.current = config.craft_blocks;
+      } catch { /* ignore */ }
     }
     loadedRef.current = true;
   }, [config.craft_blocks, actions]);
 
-  // Sync craft.js state back to config
+  // Sync craft.js state back to config (uses refs to avoid dependency loops)
   const syncCraftState = useCallback((): PageBuilderConfig => {
     try {
       const json = query.serialize();
-      if (json !== config.craft_blocks) {
-        let updated = { ...config, craft_blocks: json };
+      // Only sync if craft state actually changed since last sync
+      if (json === lastSyncedJsonRef.current) return configRef.current;
+      lastSyncedJsonRef.current = json;
 
-        try {
-          const nodes = JSON.parse(json);
-          const avatarNode = Object.values(nodes).find(
-            (n: any) => n.type?.resolvedName === 'AvatarBlock'
-          ) as any;
-          if (avatarNode?.props) {
-            const ap = avatarNode.props;
-            updated = {
-              ...updated,
-              components: {
-                ...updated.components,
-                avatar: {
-                  enabled: ap.enabled ?? true,
-                  position: ap.position ?? 'center',
-                  scale: ap.scale ?? 1.5,
-                  animation: ap.idleAnimation ?? 'Idle',
-                  colors: {
-                    shirt: ap.shirtColor ?? '#1E3A8A',
-                    pants: ap.pantsColor ?? '#1F2937',
-                    shoes: ap.shoesColor ?? '#000000',
-                  },
-                  // Extended props for totem Avatar.jsx
-                  models: {
-                    avatar_url: ap.avatarUrl ?? '/models/avatar.glb',
-                    animations_url: ap.animationsUrl ?? '/models/animations.glb',
-                  },
-                  animations: {
-                    idle: ap.idleAnimation ?? 'Idle',
-                    talking: ap.talkingAnimation ?? 'TalkingOne',
-                  },
-                  materials: {
-                    roughness: ap.roughness ?? 0.5,
-                    metalness: ap.metalness ?? 0,
-                  },
-                } as any,
-              },
-            };
-          }
-        } catch { /* ignore parse errors */ }
+      let updated = { ...configRef.current, craft_blocks: json };
 
-        onUpdateConfig(updated);
-        return updated;
-      }
+      try {
+        const nodes = JSON.parse(json);
+        const avatarNode = Object.values(nodes).find(
+          (n: any) => n.type?.resolvedName === 'AvatarBlock'
+        ) as any;
+        if (avatarNode?.props) {
+          const ap = avatarNode.props;
+          updated = {
+            ...updated,
+            components: {
+              ...updated.components,
+              avatar: {
+                enabled: ap.enabled ?? true,
+                position: ap.position ?? 'center',
+                scale: ap.scale ?? 1.5,
+                animation: ap.idleAnimation ?? 'Idle',
+                colors: {
+                  shirt: ap.shirtColor ?? '#1E3A8A',
+                  pants: ap.pantsColor ?? '#1F2937',
+                  shoes: ap.shoesColor ?? '#000000',
+                },
+                models: {
+                  avatar_url: ap.avatarUrl ?? '/models/avatar.glb',
+                  animations_url: ap.animationsUrl ?? '/models/animations.glb',
+                },
+                animations: {
+                  idle: ap.idleAnimation ?? 'Idle',
+                  talking: ap.talkingAnimation ?? 'TalkingOne',
+                },
+                materials: {
+                  roughness: ap.roughness ?? 0.5,
+                  metalness: ap.metalness ?? 0,
+                },
+              } as any,
+            },
+          };
+        }
+      } catch { /* ignore parse errors */ }
+
+      onUpdateConfigRef.current(updated);
+      return updated;
     } catch { /* ignore */ }
-    return config;
-  }, [query, config, onUpdateConfig]);
+    return configRef.current;
+  }, [query]);
 
   useImperativeHandle(builderRef, () => ({
     forceSyncCraftState: syncCraftState,
   }), [syncCraftState]);
 
+  // Wire up onNodesChange from Editor to debounced sync
   useEffect(() => {
-    const interval = setInterval(syncCraftState, 2000);
-    return () => clearInterval(interval);
-  }, [syncCraftState]);
+    nodesChangedRef.current = () => {
+      if (!loadedRef.current) return;
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = setTimeout(syncCraftState, 800);
+    };
+    return () => {
+      nodesChangedRef.current = null;
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [nodesChangedRef, syncCraftState]);
 
   const handleExport = useCallback(() => {
     try { exportEditorJson(query.serialize()); toast.success('JSON exportado'); }
