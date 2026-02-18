@@ -76,7 +76,7 @@ export function TotemPreviewFrame({
         <div className={cn(
           'relative rounded-[1.5rem] p-3 bg-gradient-to-b from-[hsl(217,25%,18%)] to-[hsl(222,47%,8%)]',
           'border border-[hsl(217,25%,25%)] shadow-2xl',
-          isVertical ? 'w-full max-w-full' : 'w-full max-w-full',
+          'w-full',
         )}>
           {/* Top bezel bar — simulated device chrome */}
           <div className="flex items-center justify-between px-3 py-2 mb-2">
@@ -104,7 +104,7 @@ export function TotemPreviewFrame({
           </div>
 
           {/* Screen area with inner shadow */}
-          <div className="relative rounded-xl overflow-hidden ring-1 ring-white/5">
+          <div className="relative rounded-xl overflow-hidden ring-1 ring-white/5" style={{ height: '75vh' }}>
             {/* Scan line effect */}
             <motion.div
               className="absolute inset-0 pointer-events-none z-30"
@@ -119,7 +119,7 @@ export function TotemPreviewFrame({
 
             <TotemCanvas
               config={config}
-              className="w-full"
+              className="w-full h-full"
               interactive
               selectedElement={selectedElement}
               onSelectElement={onSelectElement}
