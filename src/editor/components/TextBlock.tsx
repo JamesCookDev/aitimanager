@@ -21,7 +21,7 @@ export const TextBlock: UserComponent<Partial<TextBlockProps>> = ({
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding, cursor: 'move' }}
+      style={{ padding, cursor: 'move', pointerEvents: 'auto' }}
     >
       <p
         contentEditable

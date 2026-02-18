@@ -304,8 +304,8 @@ function IntegratedBuilderInner({
                 onUpdateConfig={onUpdateConfig}
               />
 
-              {/* Craft.js overlay for dropped blocks */}
-              <div className="absolute inset-0 z-20" style={{ pointerEvents: previewMode ? 'none' : 'auto' }}>
+              {/* Craft.js overlay — pointer-events:none so empty areas pass through to TotemCanvas */}
+              <div className="absolute inset-0 z-20" style={{ pointerEvents: 'none' }}>
                 <Frame>
                   <Element is={CanvasDropArea} canvas bgColor="transparent">
                     {/* Blocks dropped here */}

@@ -35,6 +35,7 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = ({
         borderRadius,
         minHeight,
         cursor: 'move',
+        pointerEvents: 'auto',
       }}
     >
       {children}
