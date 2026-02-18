@@ -14,16 +14,24 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
   return (
     <div
       ref={(ref) => { if (ref) connect(ref); }}
-      className="w-full min-h-full"
+      className="w-full"
       style={{
         backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
-        padding: bgColor === 'transparent' ? 0 : 16,
+        padding: 16,
         minHeight: '100%',
-        // Empty area passes clicks through to TotemCanvas behind
-        pointerEvents: hasChildren ? 'auto' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
       }}
     >
       {children}
+      {!hasChildren && (
+        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-white/10 rounded-xl min-h-[200px]">
+          <p className="text-white/30 text-sm text-center px-4">
+            Arraste blocos aqui para montar a tela
+          </p>
+        </div>
+      )}
     </div>
   );
 };
