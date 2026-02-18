@@ -24,7 +24,7 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = ({
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding: 4, cursor: 'move' }}
+      style={{ padding: 4, cursor: 'move', pointerEvents: 'auto' }}
     >
       <button
         type="button"
