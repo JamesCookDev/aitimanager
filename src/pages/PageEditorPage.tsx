@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { IntegratedBuilder } from '@/components/page-builder/IntegratedBuilder';
+import { IntegratedBuilder, type IntegratedBuilderRef } from '@/components/page-builder/IntegratedBuilder';
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
 import { DEFAULT_PAGE_BUILDER_CONFIG, migrateUiConfig } from '@/types/page-builder';
 import type { PageBuilderConfig } from '@/types/page-builder';
@@ -39,6 +39,7 @@ export default function PageEditorPage() {
   const [saving, setSaving] = useState(false);
   const [selectedElement, setSelectedElement] = useState<CanvasSelection>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const builderRef = useRef<IntegratedBuilderRef | null>(null);
 
   const selectedDevice = devices.find(d => d.id === selectedDeviceId) || null;
 
@@ -105,11 +106,17 @@ export default function PageEditorPage() {
     if (!selectedDeviceId) return;
     setSaving(true);
     try {
+      // Force-sync craft.js state before saving to ensure all nodes are captured
+      let configToSave = builderConfig;
+      if (builderRef.current) {
+        configToSave = builderRef.current.forceSyncCraftState();
+      }
       const { error } = await supabase
         .from('devices')
-        .update({ ui_config: builderConfig as any })
+        .update({ ui_config: configToSave as any })
         .eq('id', selectedDeviceId);
       if (error) throw error;
+      setBuilderConfig(configToSave);
       toast.success('Configuração salva!', { description: 'Mudanças aplicadas no próximo carregamento do totem.' });
       setHasChanges(false);
     } catch (error) {
@@ -224,6 +231,7 @@ export default function PageEditorPage() {
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={selectedDevice?.name || 'Totem'}
             isOnline={selectedDevice ? getStatus(selectedDevice) === 'online' : false}
+            builderRef={builderRef}
           />
           <FullscreenPreview
             open={showFullscreen}
