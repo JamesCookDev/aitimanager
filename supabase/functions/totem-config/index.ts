@@ -103,6 +103,19 @@ Deno.serve(async (req) => {
 
     // Check if stored config is new modular format
     if (storedUi.canvas && storedUi.components) {
+      const craftNodes = parseCraftBlocks(storedUi.craft_blocks)
+
+      // Extract avatar enabled state from craft nodes if available
+      let avatarEnabled = storedUi.components?.avatar?.enabled ?? true
+      if (craftNodes) {
+        const avatarNode = Object.values(craftNodes).find(
+          (n: any) => n.type?.resolvedName === 'AvatarBlock'
+        ) as any
+        if (avatarNode && typeof avatarNode.props?.enabled === 'boolean') {
+          avatarEnabled = avatarNode.props.enabled
+        }
+      }
+
       mergedUi = {
         canvas: {
           orientation: storedUi.canvas?.orientation || defaultConfig.canvas.orientation,
@@ -110,7 +123,7 @@ Deno.serve(async (req) => {
           environment: { ...defaultConfig.canvas.environment, ...(storedUi.canvas?.environment || {}) },
         },
         components: {
-          avatar: { ...defaultConfig.components.avatar, ...(storedUi.components?.avatar || {}) },
+          avatar: { ...defaultConfig.components.avatar, ...(storedUi.components?.avatar || {}), enabled: avatarEnabled },
           chat_interface: {
             ...defaultConfig.components.chat_interface,
             ...(storedUi.components?.chat_interface || {}),
@@ -128,7 +141,7 @@ Deno.serve(async (req) => {
         // Custom layers (image, video, shape, clock overlays)
         layers: storedUi.layers || [],
         // Craft.js node tree for 2D overlay rendering (parsed from serialized string)
-        craft_nodes: parseCraftBlocks(storedUi.craft_blocks),
+        craft_nodes: craftNodes,
       }
     } else {
       // Legacy format: migrate on-the-fly for backward compat

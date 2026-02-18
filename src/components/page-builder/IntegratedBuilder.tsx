@@ -3,6 +3,7 @@ import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
+  Menu, Sparkles, Tag, CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,13 +17,17 @@ import { ContainerBlock } from '@/editor/components/ContainerBlock';
 import { AvatarBlock } from '@/editor/components/AvatarBlock';
 import { SpacerBlock } from '@/editor/components/SpacerBlock';
 import { DividerBlock } from '@/editor/components/DividerBlock';
+import { MenuBlock } from '@/editor/components/MenuBlock';
+import { IconBlock } from '@/editor/components/IconBlock';
+import { BadgeBlock } from '@/editor/components/BadgeBlock';
+import { CardBlock } from '@/editor/components/CardBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
 
-const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, CanvasDropArea };
+const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock, CanvasDropArea };
 
 export interface IntegratedBuilderRef {
   forceSyncCraftState: () => PageBuilderConfig;
@@ -47,14 +52,38 @@ export function IntegratedBuilder(props: IntegratedBuilderProps) {
   );
 }
 
-const CRAFT_BLOCKS = [
-  { name: 'Texto', icon: Type, element: <TextBlock /> },
-  { name: 'Imagem', icon: ImageIcon, element: <ImageBlock /> },
-  { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
-  { name: 'Avatar', icon: User, element: <AvatarBlock /> },
-  { name: 'Container', icon: LayoutGrid, element: <Element is={ContainerBlock} canvas /> },
-  { name: 'Espaçador', icon: MoveVertical, element: <SpacerBlock /> },
-  { name: 'Divisor', icon: Minus, element: <DividerBlock /> },
+const BLOCK_CATEGORIES = [
+  {
+    label: 'Conteúdo',
+    blocks: [
+      { name: 'Texto', icon: Type, element: <TextBlock /> },
+      { name: 'Imagem', icon: ImageIcon, element: <ImageBlock /> },
+      { name: 'Ícone', icon: Sparkles, element: <IconBlock /> },
+      { name: 'Badge', icon: Tag, element: <BadgeBlock /> },
+    ],
+  },
+  {
+    label: 'Interação',
+    blocks: [
+      { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
+      { name: 'Menu', icon: Menu, element: <MenuBlock /> },
+    ],
+  },
+  {
+    label: 'Layout',
+    blocks: [
+      { name: 'Container', icon: LayoutGrid, element: <Element is={ContainerBlock} canvas /> },
+      { name: 'Card', icon: CreditCard, element: <Element is={CardBlock} canvas /> },
+      { name: 'Espaçador', icon: MoveVertical, element: <SpacerBlock /> },
+      { name: 'Divisor', icon: Minus, element: <DividerBlock /> },
+    ],
+  },
+  {
+    label: '3D / Avatar',
+    blocks: [
+      { name: 'Avatar', icon: User, element: <AvatarBlock /> },
+    ],
+  },
 ] as const;
 
 /* ─── Inner component ─────────────────────────────────────────────── */
@@ -200,24 +229,26 @@ function IntegratedBuilderInner({
         {!previewMode && (
           <div className="w-56 shrink-0 border-r border-border bg-card flex flex-col min-h-0">
             <ScrollArea className="flex-1">
-              <div className="p-3 space-y-4">
-                <div>
-                  <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                    Blocos Visuais
-                  </h3>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {CRAFT_BLOCKS.map((block) => (
-                      <div
-                        key={block.name}
-                        ref={(ref) => { if (ref) connectors.create(ref, block.element); }}
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-accent/50 hover:border-primary/30 cursor-grab active:cursor-grabbing transition-all active:scale-95"
-                      >
-                        <block.icon className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-[10px] font-medium text-muted-foreground">{block.name}</span>
-                      </div>
-                    ))}
+              <div className="p-3 space-y-5">
+                {BLOCK_CATEGORIES.map((cat) => (
+                  <div key={cat.label}>
+                    <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                      {cat.label}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {cat.blocks.map((block) => (
+                        <div
+                          key={block.name}
+                          ref={(ref) => { if (ref) connectors.create(ref, block.element); }}
+                          className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-primary/10 hover:border-primary/30 cursor-grab active:cursor-grabbing transition-all active:scale-95 group"
+                        >
+                          <block.icon className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{block.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </ScrollArea>
           </div>
