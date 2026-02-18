@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key',
 }
 
+// Parse craft_blocks (string or object) into a node tree the local renderer can consume
+function parseCraftBlocks(raw: unknown): Record<string, any> | null {
+  if (!raw) return null
+  if (typeof raw === 'object') return raw as Record<string, any>
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw) } catch { return null }
+  }
+  return null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -117,8 +127,8 @@ Deno.serve(async (req) => {
         },
         // Custom layers (image, video, shape, clock overlays)
         layers: storedUi.layers || [],
-        // Craft.js serialized block tree for 2D overlay rendering
-        craft_blocks: storedUi.craft_blocks || null,
+        // Craft.js node tree for 2D overlay rendering (parsed from serialized string)
+        craft_nodes: parseCraftBlocks(storedUi.craft_blocks),
       }
     } else {
       // Legacy format: migrate on-the-fly for backward compat
@@ -170,7 +180,7 @@ Deno.serve(async (req) => {
           text_banners: { enabled: false, items: [] },
         },
         layers: [],
-        craft_blocks: null,
+        craft_nodes: null,
       }
       if (mergedUi.components.chat_interface.menu.categories.length === 0) {
         mergedUi.components.chat_interface.menu.categories = defaultConfig.components.chat_interface.menu.categories
