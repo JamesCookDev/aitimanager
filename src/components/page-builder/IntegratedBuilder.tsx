@@ -325,28 +325,33 @@ function IntegratedBuilderInner({
           </div>
         )}
 
-        {/* CENTER — Canvas (wider now) */}
+        {/* CENTER — Canvas */}
         <div className="flex-1 overflow-auto flex flex-col gap-2 min-w-0">
-          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg flex-1">
+          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg flex items-center justify-center"
+               style={{ height: 'calc(100vh - 16rem)' }}>
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent z-30" />
 
-            <div className="relative" style={{ aspectRatio: isVertical ? '9/16' : '16/9' }}>
-              <TotemCanvas
-                config={config}
-                className="w-full h-full"
-                interactive={!previewMode}
-                selectedElement={selectedElement}
-                onSelectElement={(el) => {
-                  onSelectElement(el);
-                  setSidebarTab('properties');
-                }}
-                onUpdateConfig={onUpdateConfig}
-              />
-
-              <div className="absolute inset-0 z-20" style={{ pointerEvents: 'none' }}>
+            <div className="relative h-full" style={{ aspectRatio: isVertical ? '9/16' : '16/9', maxHeight: '100%', maxWidth: '100%' }}>
+              {/* Craft.js drop zone — behind TotemCanvas */}
+              <div className="absolute inset-0 z-0">
                 <Frame>
                   <Element is={CanvasDropArea} canvas bgColor="transparent" />
                 </Frame>
+              </div>
+
+              {/* TotemCanvas on top — fully interactive */}
+              <div className="relative z-10 w-full h-full">
+                <TotemCanvas
+                  config={config}
+                  className="w-full h-full"
+                  interactive={!previewMode}
+                  selectedElement={selectedElement}
+                  onSelectElement={(el) => {
+                    onSelectElement(el);
+                    setSidebarTab('properties');
+                  }}
+                  onUpdateConfig={onUpdateConfig}
+                />
               </div>
             </div>
           </div>
