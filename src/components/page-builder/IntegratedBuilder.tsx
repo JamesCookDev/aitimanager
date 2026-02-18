@@ -143,9 +143,9 @@ function IntegratedBuilderInner({
   };
 
   return (
-    <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 12rem)' }}>
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
       {/* Top toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border border-border rounded-lg bg-card/50 mb-3">
+      <div className="flex items-center justify-between px-3 py-2 border border-border rounded-lg bg-card/50 mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <Button
             variant={previewMode ? 'default' : 'outline'}
@@ -178,15 +178,14 @@ function IntegratedBuilderInner({
         </div>
       </div>
 
-      {/* 2-column layout: LEFT sidebar + canvas */}
-      <div className="flex flex-1 gap-3 overflow-hidden">
+      {/* 2-column layout: sidebar + canvas — both stretch to fill remaining height */}
+      <div className="flex flex-1 gap-4 min-h-0">
 
-        {/* LEFT SIDEBAR */}
+        {/* LEFT SIDEBAR — fixed width, scrolls internally */}
         {!previewMode && (
-          <div className="w-72 shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 14rem)' }}>
-            <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as 'elements' | 'properties')} className="flex flex-col h-full">
-              {/* Tabs: Totem / Blocos */}
-              <TabsList className="w-full grid grid-cols-2 shrink-0 rounded-none border-b border-border bg-card/80">
+          <div className="w-64 shrink-0 rounded-xl border border-border bg-card flex flex-col min-h-0">
+            <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as 'elements' | 'properties')} className="flex flex-col h-full min-h-0">
+              <TabsList className="w-full grid grid-cols-2 shrink-0 rounded-none rounded-t-xl border-b border-border bg-card/80 h-10">
                 <TabsTrigger value="elements" className="text-xs gap-1.5 rounded-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                   <Paintbrush className="w-3.5 h-3.5" /> Totem
                 </TabsTrigger>
@@ -195,35 +194,30 @@ function IntegratedBuilderInner({
                 </TabsTrigger>
               </TabsList>
 
-              {/* TOTEM TAB — Elements + Properties */}
-              <TabsContent value="elements" className="flex-1 mt-0 overflow-hidden">
+              {/* TOTEM TAB */}
+              <TabsContent value="elements" className="flex-1 mt-0 min-h-0">
                 <ScrollArea className="h-full">
-                  {/* Header */}
-                  <div className="p-4 pb-2">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <Settings2 className="w-4 h-4 text-primary" /> Elementos
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Clique para editar • Arraste para mover</p>
+                  <div className="p-3 pb-1">
+                    <p className="text-[10px] text-muted-foreground">Clique para editar • Arraste para mover</p>
                   </div>
 
-                  {/* Totem Elements */}
-                  <div className="px-3 pb-2 space-y-1">
+                  <div className="px-2 pb-2 space-y-0.5">
                     {totemElements.map((el) => (
                       <div
                         key={el.key}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer group ${
+                        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer group ${
                           selectedElement === el.key
-                            ? 'border-primary/50 bg-primary/10'
-                            : 'border-transparent hover:border-border hover:bg-muted/30'
+                            ? 'bg-primary/10 ring-1 ring-primary/30'
+                            : 'hover:bg-muted/40'
                         }`}
                         onClick={() => handleSelectTotemElement(el.key)}
                       >
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-muted/40 ${el.iconColor}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 shrink-0 ${el.iconColor}`}>
                           <el.icon className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-semibold text-foreground block">{el.label}</span>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs font-medium text-foreground block leading-tight">{el.label}</span>
+                          <span className="text-[10px] text-muted-foreground leading-tight">
                             {el.key === 'background' ? 'Cor, gradiente ou imagem' : el.enabled ? 'Ativo' : 'Desativado'}
                           </span>
                         </div>
@@ -231,36 +225,36 @@ function IntegratedBuilderInner({
                           <Switch
                             checked={el.enabled}
                             onCheckedChange={(v) => { el.toggle!(v); }}
-                            className="scale-90"
+                            className="scale-75"
                             onClick={(e) => e.stopPropagation()}
                           />
                         )}
-                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                        <ChevronRight className="w-3 h-3 text-muted-foreground/30 shrink-0" />
                       </div>
                     ))}
                   </div>
 
-                  <Separator className="mx-3" />
+                  <Separator className="mx-3 my-1" />
 
-                  {/* Camadas Personalizadas */}
-                  <div className="p-3">
+                  {/* Camadas */}
+                  <div className="p-3 pt-2">
                     <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <Layers className="w-3 h-3" /> Camadas Personalizadas
+                      <Layers className="w-3 h-3" /> Camadas
                     </h3>
                     <div className="grid grid-cols-2 gap-1.5">
                       {layerTypes.map((lt) => (
                         <button
                           key={lt.type}
                           onClick={() => addLayerFromToolbox(lt.type)}
-                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                          className="flex flex-col items-center gap-1 p-2 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
                         >
-                          <lt.icon className="w-4 h-4" />
+                          <lt.icon className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-medium">{lt.label}</span>
                         </button>
                       ))}
                     </div>
                     {(config.layers || []).length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2 space-y-0.5">
                         {(config.layers || []).map((layer) => (
                           <div
                             key={layer.id}
@@ -293,10 +287,10 @@ function IntegratedBuilderInner({
                     )}
                   </div>
 
-                  {/* Contextual Properties when element selected */}
+                  {/* Contextual Properties inline */}
                   {selectedElement && (
                     <>
-                      <Separator className="mx-3" />
+                      <Separator className="mx-3 my-1" />
                       <ContextualSidebar
                         config={config}
                         selectedElement={selectedElement}
@@ -308,8 +302,8 @@ function IntegratedBuilderInner({
                 </ScrollArea>
               </TabsContent>
 
-              {/* BLOCOS TAB — Craft.js blocks + properties */}
-              <TabsContent value="properties" className="flex-1 mt-0 overflow-hidden">
+              {/* BLOCOS TAB */}
+              <TabsContent value="properties" className="flex-1 mt-0 min-h-0">
                 <ScrollArea className="h-full">
                   <div className="p-3">
                     <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -317,9 +311,7 @@ function IntegratedBuilderInner({
                     </h3>
                     <EditorToolbox />
                   </div>
-
                   <Separator className="mx-3" />
-
                   <div className="p-3">
                     <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Propriedades do Bloco
@@ -332,21 +324,19 @@ function IntegratedBuilderInner({
           </div>
         )}
 
-        {/* CENTER — Canvas (no right sidebar) */}
-        <div className="flex-1 overflow-auto flex items-start justify-center min-w-0 py-4">
-          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg shrink-0"
-               style={{ width: isVertical ? '360px' : '640px', height: isVertical ? '640px' : '360px' }}>
+        {/* CENTER — Fixed-size canvas centered in remaining space */}
+        <div className="flex-1 flex flex-col items-center justify-start min-w-0 min-h-0 overflow-auto">
+          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg shrink-0 my-auto"
+               style={{ width: isVertical ? '340px' : '600px', height: isVertical ? '604px' : '338px' }}>
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent z-30" />
 
             <div className="relative w-full h-full">
-              {/* Craft.js drop zone — behind TotemCanvas */}
               <div className="absolute inset-0 z-0">
                 <Frame>
                   <Element is={CanvasDropArea} canvas bgColor="transparent" />
                 </Frame>
               </div>
 
-              {/* TotemCanvas on top — fully interactive */}
               <div className="relative z-10 w-full h-full">
                 <TotemCanvas
                   config={config}
@@ -363,10 +353,8 @@ function IntegratedBuilderInner({
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-3 text-[10px] font-mono text-muted-foreground/40 uppercase tracking-widest">
-            <span>{isVertical ? 'Portrait 9:16' : 'Landscape 16:9'}</span>
-            <span>•</span>
-            <span>Editor Unificado</span>
+          <div className="flex items-center justify-center gap-3 text-[10px] font-mono text-muted-foreground/40 uppercase tracking-widest py-2 shrink-0">
+            <span>{isVertical ? '9:16' : '16:9'}</span>
             <span>•</span>
             <span>{deviceName}</span>
           </div>
