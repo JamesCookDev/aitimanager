@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNode, UserComponent } from '@craftjs/core';
 
 interface CanvasDropAreaProps {
@@ -8,6 +9,8 @@ interface CanvasDropAreaProps {
 export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, children }) => {
   const { connectors: { connect } } = useNode();
 
+  const hasChildren = React.Children.count(children) > 0;
+
   return (
     <div
       ref={(ref) => { if (ref) connect(ref); }}
@@ -15,13 +18,12 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
       style={{
         backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
         padding: bgColor === 'transparent' ? 0 : 16,
-        minHeight: bgColor === 'transparent' ? '100%' : undefined,
-        pointerEvents: 'none',
+        minHeight: '100%',
+        // Empty area passes clicks through to TotemCanvas behind
+        pointerEvents: hasChildren ? 'auto' : 'none',
       }}
     >
-      <div style={{ pointerEvents: 'auto' }}>
-        {children}
-      </div>
+      {children}
     </div>
   );
 };
