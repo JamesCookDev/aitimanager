@@ -1,3 +1,4 @@
+// Divider block component - no require() allowed
 import { useNode, UserComponent } from '@craftjs/core';
 import { DividerBlockSettings } from '../settings/DividerBlockSettings';
 
