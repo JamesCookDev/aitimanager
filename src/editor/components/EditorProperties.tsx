@@ -1,5 +1,7 @@
 import { useEditor } from '@craftjs/core';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 export function EditorProperties() {
   const { selected, relatedSettings } = useEditor((state, query) => {
@@ -35,7 +37,7 @@ export function EditorProperties() {
           <span className="text-xl">👆</span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Selecione um componente no canvas para editar suas propriedades
+          Selecione um bloco no canvas para editar suas propriedades
         </p>
       </div>
     );
@@ -49,14 +51,6 @@ export function EditorProperties() {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {selected.name}
         </h3>
-        {selected.isDeletable && (
-          <button
-            onClick={() => actions.delete(selected!.id)}
-            className="text-xs text-destructive hover:text-destructive/80 transition-colors touch-manipulation px-2 py-1"
-          >
-            Remover
-          </button>
-        )}
       </div>
       <ScrollArea className="flex-1 p-3">
         {SettingsComponent ? (
@@ -65,6 +59,18 @@ export function EditorProperties() {
           <p className="text-xs text-muted-foreground">Sem propriedades editáveis</p>
         )}
       </ScrollArea>
+      {selected.isDeletable && (
+        <div className="p-3 border-t border-border/50">
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => actions.delete(selected!.id)}
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Remover Bloco
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
