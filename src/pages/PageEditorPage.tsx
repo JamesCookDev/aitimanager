@@ -13,7 +13,6 @@ import { IntegratedBuilder, type IntegratedBuilderRef } from '@/components/page-
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
 import { DEFAULT_PAGE_BUILDER_CONFIG, migrateUiConfig } from '@/types/page-builder';
 import type { PageBuilderConfig } from '@/types/page-builder';
-import type { CanvasSelection } from '@/components/page-builder/TotemCanvas';
 import { getDeviceStatus, type DeviceStatus } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -37,7 +36,6 @@ export default function PageEditorPage() {
   const [builderConfig, setBuilderConfig] = useState<PageBuilderConfig>(DEFAULT_PAGE_BUILDER_CONFIG);
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<CanvasSelection>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const builderRef = useRef<IntegratedBuilderRef | null>(null);
 
@@ -75,7 +73,6 @@ export default function PageEditorPage() {
     if (!selectedDeviceId) return;
     setLoadingConfig(true);
     setHasChanges(false);
-    setSelectedElement(null);
 
     async function loadConfig() {
       const { data, error } = await supabase
@@ -225,8 +222,6 @@ export default function PageEditorPage() {
         <>
           <IntegratedBuilder
             config={builderConfig}
-            selectedElement={selectedElement}
-            onSelectElement={setSelectedElement}
             onUpdateConfig={handleBuilderChange}
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={selectedDevice?.name || 'Totem'}
