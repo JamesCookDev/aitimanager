@@ -110,8 +110,15 @@ Deno.serve(async (req) => {
               ...(storedUi.components?.chat_interface?.menu || {}),
               categories: storedUi.components?.chat_interface?.menu?.categories || defaultConfig.components.chat_interface.menu.categories,
             },
+            style: storedUi.components?.chat_interface?.style || { opacity: 0.85, blur: 12 },
           },
+          logo: storedUi.components?.logo || { enabled: false, url: '', position: 'top_center', scale: 1 },
+          text_banners: storedUi.components?.text_banners || { enabled: false, items: [] },
         },
+        // Custom layers (image, video, shape, clock overlays)
+        layers: storedUi.layers || [],
+        // Craft.js serialized block tree for 2D overlay rendering
+        craft_blocks: storedUi.craft_blocks || null,
       }
     } else {
       // Legacy format: migrate on-the-fly for backward compat
@@ -157,8 +164,13 @@ Deno.serve(async (req) => {
                 buttons: cat.buttons || [],
               })),
             },
+            style: { opacity: 0.85, blur: 12 },
           },
+          logo: { enabled: false, url: '', position: 'top_center', scale: 1 },
+          text_banners: { enabled: false, items: [] },
         },
+        layers: [],
+        craft_blocks: null,
       }
       if (mergedUi.components.chat_interface.menu.categories.length === 0) {
         mergedUi.components.chat_interface.menu.categories = defaultConfig.components.chat_interface.menu.categories
