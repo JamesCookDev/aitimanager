@@ -164,6 +164,7 @@ export interface PageBuilderConfig {
   canvas: CanvasConfig;
   components: PageBuilderComponents;
   layers?: Layer[];
+  craft_blocks?: string; // Serialized craft.js state (JSON string)
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────
@@ -218,6 +219,10 @@ export function migrateUiConfig(old: Record<string, any> | null): PageBuilderCon
     }
     if (!config.layers) {
       config.layers = [];
+    }
+    // Preserve craft_blocks if present
+    if (old.craft_blocks && !config.craft_blocks) {
+      config.craft_blocks = old.craft_blocks;
     }
     return config;
   }
