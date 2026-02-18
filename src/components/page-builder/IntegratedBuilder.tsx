@@ -85,11 +85,30 @@ function IntegratedBuilderInner({
   }, [config.craft_blocks, actions]);
 
   // Sync craft.js state back to config — returns the latest config
+  // Also extracts AvatarBlock.enabled and syncs it to components.avatar.enabled
   const syncCraftState = useCallback((): PageBuilderConfig => {
     try {
       const json = query.serialize();
       if (json !== config.craft_blocks) {
-        const updated = { ...config, craft_blocks: json };
+        let updated = { ...config, craft_blocks: json };
+
+        // Extract AvatarBlock enabled state from craft nodes and sync to components
+        try {
+          const nodes = JSON.parse(json);
+          const avatarNode = Object.values(nodes).find(
+            (n: any) => n.type?.resolvedName === 'AvatarBlock'
+          ) as any;
+          if (avatarNode && typeof avatarNode.props?.enabled === 'boolean') {
+            updated = {
+              ...updated,
+              components: {
+                ...updated.components,
+                avatar: { ...updated.components.avatar, enabled: avatarNode.props.enabled },
+              },
+            };
+          }
+        } catch { /* ignore parse errors */ }
+
         onUpdateConfig(updated);
         return updated;
       }
