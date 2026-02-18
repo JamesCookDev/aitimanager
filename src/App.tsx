@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Organizations from "./pages/Organizations";
 import Users from "./pages/Users";
 import AIConfigs from "./pages/AIConfigs";
+import PageEditorPage from "./pages/PageEditorPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="organizations" element={<Organizations />} />
               <Route path="users" element={<Users />} />
               <Route path="ai-configs" element={<AIConfigs />} />
+              <Route path="page-editor" element={<PageEditorPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
