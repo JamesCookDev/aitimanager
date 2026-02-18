@@ -16,10 +16,12 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
         backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
         padding: bgColor === 'transparent' ? 0 : 16,
         minHeight: bgColor === 'transparent' ? '100%' : undefined,
-        pointerEvents: bgColor === 'transparent' ? 'none' : undefined,
+        pointerEvents: 'none',
       }}
     >
-      {children}
+      <div style={{ pointerEvents: 'auto' }}>
+        {children}
+      </div>
     </div>
   );
 };
