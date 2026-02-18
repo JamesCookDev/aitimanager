@@ -364,15 +364,8 @@ function IntegratedBuilderInner({
 
             {/* Canvas layers */}
             <div className="relative w-full h-full">
-              {/* Craft.js overlay (behind totem for pass-through) */}
-              <div className="absolute inset-0 z-0">
-                <Frame>
-                  <Element is={CanvasDropArea} canvas bgColor="transparent" />
-                </Frame>
-              </div>
-
-              {/* TotemCanvas (interactive foreground) */}
-              <div className="relative z-10 w-full h-full">
+              {/* TotemCanvas (background layer) */}
+              <div className="relative z-0 w-full h-full">
                 <TotemCanvas
                   config={config}
                   className="w-full h-full"
@@ -381,6 +374,13 @@ function IntegratedBuilderInner({
                   onSelectElement={onSelectElement}
                   onUpdateConfig={onUpdateConfig}
                 />
+              </div>
+
+              {/* Craft.js overlay (on top, pointer-events pass-through) */}
+              <div className="absolute inset-0 z-10" style={{ pointerEvents: previewMode ? 'none' : 'auto' }}>
+                <Frame>
+                  <Element is={CanvasDropArea} canvas bgColor="transparent" />
+                </Frame>
               </div>
             </div>
           </div>
