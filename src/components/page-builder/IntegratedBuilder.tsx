@@ -3,7 +3,7 @@ import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Layers, Maximize2,
   Paintbrush, User, MessageSquare, ImageIcon, Type, Play, Square, Clock,
-  Plus, Trash2,
+  Plus, Trash2, ChevronRight, Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -139,7 +139,7 @@ function IntegratedBuilderInner({
 
   const handleSelectTotemElement = (key: string) => {
     onSelectElement(key);
-    setSidebarTab('properties');
+    setSidebarTab('elements'); // Stay on Totem tab to show inline properties
   };
 
   return (
@@ -178,9 +178,161 @@ function IntegratedBuilderInner({
         </div>
       </div>
 
-      {/* 2-column layout: sidebar + canvas */}
+      {/* 2-column layout: LEFT sidebar + canvas */}
       <div className="flex flex-1 gap-3 overflow-hidden">
-        {/* CENTER — Canvas */}
+
+        {/* LEFT SIDEBAR */}
+        {!previewMode && (
+          <div className="w-72 shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 14rem)' }}>
+            <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as 'elements' | 'properties')} className="flex flex-col h-full">
+              {/* Tabs: Totem / Blocos */}
+              <TabsList className="w-full grid grid-cols-2 shrink-0 rounded-none border-b border-border bg-card/80">
+                <TabsTrigger value="elements" className="text-xs gap-1.5 rounded-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                  <Paintbrush className="w-3.5 h-3.5" /> Totem
+                </TabsTrigger>
+                <TabsTrigger value="properties" className="text-xs gap-1.5 rounded-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                  <Edit3 className="w-3.5 h-3.5" /> Blocos
+                </TabsTrigger>
+              </TabsList>
+
+              {/* TOTEM TAB — Elements + Properties */}
+              <TabsContent value="elements" className="flex-1 mt-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  {/* Header */}
+                  <div className="p-4 pb-2">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Settings2 className="w-4 h-4 text-primary" /> Elementos
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Clique para editar • Arraste para mover</p>
+                  </div>
+
+                  {/* Totem Elements */}
+                  <div className="px-3 pb-2 space-y-1">
+                    {totemElements.map((el) => (
+                      <div
+                        key={el.key}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer group ${
+                          selectedElement === el.key
+                            ? 'border-primary/50 bg-primary/10'
+                            : 'border-transparent hover:border-border hover:bg-muted/30'
+                        }`}
+                        onClick={() => handleSelectTotemElement(el.key)}
+                      >
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-muted/40 ${el.iconColor}`}>
+                          <el.icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-semibold text-foreground block">{el.label}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {el.key === 'background' ? 'Cor, gradiente ou imagem' : el.enabled ? 'Ativo' : 'Desativado'}
+                          </span>
+                        </div>
+                        {el.toggle && (
+                          <Switch
+                            checked={el.enabled}
+                            onCheckedChange={(v) => { el.toggle!(v); }}
+                            className="scale-90"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <Separator className="mx-3" />
+
+                  {/* Camadas Personalizadas */}
+                  <div className="p-3">
+                    <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Layers className="w-3 h-3" /> Camadas Personalizadas
+                    </h3>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {layerTypes.map((lt) => (
+                        <button
+                          key={lt.type}
+                          onClick={() => addLayerFromToolbox(lt.type)}
+                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                        >
+                          <lt.icon className="w-4 h-4" />
+                          <span className="text-[10px] font-medium">{lt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {(config.layers || []).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {(config.layers || []).map((layer) => (
+                          <div
+                            key={layer.id}
+                            className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-all text-xs group ${
+                              selectedElement === layer.id
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                            }`}
+                            onClick={() => handleSelectTotemElement(layer.id)}
+                          >
+                            {(() => {
+                              const LIcon = layerTypes.find(l => l.type === layer.type)?.icon || Square;
+                              return <LIcon className="w-3 h-3 shrink-0" />;
+                            })()}
+                            <span className="truncate flex-1">{layer.label}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-all p-0.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const layers = (config.layers || []).filter(l => l.id !== layer.id);
+                                onUpdateConfig({ ...config, layers });
+                                if (selectedElement === layer.id) onSelectElement(null);
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contextual Properties when element selected */}
+                  {selectedElement && (
+                    <>
+                      <Separator className="mx-3" />
+                      <ContextualSidebar
+                        config={config}
+                        selectedElement={selectedElement}
+                        onChange={onUpdateConfig}
+                        onSelectElement={onSelectElement}
+                      />
+                    </>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              {/* BLOCOS TAB — Craft.js blocks + properties */}
+              <TabsContent value="properties" className="flex-1 mt-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-3">
+                    <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Edit3 className="w-3 h-3" /> Blocos Visuais
+                    </h3>
+                    <EditorToolbox />
+                  </div>
+
+                  <Separator className="mx-3" />
+
+                  <div className="p-3">
+                    <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Propriedades do Bloco
+                    </h3>
+                    <EditorProperties />
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
+        {/* CENTER — Canvas (no right sidebar) */}
         <div className="flex-1 overflow-auto flex flex-col gap-2 min-w-0">
           <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg flex items-center justify-center"
                style={{ height: 'calc(100vh - 16rem)' }}>
@@ -203,7 +355,7 @@ function IntegratedBuilderInner({
                   selectedElement={selectedElement}
                   onSelectElement={(el) => {
                     onSelectElement(el);
-                    setSidebarTab('properties');
+                    setSidebarTab('elements');
                   }}
                   onUpdateConfig={onUpdateConfig}
                 />
