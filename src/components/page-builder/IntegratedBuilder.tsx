@@ -2,11 +2,14 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Layers, Maximize2,
-  MousePointer, Blocks,
+  Paintbrush, User, MessageSquare, ImageIcon, Type, Play, Square, Clock,
+  Plus, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
 import { TextBlock } from '@/editor/components/TextBlock';
@@ -21,6 +24,7 @@ import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage
 import { TotemCanvas, type CanvasSelection } from './TotemCanvas';
 import { ContextualSidebar } from './ContextualSidebar';
 import type { PageBuilderConfig } from '@/types/page-builder';
+import { createLayer, type Layer } from '@/types/page-builder';
 
 const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, CanvasDropArea };
 
@@ -44,8 +48,6 @@ export function IntegratedBuilder(props: IntegratedBuilderProps) {
   );
 }
 
-type EditMode = 'totem' | 'blocks';
-
 function IntegratedBuilderInner({
   config, selectedElement, onSelectElement, onUpdateConfig,
   onFullscreen, deviceName = 'Totem', isOnline = false,
@@ -56,7 +58,6 @@ function IntegratedBuilderInner({
     canRedo: q.history.canRedo(),
   }));
 
-  const [editMode, setEditMode] = useState<EditMode>('totem');
   const [rightTab, setRightTab] = useState<'totem' | 'bloco'>('totem');
   const loadedRef = useRef(false);
 
@@ -67,9 +68,7 @@ function IntegratedBuilderInner({
       try {
         actions.deserialize(config.craft_blocks);
         loadedRef.current = true;
-      } catch {
-        // ignore invalid state
-      }
+      } catch { /* ignore */ }
     } else {
       loadedRef.current = true;
     }
@@ -85,7 +84,6 @@ function IntegratedBuilderInner({
     } catch { /* ignore */ }
   }, [query, config, onUpdateConfig]);
 
-  // Auto-sync craft.js state every 2 seconds
   useEffect(() => {
     const interval = setInterval(syncCraftState, 2000);
     return () => clearInterval(interval);
@@ -108,39 +106,47 @@ function IntegratedBuilderInner({
     } catch { toast.error('Erro ao importar'); }
   }, [actions, syncCraftState]);
 
-  const switchToMode = (mode: EditMode) => {
-    if (mode === 'blocks' && editMode === 'totem') {
-      // Leaving totem mode — sync any pending craft state
-    }
-    setEditMode(mode);
-    setRightTab(mode === 'totem' ? 'totem' : 'bloco');
+  const isVertical = config.canvas.orientation === 'vertical';
+
+  // Totem element definitions for the unified sidebar
+  const totemElements = [
+    { key: 'background', label: 'Cenário', icon: Paintbrush, iconColor: 'text-orange-400', enabled: true },
+    { key: 'avatar', label: 'Avatar 3D', icon: User, iconColor: 'text-blue-400', enabled: config.components.avatar.enabled,
+      toggle: (v: boolean) => onUpdateConfig({ ...config, components: { ...config.components, avatar: { ...config.components.avatar, enabled: v } } }) },
+    { key: 'chat', label: 'Interface', icon: MessageSquare, iconColor: 'text-emerald-400', enabled: config.components.chat_interface.enabled,
+      toggle: (v: boolean) => onUpdateConfig({ ...config, components: { ...config.components, chat_interface: { ...config.components.chat_interface, enabled: v } } }) },
+    { key: 'logo', label: 'Logo', icon: ImageIcon, iconColor: 'text-purple-400', enabled: config.components.logo.enabled,
+      toggle: (v: boolean) => onUpdateConfig({ ...config, components: { ...config.components, logo: { ...config.components.logo, enabled: v } } }) },
+    { key: 'text_banners', label: 'Textos', icon: Type, iconColor: 'text-pink-400', enabled: config.components.text_banners?.enabled || false,
+      toggle: (v: boolean) => onUpdateConfig({ ...config, components: { ...config.components, text_banners: { ...config.components.text_banners, enabled: v } } }) },
+  ];
+
+  // Layer types that can be added
+  const layerTypes: { type: Layer['type']; label: string; icon: typeof ImageIcon }[] = [
+    { type: 'image', label: 'Imagem', icon: ImageIcon },
+    { type: 'video', label: 'Vídeo', icon: Play },
+    { type: 'shape', label: 'Forma', icon: Square },
+    { type: 'clock', label: 'Relógio', icon: Clock },
+  ];
+
+  const addLayerFromToolbox = (type: Layer['type']) => {
+    const layer = createLayer(type);
+    const layers = [...(config.layers || []), layer];
+    onUpdateConfig({ ...config, layers });
+    onSelectElement(layer.id);
+    setRightTab('totem');
   };
 
-  const isVertical = config.canvas.orientation === 'vertical';
+  const handleSelectTotemElement = (key: string) => {
+    onSelectElement(key);
+    setRightTab('totem');
+  };
 
   return (
     <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 12rem)' }}>
       {/* Top toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border border-border rounded-lg bg-card/50 mb-3">
         <div className="flex items-center gap-2">
-          {/* Mode switch */}
-          <div className="flex items-center rounded-lg border border-border bg-muted/30 p-0.5">
-            <Button
-              variant={editMode === 'totem' ? 'default' : 'ghost'}
-              size="sm" className="gap-1.5 text-xs h-7 px-3"
-              onClick={() => switchToMode('totem')}
-            >
-              <MousePointer className="w-3.5 h-3.5" /> Totem
-            </Button>
-            <Button
-              variant={editMode === 'blocks' ? 'default' : 'ghost'}
-              size="sm" className="gap-1.5 text-xs h-7 px-3"
-              onClick={() => switchToMode('blocks')}
-            >
-              <Blocks className="w-3.5 h-3.5" /> Blocos
-            </Button>
-          </div>
-          <div className="h-4 w-px bg-border" />
           <Button
             variant={previewMode ? 'default' : 'outline'}
             size="sm" className="gap-1.5 text-xs"
@@ -149,31 +155,23 @@ function IntegratedBuilderInner({
             {previewMode ? <Edit3 className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             {previewMode ? 'Editar' : 'Preview'}
           </Button>
-          {editMode === 'blocks' && (
-            <>
-              <div className="h-4 w-px bg-border" />
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canUndo} onClick={() => actions.history.undo()}>
-                <Undo2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canRedo} onClick={() => actions.history.redo()}>
-                <Redo2 className="w-4 h-4" />
-              </Button>
-            </>
-          )}
+          <div className="h-4 w-px bg-border" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canUndo} onClick={() => actions.history.undo()}>
+            <Undo2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canRedo} onClick={() => actions.history.redo()}>
+            <Redo2 className="w-4 h-4" />
+          </Button>
         </div>
 
         <div className="flex items-center gap-1.5">
-          {editMode === 'blocks' && (
-            <>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
-                <Download className="w-3.5 h-3.5" /> Exportar
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleImport}>
-                <Upload className="w-3.5 h-3.5" /> Importar
-              </Button>
-              <div className="h-4 w-px bg-border" />
-            </>
-          )}
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
+            <Download className="w-3.5 h-3.5" /> Exportar
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleImport}>
+            <Upload className="w-3.5 h-3.5" /> Importar
+          </Button>
+          <div className="h-4 w-px bg-border" />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onFullscreen}>
             <Maximize2 className="w-3.5 h-3.5" /> Tela Cheia
           </Button>
@@ -182,16 +180,106 @@ function IntegratedBuilderInner({
 
       {/* 3-column layout */}
       <div className="flex flex-1 gap-3 overflow-hidden">
-        {/* LEFT — Block toolbox (only in blocks mode) */}
-        {editMode === 'blocks' && !previewMode && (
-          <div className="w-48 shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
-            <div className="px-3 py-2 border-b border-border bg-muted/30">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5" /> Componentes
-              </h3>
-            </div>
-            <ScrollArea className="flex-1 p-3">
-              <EditorToolbox />
+        {/* LEFT — Unified toolbox */}
+        {!previewMode && (
+          <div className="w-52 shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+            <ScrollArea className="flex-1">
+              {/* Totem Elements */}
+              <div className="p-3">
+                <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  🎯 Elementos do Totem
+                </h3>
+                <div className="space-y-1">
+                  {totemElements.map((el) => (
+                    <div
+                      key={el.key}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group ${
+                        selectedElement === el.key
+                          ? 'border-primary/50 bg-primary/10'
+                          : 'border-transparent hover:border-border hover:bg-muted/30'
+                      }`}
+                      onClick={() => handleSelectTotemElement(el.key)}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-muted/30 ${el.iconColor}`}>
+                        <el.icon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-medium text-foreground flex-1">{el.label}</span>
+                      {el.toggle && (
+                        <Switch
+                          checked={el.enabled}
+                          onCheckedChange={(v) => { el.toggle!(v); }}
+                          className="scale-75"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator className="mx-3" />
+
+              {/* Layer shortcuts */}
+              <div className="p-3">
+                <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Layers className="w-3 h-3" /> Camadas
+                </h3>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {layerTypes.map((lt) => (
+                    <button
+                      key={lt.type}
+                      onClick={() => addLayerFromToolbox(lt.type)}
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                    >
+                      <lt.icon className="w-4 h-4" />
+                      <span className="text-[10px] font-medium">{lt.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Existing layers list */}
+                {(config.layers || []).length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {(config.layers || []).map((layer) => (
+                      <div
+                        key={layer.id}
+                        className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-all text-xs ${
+                          selectedElement === layer.id
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                        }`}
+                        onClick={() => handleSelectTotemElement(layer.id)}
+                      >
+                        {(() => {
+                          const LIcon = layerTypes.find(l => l.type === layer.type)?.icon || Square;
+                          return <LIcon className="w-3 h-3 shrink-0" />;
+                        })()}
+                        <span className="truncate flex-1">{layer.label}</span>
+                        <button
+                          className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-all p-0.5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const layers = (config.layers || []).filter(l => l.id !== layer.id);
+                            onUpdateConfig({ ...config, layers });
+                            if (selectedElement === layer.id) onSelectElement(null);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="mx-3" />
+
+              {/* Craft.js Draggable Blocks */}
+              <div className="p-3">
+                <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Edit3 className="w-3 h-3" /> Blocos Visuais
+                </h3>
+                <EditorToolbox />
+              </div>
             </ScrollArea>
           </div>
         )}
@@ -199,14 +287,14 @@ function IntegratedBuilderInner({
         {/* CENTER — Canvas */}
         <div className="flex-1 overflow-auto flex flex-col gap-2 min-w-0">
           <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg flex-1">
-            {/* Top accent line */}
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent z-30" />
 
-            {/* TOTEM MODE: TotemCanvas is interactive */}
-            {editMode === 'totem' && (
+            {/* Unified canvas: TotemCanvas background + craft.js overlay */}
+            <div className="relative" style={{ aspectRatio: isVertical ? '9/16' : '16/9' }}>
+              {/* TotemCanvas interactive layer */}
               <TotemCanvas
                 config={config}
-                className="w-full"
+                className="w-full h-full"
                 interactive={!previewMode}
                 selectedElement={selectedElement}
                 onSelectElement={(el) => {
@@ -215,37 +303,23 @@ function IntegratedBuilderInner({
                 }}
                 onUpdateConfig={onUpdateConfig}
               />
-            )}
 
-            {/* BLOCKS MODE: craft.js is interactive, TotemCanvas is background */}
-            {editMode === 'blocks' && (
-              <div className="relative" style={{ aspectRatio: isVertical ? '9/16' : '16/9' }}>
-                {/* TotemCanvas as non-interactive background */}
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                  <TotemCanvas
-                    config={config}
-                    className="w-full h-full"
-                    interactive={false}
-                  />
-                </div>
-
-                {/* Craft.js interactive canvas on top */}
-                <div className="absolute inset-0 z-10" style={{ minHeight: 200 }}>
-                  <Frame>
-                    <Element is={CanvasDropArea} canvas bgColor="transparent">
-                      {/* Blocks dropped here */}
-                    </Element>
-                  </Frame>
-                </div>
+              {/* Craft.js overlay for dropped blocks */}
+              <div className="absolute inset-0 z-20" style={{ pointerEvents: previewMode ? 'none' : 'auto' }}>
+                <Frame>
+                  <Element is={CanvasDropArea} canvas bgColor="transparent">
+                    {/* Blocks dropped here */}
+                  </Element>
+                </Frame>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Bottom strip */}
           <div className="flex items-center justify-center gap-3 text-[10px] font-mono text-muted-foreground/40 uppercase tracking-widest">
             <span>{isVertical ? 'Portrait 9:16' : 'Landscape 16:9'}</span>
             <span>•</span>
-            <span>{editMode === 'totem' ? 'Modo Totem' : 'Modo Blocos'}</span>
+            <span>Editor Unificado</span>
             <span>•</span>
             <span>{deviceName}</span>
           </div>
