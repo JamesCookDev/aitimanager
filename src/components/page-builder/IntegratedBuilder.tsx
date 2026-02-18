@@ -376,8 +376,8 @@ function IntegratedBuilderInner({
                 />
               </div>
 
-              {/* Craft.js overlay (foreground — drop zone with pass-through on empty space) */}
-              <div className="relative z-10 w-full h-full" style={{ pointerEvents: previewMode ? 'none' : 'auto' }}>
+              {/* Craft.js overlay (foreground — pointer-events none so TotemCanvas gets clicks, but craft blocks themselves are interactive) */}
+              <div className="relative z-10 w-full h-full" style={{ pointerEvents: 'none' }}>
                 <Frame>
                   <Element is={CanvasDropArea} canvas bgColor="transparent" />
                 </Frame>
