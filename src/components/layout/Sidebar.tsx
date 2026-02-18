@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Cpu,
   Brain,
+  PanelTop,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,12 @@ export function Sidebar() {
       title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens',
       icon: Cpu,
       path: '/dashboard/devices',
+      showFor: 'all' as const,
+    },
+    {
+      title: 'Page Builder',
+      icon: PanelTop,
+      path: '/dashboard/page-editor',
       showFor: 'all' as const,
     },
     {
