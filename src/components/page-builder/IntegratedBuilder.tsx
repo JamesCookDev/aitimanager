@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useImperativeHandle } from 'r
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
-  Type, ImageIcon, MousePointer2, LayoutGrid,
+  Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,13 +13,16 @@ import { TextBlock } from '@/editor/components/TextBlock';
 import { ImageBlock } from '@/editor/components/ImageBlock';
 import { ButtonBlock } from '@/editor/components/ButtonBlock';
 import { ContainerBlock } from '@/editor/components/ContainerBlock';
+import { AvatarBlock } from '@/editor/components/AvatarBlock';
+import { SpacerBlock } from '@/editor/components/SpacerBlock';
+import { DividerBlock } from '@/editor/components/DividerBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
 
-const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, CanvasDropArea };
+const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, CanvasDropArea };
 
 export interface IntegratedBuilderRef {
   forceSyncCraftState: () => PageBuilderConfig;
@@ -48,7 +51,10 @@ const CRAFT_BLOCKS = [
   { name: 'Texto', icon: Type, element: <TextBlock /> },
   { name: 'Imagem', icon: ImageIcon, element: <ImageBlock /> },
   { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
+  { name: 'Avatar', icon: User, element: <AvatarBlock /> },
   { name: 'Container', icon: LayoutGrid, element: <Element is={ContainerBlock} canvas /> },
+  { name: 'Espaçador', icon: MoveVertical, element: <SpacerBlock /> },
+  { name: 'Divisor', icon: Minus, element: <DividerBlock /> },
 ] as const;
 
 /* ─── Inner component ─────────────────────────────────────────────── */

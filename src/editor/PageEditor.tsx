@@ -12,12 +12,15 @@ import { TextBlock } from './components/TextBlock';
 import { ImageBlock } from './components/ImageBlock';
 import { ButtonBlock } from './components/ButtonBlock';
 import { ContainerBlock } from './components/ContainerBlock';
+import { AvatarBlock } from './components/AvatarBlock';
+import { SpacerBlock } from './components/SpacerBlock';
+import { DividerBlock } from './components/DividerBlock';
 import { CanvasDropArea } from './components/CanvasDropArea';
 import { EditorToolbox } from './components/EditorToolbox';
 import { EditorProperties } from './components/EditorProperties';
 import { saveEditorState, loadEditorState, exportEditorJson, importEditorJson } from './utils/editorStorage';
 
-const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, CanvasDropArea };
+const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, CanvasDropArea };
 
 export function PageEditor() {
   const [previewMode, setPreviewMode] = useState(false);
