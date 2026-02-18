@@ -333,12 +333,12 @@ function IntegratedBuilderInner({
         )}
 
         {/* CENTER — Canvas (no right sidebar) */}
-        <div className="flex-1 overflow-auto flex flex-col gap-2 min-w-0">
-          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg flex items-center justify-center"
-               style={{ height: 'calc(100vh - 16rem)' }}>
+        <div className="flex-1 overflow-auto flex items-start justify-center min-w-0 py-4">
+          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg shrink-0"
+               style={{ width: isVertical ? '360px' : '640px', height: isVertical ? '640px' : '360px' }}>
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent z-30" />
 
-            <div className="relative h-full" style={{ aspectRatio: isVertical ? '9/16' : '16/9', maxHeight: '100%', maxWidth: '100%' }}>
+            <div className="relative w-full h-full">
               {/* Craft.js drop zone — behind TotemCanvas */}
               <div className="absolute inset-0 z-0">
                 <Frame>
