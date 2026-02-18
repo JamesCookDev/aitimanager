@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useImperativeHandle } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Save, Maximize2,
@@ -29,6 +29,10 @@ import { createLayer, type Layer } from '@/types/page-builder';
 
 const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, CanvasDropArea };
 
+export interface IntegratedBuilderRef {
+  forceSyncCraftState: () => PageBuilderConfig;
+}
+
 interface IntegratedBuilderProps {
   config: PageBuilderConfig;
   selectedElement: CanvasSelection;
@@ -37,6 +41,7 @@ interface IntegratedBuilderProps {
   onFullscreen: () => void;
   deviceName?: string;
   isOnline?: boolean;
+  builderRef?: React.RefObject<IntegratedBuilderRef | null>;
 }
 
 export function IntegratedBuilder(props: IntegratedBuilderProps) {
@@ -76,7 +81,7 @@ const CRAFT_BLOCKS = [
 function IntegratedBuilderInner({
   config, selectedElement, onSelectElement, onUpdateConfig,
   onFullscreen, deviceName = 'Totem', isOnline = false,
-  previewMode, setPreviewMode,
+  previewMode, setPreviewMode, builderRef,
 }: IntegratedBuilderProps & { previewMode: boolean; setPreviewMode: (v: boolean) => void }) {
   const { actions, query, connectors, canUndo, canRedo } = useEditor((state, q) => ({
     canUndo: q.history.canUndo(),
@@ -84,22 +89,38 @@ function IntegratedBuilderInner({
   }));
 
   const loadedRef = useRef(false);
+  const prevCraftBlocksRef = useRef(config.craft_blocks);
 
-  // Load saved craft.js blocks from config
+  // Load saved craft.js blocks from config (re-load on device switch)
   useEffect(() => {
-    if (loadedRef.current) return;
+    const craftBlocksChanged = config.craft_blocks !== prevCraftBlocksRef.current;
+    prevCraftBlocksRef.current = config.craft_blocks;
+
+    if (loadedRef.current && !craftBlocksChanged) return;
+
     if (config.craft_blocks) {
-      try { actions.deserialize(config.craft_blocks); loadedRef.current = true; } catch { /* ignore */ }
-    } else { loadedRef.current = true; }
+      try { actions.deserialize(config.craft_blocks); } catch { /* ignore */ }
+    }
+    loadedRef.current = true;
   }, [config.craft_blocks, actions]);
 
-  // Sync craft.js state back to config
-  const syncCraftState = useCallback(() => {
+  // Sync craft.js state back to config — returns the latest config
+  const syncCraftState = useCallback((): PageBuilderConfig => {
     try {
       const json = query.serialize();
-      if (json !== config.craft_blocks) onUpdateConfig({ ...config, craft_blocks: json });
+      if (json !== config.craft_blocks) {
+        const updated = { ...config, craft_blocks: json };
+        onUpdateConfig(updated);
+        return updated;
+      }
     } catch { /* ignore */ }
+    return config;
   }, [query, config, onUpdateConfig]);
+
+  // Expose imperative handle so parent can force-sync before saving
+  useImperativeHandle(builderRef, () => ({
+    forceSyncCraftState: syncCraftState,
+  }), [syncCraftState]);
 
   useEffect(() => {
     const interval = setInterval(syncCraftState, 2000);
