@@ -82,6 +82,18 @@ Deno.serve(async (req) => {
           scale: 1.5,
           animation: 'idle',
           colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
+          models: {
+            avatar_url: '/models/avatar.glb',
+            animations_url: '/models/animations.glb',
+          },
+          animations: {
+            idle: 'Idle',
+            talking: 'TalkingOne',
+          },
+          materials: {
+            roughness: 0.5,
+            metalness: 0.0,
+          },
         },
         chat_interface: {
           enabled: true,
@@ -123,7 +135,26 @@ Deno.serve(async (req) => {
           environment: { ...defaultConfig.canvas.environment, ...(storedUi.canvas?.environment || {}) },
         },
         components: {
-          avatar: { ...defaultConfig.components.avatar, ...(storedUi.components?.avatar || {}), enabled: avatarEnabled },
+          avatar: (() => {
+            const stored = storedUi.components?.avatar || {}
+            const def = defaultConfig.components.avatar
+            const models = { ...def.models, ...(stored.models || {}) }
+            const animations = { ...def.animations, ...(stored.animations || {}) }
+            // Sanitize: replace empty strings with defaults
+            if (!models.avatar_url) models.avatar_url = def.models.avatar_url
+            if (!models.animations_url) models.animations_url = def.models.animations_url
+            if (!animations.idle) animations.idle = def.animations.idle
+            if (!animations.talking) animations.talking = def.animations.talking
+            return {
+              ...def,
+              ...stored,
+              enabled: avatarEnabled,
+              colors: { ...def.colors, ...(stored.colors || {}) },
+              models,
+              animations,
+              materials: { ...def.materials, ...(stored.materials || {}) },
+            }
+          })(),
           chat_interface: {
             ...defaultConfig.components.chat_interface,
             ...(storedUi.components?.chat_interface || {}),
