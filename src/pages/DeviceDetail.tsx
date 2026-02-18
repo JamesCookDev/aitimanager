@@ -65,7 +65,9 @@ export default function DeviceDetail() {
         event: 'UPDATE', schema: 'public', table: 'devices',
         filter: `id=eq.${deviceId}`,
       }, (payload) => {
-        setDevice(prev => prev ? { ...prev, ...payload.new } as Device : null);
+        // Only update non-ui_config fields from realtime to avoid overwriting local builder state
+        const { ui_config, ...rest } = payload.new as any;
+        setDevice(prev => prev ? { ...prev, ...rest } as Device : null);
       })
       .subscribe();
 
