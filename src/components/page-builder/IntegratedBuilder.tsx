@@ -326,8 +326,8 @@ function IntegratedBuilderInner({
 
         {/* CENTER — Fixed-size canvas centered in remaining space */}
         <div className="flex-1 flex flex-col items-center justify-start min-w-0 min-h-0 overflow-auto">
-          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg shrink-0 my-auto"
-               style={{ width: isVertical ? '340px' : '600px', height: isVertical ? '604px' : '338px' }}>
+          <div className="relative rounded-xl border border-border/60 bg-muted/10 overflow-hidden shadow-lg my-auto w-full"
+               style={{ maxWidth: isVertical ? '420px' : '700px', aspectRatio: isVertical ? '9/16' : '16/9' }}>
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent z-30" />
 
             <div className="relative w-full h-full">
