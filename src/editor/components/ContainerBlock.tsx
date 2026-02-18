@@ -1,4 +1,4 @@
-import { useNode, Element, UserComponent } from '@craftjs/core';
+import { useNode, UserComponent } from '@craftjs/core';
 import { ContainerBlockSettings } from '../settings/ContainerBlockSettings';
 
 export interface ContainerBlockProps {
@@ -10,15 +10,37 @@ export interface ContainerBlockProps {
   justifyContent: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
   borderRadius: number;
   minHeight: number;
+  opacity: number;
+  borderColor: string;
+  borderWidth: number;
+  shadow: 'none' | 'sm' | 'md' | 'lg';
+  blur: number;
   children?: React.ReactNode;
 }
 
-export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = ({
-  bgColor = 'rgba(255,255,255,0.05)', padding = 16, gap = 8, direction = 'column', alignItems = 'stretch', justifyContent = 'flex-start', borderRadius = 12, minHeight = 80, children,
-}) => {
+export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = (props) => {
+  const {
+    bgColor = 'rgba(255,255,255,0.05)',
+    padding = 16,
+    gap = 8,
+    direction = 'column',
+    alignItems = 'stretch',
+    justifyContent = 'flex-start',
+    borderRadius = 12,
+    minHeight = 80,
+    opacity = 1,
+    borderColor = 'rgba(255,255,255,0.1)',
+    borderWidth = 0,
+    shadow = 'none',
+    blur = 0,
+    children,
+  } = props;
+
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
+
+  const shadowMap = { none: 'none', sm: '0 2px 8px rgba(0,0,0,0.15)', md: '0 4px 20px rgba(0,0,0,0.25)', lg: '0 8px 40px rgba(0,0,0,0.35)' };
 
   return (
     <div
@@ -36,6 +58,10 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = ({
         minHeight,
         cursor: 'move',
         pointerEvents: 'auto',
+        opacity,
+        border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : undefined,
+        boxShadow: shadowMap[shadow],
+        backdropFilter: blur > 0 ? `blur(${blur}px)` : undefined,
       }}
     >
       {children}
@@ -53,6 +79,11 @@ ContainerBlock.craft = {
     justifyContent: 'flex-start',
     borderRadius: 12,
     minHeight: 80,
+    opacity: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 0,
+    shadow: 'none',
+    blur: 0,
   },
   related: { settings: ContainerBlockSettings },
   rules: { canDrag: () => true },

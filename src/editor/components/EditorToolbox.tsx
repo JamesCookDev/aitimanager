@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor, Element } from '@craftjs/core';
-import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard } from 'lucide-react';
+import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard, BarChart3, Clock, Palette, Share2 } from 'lucide-react';
 
 import { TextBlock } from './TextBlock';
 import { ImageBlock } from './ImageBlock';
@@ -13,12 +13,17 @@ import { MenuBlock } from './MenuBlock';
 import { IconBlock } from './IconBlock';
 import { BadgeBlock } from './BadgeBlock';
 import { CardBlock } from './CardBlock';
+import { ProgressBlock } from './ProgressBlock';
+import { CountdownBlock } from './CountdownBlock';
+import { GradientTextBlock } from './GradientTextBlock';
+import { SocialLinksBlock } from './SocialLinksBlock';
 
 const categories = [
   {
     label: 'Conteúdo',
     blocks: [
       { name: 'Texto', icon: Type, element: <TextBlock /> },
+      { name: 'Gradiente', icon: Palette, element: <GradientTextBlock /> },
       { name: 'Imagem', icon: Image, element: <ImageBlock /> },
       { name: 'Ícone', icon: Sparkles, element: <IconBlock /> },
       { name: 'Badge', icon: Tag, element: <BadgeBlock /> },
@@ -29,6 +34,14 @@ const categories = [
     blocks: [
       { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
       { name: 'Menu', icon: Menu, element: <MenuBlock /> },
+      { name: 'Social', icon: Share2, element: <SocialLinksBlock /> },
+    ],
+  },
+  {
+    label: 'Dados',
+    blocks: [
+      { name: 'Progresso', icon: BarChart3, element: <ProgressBlock /> },
+      { name: 'Relógio', icon: Clock, element: <CountdownBlock /> },
     ],
   },
   {

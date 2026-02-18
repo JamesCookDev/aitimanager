@@ -3,7 +3,7 @@ import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
-  Menu, Sparkles, Tag, CreditCard, LayoutTemplate,
+  Menu, Sparkles, Tag, CreditCard, LayoutTemplate, BarChart3, Clock, Palette, Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +21,10 @@ import { MenuBlock } from '@/editor/components/MenuBlock';
 import { IconBlock } from '@/editor/components/IconBlock';
 import { BadgeBlock } from '@/editor/components/BadgeBlock';
 import { CardBlock } from '@/editor/components/CardBlock';
+import { ProgressBlock } from '@/editor/components/ProgressBlock';
+import { CountdownBlock } from '@/editor/components/CountdownBlock';
+import { GradientTextBlock } from '@/editor/components/GradientTextBlock';
+import { SocialLinksBlock } from '@/editor/components/SocialLinksBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
@@ -28,7 +32,11 @@ import { TemplatePicker } from '@/editor/components/TemplatePicker';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
 
-const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock, CanvasDropArea };
+const resolver = {
+  TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
+  SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
+  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock, CanvasDropArea,
+};
 
 export interface IntegratedBuilderRef {
   forceSyncCraftState: () => PageBuilderConfig;
@@ -58,6 +66,7 @@ const BLOCK_CATEGORIES = [
     label: 'Conteúdo',
     blocks: [
       { name: 'Texto', icon: Type, element: <TextBlock /> },
+      { name: 'Gradiente', icon: Palette, element: <GradientTextBlock /> },
       { name: 'Imagem', icon: ImageIcon, element: <ImageBlock /> },
       { name: 'Ícone', icon: Sparkles, element: <IconBlock /> },
       { name: 'Badge', icon: Tag, element: <BadgeBlock /> },
@@ -68,6 +77,14 @@ const BLOCK_CATEGORIES = [
     blocks: [
       { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
       { name: 'Menu', icon: Menu, element: <MenuBlock /> },
+      { name: 'Social', icon: Share2, element: <SocialLinksBlock /> },
+    ],
+  },
+  {
+    label: 'Dados',
+    blocks: [
+      { name: 'Progresso', icon: BarChart3, element: <ProgressBlock /> },
+      { name: 'Relógio', icon: Clock, element: <CountdownBlock /> },
     ],
   },
   {
@@ -115,15 +132,13 @@ function IntegratedBuilderInner({
     loadedRef.current = true;
   }, [config.craft_blocks, actions]);
 
-  // Sync craft.js state back to config — returns the latest config
-  // Also extracts AvatarBlock.enabled and syncs it to components.avatar.enabled
+  // Sync craft.js state back to config
   const syncCraftState = useCallback((): PageBuilderConfig => {
     try {
       const json = query.serialize();
       if (json !== config.craft_blocks) {
         let updated = { ...config, craft_blocks: json };
 
-        // Extract AvatarBlock enabled state from craft nodes and sync to components
         try {
           const nodes = JSON.parse(json);
           const avatarNode = Object.values(nodes).find(
@@ -147,7 +162,6 @@ function IntegratedBuilderInner({
     return config;
   }, [query, config, onUpdateConfig]);
 
-  // Expose imperative handle so parent can force-sync before saving
   useImperativeHandle(builderRef, () => ({
     forceSyncCraftState: syncCraftState,
   }), [syncCraftState]);
@@ -219,7 +233,7 @@ function IntegratedBuilderInner({
           </Button>
           <div className="w-px h-5 bg-border mx-1" />
           <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={onFullscreen}>
-            <Maximize2 className="w-3.5 h-3.5" /> Tela Cheia
+            <Maximize2 className="w-3.5 h-3.5" /> Preview Totem
           </Button>
         </div>
       </div>
@@ -338,6 +352,8 @@ function IntegratedBuilderInner({
       <div className="h-7 flex items-center justify-between px-4 border-t border-border bg-card/80 shrink-0">
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
           <span>1080×1920 (9:16)</span>
+          <span>•</span>
+          <span>{Object.keys(BLOCK_CATEGORIES).length} categorias • {BLOCK_CATEGORIES.reduce((a, c) => a + c.blocks.length, 0)} blocos</span>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
           <span>{previewMode ? 'Modo Preview' : 'Modo Edição'}</span>
