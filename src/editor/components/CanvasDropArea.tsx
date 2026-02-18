@@ -12,7 +12,11 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
     <div
       ref={(ref) => { if (ref) connect(ref); }}
       className="w-full min-h-full"
-      style={{ backgroundColor: bgColor, padding: 16 }}
+      style={{
+        backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
+        padding: bgColor === 'transparent' ? 0 : 16,
+        minHeight: bgColor === 'transparent' ? '100%' : undefined,
+      }}
     >
       {children}
     </div>
