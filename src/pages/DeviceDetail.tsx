@@ -23,9 +23,8 @@ import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
-import { TotemPreviewFrame } from '@/components/page-builder/TotemPreviewFrame';
+import { IntegratedBuilder } from '@/components/page-builder/IntegratedBuilder';
 import type { CanvasSelection } from '@/components/page-builder/TotemCanvas';
-import { ContextualSidebar } from '@/components/page-builder/ContextualSidebar';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -326,30 +325,15 @@ export default function DeviceDetail() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start" style={{ minHeight: 'calc(100vh - 10rem)' }}>
-            {/* Canvas Preview */}
-            <div className="flex justify-center w-full h-full">
-              <TotemPreviewFrame
-                config={builderConfig}
-                selectedElement={selectedElement}
-                onSelectElement={setSelectedElement}
-                onUpdateConfig={handleBuilderChange}
-                onFullscreen={() => setShowFullscreen(true)}
-                deviceName={device.name}
-                isOnline={status === 'online'}
-              />
-            </div>
-
-            {/* Contextual Sidebar (30%) */}
-            <div className="rounded-xl border border-border bg-card lg:sticky lg:top-4 lg:h-[calc(100vh-10rem)] flex flex-col overflow-hidden">
-              <ContextualSidebar
-                config={builderConfig}
-                selectedElement={selectedElement}
-                onChange={handleBuilderChange}
-                onSelectElement={setSelectedElement}
-              />
-            </div>
-          </div>
+          <IntegratedBuilder
+            config={builderConfig}
+            selectedElement={selectedElement}
+            onSelectElement={setSelectedElement}
+            onUpdateConfig={handleBuilderChange}
+            onFullscreen={() => setShowFullscreen(true)}
+            deviceName={device.name}
+            isOnline={status === 'online'}
+          />
 
           <FullscreenPreview open={showFullscreen} onOpenChange={setShowFullscreen} config={builderConfig} deviceName={device.name} isOnline={status === 'online'} />
         </TabsContent>
