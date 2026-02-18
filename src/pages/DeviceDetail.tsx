@@ -314,17 +314,6 @@ export default function DeviceDetail() {
 
         {/* PAGE BUILDER TAB */}
         <TabsContent value="builder" className="mt-4">
-          {/* Environment Presets - Super Admin only */}
-          {role === 'super_admin' && (
-            <div className="mb-4">
-              <EnvironmentPresets
-                deviceId={deviceId!}
-                currentConfig={builderConfig}
-                onApply={(config) => handleBuilderChange(config)}
-              />
-            </div>
-          )}
-
           <IntegratedBuilder
             config={builderConfig}
             selectedElement={selectedElement}
