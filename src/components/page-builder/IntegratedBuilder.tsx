@@ -154,12 +154,36 @@ function IntegratedBuilderInner({
           const avatarNode = Object.values(nodes).find(
             (n: any) => n.type?.resolvedName === 'AvatarBlock'
           ) as any;
-          if (avatarNode && typeof avatarNode.props?.enabled === 'boolean') {
+          if (avatarNode?.props) {
+            const ap = avatarNode.props;
             updated = {
               ...updated,
               components: {
                 ...updated.components,
-                avatar: { ...updated.components.avatar, enabled: avatarNode.props.enabled },
+                avatar: {
+                  enabled: ap.enabled ?? true,
+                  position: ap.position ?? 'center',
+                  scale: ap.scale ?? 1.5,
+                  animation: ap.idleAnimation ?? 'Idle',
+                  colors: {
+                    shirt: ap.shirtColor ?? '#1E3A8A',
+                    pants: ap.pantsColor ?? '#1F2937',
+                    shoes: ap.shoesColor ?? '#000000',
+                  },
+                  // Extended props for totem Avatar.jsx
+                  models: {
+                    avatar_url: ap.avatarUrl ?? '/models/avatar.glb',
+                    animations_url: ap.animationsUrl ?? '/models/animations.glb',
+                  },
+                  animations: {
+                    idle: ap.idleAnimation ?? 'Idle',
+                    talking: ap.talkingAnimation ?? 'TalkingOne',
+                  },
+                  materials: {
+                    roughness: ap.roughness ?? 0.5,
+                    metalness: ap.metalness ?? 0,
+                  },
+                } as any,
               },
             };
           }
