@@ -25,6 +25,8 @@ import { ProgressBlock } from '@/editor/components/ProgressBlock';
 import { CountdownBlock } from '@/editor/components/CountdownBlock';
 import { GradientTextBlock } from '@/editor/components/GradientTextBlock';
 import { SocialLinksBlock } from '@/editor/components/SocialLinksBlock';
+import { VideoEmbedBlock } from '@/editor/components/VideoEmbedBlock';
+import { QRCodeBlock } from '@/editor/components/QRCodeBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
@@ -35,7 +37,8 @@ import type { PageBuilderConfig } from '@/types/page-builder';
 const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
-  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock, CanvasDropArea,
+  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock,
+  VideoEmbedBlock, QRCodeBlock, CanvasDropArea,
 };
 
 export interface IntegratedBuilderRef {
@@ -78,6 +81,13 @@ const BLOCK_CATEGORIES = [
       { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
       { name: 'Menu', icon: Menu, element: <MenuBlock /> },
       { name: 'Social', icon: Share2, element: <SocialLinksBlock /> },
+    ],
+  },
+  {
+    label: 'Mídia',
+    blocks: [
+      { name: 'Vídeo', icon: ImageIcon, element: <VideoEmbedBlock /> },
+      { name: 'QR Code', icon: Sparkles, element: <QRCodeBlock /> },
     ],
   },
   {

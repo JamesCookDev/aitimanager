@@ -20,6 +20,8 @@ import { ProgressBlock } from '@/editor/components/ProgressBlock';
 import { CountdownBlock } from '@/editor/components/CountdownBlock';
 import { GradientTextBlock } from '@/editor/components/GradientTextBlock';
 import { SocialLinksBlock } from '@/editor/components/SocialLinksBlock';
+import { VideoEmbedBlock } from '@/editor/components/VideoEmbedBlock';
+import { QRCodeBlock } from '@/editor/components/QRCodeBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
@@ -27,7 +29,8 @@ import type { PageBuilderConfig } from '@/types/page-builder';
 const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
-  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock, CanvasDropArea,
+  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock,
+  VideoEmbedBlock, QRCodeBlock, CanvasDropArea,
 };
 
 interface FullscreenPreviewProps {
