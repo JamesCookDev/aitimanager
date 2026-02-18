@@ -139,13 +139,11 @@ function PageEditorInner({ previewMode, setPreviewMode }: { previewMode: boolean
         )}
 
         {/* Canvas */}
-        <div className="flex-1 overflow-auto bg-muted/20 p-4">
+        <div className="flex-1 overflow-auto bg-muted/20 flex items-stretch justify-center p-4">
           <div
-            className="mx-auto rounded-xl border border-border/60 shadow-lg overflow-hidden"
+            className="w-full rounded-xl border border-border/60 shadow-lg overflow-hidden"
             style={{
-              width: 420,
-              minHeight: 750,
-              maxWidth: '100%',
+              maxWidth: 600,
               backgroundColor: '#0f172a',
             }}
           >
