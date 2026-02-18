@@ -14,18 +14,20 @@ export interface IconBlockProps {
   shadow: boolean;
 }
 
-export const IconBlock: UserComponent<Partial<IconBlockProps>> = ({
-  emoji = '⭐',
-  size = 32,
-  bgColor = 'rgba(99,102,241,0.2)',
-  bgEnabled = true,
-  bgSize = 56,
-  bgBorderRadius = 14,
-  borderColor = 'rgba(99,102,241,0.3)',
-  borderWidth = 1,
-  align = 'center',
-  shadow = true,
-}) => {
+export const IconBlock: UserComponent<Partial<IconBlockProps>> = (props) => {
+  const {
+    emoji = '⭐',
+    size = 32,
+    bgColor = 'rgba(99,102,241,0.2)',
+    bgEnabled = true,
+    bgSize = 56,
+    bgBorderRadius = 14,
+    borderColor = 'rgba(99,102,241,0.3)',
+    borderWidth = 1,
+    align = 'center',
+    shadow = true,
+  } = props;
+
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
