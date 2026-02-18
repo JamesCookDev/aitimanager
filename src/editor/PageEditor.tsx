@@ -23,6 +23,8 @@ import { ProgressBlock } from './components/ProgressBlock';
 import { CountdownBlock } from './components/CountdownBlock';
 import { GradientTextBlock } from './components/GradientTextBlock';
 import { SocialLinksBlock } from './components/SocialLinksBlock';
+import { VideoEmbedBlock } from './components/VideoEmbedBlock';
+import { QRCodeBlock } from './components/QRCodeBlock';
 import { CanvasDropArea } from './components/CanvasDropArea';
 import { EditorToolbox } from './components/EditorToolbox';
 import { EditorProperties } from './components/EditorProperties';
@@ -31,7 +33,8 @@ import { saveEditorState, loadEditorState, exportEditorJson, importEditorJson } 
 const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
-  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock, CanvasDropArea,
+  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock,
+  VideoEmbedBlock, QRCodeBlock, CanvasDropArea,
 };
 
 export function PageEditor() {

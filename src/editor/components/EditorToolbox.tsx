@@ -17,6 +17,8 @@ import { ProgressBlock } from './ProgressBlock';
 import { CountdownBlock } from './CountdownBlock';
 import { GradientTextBlock } from './GradientTextBlock';
 import { SocialLinksBlock } from './SocialLinksBlock';
+import { VideoEmbedBlock } from './VideoEmbedBlock';
+import { QRCodeBlock } from './QRCodeBlock';
 
 const categories = [
   {
@@ -35,6 +37,13 @@ const categories = [
       { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
       { name: 'Menu', icon: Menu, element: <MenuBlock /> },
       { name: 'Social', icon: Share2, element: <SocialLinksBlock /> },
+    ],
+  },
+  {
+    label: 'Mídia',
+    blocks: [
+      { name: 'Vídeo', icon: Image, element: <VideoEmbedBlock /> },
+      { name: 'QR Code', icon: Sparkles, element: <QRCodeBlock /> },
     ],
   },
   {
