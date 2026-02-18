@@ -316,8 +316,6 @@ export default function DeviceDetail() {
         <TabsContent value="builder" className="mt-4">
           <IntegratedBuilder
             config={builderConfig}
-            selectedElement={selectedElement}
-            onSelectElement={setSelectedElement}
             onUpdateConfig={handleBuilderChange}
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={device.name}
