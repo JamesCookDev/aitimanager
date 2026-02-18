@@ -9,14 +9,34 @@ export interface ImageBlockProps {
   objectFit: 'cover' | 'contain' | 'fill';
   borderRadius: number;
   padding: number;
+  opacity: number;
+  shadow: 'none' | 'sm' | 'md' | 'lg';
+  borderEnabled: boolean;
+  borderColor: string;
+  borderWidth: number;
 }
 
-export const ImageBlock: UserComponent<Partial<ImageBlockProps>> = ({
-  src = '', alt = 'Imagem', width = '100%', height = 'auto', objectFit = 'cover', borderRadius = 8, padding = 4,
-}) => {
+export const ImageBlock: UserComponent<Partial<ImageBlockProps>> = (props) => {
+  const {
+    src = '',
+    alt = 'Imagem',
+    width = '100%',
+    height = 'auto',
+    objectFit = 'cover',
+    borderRadius = 8,
+    padding = 4,
+    opacity = 1,
+    shadow = 'none',
+    borderEnabled = false,
+    borderColor = '#ffffff',
+    borderWidth = 2,
+  } = props;
+
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
+
+  const shadowMap = { none: 'none', sm: '0 2px 8px rgba(0,0,0,0.2)', md: '0 4px 20px rgba(0,0,0,0.3)', lg: '0 8px 40px rgba(0,0,0,0.4)' };
 
   return (
     <div
@@ -28,12 +48,28 @@ export const ImageBlock: UserComponent<Partial<ImageBlockProps>> = ({
         <img
           src={src}
           alt={alt}
-          style={{ width, height, objectFit, borderRadius, display: 'block' }}
+          style={{
+            width,
+            height,
+            objectFit,
+            borderRadius,
+            display: 'block',
+            opacity,
+            boxShadow: shadowMap[shadow],
+            border: borderEnabled ? `${borderWidth}px solid ${borderColor}` : undefined,
+          }}
         />
       ) : (
         <div
-          className="flex items-center justify-center bg-muted/30 border-2 border-dashed border-muted-foreground/20 text-muted-foreground text-sm"
-          style={{ width, height, borderRadius, minHeight: 80 }}
+          className="flex items-center justify-center border-2 border-dashed border-white/20 text-white/40 text-sm"
+          style={{
+            width,
+            height,
+            borderRadius,
+            minHeight: 80,
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(4px)',
+          }}
         >
           📷 Adicionar imagem
         </div>
@@ -51,6 +87,11 @@ ImageBlock.craft = {
     objectFit: 'cover',
     borderRadius: 8,
     padding: 4,
+    opacity: 1,
+    shadow: 'none',
+    borderEnabled: false,
+    borderColor: '#ffffff',
+    borderWidth: 2,
   },
   related: { settings: ImageBlockSettings },
   displayName: 'Imagem',

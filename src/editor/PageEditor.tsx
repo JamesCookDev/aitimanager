@@ -19,12 +19,20 @@ import { MenuBlock } from './components/MenuBlock';
 import { IconBlock } from './components/IconBlock';
 import { BadgeBlock } from './components/BadgeBlock';
 import { CardBlock } from './components/CardBlock';
+import { ProgressBlock } from './components/ProgressBlock';
+import { CountdownBlock } from './components/CountdownBlock';
+import { GradientTextBlock } from './components/GradientTextBlock';
+import { SocialLinksBlock } from './components/SocialLinksBlock';
 import { CanvasDropArea } from './components/CanvasDropArea';
 import { EditorToolbox } from './components/EditorToolbox';
 import { EditorProperties } from './components/EditorProperties';
 import { saveEditorState, loadEditorState, exportEditorJson, importEditorJson } from './utils/editorStorage';
 
-const resolver = { TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock, SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock, CanvasDropArea };
+const resolver = {
+  TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
+  SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
+  ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock, CanvasDropArea,
+};
 
 export function PageEditor() {
   const [previewMode, setPreviewMode] = useState(false);
