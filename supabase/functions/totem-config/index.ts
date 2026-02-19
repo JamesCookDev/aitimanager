@@ -174,11 +174,9 @@ Deno.serve(async (req) => {
           text_banners: storedUi.components?.text_banners || { enabled: false, items: [] },
           // Extract buttons from craft_nodes or stored components
           buttons: (() => {
-            // Prefer stored structured buttons
             if (storedUi.components?.buttons && Array.isArray(storedUi.components.buttons) && storedUi.components.buttons.length > 0) {
               return storedUi.components.buttons
             }
-            // Fallback: extract from craft_nodes
             if (craftNodes) {
               const btnNodes = Object.values(craftNodes).filter(
                 (n: any) => n.type?.resolvedName === 'ButtonBlock'
@@ -199,6 +197,103 @@ Deno.serve(async (req) => {
                   iconPosition: bn.props?.iconPosition ?? 'left',
                   shadow: bn.props?.shadow ?? 'none',
                   opacity: bn.props?.opacity ?? 1,
+                }))
+              }
+            }
+            return []
+          })(),
+          // Extract social links from stored or craft_nodes
+          social_links: (() => {
+            if (storedUi.components?.social_links && Array.isArray(storedUi.components.social_links) && storedUi.components.social_links.length > 0) {
+              return storedUi.components.social_links
+            }
+            if (craftNodes) {
+              const socialNodes = Object.values(craftNodes).filter(
+                (n: any) => n.type?.resolvedName === 'SocialLinksBlock'
+              ) as any[]
+              if (socialNodes.length > 0) {
+                return socialNodes.map((sn: any) => ({
+                  links: sn.props?.links ?? [],
+                  layout: sn.props?.layout ?? 'horizontal',
+                  iconSize: sn.props?.iconSize ?? 40,
+                  gap: sn.props?.gap ?? 12,
+                  showLabels: sn.props?.showLabels ?? true,
+                  bgEnabled: sn.props?.bgEnabled ?? false,
+                  bgColor: sn.props?.bgColor ?? 'rgba(255,255,255,0.06)',
+                  borderRadius: sn.props?.borderRadius ?? 16,
+                  padding: sn.props?.padding ?? 12,
+                }))
+              }
+            }
+            return []
+          })(),
+          // Extract video embeds from stored or craft_nodes
+          videos: (() => {
+            if (storedUi.components?.videos && Array.isArray(storedUi.components.videos) && storedUi.components.videos.length > 0) {
+              return storedUi.components.videos
+            }
+            if (craftNodes) {
+              const vidNodes = Object.values(craftNodes).filter(
+                (n: any) => n.type?.resolvedName === 'VideoEmbedBlock'
+              ) as any[]
+              if (vidNodes.length > 0) {
+                return vidNodes.map((vn: any) => ({
+                  url: vn.props?.url ?? '',
+                  aspectRatio: vn.props?.aspectRatio ?? '16:9',
+                  borderRadius: vn.props?.borderRadius ?? 12,
+                  autoplay: vn.props?.autoplay ?? false,
+                  muted: vn.props?.muted ?? true,
+                  loop: vn.props?.loop ?? true,
+                  opacity: vn.props?.opacity ?? 1,
+                }))
+              }
+            }
+            return []
+          })(),
+          // Extract QR codes from stored or craft_nodes
+          qr_codes: (() => {
+            if (storedUi.components?.qr_codes && Array.isArray(storedUi.components.qr_codes) && storedUi.components.qr_codes.length > 0) {
+              return storedUi.components.qr_codes
+            }
+            if (craftNodes) {
+              const qrNodes = Object.values(craftNodes).filter(
+                (n: any) => n.type?.resolvedName === 'QRCodeBlock'
+              ) as any[]
+              if (qrNodes.length > 0) {
+                return qrNodes.map((qn: any) => ({
+                  content: qn.props?.content ?? '',
+                  size: qn.props?.size ?? 160,
+                  fgColor: qn.props?.fgColor ?? '#ffffff',
+                  bgColor: qn.props?.bgColor ?? 'transparent',
+                  borderRadius: qn.props?.borderRadius ?? 8,
+                  padding: qn.props?.padding ?? 12,
+                  label: qn.props?.label ?? '',
+                  labelColor: qn.props?.labelColor ?? '#ffffff',
+                  labelSize: qn.props?.labelSize ?? 12,
+                }))
+              }
+            }
+            return []
+          })(),
+          // Extract text blocks from craft_nodes for the local renderer
+          texts: (() => {
+            if (craftNodes) {
+              const textNodes = Object.values(craftNodes).filter(
+                (n: any) => n.type?.resolvedName === 'TextBlock'
+              ) as any[]
+              if (textNodes.length > 0) {
+                return textNodes.map((tn: any) => ({
+                  text: tn.props?.text ?? '',
+                  fontSize: tn.props?.fontSize ?? 16,
+                  fontWeight: tn.props?.fontWeight ?? 'normal',
+                  color: tn.props?.color ?? '#ffffff',
+                  textAlign: tn.props?.textAlign ?? 'left',
+                  padding: tn.props?.padding ?? 8,
+                  letterSpacing: tn.props?.letterSpacing ?? 0,
+                  lineHeight: tn.props?.lineHeight ?? 1.5,
+                  textTransform: tn.props?.textTransform ?? 'none',
+                  opacity: tn.props?.opacity ?? 1,
+                  textShadow: tn.props?.textShadow ?? false,
                 }))
               }
             }
