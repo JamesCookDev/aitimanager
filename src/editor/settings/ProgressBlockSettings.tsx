@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import type { ProgressBlockProps } from '../components/ProgressBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function ProgressBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -58,6 +59,7 @@ export function ProgressBlockSettings() {
         <Label className="text-xs text-muted-foreground">Listrado</Label>
         <Switch checked={props.striped} onCheckedChange={(v) => setProp((p: ProgressBlockProps) => { p.striped = v; })} />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

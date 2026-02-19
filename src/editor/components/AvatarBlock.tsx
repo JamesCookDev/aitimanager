@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { AvatarBlockSettings } from '../settings/AvatarBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface AvatarBlockProps {
   enabled: boolean;
@@ -73,11 +74,13 @@ export const AvatarBlock: UserComponent<Partial<AvatarBlockProps>> = (props) => 
     isActive: node.events.selected,
   }));
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto' }}
+      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       {enabled ? (
         <div
@@ -142,22 +145,13 @@ export const AvatarBlock: UserComponent<Partial<AvatarBlockProps>> = (props) => 
 
 AvatarBlock.craft = {
   props: {
-    enabled: true,
-    avatarName: 'Assistente',
-    position: 'center',
-    scale: 1.5,
-    height: 300,
-    borderRadius: 16,
-    bgColor: 'rgba(255,255,255,0.03)',
-    avatarUrl: '/models/avatar.glb',
-    animationsUrl: '/models/animations.glb',
-    idleAnimation: 'Idle',
-    talkingAnimation: 'TalkingOne',
-    roughness: 0.5,
-    metalness: 0.0,
-    shirtColor: '#1E3A8A',
-    pantsColor: '#1F2937',
-    shoesColor: '#000000',
+    enabled: true, avatarName: 'Assistente', position: 'center', scale: 1.5,
+    height: 300, borderRadius: 16, bgColor: 'rgba(255,255,255,0.03)',
+    avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
+    idleAnimation: 'Idle', talkingAnimation: 'TalkingOne',
+    roughness: 0.5, metalness: 0.0,
+    shirtColor: '#1E3A8A', pantsColor: '#1F2937', shoesColor: '#000000',
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: AvatarBlockSettings },
   rules: { canDrag: () => true },

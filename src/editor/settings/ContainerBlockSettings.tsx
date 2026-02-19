@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ContainerBlockProps } from '../components/ContainerBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function ContainerBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props as ContainerBlockProps }));
@@ -95,6 +96,7 @@ export function ContainerBlockSettings() {
           <Slider value={[props.borderWidth ?? 0]} onValueChange={([v]) => setProp((p: ContainerBlockProps) => { p.borderWidth = v; })} min={0} max={4} step={1} className="mt-2" />
         </div>
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function AvatarBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -109,6 +110,7 @@ export function AvatarBlockSettings() {
           <Slider min={0} max={1} step={0.1} value={[props.metalness ?? 0]} onValueChange={([v]) => setProp((p: any) => { p.metalness = v; })} />
         </div>
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

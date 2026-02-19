@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { GradientTextBlockProps } from '../components/GradientTextBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function GradientTextBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -88,6 +89,7 @@ export function GradientTextBlockSettings() {
         <Label className="text-xs text-muted-foreground">Altura da linha: {props.lineHeight}</Label>
         <Slider value={[props.lineHeight * 10]} onValueChange={([v]) => setProp((p: GradientTextBlockProps) => { p.lineHeight = v / 10; })} min={8} max={25} step={1} className="mt-2" />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

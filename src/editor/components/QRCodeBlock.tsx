@@ -1,6 +1,7 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { useEffect, useRef } from 'react';
 import { QRCodeBlockSettings } from '../settings/QRCodeBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface QRCodeBlockProps {
   content: string;
@@ -105,11 +106,13 @@ export const QRCodeBlock: UserComponent<Partial<QRCodeBlockProps>> = (props) => 
     }
   }, [content, size, fgColor, bgColor]);
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`flex flex-col items-center gap-2 transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding, cursor: 'move' }}
+      style={{ padding, cursor: 'move', ...layoutStyle }}
     >
       <canvas
         ref={canvasRef}
@@ -126,15 +129,9 @@ export const QRCodeBlock: UserComponent<Partial<QRCodeBlockProps>> = (props) => 
 
 QRCodeBlock.craft = {
   props: {
-    content: 'https://example.com',
-    size: 160,
-    fgColor: '#ffffff',
-    bgColor: 'transparent',
-    borderRadius: 8,
-    padding: 12,
-    label: 'Escaneie o QR Code',
-    labelColor: '#ffffff',
-    labelSize: 12,
+    content: 'https://example.com', size: 160, fgColor: '#ffffff', bgColor: 'transparent',
+    borderRadius: 8, padding: 12, label: 'Escaneie o QR Code', labelColor: '#ffffff', labelSize: 12,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: QRCodeBlockSettings },
   rules: { canDrag: () => true },

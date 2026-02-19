@@ -1,5 +1,6 @@
 import { useNode, Element, UserComponent } from '@craftjs/core';
 import { CardBlockSettings } from '../settings/CardBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface CardBlockProps {
   title: string;
@@ -15,19 +16,21 @@ export interface CardBlockProps {
   children?: React.ReactNode;
 }
 
-export const CardBlock: UserComponent<Partial<CardBlockProps>> = ({
-  title = 'Título do Card',
-  subtitle = '',
-  bgColor = 'rgba(255,255,255,0.06)',
-  bgBlur = 16,
-  borderRadius = 16,
-  borderColor = 'rgba(255,255,255,0.1)',
-  padding = 20,
-  headerIcon = '📋',
-  showHeader = true,
-  elevation = 'md',
-  children,
-}) => {
+export const CardBlock: UserComponent<Partial<CardBlockProps>> = (allProps) => {
+  const {
+    title = 'Título do Card',
+    subtitle = '',
+    bgColor = 'rgba(255,255,255,0.06)',
+    bgBlur = 16,
+    borderRadius = 16,
+    borderColor = 'rgba(255,255,255,0.1)',
+    padding = 20,
+    headerIcon = '📋',
+    showHeader = true,
+    elevation = 'md',
+    children,
+  } = allProps;
+
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
@@ -39,11 +42,13 @@ export const CardBlock: UserComponent<Partial<CardBlockProps>> = ({
     lg: '0 8px 40px rgba(0,0,0,0.35)',
   };
 
+  const layoutStyle = getLayoutStyle(allProps as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto' }}
+      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <div
         style={{
@@ -89,6 +94,7 @@ CardBlock.craft = {
     headerIcon: '📋',
     showHeader: true,
     elevation: 'md',
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: CardBlockSettings },
   rules: { canDrag: () => true },

@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { CountdownBlockProps } from '../components/CountdownBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function CountdownBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -74,6 +75,7 @@ export function CountdownBlockSettings() {
         <Label className="text-xs text-muted-foreground">Labels</Label>
         <Switch checked={props.showLabels} onCheckedChange={(v) => setProp((p: CountdownBlockProps) => { p.showLabels = v; })} />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

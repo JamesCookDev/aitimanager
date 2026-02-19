@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { SocialLinksBlockSettings } from '../settings/SocialLinksBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface SocialLink {
   id: string;
@@ -45,11 +46,13 @@ export const SocialLinksBlock: UserComponent<Partial<SocialLinksBlockProps>> = (
     isActive: node.events.selected,
   }));
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding: 4, cursor: 'move', pointerEvents: 'auto' }}
+      style={{ padding: 4, cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <div
         className="flex items-center justify-center"
@@ -99,15 +102,10 @@ export const SocialLinksBlock: UserComponent<Partial<SocialLinksBlockProps>> = (
 
 SocialLinksBlock.craft = {
   props: {
-    links: DEFAULT_LINKS,
-    layout: 'horizontal',
-    iconSize: 40,
-    gap: 12,
-    showLabels: true,
-    bgEnabled: false,
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 16,
-    padding: 12,
+    links: DEFAULT_LINKS, layout: 'horizontal', iconSize: 40, gap: 12,
+    showLabels: true, bgEnabled: false, bgColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16, padding: 12,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: SocialLinksBlockSettings },
   displayName: 'Redes Sociais',

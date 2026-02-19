@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { IconBlockSettings } from '../settings/IconBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface IconBlockProps {
   emoji: string;
@@ -32,16 +33,16 @@ export const IconBlock: UserComponent<Partial<IconBlockProps>> = (props) => {
     isActive: node.events.selected,
   }));
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
       style={{
-        cursor: 'move',
-        pointerEvents: 'auto',
-        display: 'flex',
+        cursor: 'move', pointerEvents: 'auto', display: 'flex',
         justifyContent: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
-        padding: 4,
+        padding: 4, ...layoutStyle,
       }}
     >
       <div
@@ -65,16 +66,10 @@ export const IconBlock: UserComponent<Partial<IconBlockProps>> = (props) => {
 
 IconBlock.craft = {
   props: {
-    emoji: '⭐',
-    size: 32,
-    bgColor: 'rgba(99,102,241,0.2)',
-    bgEnabled: true,
-    bgSize: 56,
-    bgBorderRadius: 14,
-    borderColor: 'rgba(99,102,241,0.3)',
-    borderWidth: 1,
-    align: 'center',
-    shadow: true,
+    emoji: '⭐', size: 32, bgColor: 'rgba(99,102,241,0.2)', bgEnabled: true,
+    bgSize: 56, bgBorderRadius: 14, borderColor: 'rgba(99,102,241,0.3)',
+    borderWidth: 1, align: 'center', shadow: true,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: IconBlockSettings },
   displayName: 'Ícone',

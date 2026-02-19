@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { ContainerBlockSettings } from '../settings/ContainerBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface ContainerBlockProps {
   bgColor: string;
@@ -42,6 +43,8 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = (prop
 
   const shadowMap = { none: 'none', sm: '0 2px 8px rgba(0,0,0,0.15)', md: '0 4px 20px rgba(0,0,0,0.25)', lg: '0 8px 40px rgba(0,0,0,0.35)' };
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
@@ -62,6 +65,7 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = (prop
         border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : undefined,
         boxShadow: shadowMap[shadow],
         backdropFilter: blur > 0 ? `blur(${blur}px)` : undefined,
+        ...layoutStyle,
       }}
     >
       {children}
@@ -84,6 +88,7 @@ ContainerBlock.craft = {
     borderWidth: 0,
     shadow: 'none',
     blur: 0,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: ContainerBlockSettings },
   rules: { canDrag: () => true },

@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ImageBlockProps } from '../components/ImageBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function ImageBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props as ImageBlockProps }));
@@ -76,6 +77,7 @@ export function ImageBlockSettings() {
           </div>
         </div>
       )}
+      <LayoutSettingsPanel />
     </div>
   );
 }

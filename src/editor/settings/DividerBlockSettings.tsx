@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function DividerBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -55,6 +56,7 @@ export function DividerBlockSettings() {
           className="h-8"
         />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { CardBlockProps } from '../components/CardBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function CardBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -75,6 +76,7 @@ export function CardBlockSettings() {
           <Input type="color" value="#ffffff" onChange={(e) => setProp((p: CardBlockProps) => { p.borderColor = e.target.value + '1a'; })} className="mt-1 h-10 cursor-pointer" />
         </div>
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

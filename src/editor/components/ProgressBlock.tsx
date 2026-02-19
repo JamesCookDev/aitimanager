@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { ProgressBlockSettings } from '../settings/ProgressBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface ProgressBlockProps {
   value: number;
@@ -40,11 +41,13 @@ export const ProgressBlock: UserComponent<Partial<ProgressBlockProps>> = (props)
 
   const pct = Math.min(100, Math.max(0, (value / maxValue) * 100));
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding: 8, cursor: 'move', pointerEvents: 'auto' }}
+      style={{ padding: 8, cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       {showLabel && (
         <div className="flex items-center justify-between mb-2">
@@ -85,19 +88,10 @@ export const ProgressBlock: UserComponent<Partial<ProgressBlockProps>> = (props)
 
 ProgressBlock.craft = {
   props: {
-    value: 65,
-    maxValue: 100,
-    label: 'Progresso',
-    showLabel: true,
-    showPercentage: true,
-    barColor: '#6366f1',
-    trackColor: 'rgba(255,255,255,0.08)',
-    height: 12,
-    borderRadius: 99,
-    animated: true,
-    striped: false,
-    labelColor: '#ffffff',
-    labelFontSize: 12,
+    value: 65, maxValue: 100, label: 'Progresso', showLabel: true, showPercentage: true,
+    barColor: '#6366f1', trackColor: 'rgba(255,255,255,0.08)', height: 12,
+    borderRadius: 99, animated: true, striped: false, labelColor: '#ffffff', labelFontSize: 12,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: ProgressBlockSettings },
   displayName: 'Progresso',

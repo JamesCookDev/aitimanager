@@ -1,5 +1,7 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { TextBlockSettings } from '../settings/TextBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
+import type { LayoutProps } from '../shared/layoutProps';
 
 export interface TextBlockProps {
   text: string;
@@ -34,11 +36,13 @@ export const TextBlock: UserComponent<Partial<TextBlockProps>> = (props) => {
     isActive: node.events.selected,
   }));
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding, cursor: 'move', pointerEvents: 'auto', opacity }}
+      style={{ padding, cursor: 'move', pointerEvents: 'auto', opacity, ...layoutStyle }}
     >
       <p
         contentEditable
@@ -76,6 +80,7 @@ TextBlock.craft = {
     textTransform: 'none',
     opacity: 1,
     textShadow: false,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: TextBlockSettings },
   displayName: 'Texto',
