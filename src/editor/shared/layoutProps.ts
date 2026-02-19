@@ -25,6 +25,10 @@ export interface LayoutProps {
   positionTop: number;
   /** Left offset (only for absolute) */
   positionLeft: number;
+  /** Right offset (only for absolute) — overrides left when set */
+  positionRight?: number;
+  /** Bottom offset (only for absolute) — overrides top when set */
+  positionBottom?: number;
   /** Z-index layering */
   zIndex: number;
 }
@@ -47,18 +51,22 @@ export const DEFAULT_LAYOUT_PROPS: LayoutProps = {
 /** Converts LayoutProps into a CSSProperties object for the block wrapper */
 export function getLayoutStyle(props: Partial<LayoutProps>): React.CSSProperties {
   const p = { ...DEFAULT_LAYOUT_PROPS, ...props };
+  const isAbs = p.positionType === 'absolute';
   return {
     width: p.layoutWidth === 'auto' ? undefined : p.layoutWidth,
     height: p.layoutHeight === 'auto' ? undefined : p.layoutHeight,
-    marginTop: p.marginTop || undefined,
-    marginBottom: p.marginBottom || undefined,
-    marginLeft: p.marginLeft || undefined,
-    marginRight: p.marginRight || undefined,
+    marginTop: !isAbs ? (p.marginTop || undefined) : undefined,
+    marginBottom: !isAbs ? (p.marginBottom || undefined) : undefined,
+    marginLeft: !isAbs ? (p.marginLeft || undefined) : undefined,
+    marginRight: !isAbs ? (p.marginRight || undefined) : undefined,
     alignSelf: p.alignSelf === 'auto' ? undefined : p.alignSelf,
     overflow: p.overflow === 'visible' ? undefined : p.overflow,
-    position: p.positionType === 'relative' ? undefined : p.positionType,
-    top: p.positionType === 'absolute' && p.positionTop ? p.positionTop : undefined,
-    left: p.positionType === 'absolute' && p.positionLeft ? p.positionLeft : undefined,
+    position: isAbs ? 'absolute' : undefined,
+    // Absolute coords: right/bottom take precedence over left/top when defined
+    top: isAbs && p.positionBottom == null ? (p.positionTop ?? 0) : undefined,
+    bottom: isAbs && p.positionBottom != null ? p.positionBottom : undefined,
+    left: isAbs && p.positionRight == null ? (p.positionLeft ?? 0) : undefined,
+    right: isAbs && p.positionRight != null ? p.positionRight : undefined,
     zIndex: p.zIndex || undefined,
   };
 }
