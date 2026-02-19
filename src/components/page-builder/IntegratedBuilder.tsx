@@ -4,7 +4,9 @@ import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
   Menu, Sparkles, Tag, CreditCard, LayoutTemplate, BarChart3, Clock, Palette, Share2,
+  Send, Layers,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -27,6 +29,8 @@ import { GradientTextBlock } from '@/editor/components/GradientTextBlock';
 import { SocialLinksBlock } from '@/editor/components/SocialLinksBlock';
 import { VideoEmbedBlock } from '@/editor/components/VideoEmbedBlock';
 import { QRCodeBlock } from '@/editor/components/QRCodeBlock';
+import { ChatInterfaceBlock } from '@/editor/components/ChatInterfaceBlock';
+import { SceneBlock } from '@/editor/components/SceneBlock';
 import { CanvasDropArea } from '@/editor/components/CanvasDropArea';
 import { EditorProperties } from '@/editor/components/EditorProperties';
 import { exportEditorJson, importEditorJson } from '@/editor/utils/editorStorage';
@@ -38,7 +42,7 @@ const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
   ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock,
-  VideoEmbedBlock, QRCodeBlock, CanvasDropArea,
+  VideoEmbedBlock, QRCodeBlock, ChatInterfaceBlock, SceneBlock, CanvasDropArea,
 };
 
 export interface IntegratedBuilderRef {
@@ -50,6 +54,7 @@ interface IntegratedBuilderProps {
   onUpdateConfig: (config: PageBuilderConfig) => void;
   onFullscreen: () => void;
   deviceName?: string;
+  deviceId?: string | null;
   isOnline?: boolean;
   builderRef?: React.RefObject<IntegratedBuilderRef | null>;
 }
@@ -115,6 +120,8 @@ const BLOCK_CATEGORIES = [
     label: '3D / Avatar',
     blocks: [
       { name: 'Avatar', icon: User, element: <AvatarBlock /> },
+      { name: 'Cenário 3D', icon: Layers, element: <SceneBlock /> },
+      { name: 'Chat IA', icon: Send, element: <ChatInterfaceBlock /> },
     ],
   },
 ] as const;
@@ -122,7 +129,7 @@ const BLOCK_CATEGORIES = [
 /* ─── Inner component ─────────────────────────────────────────────── */
 function IntegratedBuilderInner({
   config, onUpdateConfig, onFullscreen,
-  deviceName = 'Totem', isOnline = false,
+  deviceName = 'Totem', deviceId, isOnline = false,
   previewMode, setPreviewMode, builderRef, nodesChangedRef,
 }: IntegratedBuilderProps & { previewMode: boolean; setPreviewMode: (v: boolean) => void; nodesChangedRef: React.MutableRefObject<(() => void) | null> }) {
   const { actions, query, connectors, canUndo, canRedo } = useEditor((state, q) => ({
@@ -131,6 +138,7 @@ function IntegratedBuilderInner({
   }));
 
   const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
+  const [publishing, setPublishing] = useState(false);
   const loadedRef = useRef(false);
   const prevCraftBlocksRef = useRef(config.craft_blocks);
   const configRef = useRef(config);
@@ -323,6 +331,28 @@ function IntegratedBuilderInner({
     catch { toast.error('Erro ao importar'); }
   }, [actions, syncCraftState]);
 
+  const handlePublish = useCallback(async () => {
+    if (!deviceId) { toast.error('Nenhum dispositivo selecionado'); return; }
+    setPublishing(true);
+    try {
+      const json = query.serialize();
+      const current = configRef.current;
+      const configToSave = { ...current, craft_blocks: json };
+      const { error } = await supabase
+        .from('devices')
+        .update({ ui_config: configToSave as any })
+        .eq('id', deviceId);
+      if (error) throw error;
+      onUpdateConfigRef.current(configToSave);
+      toast.success('Publicado para o Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
+    } catch (err: any) {
+      console.error('[Publish] Erro:', err);
+      toast.error('Erro ao publicar', { description: err.message });
+    } finally {
+      setPublishing(false);
+    }
+  }, [deviceId, query]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-11rem)] rounded-xl border border-border bg-card overflow-hidden">
 
@@ -376,6 +406,16 @@ function IntegratedBuilderInner({
           <div className="w-px h-5 bg-border mx-1" />
           <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={onFullscreen}>
             <Maximize2 className="w-3.5 h-3.5" /> Preview Totem
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={handlePublish}
+            disabled={publishing || !deviceId}
+            title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
+          >
+            <Send className="w-3.5 h-3.5" />
+            {publishing ? 'Publicando...' : 'Publicar no Totem'}
           </Button>
         </div>
       </div>

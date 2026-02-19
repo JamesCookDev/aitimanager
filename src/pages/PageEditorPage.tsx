@@ -225,6 +225,7 @@ export default function PageEditorPage() {
             onUpdateConfig={handleBuilderChange}
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={selectedDevice?.name || 'Totem'}
+            deviceId={selectedDeviceId}
             isOnline={selectedDevice ? getStatus(selectedDevice) === 'online' : false}
             builderRef={builderRef}
           />
