@@ -395,18 +395,18 @@ function IntegratedBuilderInner({
 
         {/* ─── CENTER: Canvas (Craft.js only) ─── */}
         <div className={cn(
-          'flex-1 flex items-center justify-center overflow-auto min-w-0',
+          'flex-1 flex items-center justify-center min-w-0 p-4',
           'bg-[hsl(var(--muted)/0.3)]',
         )}>
           <div
             className={cn(
-              'relative rounded-xl border-2 overflow-hidden shadow-xl shrink-0 transition-all',
+              'relative rounded-xl border-2 shadow-xl shrink-0 transition-all flex flex-col',
               previewMode ? 'border-primary/30 shadow-primary/10' : 'border-border/60'
             )}
             style={{
-              width: '100%',
-              maxWidth: '420px',
-              aspectRatio: '9/16',
+              width: 'min(100%, 420px)',
+              height: '100%',
+              maxHeight: 'calc(100vh - 14rem)',
               backgroundColor: '#0f172a',
             }}
           >
@@ -416,7 +416,7 @@ function IntegratedBuilderInner({
               </div>
             )}
 
-            <div className="w-full h-full">
+            <div className="w-full flex-1 overflow-y-auto overflow-x-hidden">
               <Frame>
                 <Element is={CanvasDropArea} canvas bgColor="#0f172a" />
               </Frame>
