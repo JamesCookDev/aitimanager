@@ -17,7 +17,7 @@ export interface TextBlockProps {
   textShadow: boolean;
 }
 
-export const TextBlock: UserComponent<Partial<TextBlockProps>> = (props) => {
+export const TextBlock: UserComponent<Partial<TextBlockProps & LayoutProps>> = (props) => {
   const {
     text = 'Clique para editar',
     fontSize = 16,
@@ -39,30 +39,34 @@ export const TextBlock: UserComponent<Partial<TextBlockProps>> = (props) => {
   const layoutStyle = getLayoutStyle(props as any);
 
   return (
-    <div
-      ref={(ref) => { if (ref) connect(drag(ref)); }}
-      className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding, cursor: 'move', pointerEvents: 'auto', opacity, ...layoutStyle }}
-    >
-      <p
-        contentEditable
-        suppressContentEditableWarning
-        onBlur={(e) => setProp((p: TextBlockProps) => { p.text = e.currentTarget.innerText; })}
-        style={{
-          fontSize,
-          fontWeight,
-          color,
-          textAlign,
-          outline: 'none',
-          minHeight: '1em',
-          letterSpacing,
-          lineHeight,
-          textTransform,
-          textShadow: textShadow ? '0 2px 8px rgba(0,0,0,0.5)' : undefined,
-        }}
+    // Outer wrapper: handles ALL positioning (absolute/relative, top/left/width/height)
+    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto', opacity }}>
+      {/* Inner wrapper: handles selection ring — no `relative` class that conflicts */}
+      <div
+        ref={(ref) => { if (ref) connect(drag(ref)); }}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-sm' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
+        style={{ padding }}
       >
-        {text}
-      </p>
+        <p
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => setProp((p: TextBlockProps) => { p.text = e.currentTarget.innerText; })}
+          style={{
+            fontSize,
+            fontWeight,
+            color,
+            textAlign,
+            outline: 'none',
+            minHeight: '1em',
+            letterSpacing,
+            lineHeight,
+            textTransform,
+            textShadow: textShadow ? '0 2px 8px rgba(0,0,0,0.5)' : undefined,
+          }}
+        >
+          {text}
+        </p>
+      </div>
     </div>
   );
 };

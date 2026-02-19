@@ -142,106 +142,84 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
 
   if (!enabled) {
     return (
-      <div
-        ref={(ref) => { if (ref) connect(drag(ref)); }}
-        className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-        style={{ ...layoutStyle, cursor: 'move' }}
-      >
-        <div style={{
-          padding: '14px 18px', ...glass, borderRadius: 24,
-          textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 13,
-        }}>
-          💬 ChatInterface (desabilitado)
+      <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto' }}>
+        <div
+          ref={(ref) => { if (ref) connect(drag(ref)); }}
+          className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
+        >
+          <div style={{ padding:'14px 18px', ...glass, borderRadius:24, textAlign:'center', color:'rgba(255,255,255,0.35)', fontSize:13 }}>
+            💬 ChatInterface (desabilitado)
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      ref={(ref) => { if (ref) connect(drag(ref)); }}
-      className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
-    >
-      {/* Preview label */}
-      <div style={{
-        fontSize: 9, fontWeight: 700, color: 'rgba(99,102,241,0.7)', letterSpacing: '0.1em',
-        textTransform: 'uppercase', marginBottom: 6, textAlign: 'center',
-      }}>
-        Chat Interface — {position.replace('_', ' ')}
-      </div>
-
-      <div style={{ position: 'relative' }}>
-        {/* ── Header ── */}
-        {headerShow && (
-          <div style={{
-            ...glass,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 16px',
-            borderRadius: '28px 28px 0 0',
-            borderBottom: 'none',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 9, height: 9, borderRadius: '50%',
-                backgroundColor: headerIndicatorColor,
-                boxShadow: `0 0 8px ${headerIndicatorColor}`,
-              }} />
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                {headerTitle}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-              <span>{headerIcon}</span>
-              <span>{headerSubtitle}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── CTA Pill button ── */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
-            boxShadow: '0 4px 20px rgba(99,102,241,0.45), 0 2px 8px rgba(0,0,0,0.25)',
-            borderRadius: headerShow ? '0 0 28px 28px' : 28,
-            padding: '14px 20px',
-            display: 'flex', alignItems: 'center', gap: 10,
-            cursor: 'pointer', opacity,
-          }}
-          onClick={() => setDropOpen(!dropOpen)}
-        >
-          <span style={{ fontSize: 20 }}>{ctaIcon}</span>
-          <span style={{ color: '#fff', fontSize: 15, fontWeight: 700, flex: 1, letterSpacing: '-0.01em' }}>
-            {ctaText}
-          </span>
-          <span style={{
-            fontSize: 10, color: 'rgba(255,255,255,0.7)',
-            transform: dropOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.25s', display: 'inline-block',
-          }}>{folderArrowSymbol}</span>
+    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto' }}>
+      <div
+        ref={(ref) => { if (ref) connect(drag(ref)); }}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
+      >
+        {/* Preview label */}
+        <div style={{
+          fontSize: 9, fontWeight: 700, color: 'rgba(99,102,241,0.7)', letterSpacing: '0.1em',
+          textTransform: 'uppercase', marginBottom: 6, textAlign: 'center',
+        }}>
+          Chat Interface — {position.replace('_', ' ')}
         </div>
 
-        {/* ── Dropdown ── */}
-        {dropOpen && (
-          <div style={{
-            position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 6,
-            ...glass,
-            borderRadius: 24,
-            padding: 10, maxHeight: 300, overflowY: 'auto', zIndex: 50, opacity,
-          }}>
-            {items.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '14px 0' }}>
-                Nenhum item configurado
-              </p>
-            ) : (
-              items.map(item => <MenuPreviewItem key={item.id} item={item} />)
-            )}
+        <div style={{ position: 'relative' }}>
+          {/* ── Header ── */}
+          {headerShow && (
+            <div style={{
+              ...glass,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 16px', borderRadius: '28px 28px 0 0', borderBottom: 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: headerIndicatorColor, boxShadow: `0 0 8px ${headerIndicatorColor}` }} />
+                <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em' }}>{headerTitle}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+                <span>{headerIcon}</span>
+                <span>{headerSubtitle}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── CTA Pill button ── */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.45), 0 2px 8px rgba(0,0,0,0.25)',
+              borderRadius: headerShow ? '0 0 28px 28px' : 28,
+              padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10,
+              cursor: 'pointer', opacity,
+            }}
+            onClick={() => setDropOpen(!dropOpen)}
+          >
+            <span style={{ fontSize: 20 }}>{ctaIcon}</span>
+            <span style={{ color: '#fff', fontSize: 15, fontWeight: 700, flex: 1, letterSpacing: '-0.01em' }}>{ctaText}</span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', transform: dropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', display: 'inline-block' }}>{folderArrowSymbol}</span>
           </div>
-        )}
+
+          {/* ── Dropdown ── */}
+          {dropOpen && (
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 6, ...glass, borderRadius: 24, padding: 10, maxHeight: 300, overflowY: 'auto', zIndex: 50, opacity }}>
+              {items.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '14px 0' }}>Nenhum item configurado</p>
+              ) : (
+                items.map(item => <MenuPreviewItem key={item.id} item={item} />)
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
 
 ChatInterfaceBlock.craft = {
   props: {
