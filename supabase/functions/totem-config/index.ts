@@ -140,11 +140,15 @@ Deno.serve(async (req) => {
             const def = defaultConfig.components.avatar
             const models = { ...def.models, ...(stored.models || {}) }
             const animations = { ...def.animations, ...(stored.animations || {}) }
-            // Sanitize: replace empty strings with defaults
+            // Sanitize: replace empty strings with defaults and fix paths
             if (!models.avatar_url) models.avatar_url = def.models.avatar_url
             if (!models.animations_url) models.animations_url = def.models.animations_url
-            if (!animations.idle) animations.idle = def.animations.idle
-            if (!animations.talking) animations.talking = def.animations.talking
+            // Fix backslash paths (Windows-style)
+            models.avatar_url = models.avatar_url.replace(/\\/g, '/')
+            models.animations_url = models.animations_url.replace(/\\/g, '/')
+            // Force correct casing for animation names (Three.js is case-sensitive)
+            if (!animations.idle || animations.idle === 'idle') animations.idle = 'Idle'
+            if (!animations.talking || animations.talking === 'talkingOne') animations.talking = 'TalkingOne'
             return {
               ...def,
               ...stored,
