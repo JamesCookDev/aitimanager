@@ -50,11 +50,14 @@ Deno.serve(async (req) => {
       .single()
 
     if (fetchError || !device) {
+      console.warn(`[totem-config] Dispositivo não encontrado para api_key: ${apiKey?.slice(0, 8)}...`)
       return new Response(
         JSON.stringify({ error: 'Dispositivo não encontrado' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`[totem-config] Device: ${device.id} (${device.name}) requisitou configuração`)
 
     let modelData = null
     if (device.current_version_id) {
@@ -124,6 +127,7 @@ Deno.serve(async (req) => {
 
       // Safely get craft node values array
       const craftNodeValues: any[] = craftNodes ? Object.values(craftNodes) : []
+      console.log(`[totem-config] craft_nodes recebidos: ${craftNodeValues.length}`)
 
       // Extract avatar enabled state from craft nodes if available
       let avatarEnabled = storedUi.components?.avatar?.enabled ?? true
@@ -140,11 +144,104 @@ Deno.serve(async (req) => {
         console.error('Failed to extract avatar state:', e)
       }
 
+      // ── Extract SceneBlock props from craft nodes ─────────────────────────
+      let sceneOverride: Record<string, any> | null = null
+      try {
+        if (craftNodeValues.length > 0) {
+          const sceneNode = craftNodeValues.find(
+            (n: any) => n?.type?.resolvedName === 'SceneBlock'
+          )
+          if (sceneNode?.props) {
+            const sp = sceneNode.props
+            console.log(`[totem-config] SceneBlock encontrado — envPreset: ${sp.envPreset}, partículas: ${sp.showParticles}, chão: ${sp.showFloor}`)
+            sceneOverride = {
+              // Environment
+              env_preset: sp.envPreset ?? 'city',
+              // Camera
+              camera: {
+                position: [sp.camPosX ?? 0, sp.camPosY ?? 1.65, sp.camPosZ ?? 4],
+                target: [sp.camTargetX ?? 0, sp.camTargetY ?? 1.5, sp.camTargetZ ?? 0],
+                min_distance: sp.camMinDist ?? 3,
+                max_distance: sp.camMaxDist ?? 8,
+              },
+              // Lighting
+              lighting: {
+                ambient: { enabled: sp.ambientEnabled ?? true, intensity: sp.ambientIntensity ?? 0.4 },
+                directional: {
+                  enabled: sp.dirLightEnabled ?? true,
+                  intensity: sp.dirLightIntensity ?? 1.2,
+                  color: sp.dirLightColor ?? '#ffffff',
+                  position: [sp.dirLightPosX ?? 5, sp.dirLightPosY ?? 5, sp.dirLightPosZ ?? 5],
+                  cast_shadow: sp.dirLightCastShadow ?? true,
+                },
+                fill: { enabled: sp.fillLightEnabled ?? true, intensity: sp.fillLightIntensity ?? 0.5, color: sp.fillLightColor ?? '#b8d4ff' },
+                spot: {
+                  enabled: sp.spotLightEnabled ?? true,
+                  intensity: sp.spotLightIntensity ?? 0.8,
+                  color: sp.spotLightColor ?? '#ffd4a3',
+                  position: [sp.spotLightPosX ?? 0, sp.spotLightPosY ?? 5, sp.spotLightPosZ ?? -5],
+                  angle: sp.spotLightAngle ?? 0.6,
+                  penumbra: sp.spotLightPenumbra ?? 0.5,
+                  cast_shadow: sp.spotLightCastShadow ?? true,
+                },
+                point1: { enabled: sp.pointLight1Enabled ?? true, color: sp.pointLight1Color ?? '#4a90ff', intensity: sp.pointLight1Intensity ?? 0.3 },
+                point2: { enabled: sp.pointLight2Enabled ?? true, color: sp.pointLight2Color ?? '#ff6b9d', intensity: sp.pointLight2Intensity ?? 0.3 },
+              },
+              // Floor
+              floor: {
+                show: sp.showFloor ?? true,
+                color: sp.floorColor ?? '#1a1a2e',
+                width: sp.floorWidth ?? 20,
+                height: sp.floorHeight ?? 20,
+                roughness: sp.floorRoughness ?? 0.3,
+                metalness: sp.floorMetalness ?? 0.8,
+              },
+              // Wall
+              wall: {
+                show: sp.showWall ?? true,
+                color: sp.wallColor ?? '#0f3460',
+                width: sp.wallWidth ?? 20,
+                height: sp.wallHeight ?? 12,
+                roughness: sp.wallRoughness ?? 0.8,
+                metalness: sp.wallMetalness ?? 0.2,
+                pos_y: sp.wallPosY ?? 4,
+                pos_z: sp.wallPosZ ?? -5,
+              },
+              // Particles
+              particles: {
+                show: sp.showParticles ?? true,
+                count: sp.particleCount ?? 50,
+                color: sp.particleColor ?? '#4a90ff',
+                size: sp.particleSize ?? 2,
+                speed: sp.particleSpeed ?? 0.3,
+                opacity: sp.particleOpacity ?? 0.4,
+                scale: sp.particleScale ?? 10,
+              },
+              // Contact shadow
+              shadow: {
+                opacity: sp.shadowOpacity ?? 0.5,
+                blur: sp.shadowBlur ?? 2,
+                scale: sp.shadowScale ?? 10,
+                color: sp.shadowColor ?? '#000000',
+              },
+            }
+          } else {
+            console.log(`[totem-config] SceneBlock não encontrado nos craft_nodes`)
+          }
+        } else {
+          console.log(`[totem-config] Nenhum craft_node disponível para extrair SceneBlock`)
+        }
+      } catch (e) {
+        console.error('[totem-config] Erro ao extrair SceneBlock:', e)
+      }
+
       mergedUi = {
         canvas: {
           orientation: storedUi.canvas?.orientation || defaultConfig.canvas.orientation,
           background: { ...defaultConfig.canvas.background, ...(storedUi.canvas?.background || {}) },
           environment: { ...defaultConfig.canvas.environment, ...(storedUi.canvas?.environment || {}) },
+          // SceneBlock overrides from craft_nodes (takes priority over stored canvas)
+          ...(sceneOverride ? { scene: sceneOverride } : {}),
         },
         components: {
           avatar: (() => {
@@ -171,17 +268,56 @@ Deno.serve(async (req) => {
               materials: { ...def.materials, ...(stored.materials || {}) },
             }
           })(),
-          chat_interface: {
-            ...defaultConfig.components.chat_interface,
-            ...(storedUi.components?.chat_interface || {}),
-            header: { ...defaultConfig.components.chat_interface.header, ...(storedUi.components?.chat_interface?.header || {}) },
-            menu: {
-              ...defaultConfig.components.chat_interface.menu,
-              ...(storedUi.components?.chat_interface?.menu || {}),
-              categories: storedUi.components?.chat_interface?.menu?.categories || defaultConfig.components.chat_interface.menu.categories,
-            },
-            style: storedUi.components?.chat_interface?.style || { opacity: 0.85, blur: 12 },
-          },
+          chat_interface: (() => {
+            // Try to extract from ChatInterfaceBlock craft node first
+            const chatNode = craftNodeValues.find(
+              (n: any) => n?.type?.resolvedName === 'ChatInterfaceBlock'
+            )
+            if (chatNode?.props) {
+              const cp = chatNode.props
+              console.log(`[totem-config] ChatInterfaceBlock encontrado — enabled: ${cp.enabled}, posição: ${cp.position}`)
+              return {
+                enabled: cp.enabled ?? true,
+                position: cp.position ?? 'bottom_right',
+                header: {
+                  show: cp.headerShow ?? true,
+                  icon: cp.headerIcon ?? '📍',
+                  title: cp.headerTitle ?? 'Assistente Virtual',
+                  subtitle: cp.headerSubtitle ?? 'Online agora',
+                  indicator_color: cp.headerIndicatorColor ?? '#10b981',
+                },
+                cta: {
+                  text: cp.ctaText ?? 'Como posso ajudar?',
+                  icon: cp.ctaIcon ?? '💬',
+                },
+                items: cp.items ?? [],
+                close_on_select: cp.closeOnSelect ?? true,
+                style: {
+                  opacity: cp.opacity ?? 1,
+                  blur: cp.blur ?? 15,
+                  z_index: cp.zIndex ?? 1000,
+                },
+                symbols: {
+                  folder_arrow: cp.folderArrowSymbol ?? '▼',
+                  item_arrow: cp.itemArrowSymbol ?? '→',
+                  folder_icon_default: cp.folderIconDefault ?? '📁',
+                  item_icon_default: cp.itemIconDefault ?? '💬',
+                },
+              }
+            }
+            // Fallback to stored config
+            return {
+              ...defaultConfig.components.chat_interface,
+              ...(storedUi.components?.chat_interface || {}),
+              header: { ...defaultConfig.components.chat_interface.header, ...(storedUi.components?.chat_interface?.header || {}) },
+              menu: {
+                ...defaultConfig.components.chat_interface.menu,
+                ...(storedUi.components?.chat_interface?.menu || {}),
+                categories: storedUi.components?.chat_interface?.menu?.categories || defaultConfig.components.chat_interface.menu.categories,
+              },
+              style: storedUi.components?.chat_interface?.style || { opacity: 0.85, blur: 12 },
+            }
+          })(),
           logo: storedUi.components?.logo || { enabled: false, url: '', position: 'top_center', scale: 1 },
           text_banners: storedUi.components?.text_banners || { enabled: false, items: [] },
           // Extract buttons from craft_nodes or stored components
