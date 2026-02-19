@@ -35,7 +35,16 @@ export function ButtonBlockSettings() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs text-muted-foreground">Cor fundo</Label>
-          <Input type="color" value={props.bgColor?.startsWith('hsl') ? '#3b82f6' : props.bgColor} onChange={(e) => setProp((p: ButtonBlockProps) => { p.bgColor = e.target.value; })} className="mt-1 h-10 cursor-pointer" />
+          <Input
+            type="color"
+            value={
+              props.bgColor === 'gradient-indigo-pink' || props.bgColor?.startsWith('gradient-')
+                ? '#6366f1'
+                : props.bgColor?.startsWith('hsl') ? '#3b82f6' : props.bgColor
+            }
+            onChange={(e) => setProp((p: ButtonBlockProps) => { p.bgColor = e.target.value; })}
+            className="mt-1 h-10 cursor-pointer"
+          />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Cor texto</Label>
@@ -58,8 +67,8 @@ export function ButtonBlockSettings() {
         <Slider value={[props.fontSize]} onValueChange={([v]) => setProp((p: ButtonBlockProps) => { p.fontSize = v; })} min={12} max={32} step={1} className="mt-2" />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">Borda arredondada: {props.borderRadius}px</Label>
-        <Slider value={[props.borderRadius]} onValueChange={([v]) => setProp((p: ButtonBlockProps) => { p.borderRadius = v; })} min={0} max={50} step={1} className="mt-2" />
+        <Label className="text-xs text-muted-foreground">Borda arredondada: {props.borderRadius >= 999 ? 'Pill' : `${props.borderRadius}px`}</Label>
+        <Slider value={[Math.min(props.borderRadius, 64)]} onValueChange={([v]) => setProp((p: ButtonBlockProps) => { p.borderRadius = v === 64 ? 999 : v; })} min={0} max={64} step={2} className="mt-2" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">Padding H: {props.paddingX}px</Label>

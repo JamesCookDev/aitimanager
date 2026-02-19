@@ -23,20 +23,20 @@ export interface ButtonBlockProps {
 
 export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => {
   const {
-    label = 'Clique aqui',
-    bgColor = 'hsl(221,83%,53%)',
+    label = 'Toque para começar',
+    bgColor = 'gradient-indigo-pink',
     textColor = '#ffffff',
-    fontSize = 16,
-    borderRadius = 8,
-    paddingX = 24,
-    paddingY = 14,
-    fullWidth = false,
+    fontSize = 17,
+    borderRadius = 999, // pill by default
+    paddingX = 28,
+    paddingY = 16,
+    fullWidth = true,
     action = '',
     borderColor = 'transparent',
     borderWidth = 0,
-    shadow = 'none',
+    shadow = 'md',
     opacity = 1,
-    fontWeight = 'semibold',
+    fontWeight = 'bold',
     icon = '',
     iconPosition = 'left',
   } = props;
@@ -45,7 +45,18 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => 
     isActive: node.events.selected,
   }));
 
-  const shadowMap = { none: 'none', sm: '0 2px 6px rgba(0,0,0,0.2)', md: '0 4px 16px rgba(0,0,0,0.3)', lg: '0 8px 32px rgba(0,0,0,0.4)' };
+  const shadowMap = {
+    none: 'none',
+    sm: '0 2px 8px rgba(99,102,241,0.25)',
+    md: '0 6px 24px rgba(99,102,241,0.4)',
+    lg: '0 12px 40px rgba(99,102,241,0.55)',
+  };
+
+  // Detect gradient preset vs raw color
+  const isGradientPreset = bgColor === 'gradient-indigo-pink' || bgColor.startsWith('gradient-');
+  const gradientStyle = isGradientPreset
+    ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)'
+    : undefined;
 
   const layoutStyle = getLayoutStyle(props as any);
 
@@ -59,7 +70,7 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => 
         type="button"
         className="transition-transform active:scale-95 touch-manipulation flex items-center justify-center gap-2"
         style={{
-          backgroundColor: bgColor,
+          background: gradientStyle ?? bgColor,
           color: textColor,
           fontSize,
           borderRadius,
@@ -71,14 +82,15 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => 
           border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : 'none',
           cursor: 'pointer',
           fontWeight,
-          minHeight: 44,
+          minHeight: 52,
           boxShadow: shadowMap[shadow],
           opacity,
           flexDirection: iconPosition === 'right' ? 'row-reverse' : 'row',
+          letterSpacing: '-0.01em',
         }}
         onClick={(e) => e.preventDefault()}
       >
-        {icon && <span style={{ fontSize: fontSize * 0.9 }}>{icon}</span>}
+        {icon && <span style={{ fontSize: fontSize * 1.05 }}>{icon}</span>}
         {label}
       </button>
     </div>
@@ -87,20 +99,20 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => 
 
 ButtonBlock.craft = {
   props: {
-    label: 'Clique aqui',
-    bgColor: 'hsl(221, 83%, 53%)',
+    label: 'Toque para começar',
+    bgColor: 'gradient-indigo-pink',
     textColor: '#ffffff',
-    fontSize: 16,
-    borderRadius: 8,
-    paddingX: 24,
-    paddingY: 14,
-    fullWidth: false,
+    fontSize: 17,
+    borderRadius: 999,
+    paddingX: 28,
+    paddingY: 16,
+    fullWidth: true,
     action: '',
     borderColor: 'transparent',
     borderWidth: 0,
-    shadow: 'none',
+    shadow: 'md',
     opacity: 1,
-    fontWeight: 'semibold',
+    fontWeight: 'bold',
     icon: '',
     iconPosition: 'left',
     ...DEFAULT_LAYOUT_PROPS,
