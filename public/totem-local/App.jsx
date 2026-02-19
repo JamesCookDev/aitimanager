@@ -15,12 +15,19 @@
  * ══════════════════════════════════════════════════════════════
  */
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { Loader, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Leva } from "leva";
 import { Scenario } from "./components/Scenario";
 import { useCMSConfig } from "./hooks/useCMSConfig";
 import { ChatInterface } from "./components/ChatInterface";
+
+// ─── Supabase client (live preview) ───────────
+const _supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || "",
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ""
+);
 
 // ─────────────────────────────────────────────
 // 🔧 UTILITÁRIOS
@@ -38,6 +45,37 @@ const SHADOW_MAP = {
 // 🔄 WORKER: Polling inteligente (15s)
 // ─────────────────────────────────────────────
 const POLL_INTERVAL = 15_000;
+
+// ─────────────────────────────────────────────
+// 📡 LIVE PREVIEW via Supabase Realtime
+// ─────────────────────────────────────────────
+function useLivePreview(deviceId, onLiveUpdate) {
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    if (!deviceId) return;
+    const channel = _supabase.channel(`live-preview:${deviceId}`, {
+      config: { broadcast: { self: false } },
+    });
+
+    channel
+      .on("broadcast", { event: "ui-update" }, ({ payload }) => {
+        if (payload?.craft_blocks) {
+          onLiveUpdate({ craft_blocks: payload.craft_blocks, _liveTs: payload.ts });
+        }
+      })
+      .subscribe((status) => {
+        setIsLive(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      _supabase.removeChannel(channel);
+      setIsLive(false);
+    };
+  }, [deviceId, onLiveUpdate]);
+
+  return isLive;
+}
 
 function useConfigPoller(onUpdate) {
   const lastHashRef = useRef("");
@@ -76,6 +114,7 @@ function useConfigPoller(onUpdate) {
     return () => clearInterval(id);
   }, [fetchLatest]);
 }
+
 
 // ─────────────────────────────────────────────
 // ⏱️ COUNTDOWN EM TEMPO REAL
