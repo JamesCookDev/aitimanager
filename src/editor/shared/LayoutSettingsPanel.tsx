@@ -5,7 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { LayoutProps } from './layoutProps';
 
 /**
@@ -14,7 +14,10 @@ import type { LayoutProps } from './layoutProps';
  */
 export function LayoutSettingsPanel() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props }));
-  const [open, setOpen] = useState(false);
+  // Use ref to persist open state across Craft.js re-renders (avoids accordion closing on every change)
+  const openRef = useRef(false);
+  const [open, setOpenState] = useState(false);
+  const setOpen = (v: boolean) => { openRef.current = v; setOpenState(v); };
 
   const lp = props as Partial<LayoutProps>;
 
