@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor, Element } from '@craftjs/core';
-import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard, BarChart3, Clock, Palette, Share2, MessageSquare, QrCode, Video } from 'lucide-react';
+import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard, BarChart3, Clock, Palette, Share2, MessageSquare, Clapperboard } from 'lucide-react';
 
 import { TextBlock } from './TextBlock';
 import { ImageBlock } from './ImageBlock';
@@ -20,6 +20,7 @@ import { SocialLinksBlock } from './SocialLinksBlock';
 import { VideoEmbedBlock } from './VideoEmbedBlock';
 import { QRCodeBlock } from './QRCodeBlock';
 import { ChatInterfaceBlock } from './ChatInterfaceBlock';
+import { SceneBlock } from './SceneBlock';
 
 const categories = [
   {
@@ -65,9 +66,10 @@ const categories = [
     ],
   },
   {
-    label: '3D / Avatar',
+    label: '3D / Cenário',
     blocks: [
       { name: 'Avatar', icon: User, element: <AvatarBlock /> },
+      { name: 'Cenário', icon: Clapperboard, element: <SceneBlock /> },
     ],
   },
 ] as const;
