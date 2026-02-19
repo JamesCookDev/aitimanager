@@ -20,11 +20,11 @@ export const CardBlock: UserComponent<Partial<CardBlockProps>> = (allProps) => {
   const {
     title = 'Título do Card',
     subtitle = '',
-    bgColor = 'rgba(255,255,255,0.06)',
-    bgBlur = 16,
-    borderRadius = 16,
-    borderColor = 'rgba(255,255,255,0.1)',
-    padding = 20,
+    bgColor = 'rgba(30,41,59,0.65)',
+    bgBlur = 24,
+    borderRadius = 28,
+    borderColor = 'rgba(255,255,255,0.12)',
+    padding = 24,
     headerIcon = '📋',
     showHeader = true,
     elevation = 'md',
@@ -37,9 +37,9 @@ export const CardBlock: UserComponent<Partial<CardBlockProps>> = (allProps) => {
 
   const shadowMap = {
     none: 'none',
-    sm: '0 2px 8px rgba(0,0,0,0.15)',
-    md: '0 4px 20px rgba(0,0,0,0.25)',
-    lg: '0 8px 40px rgba(0,0,0,0.35)',
+    sm: '0 4px 16px rgba(0,0,0,0.2)',
+    md: '0 8px 32px rgba(0,0,0,0.3)',
+    lg: '0 16px 64px rgba(0,0,0,0.45)',
   };
 
   const layoutStyle = getLayoutStyle(allProps as any);
@@ -53,7 +53,8 @@ export const CardBlock: UserComponent<Partial<CardBlockProps>> = (allProps) => {
       <div
         style={{
           backgroundColor: bgColor,
-          backdropFilter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+          backdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.5)` : undefined,
+          WebkitBackdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.5)` : undefined,
           borderRadius,
           border: `1px solid ${borderColor}`,
           padding,
@@ -61,19 +62,29 @@ export const CardBlock: UserComponent<Partial<CardBlockProps>> = (allProps) => {
         }}
       >
         {showHeader && (
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-3 mb-4">
             {headerIcon && (
-              <span className="text-lg flex-shrink-0">{headerIcon}</span>
+              <span
+                className="flex items-center justify-center text-xl flex-shrink-0"
+                style={{
+                  width: 40, height: 40, borderRadius: 14,
+                  background: 'rgba(99,102,241,0.18)',
+                  border: '1px solid rgba(99,102,241,0.25)',
+                }}
+              >
+                {headerIcon}
+              </span>
             )}
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white truncate">{title}</h3>
-              {subtitle && <p className="text-xs text-white/50 truncate">{subtitle}</p>}
+              <h3 className="text-sm font-bold text-white truncate" style={{ letterSpacing: '-0.02em' }}>{title}</h3>
+              {subtitle && <p className="text-xs text-white/50 truncate mt-0.5">{subtitle}</p>}
             </div>
           </div>
         )}
         {children}
         {!children && !showHeader && (
-          <div className="flex items-center justify-center min-h-[60px] border-2 border-dashed border-white/10 rounded-lg">
+          <div className="flex items-center justify-center min-h-[60px] border-2 border-dashed rounded-2xl"
+            style={{ borderColor: 'rgba(255,255,255,0.12)' }}>
             <span className="text-white/30 text-xs">Arraste blocos aqui</span>
           </div>
         )}
@@ -86,11 +97,11 @@ CardBlock.craft = {
   props: {
     title: 'Título do Card',
     subtitle: 'Subtítulo opcional',
-    bgColor: 'rgba(255,255,255,0.06)',
-    bgBlur: 16,
-    borderRadius: 16,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: 20,
+    bgColor: 'rgba(30,41,59,0.65)',
+    bgBlur: 24,
+    borderRadius: 28,
+    borderColor: 'rgba(255,255,255,0.12)',
+    padding: 24,
     headerIcon: '📋',
     showHeader: true,
     elevation: 'md',

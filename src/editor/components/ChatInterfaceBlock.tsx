@@ -18,27 +18,21 @@ export interface MenuItemProps {
 export interface ChatInterfaceBlockProps extends Partial<LayoutProps> {
   enabled: boolean;
   position: 'bottom_right' | 'bottom_left' | 'top_right' | 'top_left' | 'center';
-  // Header
   headerShow: boolean;
   headerTitle: string;
   headerSubtitle: string;
   headerIcon: string;
   headerIndicatorColor: string;
-  // CTA Button
   ctaText: string;
   ctaIcon: string;
-  // Style
   opacity: number;
   blur: number;
   zIndex: number;
-  // Folder styles
   folderIconDefault: string;
   itemIconDefault: string;
   folderArrowSymbol: string;
   itemArrowSymbol: string;
-  // Menu items
   items: MenuItemProps[];
-  // Behavior
   closeOnSelect: boolean;
 }
 
@@ -63,28 +57,45 @@ const DEFAULT_ITEMS: MenuItemProps[] = [
   },
 ];
 
-/** Mini preview de um item do menu */
+/** Mini preview de um item do menu — estilo Premium Kiosk */
 function MenuPreviewItem({ item, depth = 0 }: { item: MenuItemProps; depth?: number }) {
   const [open, setOpen] = useState(false);
   const isFolder = item.type === 'folder' || (item.children && item.children.length > 0);
 
   return (
-    <div style={{ marginLeft: depth * 12 }}>
+    <div style={{ marginLeft: depth * 14 }}>
       <div
         onClick={() => isFolder && setOpen(!open)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
-          background: 'rgba(255,255,255,0.06)', borderRadius: 8, marginBottom: 3,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+          background: 'rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: 16, marginBottom: 5,
           cursor: isFolder ? 'pointer' : 'default',
-          border: '1px solid rgba(255,255,255,0.08)',
-          fontSize: 11, color: '#fff',
+          border: '1px solid rgba(255,255,255,0.12)',
+          fontSize: 13, color: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
         }}
       >
-        <span style={{ fontSize: 14 }}>{item.icon}</span>
-        <span style={{ flex: 1, fontWeight: 500 }}>{item.label}</span>
-        {item.description && <span style={{ opacity: 0.5, fontSize: 10 }}>{item.description}</span>}
-        {isFolder && <span style={{ opacity: 0.5, fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>}
-        {!isFolder && <span style={{ opacity: 0.5 }}>→</span>}
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+        <span style={{ flex: 1, fontWeight: 600, letterSpacing: '-0.01em' }}>{item.label}</span>
+        {item.description && <span style={{ opacity: 0.45, fontSize: 11 }}>{item.description}</span>}
+        {isFolder && (
+          <span style={{
+            opacity: 0.5, fontSize: 10,
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.25s',
+            display: 'inline-block',
+          }}>▼</span>
+        )}
+        {!isFolder && (
+          <span style={{
+            width: 22, height: 22, borderRadius: 11,
+            background: 'linear-gradient(135deg,#6366f1,#ec4899)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, flexShrink: 0,
+          }}>→</span>
+        )}
       </div>
       {isFolder && open && item.children?.map(child => (
         <MenuPreviewItem key={child.id} item={child} depth={depth + 1} />
@@ -105,7 +116,7 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
     ctaText = 'Como posso ajudar?',
     ctaIcon = '💬',
     opacity = 1,
-    blur = 15,
+    blur = 20,
     zIndex = 1000,
     folderArrowSymbol = '▼',
     itemArrowSymbol = '→',
@@ -119,7 +130,15 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
 
   const layoutStyle = getLayoutStyle(props as any);
   const [dropOpen, setDropOpen] = useState(false);
-  const posStyle = POSITION_STYLES[position] || POSITION_STYLES.bottom_right;
+
+  /* ── glass base ── */
+  const glass: React.CSSProperties = {
+    background: 'rgba(30,41,59,0.72)',
+    backdropFilter: `blur(${blur}px) saturate(1.6)`,
+    WebkitBackdropFilter: `blur(${blur}px) saturate(1.6)`,
+    border: '1px solid rgba(255,255,255,0.13)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+  };
 
   if (!enabled) {
     return (
@@ -129,9 +148,8 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
         style={{ ...layoutStyle, cursor: 'move' }}
       >
         <div style={{
-          padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
-          border: '1.5px dashed rgba(255,255,255,0.15)', borderRadius: 12,
-          textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12,
+          padding: '14px 18px', ...glass, borderRadius: 24,
+          textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 13,
         }}>
           💬 ChatInterface (desabilitado)
         </div>
@@ -147,65 +165,72 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
     >
       {/* Preview label */}
       <div style={{
-        fontSize: 9, fontWeight: 700, color: 'rgba(99,102,241,0.8)', letterSpacing: '0.08em',
-        textTransform: 'uppercase', marginBottom: 4, textAlign: 'center',
+        fontSize: 9, fontWeight: 700, color: 'rgba(99,102,241,0.7)', letterSpacing: '0.1em',
+        textTransform: 'uppercase', marginBottom: 6, textAlign: 'center',
       }}>
-        Chat Interface — Preview (posição: {position.replace('_', ' ')})
+        Chat Interface — {position.replace('_', ' ')}
       </div>
 
-      {/* Simulated chat widget */}
-      <div style={{ position: 'relative', minHeight: 80 }}>
-        {/* Header */}
+      <div style={{ position: 'relative' }}>
+        {/* ── Header ── */}
         {headerShow && (
           <div style={{
+            ...glass,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '8px 12px', background: 'rgba(16,23,42,0.85)',
-            backdropFilter: `blur(${blur}px)`, borderRadius: '12px 12px 0 0',
-            border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none',
+            padding: '10px 16px',
+            borderRadius: '28px 28px 0 0',
+            borderBottom: 'none',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
-                width: 8, height: 8, borderRadius: '50%',
+                width: 9, height: 9, borderRadius: '50%',
                 backgroundColor: headerIndicatorColor,
-                boxShadow: `0 0 6px ${headerIndicatorColor}`,
+                boxShadow: `0 0 8px ${headerIndicatorColor}`,
               }} />
-              <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>{headerTitle}</span>
+              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em' }}>
+                {headerTitle}
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
               <span>{headerIcon}</span>
               <span>{headerSubtitle}</span>
             </div>
           </div>
         )}
 
-        {/* Toggle button */}
-        <div style={{
-          background: 'rgba(16,23,42,0.85)', backdropFilter: `blur(${blur}px)`,
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: headerShow ? '0 0 12px 12px' : 12,
-          padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-          cursor: 'pointer', opacity,
-        }} onClick={() => setDropOpen(!dropOpen)}>
-          <span style={{ fontSize: 16 }}>{ctaIcon}</span>
-          <span style={{ color: '#fff', fontSize: 12, fontWeight: 500, flex: 1 }}>{ctaText}</span>
+        {/* ── CTA Pill button ── */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+            boxShadow: '0 4px 20px rgba(99,102,241,0.45), 0 2px 8px rgba(0,0,0,0.25)',
+            borderRadius: headerShow ? '0 0 28px 28px' : 28,
+            padding: '14px 20px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'pointer', opacity,
+          }}
+          onClick={() => setDropOpen(!dropOpen)}
+        >
+          <span style={{ fontSize: 20 }}>{ctaIcon}</span>
+          <span style={{ color: '#fff', fontSize: 15, fontWeight: 700, flex: 1, letterSpacing: '-0.01em' }}>
+            {ctaText}
+          </span>
           <span style={{
-            fontSize: 9, color: 'rgba(255,255,255,0.5)',
-            transition: 'transform 0.2s',
+            fontSize: 10, color: 'rgba(255,255,255,0.7)',
             transform: dropOpen ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.25s', display: 'inline-block',
           }}>{folderArrowSymbol}</span>
         </div>
 
-        {/* Dropdown */}
+        {/* ── Dropdown ── */}
         {dropOpen && (
           <div style={{
-            position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 4,
-            background: 'rgba(16,23,42,0.9)', backdropFilter: `blur(${blur}px)`,
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
-            padding: 8, maxHeight: 280, overflowY: 'auto', zIndex: 50,
-            opacity,
+            position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 6,
+            ...glass,
+            borderRadius: 24,
+            padding: 10, maxHeight: 300, overflowY: 'auto', zIndex: 50, opacity,
           }}>
             {items.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, padding: '12px 0' }}>
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '14px 0' }}>
                 Nenhum item configurado
               </p>
             ) : (
@@ -230,7 +255,7 @@ ChatInterfaceBlock.craft = {
     ctaText: 'Como posso ajudar?',
     ctaIcon: '💬',
     opacity: 1,
-    blur: 15,
+    blur: 20,
     zIndex: 1000,
     folderArrowSymbol: '▼',
     itemArrowSymbol: '→',
