@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { BadgeBlockSettings } from '../settings/BadgeBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface BadgeBlockProps {
   text: string;
@@ -13,17 +14,11 @@ export interface BadgeBlockProps {
   pulse: boolean;
 }
 
-export const BadgeBlock: UserComponent<Partial<BadgeBlockProps>> = ({
-  text = 'Destaque',
-  emoji = '🔥',
-  bgColor = '#6366f1',
-  textColor = '#ffffff',
-  fontSize = 12,
-  borderRadius = 999,
-  variant = 'glass',
-  align = 'center',
-  pulse = false,
-}) => {
+export const BadgeBlock: UserComponent<Partial<BadgeBlockProps>> = (allProps) => {
+  const {
+    text = 'Destaque', emoji = '🔥', bgColor = '#6366f1', textColor = '#ffffff',
+    fontSize = 12, borderRadius = 999, variant = 'glass', align = 'center', pulse = false,
+  } = allProps;
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
@@ -45,6 +40,8 @@ export const BadgeBlock: UserComponent<Partial<BadgeBlockProps>> = ({
     }
   };
 
+  const layoutStyle = getLayoutStyle(allProps as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
@@ -55,6 +52,7 @@ export const BadgeBlock: UserComponent<Partial<BadgeBlockProps>> = ({
         display: 'flex',
         justifyContent: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
         padding: 4,
+        ...layoutStyle,
       }}
     >
       <span
@@ -76,15 +74,9 @@ export const BadgeBlock: UserComponent<Partial<BadgeBlockProps>> = ({
 
 BadgeBlock.craft = {
   props: {
-    text: 'Destaque',
-    emoji: '🔥',
-    bgColor: '#6366f1',
-    textColor: '#ffffff',
-    fontSize: 12,
-    borderRadius: 999,
-    variant: 'glass',
-    align: 'center',
-    pulse: false,
+    text: 'Destaque', emoji: '🔥', bgColor: '#6366f1', textColor: '#ffffff',
+    fontSize: 12, borderRadius: 999, variant: 'glass', align: 'center', pulse: false,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: BadgeBlockSettings },
   displayName: 'Badge',

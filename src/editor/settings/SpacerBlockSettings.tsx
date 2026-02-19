@@ -1,6 +1,7 @@
 import { useNode } from '@craftjs/core';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function SpacerBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -17,6 +18,7 @@ export function SpacerBlockSettings() {
           onValueChange={([v]) => setProp((p: any) => { p.height = v; })}
         />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

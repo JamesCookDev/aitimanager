@@ -2,6 +2,7 @@ import { useNode } from '@craftjs/core';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function QRCodeBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props }));
@@ -68,6 +69,7 @@ export function QRCodeBlockSettings() {
           <Slider min={8} max={24} step={1} value={[props.labelSize || 12]} onValueChange={([v]) => setProp((p: any) => { p.labelSize = v; })} className="mt-1" />
         </div>
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

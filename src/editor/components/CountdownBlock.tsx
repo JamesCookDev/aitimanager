@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNode, UserComponent } from '@craftjs/core';
 import { CountdownBlockSettings } from '../settings/CountdownBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface CountdownBlockProps {
   mode: 'clock' | 'countdown' | 'date';
@@ -87,11 +88,13 @@ export const CountdownBlock: UserComponent<Partial<CountdownBlockProps>> = (prop
     border: '1px solid rgba(255,255,255,0.08)',
   } : {};
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding: 8, cursor: 'move', pointerEvents: 'auto' }}
+      style={{ padding: 8, cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <div
         className="flex items-center justify-center"
@@ -123,20 +126,11 @@ export const CountdownBlock: UserComponent<Partial<CountdownBlockProps>> = (prop
 
 CountdownBlock.craft = {
   props: {
-    mode: 'clock',
-    targetDate: '',
-    countdownMinutes: 60,
-    showSeconds: true,
-    showLabels: true,
-    fontSize: 28,
-    color: '#ffffff',
-    bgColor: 'rgba(255,255,255,0.06)',
-    bgEnabled: true,
-    borderRadius: 16,
-    separator: ':',
-    fontWeight: 'bold',
-    labelFontSize: 9,
-    gap: 8,
+    mode: 'clock', targetDate: '', countdownMinutes: 60, showSeconds: true,
+    showLabels: true, fontSize: 28, color: '#ffffff', bgColor: 'rgba(255,255,255,0.06)',
+    bgEnabled: true, borderRadius: 16, separator: ':', fontWeight: 'bold',
+    labelFontSize: 9, gap: 8,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: CountdownBlockSettings },
   displayName: 'Relógio',

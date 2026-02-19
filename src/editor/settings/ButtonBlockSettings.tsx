@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ButtonBlockProps } from '../components/ButtonBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function ButtonBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props as ButtonBlockProps }));
@@ -102,6 +103,7 @@ export function ButtonBlockSettings() {
         <Label className="text-xs text-muted-foreground">Ação (prompt ou URL)</Label>
         <Input value={props.action} onChange={(e) => setProp((p: ButtonBlockProps) => { p.action = e.target.value; })} placeholder="ex: Quem é você?" className="mt-1" />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

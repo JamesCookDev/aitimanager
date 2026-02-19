@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function VideoEmbedBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props }));
@@ -59,6 +60,7 @@ export function VideoEmbedBlockSettings() {
           <Switch checked={props.loop !== false} onCheckedChange={(v) => setProp((p: any) => { p.loop = v; })} />
         </div>
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

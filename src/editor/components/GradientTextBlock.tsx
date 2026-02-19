@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { GradientTextBlockSettings } from '../settings/GradientTextBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface GradientTextBlockProps {
   text: string;
@@ -42,11 +43,13 @@ export const GradientTextBlock: UserComponent<Partial<GradientTextBlockProps>> =
     ? `linear-gradient(${gradientAngle}deg, ${gradientFrom}, ${gradientVia}, ${gradientTo})`
     : `linear-gradient(${gradientAngle}deg, ${gradientFrom}, ${gradientTo})`;
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding, cursor: 'move', pointerEvents: 'auto' }}
+      style={{ padding, cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <p
         contentEditable
@@ -75,19 +78,11 @@ export const GradientTextBlock: UserComponent<Partial<GradientTextBlockProps>> =
 
 GradientTextBlock.craft = {
   props: {
-    text: 'Texto Gradiente',
-    fontSize: 32,
-    fontWeight: 'bold',
-    gradientFrom: '#6366f1',
-    gradientTo: '#ec4899',
-    gradientVia: '#8b5cf6',
-    gradientAngle: 90,
-    useVia: true,
-    textAlign: 'center',
-    letterSpacing: 0,
-    lineHeight: 1.2,
-    textTransform: 'none',
-    padding: 8,
+    text: 'Texto Gradiente', fontSize: 32, fontWeight: 'bold',
+    gradientFrom: '#6366f1', gradientTo: '#ec4899', gradientVia: '#8b5cf6',
+    gradientAngle: 90, useVia: true, textAlign: 'center',
+    letterSpacing: 0, lineHeight: 1.2, textTransform: 'none', padding: 8,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: GradientTextBlockSettings },
   displayName: 'Texto Gradiente',

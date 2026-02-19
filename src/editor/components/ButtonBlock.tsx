@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { ButtonBlockSettings } from '../settings/ButtonBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface ButtonBlockProps {
   label: string;
@@ -46,11 +47,13 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps>> = (props) => 
 
   const shadowMap = { none: 'none', sm: '0 2px 6px rgba(0,0,0,0.2)', md: '0 4px 16px rgba(0,0,0,0.3)', lg: '0 8px 32px rgba(0,0,0,0.4)' };
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ padding: 4, cursor: 'move', pointerEvents: 'auto' }}
+      style={{ padding: 4, cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <button
         type="button"
@@ -100,6 +103,7 @@ ButtonBlock.craft = {
     fontWeight: 'semibold',
     icon: '',
     iconPosition: 'left',
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: ButtonBlockSettings },
   displayName: 'Botão',

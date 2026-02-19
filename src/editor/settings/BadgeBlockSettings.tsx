@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BadgeBlockProps } from '../components/BadgeBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function BadgeBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({
@@ -68,6 +69,7 @@ export function BadgeBlockSettings() {
         <Label className="text-xs text-muted-foreground">Pulsante</Label>
         <Switch checked={props.pulse} onCheckedChange={(v) => setProp((p: BadgeBlockProps) => { p.pulse = v; })} />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

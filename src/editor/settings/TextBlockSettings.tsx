@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { TextBlockProps } from '../components/TextBlock';
+import { LayoutSettingsPanel } from '../shared/LayoutSettingsPanel';
 
 export function TextBlockSettings() {
   const { actions: { setProp }, props } = useNode((node) => ({ props: node.data.props as TextBlockProps }));
@@ -78,6 +79,7 @@ export function TextBlockSettings() {
         <Label className="text-xs text-muted-foreground">Sombra no texto</Label>
         <Switch checked={props.textShadow} onCheckedChange={(v) => setProp((p: TextBlockProps) => { p.textShadow = v; })} />
       </div>
+      <LayoutSettingsPanel />
     </div>
   );
 }

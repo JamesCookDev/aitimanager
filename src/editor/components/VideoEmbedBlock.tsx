@@ -1,5 +1,6 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { VideoEmbedBlockSettings } from '../settings/VideoEmbedBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface VideoEmbedBlockProps {
   url: string;
@@ -56,11 +57,13 @@ export const VideoEmbedBlock: UserComponent<Partial<VideoEmbedBlockProps>> = (pr
 
   const embedUrl = url ? getEmbedUrl(url, autoplay, muted, loop) : null;
 
+  const layoutStyle = getLayoutStyle(props as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ borderRadius, opacity, cursor: 'move', overflow: 'hidden' }}
+      style={{ borderRadius, opacity, cursor: 'move', overflow: 'hidden', ...layoutStyle }}
     >
       {embedUrl ? (
         <div style={{ position: 'relative', paddingBottom: aspectRatioMap[aspectRatio], height: 0 }}>
@@ -88,13 +91,9 @@ export const VideoEmbedBlock: UserComponent<Partial<VideoEmbedBlockProps>> = (pr
 
 VideoEmbedBlock.craft = {
   props: {
-    url: '',
-    aspectRatio: '16:9',
-    borderRadius: 12,
-    autoplay: false,
-    muted: true,
-    loop: true,
-    opacity: 1,
+    url: '', aspectRatio: '16:9', borderRadius: 12, autoplay: false,
+    muted: true, loop: true, opacity: 1,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: VideoEmbedBlockSettings },
   rules: { canDrag: () => true },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNode, UserComponent } from '@craftjs/core';
 import { MenuBlockSettings } from '../settings/MenuBlockSettings';
+import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
 
 export interface MenuItem {
   id: string;
@@ -40,28 +41,29 @@ const DEFAULT_ITEMS: MenuItem[] = [
   { id: '4', emoji: '⭐', label: 'Destaques', action: 'Quais são os destaques?', color: '#f59e0b' },
 ];
 
-export const MenuBlock: UserComponent<Partial<MenuBlockProps>> = ({
-  title = 'Menu',
-  titleIcon = '💬',
-  items = DEFAULT_ITEMS,
-  layout = 'grid',
-  columns = 2,
-  bgColor = 'rgba(255,255,255,0.06)',
-  bgOpacity = 1,
-  bgBlur = 12,
-  borderRadius = 16,
-  gap = 8,
-  padding = 16,
-  titleColor = '#ffffff',
-  titleFontSize = 14,
-  itemBgColor = 'rgba(255,255,255,0.08)',
-  itemTextColor = '#ffffff',
-  itemFontSize = 13,
-  itemBorderRadius = 12,
-  showItemEmoji = true,
-  collapsible = false,
-  defaultOpen = true,
-}) => {
+export const MenuBlock: UserComponent<Partial<MenuBlockProps>> = (allProps) => {
+  const {
+    title = 'Menu',
+    titleIcon = '💬',
+    items = DEFAULT_ITEMS,
+    layout = 'grid',
+    columns = 2,
+    bgColor = 'rgba(255,255,255,0.06)',
+    bgOpacity = 1,
+    bgBlur = 12,
+    borderRadius = 16,
+    gap = 8,
+    padding = 16,
+    titleColor = '#ffffff',
+    titleFontSize = 14,
+    itemBgColor = 'rgba(255,255,255,0.08)',
+    itemTextColor = '#ffffff',
+    itemFontSize = 13,
+    itemBorderRadius = 12,
+    showItemEmoji = true,
+    collapsible = false,
+    defaultOpen = true,
+  } = allProps;
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
@@ -141,11 +143,13 @@ export const MenuBlock: UserComponent<Partial<MenuBlockProps>> = ({
     );
   };
 
+  const layoutStyle = getLayoutStyle(allProps as any);
+
   return (
     <div
       ref={(ref) => { if (ref) connect(drag(ref)); }}
       className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto' }}
+      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
     >
       <div
         style={{
@@ -203,6 +207,7 @@ MenuBlock.craft = {
     showItemEmoji: true,
     collapsible: false,
     defaultOpen: true,
+    ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: MenuBlockSettings },
   displayName: 'Menu',
