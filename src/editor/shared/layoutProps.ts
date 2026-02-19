@@ -58,21 +58,36 @@ export const DEFAULT_LAYOUT_PROPS: LayoutProps = {
 export function getLayoutStyle(props: Partial<LayoutProps>): React.CSSProperties {
   const p = { ...DEFAULT_LAYOUT_PROPS, ...props };
   const isAbs = p.positionType === 'absolute';
+
+  if (isAbs) {
+    // Absolute mode: position relative to the CanvasDropArea (the nearest `position:relative` parent)
+    // right overrides left; bottom overrides top when explicitly set (not null/undefined)
+    const hasRight = p.positionRight != null;
+    const hasBottom = p.positionBottom != null;
+    return {
+      position: 'absolute',
+      top: hasBottom ? undefined : (p.positionTop ?? 0),
+      bottom: hasBottom ? p.positionBottom : undefined,
+      left: hasRight ? undefined : (p.positionLeft ?? 0),
+      right: hasRight ? p.positionRight : undefined,
+      width: p.layoutWidth === 'auto' ? undefined : p.layoutWidth,
+      height: p.layoutHeight === 'auto' ? undefined : p.layoutHeight,
+      zIndex: p.zIndex != null && p.zIndex !== 0 ? p.zIndex : undefined,
+      overflow: p.overflow === 'visible' ? undefined : p.overflow,
+    };
+  }
+
+  // Relative mode: normal document flow
   return {
-    position: isAbs ? 'absolute' : 'relative',
+    position: 'relative',
     width: p.layoutWidth === 'auto' ? undefined : p.layoutWidth,
     height: p.layoutHeight === 'auto' ? undefined : p.layoutHeight,
-    marginTop: !isAbs ? (p.marginTop || undefined) : undefined,
-    marginBottom: !isAbs ? (p.marginBottom || undefined) : undefined,
-    marginLeft: !isAbs ? (p.marginLeft || undefined) : undefined,
-    marginRight: !isAbs ? (p.marginRight || undefined) : undefined,
+    marginTop: p.marginTop || undefined,
+    marginBottom: p.marginBottom || undefined,
+    marginLeft: p.marginLeft || undefined,
+    marginRight: p.marginRight || undefined,
     alignSelf: p.alignSelf === 'auto' ? undefined : p.alignSelf,
     overflow: p.overflow === 'visible' ? undefined : p.overflow,
-    // Absolute coords: right/bottom override left/top when defined
-    top: isAbs ? (p.positionBottom != null ? undefined : (p.positionTop ?? 0)) : undefined,
-    bottom: isAbs && p.positionBottom != null ? p.positionBottom : undefined,
-    left: isAbs ? (p.positionRight != null ? undefined : (p.positionLeft ?? 0)) : undefined,
-    right: isAbs && p.positionRight != null ? p.positionRight : undefined,
-    zIndex: p.zIndex || undefined,
+    zIndex: p.zIndex != null && p.zIndex !== 0 ? p.zIndex : undefined,
   };
 }
