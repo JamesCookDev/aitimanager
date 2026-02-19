@@ -1,13 +1,20 @@
 /**
- * ========================================================
- *  TOTEM LOCAL — App.jsx (versão corrigida e completa)
- * ========================================================
- *  • Todos os 17 blocos do Page Builder renderizados
- *  • Worker de polling para atualização contínua
- *  • QRCode, Social, Video, etc. 100% funcionais
- * ========================================================
+ * ══════════════════════════════════════════════════════════════
+ *  TOTEM LOCAL — App.jsx  (v3 — Refatoração completa)
+ * ══════════════════════════════════════════════════════════════
+ *  Todos os 17 blocos com renderizadores 1:1 com o editor.
+ *  Worker de polling para atualização contínua sem quebrar o front.
+ *
+ *  Blocos suportados:
+ *  ─ Conteúdo:  TextBlock, GradientTextBlock, ImageBlock, BadgeBlock, IconBlock
+ *  ─ Interação: ButtonBlock, MenuBlock
+ *  ─ Mídia:     VideoEmbedBlock, QRCodeBlock, SocialLinksBlock
+ *  ─ Dados:     ProgressBlock, CountdownBlock
+ *  ─ Layout:    ContainerBlock, CardBlock, SpacerBlock, DividerBlock, CanvasDropArea
+ *  ─ 3D:        AvatarBlock (renderizado pela camada Three.js, ignorado aqui)
+ * ══════════════════════════════════════════════════════════════
  */
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Loader, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Leva } from "leva";
@@ -16,11 +23,23 @@ import { useCMSConfig } from "./hooks/useCMSConfig";
 import { ChatInterface } from "./components/ChatInterface";
 
 // ─────────────────────────────────────────────
-// 🔄 WORKER: Polling inteligente com intervalo configurável
+// 🔧 UTILITÁRIOS
 // ─────────────────────────────────────────────
-const POLL_INTERVAL = 15_000; // 15 segundos
+const px = (v) => (typeof v === "number" ? `${v}px` : v);
 
-function useConfigPoller(currentUi, onUpdate) {
+const SHADOW_MAP = {
+  none: "none",
+  sm: "0 2px 8px rgba(0,0,0,0.15)",
+  md: "0 4px 20px rgba(0,0,0,0.25)",
+  lg: "0 8px 40px rgba(0,0,0,0.35)",
+};
+
+// ─────────────────────────────────────────────
+// 🔄 WORKER: Polling inteligente (15s)
+// ─────────────────────────────────────────────
+const POLL_INTERVAL = 15_000;
+
+function useConfigPoller(onUpdate) {
   const lastHashRef = useRef("");
 
   const fetchLatest = useCallback(async () => {
@@ -32,7 +51,7 @@ function useConfigPoller(currentUi, onUpdate) {
       const res = await fetch(`${apiUrl}/totem-config`, {
         headers: {
           "x-totem-api-key": apiKey,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
         },
       });
       if (!res.ok) return;
@@ -41,7 +60,6 @@ function useConfigPoller(currentUi, onUpdate) {
       const newUi = json?.config?.ui;
       if (!newUi) return;
 
-      // Compara hash simples para evitar re-renders desnecessários
       const hash = JSON.stringify(newUi);
       if (hash !== lastHashRef.current) {
         lastHashRef.current = hash;
@@ -53,7 +71,6 @@ function useConfigPoller(currentUi, onUpdate) {
   }, [onUpdate]);
 
   useEffect(() => {
-    // Primeira busca imediata
     fetchLatest();
     const id = setInterval(fetchLatest, POLL_INTERVAL);
     return () => clearInterval(id);
@@ -63,526 +80,581 @@ function useConfigPoller(currentUi, onUpdate) {
 // ─────────────────────────────────────────────
 // ⏱️ COUNTDOWN EM TEMPO REAL
 // ─────────────────────────────────────────────
-const LiveCountdown = ({ targetDate, countdownMinutes, showLabels, showSeconds, fontSize, labelFontSize, textColor, gap }) => {
-  const px = (v) => (typeof v === "number" ? `${v}px` : v);
+const LiveCountdown = React.memo(({ mode, targetDate, countdownMinutes, showLabels, showSeconds, fontSize, labelFontSize, color, bgColor, bgEnabled, borderRadius, separator, fontWeight, gap }) => {
+  const [now, setNow] = useState(new Date());
 
-  const [targetTimestamp] = useState(() => {
-    if (targetDate) return new Date(targetDate).getTime();
-    if (countdownMinutes) return Date.now() + countdownMinutes * 60000;
-    return Date.now() + 86400000;
-  });
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  const calc = () => {
-    const d = targetTimestamp - Date.now();
-    if (d <= 0) return { dias: 0, horas: 0, min: 0, seg: 0 };
-    return {
-      dias: Math.floor(d / 86400000),
-      horas: Math.floor((d / 3600000) % 24),
-      min: Math.floor((d / 60000) % 60),
-      seg: Math.floor((d / 1000) % 60),
-    };
+  const getSegments = () => {
+    if (mode === "clock") {
+      return {
+        values: [now.getHours(), now.getMinutes(), ...(showSeconds !== false ? [now.getSeconds()] : [])],
+        labels: ["Horas", "Min", ...(showSeconds !== false ? ["Seg"] : [])],
+      };
+    }
+
+    let diffMs = 0;
+    if (mode === "date" && targetDate) {
+      diffMs = Math.max(0, new Date(targetDate).getTime() - now.getTime());
+    } else if (mode === "countdown" || countdownMinutes) {
+      diffMs = (countdownMinutes || 60) * 60 * 1000;
+    } else {
+      diffMs = 86400000;
+    }
+
+    const totalSec = Math.floor(diffMs / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+
+    const vals = [];
+    const lbls = [];
+    if (days > 0) { vals.push(days); lbls.push("Dias"); }
+    vals.push(h, m);
+    lbls.push("Horas", "Min");
+    if (showSeconds !== false) { vals.push(s); lbls.push("Seg"); }
+
+    return { values: vals, labels: lbls };
   };
 
-  const [t, setT] = useState(calc);
-  useEffect(() => {
-    const id = setInterval(() => setT(calc()), 1000);
-    return () => clearInterval(id);
-  }, [targetTimestamp]);
+  const { values, labels } = getSegments();
+  const sep = separator || ":";
+  const fs = fontSize || 28;
 
-  const Box = ({ label, value }) => (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <span style={{ fontSize: px(fontSize || 28), fontWeight: "bold", color: textColor || "#fff" }}>
-        {String(value).padStart(2, "0")}
-      </span>
-      {showLabels !== false && (
-        <span style={{ fontSize: px(labelFontSize || 12), color: textColor || "#fff", opacity: 0.8, textTransform: "uppercase" }}>
-          {label}
-        </span>
-      )}
-    </div>
-  );
+  const digitBoxStyle = bgEnabled !== false ? {
+    backgroundColor: bgColor || "rgba(255,255,255,0.06)",
+    borderRadius: px((borderRadius || 16) / 2),
+    padding: "8px 12px",
+    backdropFilter: "blur(8px)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  } : {};
 
   return (
-    <div style={{ display: "flex", gap: px(gap || 20), justifyContent: "center", alignItems: "center", width: "100%" }}>
-      {t.dias > 0 && <Box label="Dias" value={t.dias} />}
-      <Box label="Horas" value={t.horas} />
-      <Box label="Min" value={t.min} />
-      {showSeconds !== false && <Box label="Seg" value={t.seg} />}
+    <div style={{ display: "flex", gap: px(gap || 8), justifyContent: "center", alignItems: "center", width: "100%", padding: "8px" }}>
+      {values.map((val, i) => (
+        <React.Fragment key={i}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", ...digitBoxStyle }}>
+            <span style={{ fontSize: px(fs), fontWeight: fontWeight || "bold", color: color || "#fff", fontFamily: "monospace", lineHeight: 1.1 }}>
+              {String(val).padStart(2, "0")}
+            </span>
+            {showLabels !== false && (
+              <span style={{ fontSize: px(labelFontSize || 9), color: color || "#fff", opacity: 0.5, textTransform: "uppercase", marginTop: "2px" }}>
+                {labels[i]}
+              </span>
+            )}
+          </div>
+          {i < values.length - 1 && (
+            <span style={{ fontSize: px(fs * 0.8), color: color || "#fff", opacity: 0.4, fontWeight: fontWeight || "bold", fontFamily: "monospace" }}>
+              {sep}
+            </span>
+          )}
+        </React.Fragment>
+      ))}
     </div>
   );
-};
+});
 
 // ─────────────────────────────────────────────
-// 🧱 CRAFT ENGINE — Renderizador recursivo completo
+// 🧱 RENDERIZADORES INDIVIDUAIS POR BLOCO
 // ─────────────────────────────────────────────
-const CraftEngine = ({ nodes, nodeId = "ROOT" }) => {
+
+/** Renderiza um único nó de acordo com seu tipo */
+function renderBlock(blockName, props, childElements) {
+  const p = props || {};
+
+  // ── AvatarBlock / ChatBlock → renderizado em camada separada ──
+  if (blockName === "AvatarBlock" || blockName === "ChatBlock") return null;
+
+  // ── SpacerBlock ──
+  if (blockName === "SpacerBlock") {
+    return <div style={{ height: px(p.height || 32), width: "100%" }} />;
+  }
+
+  // ── DividerBlock ──
+  if (blockName === "DividerBlock") {
+    return (
+      <hr style={{
+        width: "100%",
+        border: "none",
+        borderTop: `${px(p.thickness || 1)} ${p.lineStyle || "solid"} ${p.color || "rgba(255,255,255,0.15)"}`,
+        margin: `${px(p.margin || 12)} 0`,
+      }} />
+    );
+  }
+
+  // ── BadgeBlock ──
+  if (blockName === "BadgeBlock") {
+    const variant = p.variant || "glass";
+    let variantStyle = {};
+    if (variant === "filled") {
+      variantStyle = { backgroundColor: p.bgColor || "#6366f1", color: p.textColor || "#fff", border: "none" };
+    } else if (variant === "outline") {
+      variantStyle = { backgroundColor: "transparent", color: p.bgColor || "#6366f1", border: `1.5px solid ${p.bgColor || "#6366f1"}` };
+    } else {
+      variantStyle = { backgroundColor: (p.bgColor || "#6366f1") + "22", color: p.textColor || "#fff", border: `1px solid ${(p.bgColor || "#6366f1")}44`, backdropFilter: "blur(8px)" };
+    }
+    const fs = p.fontSize || 12;
+    return (
+      <div style={{ display: "flex", justifyContent: p.align === "left" ? "flex-start" : p.align === "right" ? "flex-end" : "center", padding: "4px", width: "100%" }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600,
+          fontSize: px(fs), borderRadius: px(p.borderRadius || 999),
+          padding: `${Math.max(4, fs * 0.4)}px ${fs * 1.2}px`,
+          letterSpacing: "0.02em",
+          animation: p.pulse ? "pulse 2s infinite" : undefined,
+          ...variantStyle,
+        }}>
+          {p.emoji && <span>{p.emoji}</span>}
+          {p.text || "Destaque"}
+        </span>
+      </div>
+    );
+  }
+
+  // ── IconBlock ──
+  if (blockName === "IconBlock") {
+    const bgOn = p.bgEnabled !== false;
+    return (
+      <div style={{ display: "flex", justifyContent: p.align === "left" ? "flex-start" : p.align === "right" ? "flex-end" : "center", padding: "4px", width: "100%" }}>
+        <div style={{
+          width: bgOn ? px(p.bgSize || 56) : "auto",
+          height: bgOn ? px(p.bgSize || 56) : "auto",
+          backgroundColor: bgOn ? (p.bgColor || "rgba(99,102,241,0.2)") : "transparent",
+          borderRadius: px(p.bgBorderRadius || 14),
+          border: bgOn ? `${p.borderWidth || 1}px solid ${p.borderColor || "rgba(99,102,241,0.3)"}` : "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: px(p.size || 32), lineHeight: 1,
+          boxShadow: p.shadow && bgOn ? `0 4px 16px ${p.bgColor || "rgba(99,102,241,0.2)"}` : undefined,
+        }}>
+          {p.emoji || "⭐"}
+        </div>
+      </div>
+    );
+  }
+
+  // ── TextBlock ──
+  if (blockName === "TextBlock") {
+    return (
+      <p style={{
+        fontSize: px(p.fontSize || 16), fontWeight: p.fontWeight || "normal",
+        color: p.color || p.textColor || "#fff", textAlign: p.textAlign || "left",
+        padding: px(p.padding || 8), letterSpacing: p.letterSpacing || 0,
+        lineHeight: p.lineHeight || 1.5, textTransform: p.textTransform || "none",
+        opacity: typeof p.opacity === "number" ? p.opacity : 1,
+        textShadow: p.textShadow === true ? "0 2px 8px rgba(0,0,0,0.5)" : undefined,
+        margin: 0,
+      }}>
+        {p.text || ""}
+      </p>
+    );
+  }
+
+  // ── GradientTextBlock ──
+  if (blockName === "GradientTextBlock") {
+    const grad = p.useVia
+      ? `linear-gradient(${p.gradientAngle || 90}deg, ${p.gradientFrom || "#6366f1"}, ${p.gradientVia || "#8b5cf6"}, ${p.gradientTo || "#ec4899"})`
+      : `linear-gradient(${p.gradientAngle || 90}deg, ${p.gradientFrom || "#6366f1"}, ${p.gradientTo || "#ec4899"})`;
+    return (
+      <p style={{
+        fontSize: px(p.fontSize || 32), fontWeight: p.fontWeight || "bold",
+        textAlign: p.textAlign || "center", letterSpacing: p.letterSpacing || 0,
+        lineHeight: p.lineHeight || 1.2, textTransform: p.textTransform || "none",
+        padding: px(p.padding || 8),
+        background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+        margin: 0,
+      }}>
+        {p.text || "Texto Gradiente"}
+      </p>
+    );
+  }
+
+  // ── ImageBlock ──
+  if (blockName === "ImageBlock") {
+    if (!p.src) {
+      return (
+        <div style={{
+          width: p.width || "100%", minHeight: "80px", borderRadius: px(p.borderRadius || 8),
+          backgroundColor: "rgba(255,255,255,0.03)", border: "2px dashed rgba(255,255,255,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "rgba(255,255,255,0.4)", fontSize: "14px", padding: px(p.padding || 4),
+        }}>
+          📷 Sem imagem
+        </div>
+      );
+    }
+    return (
+      <div style={{ padding: px(p.padding || 4) }}>
+        <img
+          src={p.src}
+          alt={p.alt || "Imagem"}
+          style={{
+            width: p.width || "100%", height: p.height || "auto",
+            objectFit: p.objectFit || "cover", borderRadius: px(p.borderRadius || 8),
+            display: "block", opacity: typeof p.opacity === "number" ? p.opacity : 1,
+            boxShadow: SHADOW_MAP[p.shadow] || "none",
+            border: p.borderEnabled ? `${p.borderWidth || 2}px solid ${p.borderColor || "#fff"}` : undefined,
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ── ButtonBlock ──
+  if (blockName === "ButtonBlock") {
+    return (
+      <div style={{ padding: "4px" }}>
+        <button
+          type="button"
+          style={{
+            backgroundColor: p.bgColor || "hsl(221,83%,53%)",
+            color: p.textColor || "#fff",
+            fontSize: px(p.fontSize || 16),
+            borderRadius: px(p.borderRadius || 8),
+            paddingLeft: px(p.paddingX || 24), paddingRight: px(p.paddingX || 24),
+            paddingTop: px(p.paddingY || 14), paddingBottom: px(p.paddingY || 14),
+            width: p.fullWidth ? "100%" : "auto",
+            border: (p.borderWidth || 0) > 0 ? `${p.borderWidth}px solid ${p.borderColor || "transparent"}` : "none",
+            cursor: "pointer", fontWeight: p.fontWeight || "600",
+            minHeight: "44px", opacity: typeof p.opacity === "number" ? p.opacity : 1,
+            boxShadow: SHADOW_MAP[p.shadow] || "none",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            flexDirection: p.iconPosition === "right" ? "row-reverse" : "row",
+            transition: "transform 0.15s",
+          }}
+        >
+          {p.icon && <span style={{ fontSize: px((p.fontSize || 16) * 0.9) }}>{p.icon}</span>}
+          {p.label || p.text || "Clique aqui"}
+        </button>
+      </div>
+    );
+  }
+
+  // ── MenuBlock ──
+  if (blockName === "MenuBlock") {
+    const items = Array.isArray(p.items) ? p.items : [];
+    const lay = p.layout || "grid";
+    const cols = p.columns || 2;
+    const gridStyle = lay === "grid"
+      ? { display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: px(p.gap || 8) }
+      : lay === "pills"
+        ? { display: "flex", flexWrap: "wrap", gap: px(p.gap || 8) }
+        : { display: "flex", flexDirection: "column", gap: px(p.gap || 8) };
+
+    return (
+      <div style={{
+        backgroundColor: p.bgColor || "rgba(255,255,255,0.06)",
+        opacity: p.bgOpacity ?? 1,
+        borderRadius: px(p.borderRadius || 16),
+        padding: px(p.padding || 16),
+        backdropFilter: (p.bgBlur || 0) > 0 ? `blur(${p.bgBlur}px)` : undefined,
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        {p.title && (
+          <div style={{ fontWeight: 600, marginBottom: "10px", display: "flex", gap: "8px", color: p.titleColor || "#fff", fontSize: px(p.titleFontSize || 14) }}>
+            {p.titleIcon && <span>{p.titleIcon}</span>}
+            <span>{p.title}</span>
+          </div>
+        )}
+        <div style={gridStyle}>
+          {items.map((item, idx) => {
+            if (lay === "pills") {
+              return (
+                <div key={idx} style={{
+                  backgroundColor: (item.color || "#6366f1") + "22",
+                  color: p.itemTextColor || "#fff",
+                  fontSize: px(p.itemFontSize || 13),
+                  borderRadius: "999px", padding: "8px 16px",
+                  border: `1px solid ${(item.color || "#6366f1")}44`,
+                  fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "6px",
+                  cursor: "pointer",
+                }}>
+                  {p.showItemEmoji !== false && item.emoji && <span>{item.emoji}</span>}
+                  <span>{item.label}</span>
+                </div>
+              );
+            }
+            return (
+              <div key={idx} style={{
+                backgroundColor: p.itemBgColor || "rgba(255,255,255,0.08)",
+                color: p.itemTextColor || "#fff",
+                fontSize: px(p.itemFontSize || 13),
+                borderRadius: px(p.itemBorderRadius || 12),
+                padding: lay === "list" ? "12px 16px" : "14px 12px",
+                border: "1px solid rgba(255,255,255,0.06)",
+                textAlign: lay === "grid" ? "center" : "left",
+                display: "flex", flexDirection: lay === "grid" ? "column" : "row",
+                alignItems: "center", gap: "8px",
+                fontWeight: 500, backdropFilter: "blur(8px)", minHeight: "44px",
+                cursor: "pointer",
+              }}>
+                {p.showItemEmoji !== false && item.emoji && (
+                  <span style={{
+                    width: lay === "grid" ? "36px" : "32px", height: lay === "grid" ? "36px" : "32px",
+                    borderRadius: "10px", backgroundColor: (item.color || "#6366f1") + "25",
+                    fontSize: lay === "grid" ? "18px" : "16px",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    {item.emoji}
+                  </span>
+                )}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── ProgressBlock ──
+  if (blockName === "ProgressBlock") {
+    const val = typeof p.value === "number" ? p.value : 65;
+    const max = typeof p.maxValue === "number" ? p.maxValue : 100;
+    const pct = Math.min(100, Math.max(0, (val / max) * 100));
+    const barBg = p.barColor || p.progressColor || "#6366f1";
+    const isStriped = p.striped || p.animated;
+    return (
+      <div style={{ padding: "8px", width: "100%" }}>
+        {p.showLabel !== false && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", color: p.labelColor || "#fff", fontSize: px(p.labelFontSize || 12), fontWeight: 600 }}>
+            <span>{p.label || "Progresso"}</span>
+            <span style={{ opacity: 0.7 }}>
+              {p.showPercentage !== false ? `${Math.round(pct)}%` : `${val}/${max}`}
+            </span>
+          </div>
+        )}
+        <div style={{ width: "100%", backgroundColor: p.trackColor || "rgba(255,255,255,0.08)", borderRadius: px(p.borderRadius || 99), height: px(p.height || 12), overflow: "hidden", position: "relative" }}>
+          <div style={{
+            width: `${pct}%`, height: "100%", borderRadius: px(p.borderRadius || 99),
+            background: `linear-gradient(90deg, ${barBg}, ${barBg}cc)`,
+            transition: p.animated ? "width 1s ease" : "none",
+            backgroundSize: isStriped ? "20px 20px" : undefined,
+            backgroundImage: isStriped ? "linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)" : undefined,
+            animation: isStriped ? "stripe-move 1s linear infinite" : undefined,
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── CountdownBlock ──
+  if (blockName === "CountdownBlock") {
+    return (
+      <LiveCountdown
+        mode={p.mode || "clock"}
+        targetDate={p.targetDate}
+        countdownMinutes={p.countdownMinutes}
+        showLabels={p.showLabels}
+        showSeconds={p.showSeconds}
+        fontSize={p.fontSize}
+        labelFontSize={p.labelFontSize}
+        color={p.color || p.textColor}
+        bgColor={p.bgColor}
+        bgEnabled={p.bgEnabled}
+        borderRadius={p.borderRadius}
+        separator={p.separator}
+        fontWeight={p.fontWeight}
+        gap={p.gap}
+      />
+    );
+  }
+
+  // ── QRCodeBlock ──
+  if (blockName === "QRCodeBlock") {
+    const qrSize = p.size || 160;
+    const qrContent = p.content || p.value || p.url || "https://example.com";
+    const cleanFg = (p.fgColor || "#ffffff").replace("#", "");
+    const cleanBg = !p.bgColor || p.bgColor === "transparent" ? "000000" : p.bgColor.replace("#", "");
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrContent)}&color=${cleanFg}&bgcolor=${cleanBg}`;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: px(p.padding || 12), width: "fit-content" }}>
+        <img
+          src={qrUrl} alt="QR Code"
+          style={{ width: px(qrSize), height: px(qrSize), objectFit: "contain", borderRadius: px(p.borderRadius || 8), imageRendering: "pixelated" }}
+        />
+        {p.label && (
+          <span style={{ fontSize: px(p.labelSize || 12), color: p.labelColor || "#fff", textAlign: "center", fontWeight: 500 }}>
+            {p.label}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // ── SocialLinksBlock ──
+  if (blockName === "SocialLinksBlock") {
+    const links = Array.isArray(p.links) ? p.links : [];
+    const dir = p.layout === "vertical" ? "column" : "row";
+    const bgOn = p.bgEnabled === true;
+    return (
+      <div style={{
+        display: "flex", flexDirection: dir, gap: px(p.gap || 12),
+        alignItems: "center", justifyContent: "center", flexWrap: "wrap",
+        width: "100%", padding: px(p.padding || 12),
+        backgroundColor: bgOn ? (p.bgColor || "rgba(255,255,255,0.06)") : "transparent",
+        borderRadius: bgOn ? px(p.borderRadius || 16) : undefined,
+        backdropFilter: bgOn ? "blur(8px)" : undefined,
+        border: bgOn ? "1px solid rgba(255,255,255,0.08)" : undefined,
+      }}>
+        {links.map((link, idx) => (
+          <a key={idx} href={link.url || "#"} target="_blank" rel="noopener noreferrer" style={{
+            display: "flex", flexDirection: dir === "column" ? "row" : "column",
+            alignItems: "center", gap: "6px", textDecoration: "none", cursor: "pointer",
+            transition: "transform 0.2s",
+          }}>
+            <div style={{
+              width: px(p.iconSize || 40), height: px(p.iconSize || 40),
+              backgroundColor: (link.color || "#6366f1") + "20",
+              border: `1px solid ${(link.color || "#6366f1")}40`,
+              borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: px((p.iconSize || 40) * 0.5),
+            }}>
+              {link.icon || "🔗"}
+            </div>
+            {(p.showLabels ?? true) && (
+              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
+                {link.label}
+              </span>
+            )}
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  // ── VideoEmbedBlock ──
+  if (blockName === "VideoEmbedBlock") {
+    const vidSrc = p.url || p.videoUrl || p.src || "";
+    if (!vidSrc) {
+      return (
+        <div style={{ padding: "20px", textAlign: "center", color: "rgba(255,255,255,0.4)", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: px(p.borderRadius || 12), border: "2px dashed rgba(255,255,255,0.1)", minHeight: "100px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          🎬 Sem vídeo
+        </div>
+      );
+    }
+    const isYt = vidSrc.includes("youtube.com") || vidSrc.includes("youtu.be");
+    const isMp4 = vidSrc.endsWith(".mp4") || vidSrc.endsWith(".webm");
+    let finalSrc = vidSrc;
+    if (isYt && !vidSrc.includes("embed")) {
+      const videoId = vidSrc.match(/(?:v=|youtu\.be\/)([\w-]+)/)?.[1];
+      if (videoId) finalSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&mute=${p.muted ? 1 : 0}&loop=${p.loop ? 1 : 0}`;
+    }
+    const vimeoMatch = vidSrc.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      finalSrc = `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=${p.autoplay ? 1 : 0}&muted=${p.muted ? 1 : 0}&loop=${p.loop ? 1 : 0}`;
+    }
+    const ratioMap = { "16:9": "56.25%", "9:16": "177.78%", "4:3": "75%", "1:1": "100%" };
+    const ratio = ratioMap[p.aspectRatio] || "56.25%";
+    return (
+      <div style={{ borderRadius: px(p.borderRadius || 12), overflow: "hidden", opacity: typeof p.opacity === "number" ? p.opacity : 1 }}>
+        {isMp4 ? (
+          <video src={finalSrc} autoPlay={!!p.autoplay} loop={!!p.loop} muted={!!p.muted || !!p.autoplay} controls style={{ width: "100%", borderRadius: px(p.borderRadius || 12), display: "block" }} />
+        ) : (
+          <div style={{ position: "relative", paddingBottom: ratio, height: 0 }}>
+            <iframe src={finalSrc} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }} allow="autoplay; fullscreen; encrypted-media" allowFullScreen />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── CardBlock ──
+  if (blockName === "CardBlock") {
+    return (
+      <div style={{
+        backgroundColor: p.bgColor || "rgba(255,255,255,0.06)",
+        backdropFilter: (p.bgBlur || 0) > 0 ? `blur(${p.bgBlur}px)` : undefined,
+        borderRadius: px(p.borderRadius || 16),
+        border: `1px solid ${p.borderColor || "rgba(255,255,255,0.1)"}`,
+        padding: px(p.padding || 20),
+        boxShadow: SHADOW_MAP[p.elevation] || SHADOW_MAP.md,
+      }}>
+        {p.showHeader !== false && (p.title || p.subtitle) && (
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold", color: "#fff", fontSize: "14px" }}>
+              {p.headerIcon && <span style={{ fontSize: "18px" }}>{p.headerIcon}</span>}
+              <span>{p.title}</span>
+            </div>
+            {p.subtitle && <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>{p.subtitle}</span>}
+          </div>
+        )}
+        {childElements}
+      </div>
+    );
+  }
+
+  // ── ContainerBlock ──
+  if (blockName === "ContainerBlock") {
+    return (
+      <div style={{
+        backgroundColor: p.bgColor || "rgba(255,255,255,0.05)",
+        padding: px(p.padding || 16), gap: px(p.gap || 8),
+        display: "flex", flexDirection: p.direction || "column",
+        alignItems: p.alignItems || "stretch",
+        justifyContent: p.justifyContent || "flex-start",
+        borderRadius: px(p.borderRadius || 12),
+        minHeight: px(p.minHeight || 0),
+        opacity: typeof p.opacity === "number" ? p.opacity : 1,
+        border: (p.borderWidth || 0) > 0 ? `${p.borderWidth}px solid ${p.borderColor || "rgba(255,255,255,0.1)"}` : undefined,
+        boxShadow: SHADOW_MAP[p.shadow] || "none",
+        backdropFilter: (p.blur || 0) > 0 ? `blur(${p.blur}px)` : undefined,
+      }}>
+        {childElements}
+      </div>
+    );
+  }
+
+  // ── CanvasDropArea (ROOT container) ──
+  if (blockName === "CanvasDropArea") {
+    return (
+      <div style={{
+        backgroundColor: p.bgColor === "transparent" ? "transparent" : (p.bgColor || "#0f172a"),
+        padding: "16px", minHeight: "100%", display: "flex", flexDirection: "column", gap: "8px", width: "100%",
+      }}>
+        {childElements}
+      </div>
+    );
+  }
+
+  // ── Fallback genérico ──
+  return <div style={{ padding: "4px" }}>{p.text || childElements}</div>;
+}
+
+// ─────────────────────────────────────────────
+// 🧱 CRAFT ENGINE — Renderizador recursivo
+// ─────────────────────────────────────────────
+const CraftEngine = React.memo(({ nodes, nodeId = "ROOT" }) => {
   if (!nodes || !nodes[nodeId]) return null;
 
   const node = nodes[nodeId];
   const { type, props = {}, nodes: childIds = [], linkedNodes = {} } = node;
 
   // Resolve nome do bloco
-  let resolvedName = type;
-  if (typeof type === "object" && type.resolvedName) resolvedName = type.resolvedName;
-  const blockName = resolvedName;
+  let blockName = type;
+  if (typeof type === "object" && type.resolvedName) blockName = type.resolvedName;
 
-  // Mapeia bloco → tag HTML
-  const TAG_MAP = {
-    TextBlock: "p", GradientTextBlock: "p",
-    ImageBlock: "img",
-    ButtonBlock: "button",
-  };
-  const CONTAINER_BLOCKS = [
-    "CanvasDropArea", "ContainerBlock", "AvatarBlock", "ChatBlock",
-    "IconBlock", "BadgeBlock", "CardBlock", "MenuBlock",
-    "SpacerBlock", "DividerBlock", "ProgressBlock", "CountdownBlock",
-    "SocialLinksBlock", "VideoEmbedBlock", "QRCodeBlock",
-  ];
-  let TagName = TAG_MAP[blockName] || (CONTAINER_BLOCKS.includes(blockName) ? "div" : blockName);
-
-  // ── Destructure de TODAS as props possíveis ──
-  const {
-    bgColor, textColor, color, fontSize, textAlign, padding, margin, text, title,
-    alignItems, justifyContent, borderRadius, minHeight, paddingX, paddingY,
-    fullWidth, objectFit, enabled, showHeader, bgSize, bgBorderRadius,
-    borderWidth, shadow, icon, borderColor, bgEnabled, emoji,
-    headerIcon, subtitle, bgBlur, titleColor, titleFontSize, titleIcon,
-    itemBgColor, itemTextColor, itemFontSize, itemBorderRadius, showItemEmoji,
-    items, layout, gap,
-    lineStyle, thickness, height, animated, striped, labelColor, progressColor,
-    trackColor, value, showLabel, label, barColor, textShadow, iconPosition,
-    showSeconds, labelFontSize, maxValue, showPercentage, targetDate,
-    lineHeight, textTransform, fontWeight,
-    countdownMinutes, showLabels, gradientTo, gradientVia, gradientAngle,
-    useVia, gradientFrom, borderEnabled, opacity,
-    iconSize, links, aspectRatio, autoplay, autoPlay, videoUrl, url, src,
-    controls, muted, loop, fgColor, labelSize, content, size,
-    showLabels: showLabelsAlt,
-    ...restProps
-  } = props;
-
-  const px = (v) => (typeof v === "number" ? `${v}px` : v);
-  const isRoot = nodeId === "ROOT";
-  const isGradient = blockName === "GradientTextBlock";
-
-  // ── Estilos ──
-  const baseStyle = {
-    pointerEvents: isRoot ? "none" : "auto",
-    width: isRoot ? "100%" : fullWidth ? "100%" : bgSize && bgEnabled ? px(bgSize) : undefined,
-    height: isRoot ? "100%" : px(height) || (bgSize && bgEnabled ? px(bgSize) : undefined),
-    display:
-      isRoot || alignItems || justifyContent ||
-      blockName === "SocialLinksBlock" || blockName === "QRCodeBlock"
-        ? "flex"
-        : undefined,
-    flexDirection:
-      isRoot ? "column" :
-      blockName === "CardBlock" || blockName === "QRCodeBlock" ? "column" : undefined,
-    backgroundColor: isRoot || isGradient ? "transparent" : bgColor || undefined,
-    color: isGradient ? "transparent" : textColor || color || undefined,
-    backgroundImage: isGradient
-      ? `linear-gradient(${gradientAngle || 90}deg, ${gradientFrom || color || "#fff"}${useVia && gradientVia ? `, ${gradientVia}` : ""}, ${gradientTo || "#000"})`
-      : undefined,
-    WebkitBackgroundClip: isGradient ? "text" : undefined,
-    WebkitTextFillColor: isGradient ? "transparent" : undefined,
-    backgroundClip: isGradient ? "text" : undefined,
-    fontSize: px(fontSize),
-    textAlign: textAlign || undefined,
-    padding: px(padding),
-    margin: px(margin),
-    minHeight: px(minHeight),
-    alignItems: isRoot ? "stretch" : alignItems || undefined,
-    justifyContent: justifyContent || undefined,
-    borderRadius: px(borderRadius) || px(bgBorderRadius),
-    objectFit: objectFit || undefined,
-    paddingLeft: px(paddingX),
-    paddingRight: px(paddingX),
-    paddingTop: px(paddingY),
-    paddingBottom: px(paddingY),
-    borderWidth: borderEnabled === false ? undefined : px(thickness) || px(borderWidth),
-    borderColor: borderEnabled === false ? undefined : borderColor || color || undefined,
-    borderStyle: borderEnabled === false ? "none" : lineStyle || (borderWidth || thickness ? "solid" : undefined),
-    boxShadow: shadow ? "0px 4px 10px rgba(0,0,0,0.3)" : undefined,
-    gap: px(gap),
-    textShadow:
-      textShadow === true ? "2px 2px 4px rgba(0,0,0,0.5)" :
-      typeof textShadow === "string" && !isGradient ? textShadow : undefined,
-    lineHeight: lineHeight || undefined,
-    textTransform: textTransform || undefined,
-    fontWeight: fontWeight || undefined,
-    aspectRatio: aspectRatio || undefined,
-    backdropFilter: bgBlur ? `blur(${bgBlur}px)` : undefined,
-    opacity: typeof opacity === "number" ? opacity : undefined,
-    ...props?.style,
-  };
-
-  const safeProps = { ...restProps, style: baseStyle };
-
-  // Filhos
+  // Renderiza filhos recursivamente
   const allChildIds = [...childIds, ...Object.values(linkedNodes)];
   const childElements = allChildIds.map((id) => <CraftEngine key={id} nodes={nodes} nodeId={id} />);
 
-  // ── Renderizadores dedicados por bloco ──
-  let innerContent = childElements;
+  return renderBlock(blockName, props, childElements);
+});
 
-  // ❌ Blocos 3D/Chat — renderizados fora do HTML
-  if (blockName === "AvatarBlock" || blockName === "ChatBlock") {
-    return null;
-  }
-
-  // 🔲 SpacerBlock
-  if (blockName === "SpacerBlock") {
-    return <div style={{ height: px(height || 24), width: "100%" }} />;
-  }
-
-  // ─ DividerBlock
-  if (blockName === "DividerBlock") {
-    return (
-      <hr
-        style={{
-          width: "100%",
-          border: "none",
-          borderTop: `${px(thickness || 1)} ${lineStyle || "solid"} ${color || "rgba(255,255,255,0.2)"}`,
-          margin: `${px(padding || 8)} 0`,
-          opacity: typeof opacity === "number" ? opacity : 1,
-        }}
-      />
-    );
-  }
-
-  // 🏷️ BadgeBlock
-  if (blockName === "BadgeBlock") {
-    innerContent = (
-      <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 12px", borderRadius: px(borderRadius || 999), backgroundColor: bgColor || "rgba(255,255,255,0.1)", color: textColor || color || "#fff", fontSize: px(fontSize || 12), fontWeight: "bold" }}>
-        {emoji && <span>{emoji}</span>}
-        {text}
-      </div>
-    );
-  }
-
-  // 🔣 IconBlock
-  else if (blockName === "IconBlock") {
-    innerContent = (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: px(bgSize || iconSize || 48), height: px(bgSize || iconSize || 48), fontSize: px(iconSize || 24), backgroundColor: bgEnabled ? bgColor || "rgba(255,255,255,0.1)" : "transparent", borderRadius: px(borderRadius || bgBorderRadius || 12) }}>
-        {icon || emoji}
-      </div>
-    );
-  }
-
-  // ⏱️ CountdownBlock
-  else if (blockName === "CountdownBlock") {
-    innerContent = (
-      <LiveCountdown
-        targetDate={targetDate}
-        countdownMinutes={countdownMinutes}
-        showLabels={showLabels}
-        showSeconds={showSeconds}
-        fontSize={fontSize}
-        labelFontSize={labelFontSize}
-        textColor={textColor}
-        gap={gap}
-      />
-    );
-  }
-
-  // 📊 ProgressBlock
-  else if (blockName === "ProgressBlock") {
-    const pv = typeof value === "number" ? value : 50;
-    const mv = typeof maxValue === "number" ? maxValue : 100;
-    const pct = Math.min(100, Math.max(0, (pv / mv) * 100));
-    const barStyle = {
-      width: `${pct}%`,
-      backgroundColor: barColor || progressColor || color || "#6366f1",
-      height: "100%",
-      borderRadius: "999px",
-      transition: "width 0.5s ease-in-out",
-    };
-    if (striped || animated) {
-      barStyle.backgroundImage = "linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)";
-      barStyle.backgroundSize = "1rem 1rem";
-    }
-    if (animated) barStyle.animation = "progress-stripes 1s linear infinite";
-    innerContent = (
-      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {(label || showLabel !== false) && (
-          <div style={{ display: "flex", justifyContent: "space-between", color: labelColor || "#fff", fontSize: "0.85em", fontWeight: "bold" }}>
-            <span>{label || "Progresso"}</span>
-            <span>{showPercentage !== false ? `${Math.round(pct)}%` : `${pv}/${mv}`}</span>
-          </div>
-        )}
-        <div style={{ width: "100%", backgroundColor: trackColor || "rgba(255,255,255,0.1)", borderRadius: "999px", overflow: "hidden", height: px(height || thickness || 12) }}>
-          <div style={barStyle} />
-        </div>
-      </div>
-    );
-  }
-
-  // 📱 QRCodeBlock — CORRIGIDO
-  else if (blockName === "QRCodeBlock") {
-    const qrSize = size || 160;
-    const qrContent = content || value || url || "https://example.com";
-    // API QR Server não aceita "transparent" — usa preto como fallback
-    const cleanFg = (fgColor || "#ffffff").replace("#", "");
-    const cleanBg = !bgColor || bgColor === "transparent" ? "000000" : bgColor.replace("#", "");
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrContent)}&color=${cleanFg}&bgcolor=${cleanBg}`;
-
-    // Sobrescreve estilo do container
-    safeProps.style = {
-      ...safeProps.style,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      width: "fit-content",
-      gap: "8px",
-      padding: px(padding || 12),
-    };
-
-    innerContent = (
-      <>
-        <img
-          src={qrUrl}
-          alt="QR Code"
-          style={{
-            width: px(qrSize),
-            height: px(qrSize),
-            objectFit: "contain",
-            borderRadius: px(borderRadius || 8),
-            imageRendering: "pixelated",
-          }}
-        />
-        {label && (
-          <span style={{ fontSize: px(labelSize || 12), color: labelColor || "#fff", textAlign: "center", fontWeight: 500 }}>
-            {label}
-          </span>
-        )}
-      </>
-    );
-  }
-
-  // 🔗 SocialLinksBlock — CORRIGIDO
-  else if (blockName === "SocialLinksBlock") {
-    const dir = layout === "vertical" ? "column" : "row";
-    safeProps.style = {
-      ...safeProps.style,
-      display: "flex",
-      flexDirection: dir,
-      gap: px(gap || 12),
-      alignItems: "center",
-      justifyContent: "center",
-      flexWrap: "wrap",
-      width: "100%",
-      padding: px(padding || 12),
-      backgroundColor: bgEnabled ? bgColor || "rgba(255,255,255,0.06)" : "transparent",
-      borderRadius: bgEnabled ? px(borderRadius || 16) : undefined,
-      backdropFilter: bgEnabled ? "blur(8px)" : undefined,
-      border: bgEnabled ? "1px solid rgba(255,255,255,0.08)" : undefined,
-    };
-
-    innerContent = Array.isArray(links)
-      ? links.map((link, idx) => (
-          <a
-            key={idx}
-            href={link.url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "flex",
-              flexDirection: dir === "column" ? "row" : "column",
-              alignItems: "center",
-              gap: "6px",
-              textDecoration: "none",
-              transition: "transform 0.2s",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: px(iconSize || 40),
-                height: px(iconSize || 40),
-                backgroundColor: (link.color || "#6366f1") + "20",
-                border: `1px solid ${(link.color || "#6366f1")}40`,
-                borderRadius: "12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: px((iconSize || 40) * 0.5),
-              }}
-            >
-              {link.icon || "🔗"}
-            </div>
-            {(showLabels ?? true) && (
-              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
-                {link.label}
-              </span>
-            )}
-          </a>
-        ))
-      : null;
-  }
-
-  // 🎬 VideoEmbedBlock
-  else if (blockName === "VideoEmbedBlock") {
-    const vidSrc = videoUrl || url || src || "";
-    const isYoutube = vidSrc.includes("youtube.com") || vidSrc.includes("youtu.be");
-    const isMp4 = vidSrc.endsWith(".mp4") || vidSrc.endsWith(".webm");
-    let finalSrc = vidSrc;
-    if (isYoutube && !vidSrc.includes("embed")) {
-      const videoId = vidSrc.split("v=")[1]?.split("&")[0] || vidSrc.split("youtu.be/")[1]?.split("?")[0];
-      if (videoId) finalSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay || autoPlay ? 1 : 0}&mute=${muted ? 1 : 0}&controls=${controls === false ? 0 : 1}`;
-    }
-    innerContent = (
-      <div style={{ width: "100%", minHeight: "150px", borderRadius: px(borderRadius) }}>
-        {isMp4 ? (
-          <video
-            src={finalSrc}
-            autoPlay={autoplay || autoPlay}
-            loop={loop}
-            muted={muted || autoplay || autoPlay}
-            controls={controls !== false}
-            style={{ width: "100%", height: "100%", objectFit: objectFit || "cover", borderRadius: px(borderRadius) }}
-          />
-        ) : (
-          <iframe
-            src={finalSrc}
-            style={{ width: "100%", height: "100%", border: "none", borderRadius: px(borderRadius), minHeight: "200px" }}
-            allowFullScreen
-          />
-        )}
-      </div>
-    );
-  }
-
-  // 🃏 CardBlock
-  else if (blockName === "CardBlock") {
-    safeProps.style = {
-      ...safeProps.style,
-      display: "flex",
-      flexDirection: "column",
-      backgroundColor: bgColor || "rgba(255,255,255,0.05)",
-      borderRadius: px(borderRadius || 16),
-      padding: px(padding || 16),
-      border: "1px solid rgba(255,255,255,0.08)",
-      backdropFilter: bgBlur ? `blur(${bgBlur}px)` : undefined,
-    };
-    innerContent = (
-      <>
-        {showHeader !== false && (title || subtitle) && (
-          <div style={{ marginBottom: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold", color: textColor || "#fff" }}>
-              {headerIcon && <span>{headerIcon}</span>}
-              <span>{title}</span>
-            </div>
-            {subtitle && <span style={{ fontSize: "0.85em", opacity: 0.8, color: textColor || "#fff" }}>{subtitle}</span>}
-          </div>
-        )}
-        {childElements}
-      </>
-    );
-  }
-
-  // 📋 MenuBlock
-  else if (blockName === "MenuBlock") {
-    innerContent = (
-      <>
-        {title && (
-          <div style={{ fontWeight: "bold", marginBottom: "10px", display: "flex", gap: "8px", color: titleColor || "#fff" }}>
-            {titleIcon && <span>{titleIcon}</span>}
-            <span style={{ fontSize: px(titleFontSize) }}>{title}</span>
-          </div>
-        )}
-        <div style={{ display: "flex", flexDirection: layout === "list" ? "column" : "row", flexWrap: "wrap", gap: px(gap || 8) }}>
-          {Array.isArray(items) &&
-            items.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  backgroundColor: itemBgColor || "rgba(255,255,255,0.1)",
-                  color: itemTextColor || "#fff",
-                  padding: "8px 14px",
-                  borderRadius: px(itemBorderRadius || 12),
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "center",
-                  fontSize: px(itemFontSize),
-                  cursor: "pointer",
-                }}
-              >
-                {showItemEmoji !== false && item.emoji && <span>{item.emoji}</span>}
-                <span>{item.label}</span>
-              </div>
-            ))}
-        </div>
-      </>
-    );
-  }
-
-  // 🖼️ ImageBlock
-  else if (blockName === "ImageBlock") {
-    return (
-      <img
-        {...restProps}
-        src={src || url || props?.src || props?.url}
-        alt={props?.alt || "Conteúdo"}
-        style={{
-          ...baseStyle,
-          maxWidth: "100%",
-          objectFit: objectFit || "cover",
-          borderRadius: px(borderRadius),
-        }}
-      />
-    );
-  }
-
-  // 🔘 ButtonBlock
-  else if (blockName === "ButtonBlock") {
-    safeProps.style = {
-      ...safeProps.style,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: px(gap || 8),
-      border: "none",
-      outline: "none",
-    };
-    innerContent = (
-      <>
-        {iconPosition !== "right" && icon && <span>{icon}</span>}
-        {text && <span>{text}</span>}
-        {iconPosition === "right" && icon && <span>{icon}</span>}
-        {!icon && !text && childElements}
-      </>
-    );
-  }
-
-  // 📝 TextBlock / GradientTextBlock
-  else if (blockName === "TextBlock" || blockName === "GradientTextBlock") {
-    innerContent = text || childElements;
-  }
-
-  // 📦 ContainerBlock / CanvasDropArea — renderiza filhos
-  else if (blockName === "ContainerBlock" || blockName === "CanvasDropArea") {
-    safeProps.style = {
-      ...safeProps.style,
-      display: "flex",
-      flexDirection: "column",
-      gap: px(gap || 8),
-    };
-    innerContent = childElements;
-  }
-
-  // Fallback genérico
-  else {
-    innerContent = text || icon || childElements;
-  }
-
-  // Renderiza
-  const tag = typeof TagName === "string" ? TagName.toLowerCase() : "div";
-  if (tag === "p" || tag === "span" || tag === "h1" || tag === "h2") {
-    return React.createElement(tag, safeProps, innerContent);
-  }
-  return React.createElement(tag, safeProps, innerContent);
-};
+// ─────────────────────────────────────────────
+// 🎨 CSS GLOBAL (animações para ProgressBlock striped)
+// ─────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style>{`
+    @keyframes stripe-move { 0% { background-position: 0 0; } 100% { background-position: 20px 0; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; overflow: hidden; }
+  `}</style>
+);
 
 // ─────────────────────────────────────────────
 // 🚀 APP PRINCIPAL
@@ -591,67 +663,79 @@ export default function App() {
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
 
-  // O worker de polling atualiza liveUi sem quebrar o estado do React
-  useConfigPoller(liveUi || initialUi, setLiveUi);
+  // Worker de polling — atualiza liveUi sem re-mount desnecessário
+  useConfigPoller(setLiveUi);
 
   const ui = liveUi || initialUi;
 
   // Parse craft nodes
-  const rawNodes = ui?.craft_nodes || ui?.craft_blocks || ui?.nodes || null;
-  let craftNodes = rawNodes;
-  if (typeof rawNodes === "string") {
-    try { craftNodes = JSON.parse(rawNodes); } catch { craftNodes = null; }
-  }
+  const craftNodes = useMemo(() => {
+    const raw = ui?.craft_nodes || ui?.craft_blocks || ui?.nodes || null;
+    if (!raw) return null;
+    if (typeof raw === "string") {
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+    return raw;
+  }, [ui]);
+
   const hasCraft = craftNodes && craftNodes["ROOT"];
 
   // Background
-  let bgStyle = { backgroundColor: "#000000" };
-  const bg = ui?.canvas?.background;
-  if (bg?.type === "image" && bg?.image_url) {
-    bgStyle = { backgroundImage: `url(${bg.image_url})`, backgroundSize: "cover", backgroundPosition: "center" };
-  } else if (bg?.gradient) {
-    bgStyle = { backgroundImage: bg.gradient };
-  } else if (bg?.color) {
-    bgStyle = { backgroundColor: bg.color };
-  }
+  const bgStyle = useMemo(() => {
+    const bg = ui?.canvas?.background;
+    if (bg?.type === "image" && bg?.image_url) {
+      return { backgroundImage: `url(${bg.image_url})`, backgroundSize: "cover", backgroundPosition: "center" };
+    }
+    if (bg?.gradient) return { backgroundImage: bg.gradient };
+    if (bg?.color) return { backgroundColor: bg.color };
+    return { backgroundColor: "#000000" };
+  }, [ui]);
 
   const avatarOn = ui?.components?.avatar?.enabled !== false;
   const chatOn = ui?.components?.chat_interface?.enabled !== false;
 
   return (
-    <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden", ...bgStyle }}>
-      <Loader />
-      <Leva collapsed hidden />
+    <>
+      <GlobalStyles />
+      <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden", ...bgStyle }}>
+        <Loader />
+        <Leva collapsed hidden />
 
-      {/* 🤖 CAMADA 1: Avatar 3D */}
-      {avatarOn && (
-        <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
-          <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }}>
-            <OrbitControls makeDefault enableZoom enablePan enableRotate />
-            <Scenario />
-          </Canvas>
-        </div>
-      )}
+        {/* 🤖 CAMADA 1: Avatar 3D */}
+        {avatarOn && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
+            <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }}>
+              <OrbitControls makeDefault enableZoom enablePan enableRotate />
+              <Scenario />
+            </Canvas>
+          </div>
+        )}
 
-      {/* 🧱 CAMADA 2: Overlay 2D (blocos do Page Builder) */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 30, pointerEvents: "none" }}>
-        <div style={{ width: "100%", height: "100%" }}>
-          {hasCraft ? (
-            <CraftEngine nodes={craftNodes} nodeId="ROOT" />
-          ) : (
-            <div style={{ pointerEvents: "auto", height: "100%" }}>
-              {chatOn && <ChatInterface />}
-            </div>
-          )}
+        {/* 🧱 CAMADA 2: Overlay 2D (blocos do Page Builder) */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 30, pointerEvents: "none" }}>
+          <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
+            {hasCraft ? (
+              <div style={{ width: "100%", height: "100%", pointerEvents: "auto" }}>
+                <CraftEngine nodes={craftNodes} nodeId="ROOT" />
+              </div>
+            ) : (
+              <div style={{ pointerEvents: "auto", height: "100%" }}>
+                {chatOn && <ChatInterface />}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* 💬 CAMADA 3: Chat Interface (quando usando builder) */}
+        {chatOn && hasCraft && (
+          <div style={{
+            position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
+            zIndex: 40, pointerEvents: "auto", width: "100%", maxWidth: "600px", padding: "0 20px",
+          }}>
+            <ChatInterface />
+          </div>
+        )}
       </div>
-
-      {/* 💬 CAMADA 3: Chat Interface (quando usando builder) */}
-      {chatOn && hasCraft && (
-        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", zIndex: 40, pointerEvents: "auto", width: "100%", maxWidth: "600px", padding: "0 20px" }}>
-          <ChatInterface />
-        </div>
-      )}
-    </div>
+    </>
   );
 }
