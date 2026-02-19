@@ -4,7 +4,7 @@ import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
   Menu, Sparkles, Tag, CreditCard, LayoutTemplate, BarChart3, Clock, Palette, Share2,
-  Send, Layers,
+  Send, Layers, Radio,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -150,8 +150,46 @@ function IntegratedBuilderInner({
   const [publishing, setPublishing] = useState(false);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
   const [hasUnpublished, setHasUnpublished] = useState(false);
+  const [liveActive, setLiveActive] = useState(false);
 
-  // Fetch updated_at when device changes
+  // Supabase Realtime broadcast channel for live preview
+  const liveChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Create/destroy live preview channel when deviceId or isOnline changes
+  useEffect(() => {
+    if (liveChannelRef.current) {
+      supabase.removeChannel(liveChannelRef.current);
+      liveChannelRef.current = null;
+      setLiveActive(false);
+    }
+    if (!deviceId || !isOnline) return;
+
+    const channel = supabase.channel(`live-preview:${deviceId}`, {
+      config: { broadcast: { self: false } },
+    });
+    channel.subscribe((status) => {
+      setLiveActive(status === 'SUBSCRIBED');
+    });
+    liveChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      liveChannelRef.current = null;
+      setLiveActive(false);
+    };
+  }, [deviceId, isOnline]);
+
+  // Broadcast current craft state to totem via Realtime
+  const broadcastLivePreview = useCallback((craftJson: string) => {
+    if (!liveChannelRef.current || !isOnline) return;
+    liveChannelRef.current.send({
+      type: 'broadcast',
+      event: 'ui-update',
+      payload: { craft_blocks: craftJson, ts: Date.now() },
+    }).catch(() => { /* silent */ });
+  }, [isOnline]);
+
+
   useEffect(() => {
     if (!deviceId) { setLastPublishedAt(null); return; }
     supabase
@@ -322,10 +360,12 @@ function IntegratedBuilderInner({
 
       onUpdateConfigRef.current(updated);
       setHasUnpublished(true);
+      // Broadcast live preview to totem when online
+      broadcastLivePreview(json);
       return updated;
     } catch { /* ignore */ }
     return configRef.current;
-  }, [query]);
+  }, [query, broadcastLivePreview]);
 
   // Wire up onNodesChange from Editor to debounced sync
   useEffect(() => {
@@ -392,6 +432,14 @@ function IntegratedBuilderInner({
             <div className={cn('w-2 h-2 rounded-full', isOnline ? 'bg-primary' : 'bg-muted-foreground/40')} />
             <span className="text-[11px] text-muted-foreground">{isOnline ? 'Online' : 'Offline'}</span>
           </div>
+          {/* Live preview badge */}
+          {liveActive && (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+              style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+              <Radio className="w-2.5 h-2.5 animate-pulse" />
+              Ao Vivo
+            </div>
+          )}
         </div>
 
         {/* Center: mode toggle */}
