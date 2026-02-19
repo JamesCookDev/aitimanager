@@ -920,14 +920,95 @@ export default function App() {
     return { backgroundColor: "#000000" };
   }, [ui]);
 
-  // Merge ui com override do SceneBlock
-  const mergedUi = useMemo(() => {
-    if (!sceneOverride) return ui;
-    return { ...ui, canvas: { ...(ui?.canvas || {}), ...sceneOverride } };
-  }, [ui, sceneOverride]);
 
   const avatarOn = ui?.components?.avatar?.enabled !== false;
-  const chatOn = ui?.components?.chat_interface?.enabled !== false;
+
+  // ── Consumir chat_interface da edge function ──
+  // Prioridade: craft_nodes (via InlineChatInterface) > components.chat_interface > ChatInterface padrão
+  const chatInterfaceConfig = useMemo(() => {
+    return ui?.components?.chat_interface || null;
+  }, [ui]);
+
+  const chatOn = chatInterfaceConfig?.enabled !== false;
+
+  // ── Consumir canvas.scene da edge function para sobrescrever Scenario ──
+  // Se SceneBlock não está nos craft_nodes locais, usa o scene retornado pelo polling
+  const remoteSceneConfig = useMemo(() => {
+    if (!ui?.canvas?.scene) return null;
+    const s = ui.canvas.scene;
+    // Converte o formato da edge function para o formato que scenePropsToUiCanvas espera
+    return {
+      envPreset: s.env_preset,
+      showFloor: s.floor?.show,
+      floorColor: s.floor?.color,
+      floorWidth: s.floor?.width,
+      floorHeight: s.floor?.height,
+      floorRoughness: s.floor?.roughness,
+      floorMetalness: s.floor?.metalness,
+      showWall: s.wall?.show,
+      wallColor: s.wall?.color,
+      wallWidth: s.wall?.width,
+      wallHeight: s.wall?.height,
+      wallPosY: s.wall?.pos_y,
+      wallPosZ: s.wall?.pos_z,
+      wallRoughness: s.wall?.roughness,
+      wallMetalness: s.wall?.metalness,
+      showParticles: s.particles?.show,
+      particleCount: s.particles?.count,
+      particleColor: s.particles?.color,
+      particleSize: s.particles?.size,
+      particleSpeed: s.particles?.speed,
+      particleOpacity: s.particles?.opacity,
+      particleScale: s.particles?.scale,
+      camPosX: s.camera?.position?.[0],
+      camPosY: s.camera?.position?.[1],
+      camPosZ: s.camera?.position?.[2],
+      camTargetX: s.camera?.target?.[0],
+      camTargetY: s.camera?.target?.[1],
+      camTargetZ: s.camera?.target?.[2],
+      camMinDist: s.camera?.min_distance,
+      camMaxDist: s.camera?.max_distance,
+      ambientEnabled: s.lighting?.ambient?.enabled,
+      ambientIntensity: s.lighting?.ambient?.intensity,
+      dirLightEnabled: s.lighting?.directional?.enabled,
+      dirLightIntensity: s.lighting?.directional?.intensity,
+      dirLightColor: s.lighting?.directional?.color,
+      dirLightPosX: s.lighting?.directional?.position?.[0],
+      dirLightPosY: s.lighting?.directional?.position?.[1],
+      dirLightPosZ: s.lighting?.directional?.position?.[2],
+      dirLightCastShadow: s.lighting?.directional?.cast_shadow,
+      fillLightEnabled: s.lighting?.fill?.enabled,
+      fillLightIntensity: s.lighting?.fill?.intensity,
+      fillLightColor: s.lighting?.fill?.color,
+      spotLightEnabled: s.lighting?.spot?.enabled,
+      spotLightIntensity: s.lighting?.spot?.intensity,
+      spotLightColor: s.lighting?.spot?.color,
+      spotLightPosX: s.lighting?.spot?.position?.[0],
+      spotLightPosY: s.lighting?.spot?.position?.[1],
+      spotLightPosZ: s.lighting?.spot?.position?.[2],
+      spotLightAngle: s.lighting?.spot?.angle,
+      spotLightPenumbra: s.lighting?.spot?.penumbra,
+      spotLightCastShadow: s.lighting?.spot?.cast_shadow,
+      pointLight1Enabled: s.lighting?.point1?.enabled,
+      pointLight1Color: s.lighting?.point1?.color,
+      pointLight1Intensity: s.lighting?.point1?.intensity,
+      pointLight2Enabled: s.lighting?.point2?.enabled,
+      pointLight2Color: s.lighting?.point2?.color,
+      pointLight2Intensity: s.lighting?.point2?.intensity,
+      shadowOpacity: s.shadow?.opacity,
+      shadowBlur: s.shadow?.blur,
+      shadowScale: s.shadow?.scale,
+      shadowColor: s.shadow?.color,
+    };
+  }, [ui?.canvas?.scene]);
+
+  // Merge ui com override do SceneBlock (craft local) ou scene remoto (polling)
+  const mergedUi = useMemo(() => {
+    // Local craft SceneBlock tem prioridade sobre scene remoto
+    const effectiveSceneOverride = sceneOverride || (remoteSceneConfig ? scenePropsToUiCanvas(remoteSceneConfig) : null);
+    if (!effectiveSceneOverride) return ui;
+    return { ...ui, canvas: { ...(ui?.canvas || {}), ...effectiveSceneOverride } };
+  }, [ui, sceneOverride, remoteSceneConfig]);
 
   return (
     <>
@@ -940,7 +1021,6 @@ export default function App() {
         {avatarOn && (
           <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
             <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }}>
-              {/* Passa o ui sobrescrito para o Scenario via contexto/prop */}
               <Scenario uiOverride={mergedUi} />
             </Canvas>
           </div>
@@ -955,19 +1035,19 @@ export default function App() {
               </div>
             ) : (
               <div style={{ pointerEvents: "auto", height: "100%" }}>
-                {chatOn && <ChatInterface />}
+                {chatOn && <ChatInterface uiConfig={chatInterfaceConfig} />}
               </div>
             )}
           </div>
         </div>
 
-        {/* 💬 CAMADA 3: Chat Interface (quando usando builder e sem ChatInterfaceBlock) */}
-        {chatOn && hasCraft && !extractSceneProps(craftNodes) && (
+        {/* 💬 CAMADA 3: Chat Interface via polling (quando não há ChatInterfaceBlock nos craft nodes) */}
+        {chatOn && hasCraft && !craftNodes && (
           <div style={{
             position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
             zIndex: 40, pointerEvents: "auto", width: "100%", maxWidth: "600px", padding: "0 20px",
           }}>
-            <ChatInterface />
+            <ChatInterface uiConfig={chatInterfaceConfig} />
           </div>
         )}
       </div>
