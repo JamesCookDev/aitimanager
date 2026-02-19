@@ -926,10 +926,103 @@ const GlobalStyles = () => (
 
     .kiosk-card { animation: kiosk-slide-up 0.5s ease-out forwards; }
 
+    /* Config update toast */
+    @keyframes toast-in  { from { opacity: 0; transform: translateX(120%); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: translateX(0); }   to { opacity: 0; transform: translateX(120%); } }
+    @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
+    @keyframes toast-dot-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+
+    .toast-enter { animation: toast-in  0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .toast-exit  { animation: toast-out 0.4s ease-in forwards; }
+
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; overflow: hidden; }
   `}</style>
 );
+
+// ─────────────────────────────────────────────
+// 🔔 TOAST: Notificação de atualização via polling
+// ─────────────────────────────────────────────
+function UpdateToast({ visible }) {
+  const [phase, setPhase] = React.useState("idle"); // idle | enter | stay | exit
+
+  React.useEffect(() => {
+    if (!visible) return;
+    setPhase("enter");
+    const stayTimer = setTimeout(() => setPhase("exit"), 3200);
+    const doneTimer = setTimeout(() => setPhase("idle"), 3650);
+    return () => { clearTimeout(stayTimer); clearTimeout(doneTimer); };
+  }, [visible]);
+
+  if (phase === "idle") return null;
+
+  return (
+    <div
+      className={phase === "exit" ? "toast-exit" : "toast-enter"}
+      style={{
+        position: "fixed", bottom: 28, right: 28, zIndex: 9999,
+        display: "flex", alignItems: "center", gap: 12,
+        background: "rgba(8, 14, 30, 0.82)",
+        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(99,102,241,0.35)",
+        borderRadius: 18, padding: "14px 20px",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.07)",
+        minWidth: 260,
+        pointerEvents: "none",
+        userSelect: "none",
+      }}
+    >
+      {/* Animated sync icon */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: "linear-gradient(135deg, rgba(99,102,241,0.3), rgba(139,92,246,0.3))",
+        border: "1px solid rgba(99,102,241,0.4)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 18,
+      }}>
+        🔄
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 700, color: "#fff",
+          letterSpacing: "-0.01em", lineHeight: 1.2,
+        }}>
+          Configuração atualizada
+        </div>
+        <div style={{
+          fontSize: 11, color: "rgba(255,255,255,0.45)",
+          marginTop: 3, letterSpacing: "0.01em",
+        }}>
+          Interface sincronizada via polling
+        </div>
+
+        {/* Progress bar */}
+        <div style={{
+          height: 2, borderRadius: 999, marginTop: 8,
+          background: "rgba(255,255,255,0.08)", overflow: "hidden",
+        }}>
+          <div style={{
+            height: "100%", borderRadius: 999,
+            background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+            animation: `toast-progress 3s linear forwards`,
+          }} />
+        </div>
+      </div>
+
+      {/* Online dot */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            width: 4, height: 4, borderRadius: "50%",
+            background: i === 0 ? "#6366f1" : i === 1 ? "#8b5cf6" : "#ec4899",
+            animation: `toast-dot-pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
 // 🎬 EXTRACTOR: pega props do SceneBlock nos craft nodes
@@ -1041,8 +1134,15 @@ function scenePropsToUiCanvas(sp) {
 export default function App() {
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
+  const [toastKey, setToastKey] = useState(0); // increments on each new config → remounts toast
 
-  useConfigPoller(setLiveUi);
+  // Wrap setLiveUi to also trigger the update toast
+  const handleConfigUpdate = useCallback((newUi) => {
+    setLiveUi(newUi);
+    setToastKey(k => k + 1);
+  }, []);
+
+  useConfigPoller(handleConfigUpdate);
 
   const ui = liveUi || initialUi;
 
@@ -1207,6 +1307,9 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* 🔔 CAMADA 4: Toast de atualização via polling */}
+      <UpdateToast key={toastKey} visible={toastKey > 0} />
     </>
   );
 }
