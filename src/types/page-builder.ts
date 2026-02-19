@@ -151,12 +151,33 @@ export interface ClockLayer extends BaseLayer {
 
 export type Layer = ImageLayer | VideoLayer | ShapeLayer | ClockLayer;
 
+// ── Button ────────────────────────────────────────────────────────────
+export interface ButtonComponent {
+  label: string;
+  bgColor: string;
+  textColor: string;
+  fontSize: number;
+  borderRadius: number;
+  paddingX: number;
+  paddingY: number;
+  fullWidth: boolean;
+  action: string;
+  borderColor?: string;
+  borderWidth?: number;
+  shadow?: 'none' | 'sm' | 'md' | 'lg';
+  opacity?: number;
+  fontWeight?: 'normal' | 'semibold' | 'bold';
+  icon?: string;
+  iconPosition?: 'left' | 'right';
+}
+
 // ── Components ────────────────────────────────────────────────────────
 export interface PageBuilderComponents {
   avatar: AvatarComponent;
   chat_interface: ChatInterfaceComponent;
   logo: LogoComponent;
   text_banners: TextBannerComponent;
+  buttons?: ButtonComponent[];
 }
 
 // ── Full Config ───────────────────────────────────────────────────────
