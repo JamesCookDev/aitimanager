@@ -170,6 +170,8 @@ function IntegratedBuilderInner({
 
       try {
         const nodes = JSON.parse(json);
+
+        // Extract AvatarBlock props
         const avatarNode = Object.values(nodes).find(
           (n: any) => n.type?.resolvedName === 'AvatarBlock'
         ) as any;
@@ -202,6 +204,38 @@ function IntegratedBuilderInner({
                   metalness: ap.metalness ?? 0,
                 },
               } as any,
+            },
+          };
+        }
+
+        // Extract ButtonBlock props into components.buttons array
+        const buttonNodes = Object.values(nodes).filter(
+          (n: any) => n.type?.resolvedName === 'ButtonBlock'
+        ) as any[];
+        if (buttonNodes.length > 0) {
+          const buttons = buttonNodes.map((bn: any) => ({
+            label: bn.props?.label ?? 'Clique aqui',
+            bgColor: bn.props?.bgColor ?? '#3b82f6',
+            textColor: bn.props?.textColor ?? '#ffffff',
+            fontSize: bn.props?.fontSize ?? 16,
+            borderRadius: bn.props?.borderRadius ?? 8,
+            paddingX: bn.props?.paddingX ?? 24,
+            paddingY: bn.props?.paddingY ?? 14,
+            fullWidth: bn.props?.fullWidth ?? false,
+            action: bn.props?.action ?? '',
+            borderColor: bn.props?.borderColor ?? 'transparent',
+            borderWidth: bn.props?.borderWidth ?? 0,
+            shadow: bn.props?.shadow ?? 'none',
+            opacity: bn.props?.opacity ?? 1,
+            fontWeight: bn.props?.fontWeight ?? 'semibold',
+            icon: bn.props?.icon ?? '',
+            iconPosition: bn.props?.iconPosition ?? 'left',
+          }));
+          updated = {
+            ...updated,
+            components: {
+              ...updated.components,
+              buttons,
             },
           };
         }

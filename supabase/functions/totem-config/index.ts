@@ -172,6 +172,38 @@ Deno.serve(async (req) => {
           },
           logo: storedUi.components?.logo || { enabled: false, url: '', position: 'top_center', scale: 1 },
           text_banners: storedUi.components?.text_banners || { enabled: false, items: [] },
+          // Extract buttons from craft_nodes or stored components
+          buttons: (() => {
+            // Prefer stored structured buttons
+            if (storedUi.components?.buttons && Array.isArray(storedUi.components.buttons) && storedUi.components.buttons.length > 0) {
+              return storedUi.components.buttons
+            }
+            // Fallback: extract from craft_nodes
+            if (craftNodes) {
+              const btnNodes = Object.values(craftNodes).filter(
+                (n: any) => n.type?.resolvedName === 'ButtonBlock'
+              ) as any[]
+              if (btnNodes.length > 0) {
+                return btnNodes.map((bn: any) => ({
+                  label: bn.props?.label ?? 'Clique aqui',
+                  bgColor: bn.props?.bgColor ?? '#3b82f6',
+                  textColor: bn.props?.textColor ?? '#ffffff',
+                  fontSize: bn.props?.fontSize ?? 16,
+                  borderRadius: bn.props?.borderRadius ?? 8,
+                  paddingX: bn.props?.paddingX ?? 24,
+                  paddingY: bn.props?.paddingY ?? 14,
+                  fullWidth: bn.props?.fullWidth ?? false,
+                  action: bn.props?.action ?? '',
+                  fontWeight: bn.props?.fontWeight ?? 'semibold',
+                  icon: bn.props?.icon ?? '',
+                  iconPosition: bn.props?.iconPosition ?? 'left',
+                  shadow: bn.props?.shadow ?? 'none',
+                  opacity: bn.props?.opacity ?? 1,
+                }))
+              }
+            }
+            return []
+          })(),
         },
         // Custom layers (image, video, shape, clock overlays)
         layers: storedUi.layers || [],
