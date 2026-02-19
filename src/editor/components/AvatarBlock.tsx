@@ -175,11 +175,11 @@ export const AvatarBlock: UserComponent<Partial<AvatarBlockProps>> = (props) => 
   const px = positionX[position] || '50%';
 
   return (
-    <div
-      ref={(ref) => { if (ref) connect(drag(ref)); }}
-      className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
-    >
+    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto' }}>
+      <div
+        ref={(ref) => { if (ref) connect(drag(ref)); }}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
+      >
       {enabled ? (
         <div
           className="relative overflow-hidden select-none"
@@ -291,6 +291,7 @@ export const AvatarBlock: UserComponent<Partial<AvatarBlockProps>> = (props) => 
           <span className="text-white/30 text-xs">Avatar desativado</span>
         </div>
       )}
+      </div>
     </div>
   );
 };

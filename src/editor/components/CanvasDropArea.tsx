@@ -22,6 +22,7 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        position: 'relative', // CRITICAL: absolute children need this reference
       }}
     >
       {children}

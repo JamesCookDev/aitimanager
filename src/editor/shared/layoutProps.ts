@@ -1,9 +1,11 @@
+import React from 'react';
+
 /**
  * Shared layout/positioning properties for ALL blocks.
  * These are applied as a wrapper style around every block.
  */
 export interface LayoutProps {
-  /** Width: 'auto', '100%', or fixed px value like '200px' */
+  /** Width: 'auto', '100%', '75%', '50%', 'fit-content', or fixed px value like '200px' */
   layoutWidth: string;
   /** Height: 'auto' or fixed px like '100px' */
   layoutHeight: string;
@@ -48,11 +50,16 @@ export const DEFAULT_LAYOUT_PROPS: LayoutProps = {
   zIndex: 0,
 };
 
-/** Converts LayoutProps into a CSSProperties object for the block wrapper */
+/**
+ * Converts LayoutProps into a CSSProperties object for the block OUTER wrapper.
+ * IMPORTANT: This must be applied to the outermost div, NOT to a div that also
+ * has className="relative", because Tailwind's `relative` overrides `position: absolute`.
+ */
 export function getLayoutStyle(props: Partial<LayoutProps>): React.CSSProperties {
   const p = { ...DEFAULT_LAYOUT_PROPS, ...props };
   const isAbs = p.positionType === 'absolute';
   return {
+    position: isAbs ? 'absolute' : 'relative',
     width: p.layoutWidth === 'auto' ? undefined : p.layoutWidth,
     height: p.layoutHeight === 'auto' ? undefined : p.layoutHeight,
     marginTop: !isAbs ? (p.marginTop || undefined) : undefined,
@@ -61,11 +68,10 @@ export function getLayoutStyle(props: Partial<LayoutProps>): React.CSSProperties
     marginRight: !isAbs ? (p.marginRight || undefined) : undefined,
     alignSelf: p.alignSelf === 'auto' ? undefined : p.alignSelf,
     overflow: p.overflow === 'visible' ? undefined : p.overflow,
-    position: isAbs ? 'absolute' : undefined,
-    // Absolute coords: right/bottom take precedence over left/top when defined
-    top: isAbs && p.positionBottom == null ? (p.positionTop ?? 0) : undefined,
+    // Absolute coords: right/bottom override left/top when defined
+    top: isAbs ? (p.positionBottom != null ? undefined : (p.positionTop ?? 0)) : undefined,
     bottom: isAbs && p.positionBottom != null ? p.positionBottom : undefined,
-    left: isAbs && p.positionRight == null ? (p.positionLeft ?? 0) : undefined,
+    left: isAbs ? (p.positionRight != null ? undefined : (p.positionLeft ?? 0)) : undefined,
     right: isAbs && p.positionRight != null ? p.positionRight : undefined,
     zIndex: p.zIndex || undefined,
   };

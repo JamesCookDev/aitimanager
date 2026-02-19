@@ -1,6 +1,7 @@
 import { useNode, UserComponent } from '@craftjs/core';
 import { ContainerBlockSettings } from '../settings/ContainerBlockSettings';
 import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
+import type { LayoutProps } from '../shared/layoutProps';
 
 export interface ContainerBlockProps {
   bgColor: string;
@@ -19,7 +20,7 @@ export interface ContainerBlockProps {
   children?: React.ReactNode;
 }
 
-export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = (props) => {
+export const ContainerBlock: UserComponent<Partial<ContainerBlockProps & LayoutProps>> = (props) => {
   const {
     bgColor = 'rgba(255,255,255,0.05)',
     padding = 16,
@@ -51,30 +52,28 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps>> = (prop
   const layoutStyle = getLayoutStyle(props as any);
 
   return (
-    <div
-      ref={(ref) => { if (ref) connect(drag(ref)); }}
-      className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{
-        backgroundColor: bgColor,
-        backdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
-        WebkitBackdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
-        padding,
-        gap,
-        display: 'flex',
-        flexDirection: direction,
-        alignItems,
-        justifyContent,
-        borderRadius,
-        minHeight,
-        cursor: 'move',
-        pointerEvents: 'auto',
-        opacity,
-        border: `${Math.max(borderWidth, 1)}px solid ${borderColor}`,
-        boxShadow: shadowMap[shadow],
-        ...layoutStyle,
-      }}
-    >
-      {children}
+    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto', opacity }}>
+      <div
+        ref={(ref) => { if (ref) connect(drag(ref)); }}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
+        style={{
+          backgroundColor: bgColor,
+          backdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
+          WebkitBackdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
+          padding,
+          gap,
+          display: 'flex',
+          flexDirection: direction,
+          alignItems,
+          justifyContent,
+          borderRadius,
+          minHeight,
+          border: `${Math.max(borderWidth, 1)}px solid ${borderColor}`,
+          boxShadow: shadowMap[shadow],
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 };

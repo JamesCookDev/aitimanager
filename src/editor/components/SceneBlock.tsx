@@ -212,44 +212,39 @@ export const SceneBlock: UserComponent<Partial<SceneBlockProps>> = (props) => {
   const layoutStyle = getLayoutStyle(props as any);
 
   return (
-    <div
-      ref={ref => { if (ref) connect(drag(ref)); }}
-      className={`relative transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-primary/30'}`}
-      style={{ cursor: 'move', pointerEvents: 'auto', ...layoutStyle }}
-    >
-      {/* Header badge */}
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[9px] font-bold text-primary/70 uppercase tracking-widest">🎬 Cenário 3D</span>
-        <span className="text-[9px] text-muted-foreground font-mono bg-muted/40 px-1.5 py-0.5 rounded">{envPreset}</span>
-      </div>
-
-      {/* Scene preview */}
-      <div style={{
-        borderRadius: 12,
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.08)',
-        height: 140,
-        position: 'relative',
-      }}>
-        <ScenePreview
-          envPreset={envPreset}
-          floorColor={floorColor} showFloor={showFloor}
-          wallColor={wallColor} showWall={showWall}
-          showParticles={showParticles} particleColor={particleColor} particleCount={particleCount}
-          ambientIntensity={ambientIntensity}
-          dirLightColor={dirLightColor} spotLightColor={spotLightColor}
-          pointLight1Color={pointLight1Color} pointLight2Color={pointLight2Color}
-        />
-        <div className="absolute bottom-2 right-2 text-[8px] text-white/25 uppercase tracking-widest font-semibold">
-          Cenário · Preview
+    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto' }}>
+      <div
+        ref={ref => { if (ref) connect(drag(ref)); }}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-sm' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
+      >
+        {/* Header badge */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[9px] font-bold text-primary/70 uppercase tracking-widest">🎬 Cenário 3D</span>
+          <span className="text-[9px] text-muted-foreground font-mono bg-muted/40 px-1.5 py-0.5 rounded">{envPreset}</span>
         </div>
-      </div>
 
-      {/* Quick info row */}
-      <div className="flex gap-1.5 mt-1.5 flex-wrap">
-        {showFloor && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">🏢 Chão</span>}
-        {showWall && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">🧱 Parede</span>}
-        {showParticles && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">✨ Partículas ({particleCount})</span>}
+        {/* Scene preview */}
+        <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', height: 140, position: 'relative' }}>
+          <ScenePreview
+            envPreset={envPreset}
+            floorColor={floorColor} showFloor={showFloor}
+            wallColor={wallColor} showWall={showWall}
+            showParticles={showParticles} particleColor={particleColor} particleCount={particleCount}
+            ambientIntensity={ambientIntensity}
+            dirLightColor={dirLightColor} spotLightColor={spotLightColor}
+            pointLight1Color={pointLight1Color} pointLight2Color={pointLight2Color}
+          />
+          <div className="absolute bottom-2 right-2 text-[8px] text-white/25 uppercase tracking-widest font-semibold">
+            Cenário · Preview
+          </div>
+        </div>
+
+        {/* Quick info row */}
+        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+          {showFloor && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">🏢 Chão</span>}
+          {showWall && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">🧱 Parede</span>}
+          {showParticles && <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full border border-border/40">✨ Partículas ({particleCount})</span>}
+        </div>
       </div>
     </div>
   );
