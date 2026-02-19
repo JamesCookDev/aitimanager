@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Save, Cpu, ChevronDown, Check } from 'lucide-react';
+import { Cpu, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
@@ -31,11 +31,7 @@ export default function PageEditorPage() {
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
-
-  // Builder state
   const [builderConfig, setBuilderConfig] = useState<PageBuilderConfig>(DEFAULT_PAGE_BUILDER_CONFIG);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const builderRef = useRef<IntegratedBuilderRef | null>(null);
 
@@ -58,9 +54,8 @@ export default function PageEditorPage() {
           organization: Array.isArray(d.organization) ? d.organization[0] : d.organization,
         })) as DeviceSummary[];
         setDevices(mapped);
-        // Auto-select first device
-        if (mapped.length > 0 && !selectedDeviceId) {
-          setSelectedDeviceId(mapped[0].id);
+        if (mapped.length > 0) {
+          setSelectedDeviceId(prev => prev ?? mapped[0].id);
         }
       }
       setLoadingDevices(false);
@@ -72,7 +67,6 @@ export default function PageEditorPage() {
   useEffect(() => {
     if (!selectedDeviceId) return;
     setLoadingConfig(true);
-    setHasChanges(false);
 
     async function loadConfig() {
       const { data, error } = await supabase
@@ -93,36 +87,6 @@ export default function PageEditorPage() {
     }
     loadConfig();
   }, [selectedDeviceId]);
-
-  const handleBuilderChange = useCallback((newConfig: PageBuilderConfig) => {
-    setBuilderConfig(newConfig);
-    setHasChanges(true);
-  }, []);
-
-  const handleSave = async () => {
-    if (!selectedDeviceId) return;
-    setSaving(true);
-    try {
-      // Force-sync craft.js state before saving to ensure all nodes are captured
-      let configToSave = builderConfig;
-      if (builderRef.current) {
-        configToSave = builderRef.current.forceSyncCraftState();
-      }
-      const { error } = await supabase
-        .from('devices')
-        .update({ ui_config: configToSave as any })
-        .eq('id', selectedDeviceId);
-      if (error) throw error;
-      setBuilderConfig(configToSave);
-      toast.success('Configuração salva!', { description: 'Mudanças aplicadas no próximo carregamento do totem.' });
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      toast.error('Erro ao salvar configuração');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const getStatus = (d: DeviceSummary): DeviceStatus => getDeviceStatus(d.last_ping);
 
@@ -147,72 +111,62 @@ export default function PageEditorPage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header with device selector + save */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 min-w-[220px] justify-between">
-                <div className="flex items-center gap-2">
+      {/* Header: device selector only — save/publish lives inside the builder */}
+      <div className="flex items-center gap-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2 min-w-[220px] justify-between">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  'w-2 h-2 rounded-full shrink-0',
+                  selectedDevice
+                    ? (getStatus(selectedDevice) === 'online' ? 'bg-primary' : 'bg-muted-foreground/40')
+                    : 'bg-muted-foreground/40'
+                )} />
+                <span className="truncate text-sm font-medium">
+                  {selectedDevice?.name || 'Selecione um dispositivo'}
+                </span>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[280px]">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Dispositivos
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {devices.map((d) => {
+              const status = getStatus(d);
+              const isSelected = d.id === selectedDeviceId;
+              return (
+                <DropdownMenuItem
+                  key={d.id}
+                  onClick={() => setSelectedDeviceId(d.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
                   <div className={cn(
                     'w-2 h-2 rounded-full shrink-0',
-                    selectedDevice ? (getStatus(selectedDevice) === 'online' ? 'bg-primary' : 'bg-muted-foreground/40') : 'bg-muted-foreground/40'
+                    status === 'online' ? 'bg-primary' : 'bg-muted-foreground/40'
                   )} />
-                  <span className="truncate text-sm font-medium">
-                    {selectedDevice?.name || 'Selecione um dispositivo'}
-                  </span>
-                </div>
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[280px]">
-              <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Dispositivos
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {devices.map((d) => {
-                const status = getStatus(d);
-                const isSelected = d.id === selectedDeviceId;
-                return (
-                  <DropdownMenuItem
-                    key={d.id}
-                    onClick={() => {
-                      if (hasChanges) {
-                        if (!confirm('Você tem alterações não salvas. Deseja trocar de dispositivo?')) return;
-                      }
-                      setSelectedDeviceId(d.id);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <div className={cn(
-                      'w-2 h-2 rounded-full shrink-0',
-                      status === 'online' ? 'bg-primary' : 'bg-muted-foreground/40'
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium block truncate">{d.name}</span>
-                      {d.location && (
-                        <span className="text-[10px] text-muted-foreground truncate block">{d.location}</span>
-                      )}
-                    </div>
-                    {d.organization?.name && (
-                      <Badge variant="outline" className="text-[9px] shrink-0">{d.organization.name}</Badge>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block truncate">{d.name}</span>
+                    {d.location && (
+                      <span className="text-[10px] text-muted-foreground truncate block">{d.location}</span>
                     )}
-                    {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  </div>
+                  {d.organization?.name && (
+                    <Badge variant="outline" className="text-[9px] shrink-0">{d.organization.name}</Badge>
+                  )}
+                  {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          {selectedDevice?.location && (
-            <span className="text-xs text-muted-foreground hidden sm:inline">📍 {selectedDevice.location}</span>
-          )}
-        </div>
-
-        <Button onClick={handleSave} disabled={saving || !hasChanges || !selectedDeviceId} size="sm" className="gap-1.5">
-          <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : hasChanges ? 'Salvar' : 'Salvo'}
-        </Button>
+        {selectedDevice?.location && (
+          <span className="text-xs text-muted-foreground hidden sm:inline">📍 {selectedDevice.location}</span>
+        )}
       </div>
 
       {/* Builder */}
@@ -222,7 +176,7 @@ export default function PageEditorPage() {
         <>
           <IntegratedBuilder
             config={builderConfig}
-            onUpdateConfig={handleBuilderChange}
+            onUpdateConfig={setBuilderConfig}
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={selectedDevice?.name || 'Totem'}
             deviceId={selectedDeviceId}

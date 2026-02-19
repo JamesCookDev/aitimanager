@@ -55,6 +55,7 @@ const resolver = {
 
 export interface IntegratedBuilderRef {
   forceSyncCraftState: () => PageBuilderConfig;
+  publish: () => Promise<void>;
 }
 
 interface IntegratedBuilderProps {
@@ -326,10 +327,6 @@ function IntegratedBuilderInner({
     return configRef.current;
   }, [query]);
 
-  useImperativeHandle(builderRef, () => ({
-    forceSyncCraftState: syncCraftState,
-  }), [syncCraftState]);
-
   // Wire up onNodesChange from Editor to debounced sync
   useEffect(() => {
     nodesChangedRef.current = () => {
@@ -370,14 +367,19 @@ function IntegratedBuilderInner({
       onUpdateConfigRef.current(configToSave);
       if (data?.updated_at) setLastPublishedAt(data.updated_at);
       setHasUnpublished(false);
-      toast.success('Publicado para o Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
+      toast.success('Salvo e publicado no Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
     } catch (err: any) {
       console.error('[Publish] Erro:', err);
-      toast.error('Erro ao publicar', { description: err.message });
+      toast.error('Erro ao salvar', { description: err.message });
     } finally {
       setPublishing(false);
     }
   }, [deviceId, query]);
+
+  useImperativeHandle(builderRef, () => ({
+    forceSyncCraftState: syncCraftState,
+    publish: handlePublish,
+  }), [syncCraftState, handlePublish]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-11rem)] rounded-xl border border-border bg-card overflow-hidden">
@@ -440,15 +442,15 @@ function IntegratedBuilderInner({
                 className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={handlePublish}
                 disabled={publishing || !deviceId}
-                title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
+                title={!deviceId ? 'Selecione um dispositivo para salvar' : 'Salvar e publicar no Totem'}
               >
                 <Send className="w-3.5 h-3.5" />
-                {publishing ? 'Publicando...' : 'Publicar no Totem'}
+                {publishing ? 'Salvando...' : hasUnpublished ? 'Salvar & Publicar' : 'Salvo & Publicado'}
               </Button>
               {hasUnpublished && !publishing && (
                 <span
-                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-warning text-warning-foreground text-[8px] font-bold shadow animate-pulse"
-                  title="Há alterações não publicadas no Totem"
+                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold shadow animate-pulse"
+                  title="Há alterações não salvas"
                   style={{ backgroundColor: 'hsl(48 96% 53%)', color: 'hsl(26 83% 14%)' }}
                 >
                   !
@@ -460,7 +462,7 @@ function IntegratedBuilderInner({
                 <Clock className="w-2.5 h-2.5 inline" />
                 {formatTimeAgo(lastPublishedAt)}
                 {hasUnpublished && (
-                  <span className="ml-1 font-semibold" style={{ color: 'hsl(48 96% 53%)' }}>· não publicado</span>
+                  <span className="ml-1 font-semibold" style={{ color: 'hsl(48 96% 53%)' }}>· não salvo</span>
                 )}
               </span>
             )}
