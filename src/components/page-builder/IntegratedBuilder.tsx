@@ -231,13 +231,62 @@ function IntegratedBuilderInner({
             icon: bn.props?.icon ?? '',
             iconPosition: bn.props?.iconPosition ?? 'left',
           }));
-          updated = {
-            ...updated,
-            components: {
-              ...updated.components,
-              buttons,
-            },
-          };
+          updated = { ...updated, components: { ...updated.components, buttons } };
+        }
+
+        // Extract SocialLinksBlock props
+        const socialNodes = Object.values(nodes).filter(
+          (n: any) => n.type?.resolvedName === 'SocialLinksBlock'
+        ) as any[];
+        if (socialNodes.length > 0) {
+          const social_links = socialNodes.map((sn: any) => ({
+            links: sn.props?.links ?? [],
+            layout: sn.props?.layout ?? 'horizontal',
+            iconSize: sn.props?.iconSize ?? 40,
+            gap: sn.props?.gap ?? 12,
+            showLabels: sn.props?.showLabels ?? true,
+            bgEnabled: sn.props?.bgEnabled ?? false,
+            bgColor: sn.props?.bgColor ?? 'rgba(255,255,255,0.06)',
+            borderRadius: sn.props?.borderRadius ?? 16,
+            padding: sn.props?.padding ?? 12,
+          }));
+          updated = { ...updated, components: { ...updated.components, social_links } };
+        }
+
+        // Extract VideoEmbedBlock props
+        const videoNodes = Object.values(nodes).filter(
+          (n: any) => n.type?.resolvedName === 'VideoEmbedBlock'
+        ) as any[];
+        if (videoNodes.length > 0) {
+          const videos = videoNodes.map((vn: any) => ({
+            url: vn.props?.url ?? '',
+            aspectRatio: vn.props?.aspectRatio ?? '16:9',
+            borderRadius: vn.props?.borderRadius ?? 12,
+            autoplay: vn.props?.autoplay ?? false,
+            muted: vn.props?.muted ?? true,
+            loop: vn.props?.loop ?? true,
+            opacity: vn.props?.opacity ?? 1,
+          }));
+          updated = { ...updated, components: { ...updated.components, videos } };
+        }
+
+        // Extract QRCodeBlock props
+        const qrNodes = Object.values(nodes).filter(
+          (n: any) => n.type?.resolvedName === 'QRCodeBlock'
+        ) as any[];
+        if (qrNodes.length > 0) {
+          const qr_codes = qrNodes.map((qn: any) => ({
+            content: qn.props?.content ?? '',
+            size: qn.props?.size ?? 160,
+            fgColor: qn.props?.fgColor ?? '#ffffff',
+            bgColor: qn.props?.bgColor ?? 'transparent',
+            borderRadius: qn.props?.borderRadius ?? 8,
+            padding: qn.props?.padding ?? 12,
+            label: qn.props?.label ?? '',
+            labelColor: qn.props?.labelColor ?? '#ffffff',
+            labelSize: qn.props?.labelSize ?? 12,
+          }));
+          updated = { ...updated, components: { ...updated.components, qr_codes } };
         }
       } catch { /* ignore parse errors */ }
 

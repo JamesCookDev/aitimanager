@@ -171,6 +171,51 @@ export interface ButtonComponent {
   iconPosition?: 'left' | 'right';
 }
 
+// ── Social Links ──────────────────────────────────────────────────────
+export interface SocialLinkItem {
+  id: string;
+  icon: string;
+  label: string;
+  url: string;
+  color: string;
+}
+
+export interface SocialLinksComponent {
+  links: SocialLinkItem[];
+  layout: 'horizontal' | 'vertical';
+  iconSize: number;
+  gap: number;
+  showLabels: boolean;
+  bgEnabled: boolean;
+  bgColor: string;
+  borderRadius: number;
+  padding: number;
+}
+
+// ── Video Embed ───────────────────────────────────────────────────────
+export interface VideoEmbedComponent {
+  url: string;
+  aspectRatio: '16:9' | '9:16' | '4:3' | '1:1';
+  borderRadius: number;
+  autoplay: boolean;
+  muted: boolean;
+  loop: boolean;
+  opacity: number;
+}
+
+// ── QR Code ───────────────────────────────────────────────────────────
+export interface QRCodeComponent {
+  content: string;
+  size: number;
+  fgColor: string;
+  bgColor: string;
+  borderRadius: number;
+  padding: number;
+  label: string;
+  labelColor: string;
+  labelSize: number;
+}
+
 // ── Components ────────────────────────────────────────────────────────
 export interface PageBuilderComponents {
   avatar: AvatarComponent;
@@ -178,6 +223,9 @@ export interface PageBuilderComponents {
   logo: LogoComponent;
   text_banners: TextBannerComponent;
   buttons?: ButtonComponent[];
+  social_links?: SocialLinksComponent[];
+  videos?: VideoEmbedComponent[];
+  qr_codes?: QRCodeComponent[];
 }
 
 // ── Full Config ───────────────────────────────────────────────────────
