@@ -51,9 +51,13 @@ const POLL_INTERVAL = 15_000;
 // ─────────────────────────────────────────────
 function useLivePreview(deviceId, onLiveUpdate) {
   const [isLive, setIsLive] = useState(false);
+  // Stable ref so channel doesn't recreate on every render
+  const onLiveUpdateRef = useRef(onLiveUpdate);
+  useEffect(() => { onLiveUpdateRef.current = onLiveUpdate; }, [onLiveUpdate]);
 
   useEffect(() => {
     if (!deviceId) return;
+
     const channel = _supabase.channel(`live-preview:${deviceId}`, {
       config: { broadcast: { self: false } },
     });
@@ -61,18 +65,22 @@ function useLivePreview(deviceId, onLiveUpdate) {
     channel
       .on("broadcast", { event: "ui-update" }, ({ payload }) => {
         if (payload?.craft_blocks) {
-          onLiveUpdate({ craft_blocks: payload.craft_blocks, _liveTs: payload.ts });
+          // Apply immediately — no polling wait
+          onLiveUpdateRef.current({ craft_blocks: payload.craft_blocks, _liveTs: payload.ts });
         }
       })
       .subscribe((status) => {
         setIsLive(status === "SUBSCRIBED");
+        if (status === "SUBSCRIBED") {
+          console.info("[LivePreview] Canal ativo — aguardando broadcast do Hub");
+        }
       });
 
     return () => {
       _supabase.removeChannel(channel);
       setIsLive(false);
     };
-  }, [deviceId, onLiveUpdate]);
+  }, [deviceId]); // only re-run if deviceId changes
 
   return isLive;
 }
@@ -1363,8 +1371,11 @@ function scenePropsToUiCanvas(sp) {
 export default function App() {
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
-  const [toastKey, setToastKey] = useState(0); // increments on each new config → remounts toast
+  const [toastKey, setToastKey] = useState(0);
   const { isIdle, wake } = useIdleDetection(IDLE_TIMEOUT_MS);
+
+  // Device ID: read from env (set on hardware) or fallback to config response
+  const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || null;
 
   // Wrap setLiveUi to also trigger the update toast
   const handleConfigUpdate = useCallback((newUi) => {
@@ -1372,7 +1383,13 @@ export default function App() {
     setToastKey(k => k + 1);
   }, []);
 
+  // ── Live Preview: aplica config imediatamente via Realtime broadcast ──
+  const handleLiveUpdate = useCallback((newUi) => {
+    setLiveUi(newUi);
+  }, []);
+
   useConfigPoller(handleConfigUpdate);
+  const isLive = useLivePreview(deviceId, handleLiveUpdate);
 
   const ui = liveUi || initialUi;
 
@@ -1540,6 +1557,39 @@ export default function App() {
 
       {/* 🔔 CAMADA 4: Toast de atualização via polling */}
       <UpdateToast key={toastKey} visible={toastKey > 0} />
+
+      {/* 📡 CAMADA 4b: Badge "Ao Vivo" — aparece quando Hub está transmitindo */}
+      {isLive && (
+        <div style={{
+          position: "fixed", top: 16, right: 16, zIndex: 9999,
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "6px 14px", borderRadius: 999,
+          background: "rgba(239,68,68,0.15)",
+          border: "1px solid rgba(239,68,68,0.4)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          color: "#fca5a5",
+          fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          boxShadow: "0 0 16px rgba(239,68,68,0.2)",
+        }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: "#ef4444",
+            animation: "live-pulse 1.2s ease-in-out infinite",
+            display: "inline-block",
+            boxShadow: "0 0 6px #ef4444",
+          }} />
+          Ao Vivo
+        </div>
+      )}
+
+      <style>{`
+        @keyframes live-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.85); }
+        }
+      `}</style>
 
       {/* 🌙 CAMADA 5: Tela idle — aparece após 60s sem interação */}
       <IdleScreen visible={isIdle} onWake={wake} />
