@@ -25,6 +25,7 @@ import { GradientTextBlock } from './components/GradientTextBlock';
 import { SocialLinksBlock } from './components/SocialLinksBlock';
 import { VideoEmbedBlock } from './components/VideoEmbedBlock';
 import { QRCodeBlock } from './components/QRCodeBlock';
+import { ChatInterfaceBlock } from './components/ChatInterfaceBlock';
 import { CanvasDropArea } from './components/CanvasDropArea';
 import { EditorToolbox } from './components/EditorToolbox';
 import { EditorProperties } from './components/EditorProperties';
@@ -34,7 +35,7 @@ const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
   ProgressBlock, CountdownBlock, GradientTextBlock, SocialLinksBlock,
-  VideoEmbedBlock, QRCodeBlock, CanvasDropArea,
+  VideoEmbedBlock, QRCodeBlock, ChatInterfaceBlock, CanvasDropArea,
 };
 
 export function PageEditor() {
