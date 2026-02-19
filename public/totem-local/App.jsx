@@ -278,8 +278,8 @@ function InlineChatInterface({ p }) {
 function renderBlock(blockName, props, childElements) {
   const p = props || {};
 
-  // ── AvatarBlock / ChatBlock → renderizado em camada separada ──
-  if (blockName === "AvatarBlock" || blockName === "ChatBlock") return null;
+  // ── AvatarBlock / ChatBlock / SceneBlock → renderizado em camada separada ──
+  if (blockName === "AvatarBlock" || blockName === "ChatBlock" || blockName === "SceneBlock") return null;
 
   // ── ChatInterfaceBlock → renderizado inline com posicionamento absoluto ──
   if (blockName === "ChatInterfaceBlock") {
@@ -777,13 +777,116 @@ const GlobalStyles = () => (
 );
 
 // ─────────────────────────────────────────────
+// 🎬 EXTRACTOR: pega props do SceneBlock nos craft nodes
+// ─────────────────────────────────────────────
+function extractSceneProps(nodes) {
+  if (!nodes) return null;
+  for (const id of Object.keys(nodes)) {
+    const node = nodes[id];
+    const typeName = typeof node?.type === "object" ? node.type.resolvedName : node?.type;
+    if (typeName === "SceneBlock") return node?.props || null;
+  }
+  return null;
+}
+
+// Converte props do SceneBlock para o formato que o Scenario.jsx espera via useCMSConfig
+function scenePropsToUiCanvas(sp) {
+  if (!sp) return null;
+  return {
+    environment: {
+      preset: sp.envPreset || "city",
+      show_floor: sp.showFloor !== false,
+      floor_color: sp.floorColor || "#1a1a2e",
+      floor_geometry: { width: sp.floorWidth || 20, height: sp.floorHeight || 20 },
+      floor_material: { roughness: sp.floorRoughness ?? 0.3, metalness: sp.floorMetalness ?? 0.8 },
+      show_wall: sp.showWall !== false,
+      wall_geometry: {
+        width: sp.wallWidth || 20, height: sp.wallHeight || 12,
+        position: [0, sp.wallPosY ?? 4, sp.wallPosZ ?? -5],
+      },
+      wall_material: { roughness: sp.wallRoughness ?? 0.8, metalness: sp.wallMetalness ?? 0.2 },
+      show_particles: sp.showParticles !== false,
+      particles: {
+        count: sp.particleCount || 50,
+        color: sp.particleColor || "#4a90ff",
+        size: sp.particleSize || 2,
+        speed: sp.particleSpeed || 0.3,
+        opacity: sp.particleOpacity || 0.4,
+        scale: sp.particleScale || 10,
+      },
+    },
+    background: { color: sp.wallColor || "#0f3460" },
+    camera: {
+      initial_look_at: {
+        position: [sp.camPosX ?? 0, sp.camPosY ?? 1.65, sp.camPosZ ?? 4],
+        target: [sp.camTargetX ?? 0, sp.camTargetY ?? 1.5, sp.camTargetZ ?? 0],
+        smooth: true,
+      },
+      controls: {
+        minDistance: sp.camMinDist ?? 3,
+        maxDistance: sp.camMaxDist ?? 8,
+        minPolarAngle: Math.PI / 4,
+        maxPolarAngle: Math.PI / 2,
+      },
+    },
+    lighting: {
+      ambient: sp.ambientEnabled !== false
+        ? { intensity: sp.ambientIntensity ?? 0.4 }
+        : undefined,
+      directional: [
+        ...(sp.dirLightEnabled !== false ? [{
+          position: [sp.dirLightPosX ?? 5, sp.dirLightPosY ?? 5, sp.dirLightPosZ ?? 5],
+          intensity: sp.dirLightIntensity ?? 1.2,
+          color: sp.dirLightColor || "#ffffff",
+          castShadow: sp.dirLightCastShadow !== false,
+          shadowMapSize: [2048, 2048],
+        }] : []),
+        ...(sp.fillLightEnabled !== false ? [{
+          position: [-5, 3, -5],
+          intensity: sp.fillLightIntensity ?? 0.5,
+          color: sp.fillLightColor || "#b8d4ff",
+          castShadow: false,
+        }] : []),
+      ],
+      spot: sp.spotLightEnabled !== false ? [{
+        position: [sp.spotLightPosX ?? 0, sp.spotLightPosY ?? 5, sp.spotLightPosZ ?? -5],
+        intensity: sp.spotLightIntensity ?? 0.8,
+        angle: sp.spotLightAngle ?? 0.6,
+        penumbra: sp.spotLightPenumbra ?? 0.5,
+        color: sp.spotLightColor || "#ffd4a3",
+        castShadow: sp.spotLightCastShadow !== false,
+      }] : [],
+      point: [
+        ...(sp.pointLight1Enabled !== false ? [{
+          position: [-3, 2, 2],
+          intensity: sp.pointLight1Intensity ?? 0.3,
+          color: sp.pointLight1Color || "#4a90ff",
+        }] : []),
+        ...(sp.pointLight2Enabled !== false ? [{
+          position: [3, 2, 2],
+          intensity: sp.pointLight2Intensity ?? 0.3,
+          color: sp.pointLight2Color || "#ff6b9d",
+        }] : []),
+      ],
+    },
+    shadows: {
+      position: [0, 0, 0],
+      opacity: sp.shadowOpacity ?? 0.5,
+      scale: sp.shadowScale ?? 10,
+      blur: sp.shadowBlur ?? 2,
+      far: 4, resolution: 256,
+      color: sp.shadowColor || "#000000",
+    },
+  };
+}
+
+// ─────────────────────────────────────────────
 // 🚀 APP PRINCIPAL
 // ─────────────────────────────────────────────
 export default function App() {
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
 
-  // Worker de polling — atualiza liveUi sem re-mount desnecessário
   useConfigPoller(setLiveUi);
 
   const ui = liveUi || initialUi;
@@ -800,6 +903,12 @@ export default function App() {
 
   const hasCraft = craftNodes && craftNodes["ROOT"];
 
+  // Extrair props do SceneBlock para sobrescrever o canvas do Scenario
+  const sceneOverride = useMemo(() => {
+    if (!hasCraft) return null;
+    return scenePropsToUiCanvas(extractSceneProps(craftNodes));
+  }, [craftNodes, hasCraft]);
+
   // Background
   const bgStyle = useMemo(() => {
     const bg = ui?.canvas?.background;
@@ -811,6 +920,12 @@ export default function App() {
     return { backgroundColor: "#000000" };
   }, [ui]);
 
+  // Merge ui com override do SceneBlock
+  const mergedUi = useMemo(() => {
+    if (!sceneOverride) return ui;
+    return { ...ui, canvas: { ...(ui?.canvas || {}), ...sceneOverride } };
+  }, [ui, sceneOverride]);
+
   const avatarOn = ui?.components?.avatar?.enabled !== false;
   const chatOn = ui?.components?.chat_interface?.enabled !== false;
 
@@ -821,12 +936,12 @@ export default function App() {
         <Loader />
         <Leva collapsed hidden />
 
-        {/* 🤖 CAMADA 1: Avatar 3D */}
+        {/* 🤖 CAMADA 1: Avatar 3D + Cenário — usa mergedUi com props do SceneBlock */}
         {avatarOn && (
           <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
             <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }}>
-              <OrbitControls makeDefault enableZoom enablePan enableRotate />
-              <Scenario />
+              {/* Passa o ui sobrescrito para o Scenario via contexto/prop */}
+              <Scenario uiOverride={mergedUi} />
             </Canvas>
           </div>
         )}
@@ -846,8 +961,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* 💬 CAMADA 3: Chat Interface (quando usando builder) */}
-        {chatOn && hasCraft && (
+        {/* 💬 CAMADA 3: Chat Interface (quando usando builder e sem ChatInterfaceBlock) */}
+        {chatOn && hasCraft && !extractSceneProps(craftNodes) && (
           <div style={{
             position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
             zIndex: 40, pointerEvents: "auto", width: "100%", maxWidth: "600px", padding: "0 20px",
@@ -859,3 +974,4 @@ export default function App() {
     </>
   );
 }
+
