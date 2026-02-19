@@ -2,12 +2,12 @@
  * ══════════════════════════════════════════════════════════════
  *  TOTEM LOCAL — App.jsx  (v3 — Refatoração completa)
  * ══════════════════════════════════════════════════════════════
- *  Todos os 17 blocos com renderizadores 1:1 com o editor.
+ *  Todos os 17+ blocos com renderizadores 1:1 com o editor.
  *  Worker de polling para atualização contínua sem quebrar o front.
  *
  *  Blocos suportados:
  *  ─ Conteúdo:  TextBlock, GradientTextBlock, ImageBlock, BadgeBlock, IconBlock
- *  ─ Interação: ButtonBlock, MenuBlock
+ *  ─ Interação: ButtonBlock, MenuBlock, ChatInterfaceBlock
  *  ─ Mídia:     VideoEmbedBlock, QRCodeBlock, SocialLinksBlock
  *  ─ Dados:     ProgressBlock, CountdownBlock
  *  ─ Layout:    ContainerBlock, CardBlock, SpacerBlock, DividerBlock, CanvasDropArea
@@ -162,12 +162,131 @@ const LiveCountdown = React.memo(({ mode, targetDate, countdownMinutes, showLabe
 // 🧱 RENDERIZADORES INDIVIDUAIS POR BLOCO
 // ─────────────────────────────────────────────
 
+/**
+ * ChatInterfaceBlock local — converte props do Craft.js para o componente
+ * ChatInterface real (com useSpeech + useCMSConfig internal override).
+ */
+function InlineChatInterface({ p }) {
+  const [dropOpen, setDropOpen] = React.useState(false);
+  const [activeSubmenu, setActiveSubmenu] = React.useState(null);
+
+  const items = Array.isArray(p.items) ? p.items : [];
+  const blur = p.blur ?? 15;
+  const opacity = p.opacity ?? 1;
+
+  // Styles from block props
+  const headerShow = p.headerShow !== false;
+  const position = p.position || 'bottom_right';
+  const posStyles = {
+    bottom_right: { bottom: 0, right: 0 },
+    bottom_left: { bottom: 0, left: 0 },
+    top_right: { top: 0, right: 0 },
+    top_left: { top: 0, left: 0 },
+    center: { bottom: 0, left: '50%', transform: 'translateX(-50%)' },
+  };
+  const posStyle = posStyles[position] || posStyles.bottom_right;
+
+  const handleAction = (node) => {
+    const msg = node.prompt || node.message || node.label || '';
+    if (msg && window.__totemSendMessage) window.__totemSendMessage(msg);
+    if (p.closeOnSelect !== false) { setDropOpen(false); setActiveSubmenu(null); }
+  };
+
+  const renderNode = (node, depth = 0) => {
+    const isFolder = node.type === 'folder' || (node.children && node.children.length > 0);
+    const isOpen = activeSubmenu === node.id || String(activeSubmenu || '').startsWith(`${node.id}-`);
+    return (
+      <div key={node.id} style={{ marginLeft: depth * 12 }}>
+        <div
+          onClick={isFolder ? () => setActiveSubmenu(isOpen ? null : node.id) : () => handleAction(node)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.06)', borderRadius: 10, marginBottom: 4,
+            border: '1px solid rgba(255,255,255,0.08)', fontSize: 12, color: '#fff', fontWeight: 500,
+            transition: 'background 0.15s',
+          }}
+        >
+          <span style={{ fontSize: 16 }}>{node.icon}</span>
+          <span style={{ flex: 1 }}>{node.label}</span>
+          {node.description && <span style={{ opacity: 0.5, fontSize: 10 }}>{node.description}</span>}
+          {isFolder
+            ? <span style={{ opacity: 0.4, fontSize: 9, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>{p.folderArrowSymbol || '▼'}</span>
+            : <span style={{ opacity: 0.4 }}>{p.itemArrowSymbol || '→'}</span>}
+        </div>
+        {isFolder && isOpen && (node.children || []).map(c => renderNode(c, depth + 1))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position: 'absolute', zIndex: p.zIndex || 1000, ...posStyle, pointerEvents: 'auto', minWidth: 260, maxWidth: 340 }}>
+      {/* Header */}
+      {headerShow && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px',
+          background: `rgba(16,23,42,${opacity * 0.9})`,
+          backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`,
+          borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.headerIndicatorColor || '#10b981', boxShadow: `0 0 8px ${p.headerIndicatorColor || '#10b981'}` }} />
+            <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{p.headerTitle || 'Assistente'}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
+            <span>{p.headerIcon || '📍'}</span>
+            <span>{p.headerSubtitle || 'Online'}</span>
+          </div>
+        </div>
+      )}
+      {/* Toggle button */}
+      <div
+        onClick={() => setDropOpen(!dropOpen)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', cursor: 'pointer',
+          background: `rgba(16,23,42,${opacity * 0.88})`,
+          backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`,
+          border: '1px solid rgba(255,255,255,0.12)', opacity,
+          borderRadius: headerShow ? '0 0 14px 14px' : 14,
+          transition: 'background 0.2s',
+        }}
+      >
+        <span style={{ fontSize: 18 }}>{p.ctaIcon || '💬'}</span>
+        <span style={{ color: '#fff', fontSize: 13, fontWeight: 500, flex: 1 }}>{p.ctaText || 'Como posso ajudar?'}</span>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', transform: dropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          {p.folderArrowSymbol || '▼'}
+        </span>
+      </div>
+      {/* Dropdown */}
+      {dropOpen && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 6,
+          background: `rgba(16,23,42,${opacity * 0.92})`,
+          backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`,
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: 10,
+          maxHeight: '55vh', overflowY: 'auto', opacity,
+        }}>
+          {items.length === 0
+            ? <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, padding: '12px 0' }}>Nenhum item configurado</p>
+            : items.map(item => renderNode(item))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Renderiza um único nó de acordo com seu tipo */
 function renderBlock(blockName, props, childElements) {
   const p = props || {};
 
   // ── AvatarBlock / ChatBlock → renderizado em camada separada ──
   if (blockName === "AvatarBlock" || blockName === "ChatBlock") return null;
+
+  // ── ChatInterfaceBlock → renderizado inline com posicionamento absoluto ──
+  if (blockName === "ChatInterfaceBlock") {
+    if (p.enabled === false) return null;
+    return <InlineChatInterface key="chat-interface" p={p} />;
+  }
+
 
   // ── SpacerBlock ──
   if (blockName === "SpacerBlock") {
@@ -612,6 +731,7 @@ function renderBlock(blockName, props, childElements) {
   if (blockName === "CanvasDropArea") {
     return (
       <div style={{
+        position: "relative",
         backgroundColor: p.bgColor === "transparent" ? "transparent" : (p.bgColor || "#0f172a"),
         padding: "16px", minHeight: "100%", display: "flex", flexDirection: "column", gap: "8px", width: "100%",
       }}>

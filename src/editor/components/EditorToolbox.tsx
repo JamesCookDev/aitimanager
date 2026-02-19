@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor, Element } from '@craftjs/core';
-import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard, BarChart3, Clock, Palette, Share2 } from 'lucide-react';
+import { Type, Image, MousePointer2, LayoutGrid, User, Minus, MoveVertical, Menu, Sparkles, Tag, CreditCard, BarChart3, Clock, Palette, Share2, MessageSquare, QrCode, Video } from 'lucide-react';
 
 import { TextBlock } from './TextBlock';
 import { ImageBlock } from './ImageBlock';
@@ -19,6 +19,7 @@ import { GradientTextBlock } from './GradientTextBlock';
 import { SocialLinksBlock } from './SocialLinksBlock';
 import { VideoEmbedBlock } from './VideoEmbedBlock';
 import { QRCodeBlock } from './QRCodeBlock';
+import { ChatInterfaceBlock } from './ChatInterfaceBlock';
 
 const categories = [
   {
@@ -37,6 +38,7 @@ const categories = [
       { name: 'Botão', icon: MousePointer2, element: <ButtonBlock /> },
       { name: 'Menu', icon: Menu, element: <MenuBlock /> },
       { name: 'Social', icon: Share2, element: <SocialLinksBlock /> },
+      { name: 'Chat IA', icon: MessageSquare, element: <ChatInterfaceBlock /> },
     ],
   },
   {
