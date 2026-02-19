@@ -115,17 +115,29 @@ Deno.serve(async (req) => {
 
     // Check if stored config is new modular format
     if (storedUi.canvas && storedUi.components) {
-      const craftNodes = parseCraftBlocks(storedUi.craft_blocks)
+      let craftNodes: Record<string, any> | null = null
+      try {
+        craftNodes = parseCraftBlocks(storedUi.craft_blocks)
+      } catch (e) {
+        console.error('Failed to parse craft_blocks:', e)
+      }
+
+      // Safely get craft node values array
+      const craftNodeValues: any[] = craftNodes ? Object.values(craftNodes) : []
 
       // Extract avatar enabled state from craft nodes if available
       let avatarEnabled = storedUi.components?.avatar?.enabled ?? true
-      if (craftNodes) {
-        const avatarNode = Object.values(craftNodes).find(
-          (n: any) => n.type?.resolvedName === 'AvatarBlock'
-        ) as any
-        if (avatarNode && typeof avatarNode.props?.enabled === 'boolean') {
-          avatarEnabled = avatarNode.props.enabled
+      try {
+        if (craftNodeValues.length > 0) {
+          const avatarNode = craftNodeValues.find(
+            (n: any) => n?.type?.resolvedName === 'AvatarBlock'
+          )
+          if (avatarNode && typeof avatarNode?.props?.enabled === 'boolean') {
+            avatarEnabled = avatarNode.props.enabled
+          }
         }
+      } catch (e) {
+        console.error('Failed to extract avatar state:', e)
       }
 
       mergedUi = {
@@ -174,129 +186,119 @@ Deno.serve(async (req) => {
           text_banners: storedUi.components?.text_banners || { enabled: false, items: [] },
           // Extract buttons from craft_nodes or stored components
           buttons: (() => {
-            if (storedUi.components?.buttons && Array.isArray(storedUi.components.buttons) && storedUi.components.buttons.length > 0) {
-              return storedUi.components.buttons
-            }
-            if (craftNodes) {
-              const btnNodes = Object.values(craftNodes).filter(
-                (n: any) => n.type?.resolvedName === 'ButtonBlock'
-              ) as any[]
+            try {
+              if (storedUi.components?.buttons && Array.isArray(storedUi.components.buttons) && storedUi.components.buttons.length > 0) {
+                return storedUi.components.buttons
+              }
+              const btnNodes = craftNodeValues.filter((n: any) => n?.type?.resolvedName === 'ButtonBlock')
               if (btnNodes.length > 0) {
                 return btnNodes.map((bn: any) => ({
-                  label: bn.props?.label ?? 'Clique aqui',
-                  bgColor: bn.props?.bgColor ?? '#3b82f6',
-                  textColor: bn.props?.textColor ?? '#ffffff',
-                  fontSize: bn.props?.fontSize ?? 16,
-                  borderRadius: bn.props?.borderRadius ?? 8,
-                  paddingX: bn.props?.paddingX ?? 24,
-                  paddingY: bn.props?.paddingY ?? 14,
-                  fullWidth: bn.props?.fullWidth ?? false,
-                  action: bn.props?.action ?? '',
-                  fontWeight: bn.props?.fontWeight ?? 'semibold',
-                  icon: bn.props?.icon ?? '',
-                  iconPosition: bn.props?.iconPosition ?? 'left',
-                  shadow: bn.props?.shadow ?? 'none',
-                  opacity: bn.props?.opacity ?? 1,
+                  label: bn?.props?.label ?? 'Clique aqui',
+                  bgColor: bn?.props?.bgColor ?? '#3b82f6',
+                  textColor: bn?.props?.textColor ?? '#ffffff',
+                  fontSize: bn?.props?.fontSize ?? 16,
+                  borderRadius: bn?.props?.borderRadius ?? 8,
+                  paddingX: bn?.props?.paddingX ?? 24,
+                  paddingY: bn?.props?.paddingY ?? 14,
+                  fullWidth: bn?.props?.fullWidth ?? false,
+                  action: bn?.props?.action ?? '',
+                  fontWeight: bn?.props?.fontWeight ?? 'semibold',
+                  icon: bn?.props?.icon ?? '',
+                  iconPosition: bn?.props?.iconPosition ?? 'left',
+                  shadow: bn?.props?.shadow ?? 'none',
+                  opacity: bn?.props?.opacity ?? 1,
                 }))
               }
-            }
+            } catch (e) { console.error('Error extracting buttons:', e) }
             return []
           })(),
           // Extract social links from stored or craft_nodes
           social_links: (() => {
-            if (storedUi.components?.social_links && Array.isArray(storedUi.components.social_links) && storedUi.components.social_links.length > 0) {
-              return storedUi.components.social_links
-            }
-            if (craftNodes) {
-              const socialNodes = Object.values(craftNodes).filter(
-                (n: any) => n.type?.resolvedName === 'SocialLinksBlock'
-              ) as any[]
+            try {
+              if (storedUi.components?.social_links && Array.isArray(storedUi.components.social_links) && storedUi.components.social_links.length > 0) {
+                return storedUi.components.social_links
+              }
+              const socialNodes = craftNodeValues.filter((n: any) => n?.type?.resolvedName === 'SocialLinksBlock')
               if (socialNodes.length > 0) {
                 return socialNodes.map((sn: any) => ({
-                  links: sn.props?.links ?? [],
-                  layout: sn.props?.layout ?? 'horizontal',
-                  iconSize: sn.props?.iconSize ?? 40,
-                  gap: sn.props?.gap ?? 12,
-                  showLabels: sn.props?.showLabels ?? true,
-                  bgEnabled: sn.props?.bgEnabled ?? false,
-                  bgColor: sn.props?.bgColor ?? 'rgba(255,255,255,0.06)',
-                  borderRadius: sn.props?.borderRadius ?? 16,
-                  padding: sn.props?.padding ?? 12,
+                  links: sn?.props?.links ?? [],
+                  layout: sn?.props?.layout ?? 'horizontal',
+                  iconSize: sn?.props?.iconSize ?? 40,
+                  gap: sn?.props?.gap ?? 12,
+                  showLabels: sn?.props?.showLabels ?? true,
+                  bgEnabled: sn?.props?.bgEnabled ?? false,
+                  bgColor: sn?.props?.bgColor ?? 'rgba(255,255,255,0.06)',
+                  borderRadius: sn?.props?.borderRadius ?? 16,
+                  padding: sn?.props?.padding ?? 12,
                 }))
               }
-            }
+            } catch (e) { console.error('Error extracting social_links:', e) }
             return []
           })(),
           // Extract video embeds from stored or craft_nodes
           videos: (() => {
-            if (storedUi.components?.videos && Array.isArray(storedUi.components.videos) && storedUi.components.videos.length > 0) {
-              return storedUi.components.videos
-            }
-            if (craftNodes) {
-              const vidNodes = Object.values(craftNodes).filter(
-                (n: any) => n.type?.resolvedName === 'VideoEmbedBlock'
-              ) as any[]
+            try {
+              if (storedUi.components?.videos && Array.isArray(storedUi.components.videos) && storedUi.components.videos.length > 0) {
+                return storedUi.components.videos
+              }
+              const vidNodes = craftNodeValues.filter((n: any) => n?.type?.resolvedName === 'VideoEmbedBlock')
               if (vidNodes.length > 0) {
                 return vidNodes.map((vn: any) => ({
-                  url: vn.props?.url ?? '',
-                  aspectRatio: vn.props?.aspectRatio ?? '16:9',
-                  borderRadius: vn.props?.borderRadius ?? 12,
-                  autoplay: vn.props?.autoplay ?? false,
-                  muted: vn.props?.muted ?? true,
-                  loop: vn.props?.loop ?? true,
-                  opacity: vn.props?.opacity ?? 1,
+                  url: vn?.props?.url ?? '',
+                  aspectRatio: vn?.props?.aspectRatio ?? '16:9',
+                  borderRadius: vn?.props?.borderRadius ?? 12,
+                  autoplay: vn?.props?.autoplay ?? false,
+                  muted: vn?.props?.muted ?? true,
+                  loop: vn?.props?.loop ?? true,
+                  opacity: vn?.props?.opacity ?? 1,
                 }))
               }
-            }
+            } catch (e) { console.error('Error extracting videos:', e) }
             return []
           })(),
           // Extract QR codes from stored or craft_nodes
           qr_codes: (() => {
-            if (storedUi.components?.qr_codes && Array.isArray(storedUi.components.qr_codes) && storedUi.components.qr_codes.length > 0) {
-              return storedUi.components.qr_codes
-            }
-            if (craftNodes) {
-              const qrNodes = Object.values(craftNodes).filter(
-                (n: any) => n.type?.resolvedName === 'QRCodeBlock'
-              ) as any[]
+            try {
+              if (storedUi.components?.qr_codes && Array.isArray(storedUi.components.qr_codes) && storedUi.components.qr_codes.length > 0) {
+                return storedUi.components.qr_codes
+              }
+              const qrNodes = craftNodeValues.filter((n: any) => n?.type?.resolvedName === 'QRCodeBlock')
               if (qrNodes.length > 0) {
                 return qrNodes.map((qn: any) => ({
-                  content: qn.props?.content ?? '',
-                  size: qn.props?.size ?? 160,
-                  fgColor: qn.props?.fgColor ?? '#ffffff',
-                  bgColor: qn.props?.bgColor ?? 'transparent',
-                  borderRadius: qn.props?.borderRadius ?? 8,
-                  padding: qn.props?.padding ?? 12,
-                  label: qn.props?.label ?? '',
-                  labelColor: qn.props?.labelColor ?? '#ffffff',
-                  labelSize: qn.props?.labelSize ?? 12,
+                  content: qn?.props?.content ?? '',
+                  size: qn?.props?.size ?? 160,
+                  fgColor: qn?.props?.fgColor ?? '#ffffff',
+                  bgColor: qn?.props?.bgColor ?? 'transparent',
+                  borderRadius: qn?.props?.borderRadius ?? 8,
+                  padding: qn?.props?.padding ?? 12,
+                  label: qn?.props?.label ?? '',
+                  labelColor: qn?.props?.labelColor ?? '#ffffff',
+                  labelSize: qn?.props?.labelSize ?? 12,
                 }))
               }
-            }
+            } catch (e) { console.error('Error extracting qr_codes:', e) }
             return []
           })(),
           // Extract text blocks from craft_nodes for the local renderer
           texts: (() => {
-            if (craftNodes) {
-              const textNodes = Object.values(craftNodes).filter(
-                (n: any) => n.type?.resolvedName === 'TextBlock'
-              ) as any[]
+            try {
+              const textNodes = craftNodeValues.filter((n: any) => n?.type?.resolvedName === 'TextBlock')
               if (textNodes.length > 0) {
                 return textNodes.map((tn: any) => ({
-                  text: tn.props?.text ?? '',
-                  fontSize: tn.props?.fontSize ?? 16,
-                  fontWeight: tn.props?.fontWeight ?? 'normal',
-                  color: tn.props?.color ?? '#ffffff',
-                  textAlign: tn.props?.textAlign ?? 'left',
-                  padding: tn.props?.padding ?? 8,
-                  letterSpacing: tn.props?.letterSpacing ?? 0,
-                  lineHeight: tn.props?.lineHeight ?? 1.5,
-                  textTransform: tn.props?.textTransform ?? 'none',
-                  opacity: tn.props?.opacity ?? 1,
-                  textShadow: tn.props?.textShadow ?? false,
+                  text: tn?.props?.text ?? '',
+                  fontSize: tn?.props?.fontSize ?? 16,
+                  fontWeight: tn?.props?.fontWeight ?? 'normal',
+                  color: tn?.props?.color ?? '#ffffff',
+                  textAlign: tn?.props?.textAlign ?? 'left',
+                  padding: tn?.props?.padding ?? 8,
+                  letterSpacing: tn?.props?.letterSpacing ?? 0,
+                  lineHeight: tn?.props?.lineHeight ?? 1.5,
+                  textTransform: tn?.props?.textTransform ?? 'none',
+                  opacity: tn?.props?.opacity ?? 1,
+                  textShadow: tn?.props?.textShadow ?? false,
                 }))
               }
-            }
+            } catch (e) { console.error('Error extracting texts:', e) }
             return []
           })(),
         },
