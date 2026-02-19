@@ -38,6 +38,14 @@ import { TemplatePicker } from '@/editor/components/TemplatePicker';
 
 import type { PageBuilderConfig } from '@/types/page-builder';
 
+function formatTimeAgo(date: string): string {
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (diff < 60) return 'agora mesmo';
+  if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+  return `${Math.floor(diff / 86400)}d atrás`;
+}
+
 const resolver = {
   TextBlock, ImageBlock, ButtonBlock, ContainerBlock, AvatarBlock,
   SpacerBlock, DividerBlock, MenuBlock, IconBlock, BadgeBlock, CardBlock,
@@ -139,6 +147,18 @@ function IntegratedBuilderInner({
 
   const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
   const [publishing, setPublishing] = useState(false);
+  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
+
+  // Fetch updated_at when device changes
+  useEffect(() => {
+    if (!deviceId) { setLastPublishedAt(null); return; }
+    supabase
+      .from('devices')
+      .select('updated_at')
+      .eq('id', deviceId)
+      .single()
+      .then(({ data }) => { if (data?.updated_at) setLastPublishedAt(data.updated_at); });
+  }, [deviceId]);
   const loadedRef = useRef(false);
   const prevCraftBlocksRef = useRef(config.craft_blocks);
   const configRef = useRef(config);
@@ -338,12 +358,15 @@ function IntegratedBuilderInner({
       const json = query.serialize();
       const current = configRef.current;
       const configToSave = { ...current, craft_blocks: json };
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('devices')
         .update({ ui_config: configToSave as any })
-        .eq('id', deviceId);
+        .eq('id', deviceId)
+        .select('updated_at')
+        .single();
       if (error) throw error;
       onUpdateConfigRef.current(configToSave);
+      if (data?.updated_at) setLastPublishedAt(data.updated_at);
       toast.success('Publicado para o Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
     } catch (err: any) {
       console.error('[Publish] Erro:', err);
@@ -407,16 +430,24 @@ function IntegratedBuilderInner({
           <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={onFullscreen}>
             <Maximize2 className="w-3.5 h-3.5" /> Preview Totem
           </Button>
-          <Button
-            size="sm"
-            className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={handlePublish}
-            disabled={publishing || !deviceId}
-            title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
-          >
-            <Send className="w-3.5 h-3.5" />
-            {publishing ? 'Publicando...' : 'Publicar no Totem'}
-          </Button>
+          <div className="flex flex-col items-end gap-0.5">
+            <Button
+              size="sm"
+              className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handlePublish}
+              disabled={publishing || !deviceId}
+              title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
+            >
+              <Send className="w-3.5 h-3.5" />
+              {publishing ? 'Publicando...' : 'Publicar no Totem'}
+            </Button>
+            {lastPublishedAt && (
+              <span className="text-[9px] text-muted-foreground leading-none px-0.5 flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5 inline" />
+                {formatTimeAgo(lastPublishedAt)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
