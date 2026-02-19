@@ -1,7 +1,14 @@
 import { useEditor } from '@craftjs/core';
+import { useRef, memo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+
+// Stable wrapper: only remounts when the selected node ID changes, NOT on every prop change.
+// This prevents accordions/collapsibles inside settings panels from closing on every keystroke.
+const StableSettings = memo(function StableSettings({ Component }: { Component: React.ElementType }) {
+  return <Component />;
+});
 
 export function EditorProperties() {
   const { selected, relatedSettings } = useEditor((state, query) => {
@@ -28,6 +35,10 @@ export function EditorProperties() {
     return { selected, relatedSettings };
   });
 
+  // Keep a stable ref to the settings component so it doesn't lose identity between renders
+  const settingsRef = useRef<React.ElementType | undefined>(undefined);
+  if (relatedSettings) settingsRef.current = relatedSettings;
+
   const { actions } = useEditor();
 
   if (!selected) {
@@ -43,8 +54,6 @@ export function EditorProperties() {
     );
   }
 
-  const SettingsComponent = relatedSettings;
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
@@ -53,8 +62,10 @@ export function EditorProperties() {
         </h3>
       </div>
       <ScrollArea className="flex-1 p-3">
-        {SettingsComponent ? (
-          <SettingsComponent />
+        {settingsRef.current ? (
+          // key={selected.id} ensures full remount only when switching blocks,
+          // NOT on every prop change within the same block — keeps accordions open.
+          <StableSettings key={selected.id} Component={settingsRef.current} />
         ) : (
           <p className="text-xs text-muted-foreground">Sem propriedades editáveis</p>
         )}
