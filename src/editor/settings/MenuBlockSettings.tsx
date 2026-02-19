@@ -179,7 +179,7 @@ export function MenuBlockSettings() {
 
         {/* Geral */}
         <AccordionItem value="geral" className="border-b border-border/50 px-0.5">
-          <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">Geral</AccordionTrigger>
+          <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">✏️ Conteúdo</AccordionTrigger>
           <AccordionContent className="pb-3 space-y-3">
             <div className="grid grid-cols-3 gap-1.5">
               <div className="space-y-1">
@@ -210,7 +210,7 @@ export function MenuBlockSettings() {
 
         {/* Aparência */}
         <AccordionItem value="aparencia" className="border-b border-border/50 px-0.5">
-          <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">Aparência</AccordionTrigger>
+          <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">🎨 Aparência</AccordionTrigger>
           <AccordionContent className="pb-3 space-y-3">
             <div className="space-y-1.5">
               <div className="flex justify-between">
@@ -253,7 +253,7 @@ export function MenuBlockSettings() {
         {/* Itens */}
         <AccordionItem value="items" className="border-b-0 px-0.5">
           <AccordionTrigger className="text-xs font-semibold hover:no-underline py-2.5">
-            Itens do Menu ({items.length})
+            📋 Itens do Menu ({items.length})
           </AccordionTrigger>
           <AccordionContent className="pb-3 space-y-2">
             <div className="flex gap-1.5">
