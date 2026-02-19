@@ -14,23 +14,45 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
   return (
     <div
       ref={(ref) => { if (ref) connect(ref); }}
-      className="w-full"
       style={{
         backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
-        padding: 16,
-        minHeight: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        position: 'relative', // CRITICAL: absolute children need this reference
+        /* 
+         * CRITICAL for absolute positioning:
+         * - position: relative → makes this the offsetParent for all absolute children
+         * - min-height → ensures canvas has enough space even when empty
+         * - width: 100% → fills the container
+         * NO display:flex here — flex changes offsetParent calculations and
+         * breaks top/left pixel values for absolutely-positioned children.
+         */
+        position: 'relative',
+        width: '100%',
+        minHeight: '740px',
+        padding: 0,
       }}
     >
       {children}
       {!hasChildren && (
-        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-white/10 rounded-xl min-h-[200px]">
-          <p className="text-white/30 text-sm text-center px-4">
-            Arraste blocos aqui para montar a tela
-          </p>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              border: '2px dashed rgba(255,255,255,0.1)',
+              borderRadius: 12,
+              padding: '48px 32px',
+              textAlign: 'center',
+            }}
+          >
+            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
+              Arraste blocos aqui para montar a tela
+            </p>
+          </div>
         </div>
       )}
     </div>

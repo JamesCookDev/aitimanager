@@ -581,18 +581,17 @@ function IntegratedBuilderInner({
 
         {/* ─── CENTER: Canvas (Craft.js only) ─── */}
         <div className={cn(
-          'flex-1 flex items-center justify-center min-w-0 p-4',
+          'flex-1 flex items-start justify-center min-w-0 p-4 overflow-y-auto',
           'bg-[hsl(var(--muted)/0.3)]',
         )}>
           <div
             className={cn(
-              'relative rounded-xl border-2 shadow-xl shrink-0 transition-all flex flex-col',
+              'rounded-xl border-2 shadow-xl shrink-0 transition-all',
               previewMode ? 'border-primary/30 shadow-primary/10' : 'border-border/60'
             )}
             style={{
+              /* Fixed totem-like width. Height grows with CanvasDropArea content. */
               width: 'min(100%, 420px)',
-              height: '100%',
-              maxHeight: 'calc(100vh - 14rem)',
               backgroundColor: '#0f172a',
             }}
           >
@@ -602,11 +601,14 @@ function IntegratedBuilderInner({
               </div>
             )}
 
-            <div className="w-full flex-1 overflow-y-auto overflow-x-hidden">
-              <Frame>
-                <Element is={CanvasDropArea} canvas bgColor="#0f172a" />
-              </Frame>
-            </div>
+            {/*
+              NO overflow-hidden or overflow-y-auto here — absolute blocks must not be
+              clipped or get a new offsetParent. The CanvasDropArea has position:relative
+              and min-height:740px, giving absolute children a proper anchor.
+            */}
+            <Frame>
+              <Element is={CanvasDropArea} canvas bgColor="#0f172a" />
+            </Frame>
           </div>
         </div>
 
