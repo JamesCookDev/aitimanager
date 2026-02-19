@@ -148,6 +148,7 @@ function IntegratedBuilderInner({
   const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
   const [publishing, setPublishing] = useState(false);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
+  const [hasUnpublished, setHasUnpublished] = useState(false);
 
   // Fetch updated_at when device changes
   useEffect(() => {
@@ -319,6 +320,7 @@ function IntegratedBuilderInner({
       } catch { /* ignore parse errors */ }
 
       onUpdateConfigRef.current(updated);
+      setHasUnpublished(true);
       return updated;
     } catch { /* ignore */ }
     return configRef.current;
@@ -367,6 +369,7 @@ function IntegratedBuilderInner({
       if (error) throw error;
       onUpdateConfigRef.current(configToSave);
       if (data?.updated_at) setLastPublishedAt(data.updated_at);
+      setHasUnpublished(false);
       toast.success('Publicado para o Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
     } catch (err: any) {
       console.error('[Publish] Erro:', err);
@@ -431,20 +434,34 @@ function IntegratedBuilderInner({
             <Maximize2 className="w-3.5 h-3.5" /> Preview Totem
           </Button>
           <div className="flex flex-col items-end gap-0.5">
-            <Button
-              size="sm"
-              className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={handlePublish}
-              disabled={publishing || !deviceId}
-              title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
-            >
-              <Send className="w-3.5 h-3.5" />
-              {publishing ? 'Publicando...' : 'Publicar no Totem'}
-            </Button>
+            <div className="relative">
+              <Button
+                size="sm"
+                className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handlePublish}
+                disabled={publishing || !deviceId}
+                title={!deviceId ? 'Selecione um dispositivo para publicar' : 'Publicar layout direto no Totem'}
+              >
+                <Send className="w-3.5 h-3.5" />
+                {publishing ? 'Publicando...' : 'Publicar no Totem'}
+              </Button>
+              {hasUnpublished && !publishing && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-warning text-warning-foreground text-[8px] font-bold shadow animate-pulse"
+                  title="Há alterações não publicadas no Totem"
+                  style={{ backgroundColor: 'hsl(48 96% 53%)', color: 'hsl(26 83% 14%)' }}
+                >
+                  !
+                </span>
+              )}
+            </div>
             {lastPublishedAt && (
               <span className="text-[9px] text-muted-foreground leading-none px-0.5 flex items-center gap-0.5">
                 <Clock className="w-2.5 h-2.5 inline" />
                 {formatTimeAgo(lastPublishedAt)}
+                {hasUnpublished && (
+                  <span className="ml-1 font-semibold" style={{ color: 'hsl(48 96% 53%)' }}>· não publicado</span>
+                )}
               </span>
             )}
           </div>
@@ -496,7 +513,13 @@ function IntegratedBuilderInner({
                           <div
                             key={block.name}
                             ref={(ref) => { if (ref) connectors.create(ref, block.element); }}
-                            className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-primary/10 hover:border-primary/30 cursor-grab active:cursor-grabbing transition-all active:scale-95 group"
+                            onClick={() => {
+                              try {
+                                const rootNode = query.node('ROOT').get();
+                                actions.add(block.element, 'ROOT', rootNode.data.nodes?.length ?? 0);
+                              } catch { /* ignore if canvas not ready */ }
+                            }}
+                            className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-primary/10 hover:border-primary/30 cursor-pointer active:cursor-grabbing transition-all active:scale-95 group"
                           >
                             <block.icon className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
                             <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{block.name}</span>

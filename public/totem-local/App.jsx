@@ -935,10 +935,200 @@ const GlobalStyles = () => (
     .toast-enter { animation: toast-in  0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .toast-exit  { animation: toast-out 0.4s ease-in forwards; }
 
+    /* ── Idle Screen ── */
+    @keyframes idle-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes idle-fade-out { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes idle-float {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-14px); }
+    }
+    @keyframes idle-text-pulse {
+      0%,100% { opacity: 1; text-shadow: 0 0 20px rgba(139,92,246,0.6); }
+      50%      { opacity: 0.55; text-shadow: 0 0 40px rgba(139,92,246,0.9); }
+    }
+    @keyframes idle-ring-expand {
+      0%   { transform: scale(0.9); opacity: 0.7; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    @keyframes idle-particle-up {
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0.8; }
+      100% { transform: translateY(-120px) translateX(var(--dx, 0px)) scale(0); opacity: 0; }
+    }
+    @keyframes idle-star-twinkle {
+      0%,100% { opacity: 0; transform: scale(0.5); }
+      50%      { opacity: 1; transform: scale(1); }
+    }
+
+    .idle-screen-in  { animation: idle-fade-in  0.8s ease-out forwards; }
+    .idle-screen-out { animation: idle-fade-out 0.6s ease-in  forwards; }
+
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; overflow: hidden; }
   `}</style>
 );
+
+// ─────────────────────────────────────────────
+// 🌙 IDLE SCREEN — atrai usuários após 60s sem interação
+// ─────────────────────────────────────────────
+const IDLE_TIMEOUT_MS = 60_000;
+const IDLE_PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  x: `${10 + (i * 73 % 80)}%`,
+  delay: `${(i * 0.37) % 3.5}s`,
+  dur: `${2.8 + (i * 0.23) % 2.4}s`,
+  dx: `${-30 + (i * 17 % 60)}px`,
+  size: 3 + (i * 3 % 6),
+  color: i % 3 === 0 ? 'rgba(139,92,246,0.85)' : i % 3 === 1 ? 'rgba(99,102,241,0.8)' : 'rgba(236,72,153,0.75)',
+}));
+
+function IdleScreen({ visible, onWake }) {
+  const [phase, setPhase] = React.useState("hidden"); // hidden | in | visible | out
+
+  React.useEffect(() => {
+    if (visible) {
+      setPhase("in");
+      const t = setTimeout(() => setPhase("visible"), 800);
+      return () => clearTimeout(t);
+    } else {
+      if (phase === "hidden") return;
+      setPhase("out");
+      const t = setTimeout(() => setPhase("hidden"), 700);
+      return () => clearTimeout(t);
+    }
+  }, [visible]);
+
+  if (phase === "hidden") return null;
+
+  return (
+    <div
+      onClick={onWake}
+      onTouchStart={onWake}
+      className={phase === "out" ? "idle-screen-out" : "idle-screen-in"}
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        background: "radial-gradient(ellipse at 50% 60%, rgba(99,102,241,0.18) 0%, rgba(5,10,24,0.92) 70%)",
+        backdropFilter: "blur(2px)",
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      {/* Particles */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+        {IDLE_PARTICLES.map(p => (
+          <div key={p.id} style={{
+            position: "absolute",
+            bottom: "10%",
+            left: p.x,
+            width: p.size,
+            height: p.size,
+            borderRadius: "50%",
+            background: p.color,
+            boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+            '--dx': p.dx,
+            animation: `idle-particle-up ${p.dur} ${p.delay} ease-out infinite`,
+          }} />
+        ))}
+        {/* Star twinkles */}
+        {Array.from({ length: 14 }, (_, i) => (
+          <div key={`s${i}`} style={{
+            position: "absolute",
+            top: `${5 + (i * 61 % 80)}%`,
+            left: `${(i * 71 % 90) + 5}%`,
+            width: 2 + (i % 2),
+            height: 2 + (i % 2),
+            borderRadius: "50%",
+            background: i % 2 === 0 ? "rgba(255,255,255,0.9)" : "rgba(139,92,246,0.8)",
+            animation: `idle-star-twinkle ${1.5 + (i * 0.3) % 2}s ${(i * 0.4) % 2}s ease-in-out infinite`,
+          }} />
+        ))}
+      </div>
+
+      {/* Pulsing glow rings */}
+      {[0, 0.7, 1.4].map((delay, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          width: 220, height: 220,
+          borderRadius: "50%",
+          border: "1.5px solid rgba(139,92,246,0.5)",
+          animation: `idle-ring-expand 3s ${delay}s ease-out infinite`,
+        }} />
+      ))}
+
+      {/* Icon */}
+      <div style={{
+        fontSize: "clamp(52px, 8vw, 80px)",
+        animation: "idle-float 3.5s ease-in-out infinite",
+        marginBottom: 24,
+        filter: "drop-shadow(0 0 24px rgba(139,92,246,0.8))",
+      }}>
+        👋
+      </div>
+
+      {/* Main text */}
+      <div style={{
+        fontSize: "clamp(28px, 4.5vw, 52px)",
+        fontWeight: 800,
+        color: "#ffffff",
+        textAlign: "center",
+        lineHeight: 1.15,
+        animation: "idle-text-pulse 2.8s ease-in-out infinite",
+        marginBottom: 16,
+        padding: "0 32px",
+      }}>
+        Toque para começar
+      </div>
+
+      <div style={{
+        fontSize: "clamp(14px, 1.8vw, 20px)",
+        color: "rgba(255,255,255,0.5)",
+        textAlign: "center",
+        padding: "0 40px",
+        maxWidth: 480,
+      }}>
+        Estou aqui para ajudar você
+      </div>
+
+      {/* Bottom hint */}
+      <div style={{
+        position: "absolute",
+        bottom: 48,
+        fontSize: "clamp(11px, 1.2vw, 14px)",
+        color: "rgba(255,255,255,0.3)",
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}>
+        Toque em qualquer lugar para continuar
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🕐 HOOK: Detecção de inatividade
+// ─────────────────────────────────────────────
+function useIdleDetection(timeoutMs) {
+  const [isIdle, setIsIdle] = React.useState(false);
+  const timerRef = React.useRef(null);
+
+  const reset = React.useCallback(() => {
+    setIsIdle(false);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setIsIdle(true), timeoutMs);
+  }, [timeoutMs]);
+
+  React.useEffect(() => {
+    const events = ["mousemove", "mousedown", "touchstart", "keydown", "scroll", "click"];
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+    reset(); // start timer immediately
+    return () => {
+      events.forEach(e => window.removeEventListener(e, reset));
+      clearTimeout(timerRef.current);
+    };
+  }, [reset]);
+
+  return { isIdle, wake: reset };
+}
 
 // ─────────────────────────────────────────────
 // 🔔 TOAST: Notificação de atualização via polling
@@ -1135,6 +1325,7 @@ export default function App() {
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
   const [toastKey, setToastKey] = useState(0); // increments on each new config → remounts toast
+  const { isIdle, wake } = useIdleDetection(IDLE_TIMEOUT_MS);
 
   // Wrap setLiveUi to also trigger the update toast
   const handleConfigUpdate = useCallback((newUi) => {
@@ -1310,6 +1501,9 @@ export default function App() {
 
       {/* 🔔 CAMADA 4: Toast de atualização via polling */}
       <UpdateToast key={toastKey} visible={toastKey > 0} />
+
+      {/* 🌙 CAMADA 5: Tela idle — aparece após 60s sem interação */}
+      <IdleScreen visible={isIdle} onWake={wake} />
     </>
   );
 }
