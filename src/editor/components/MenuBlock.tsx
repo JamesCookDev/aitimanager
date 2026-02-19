@@ -2,154 +2,161 @@ import { useState } from 'react';
 import { useNode, UserComponent } from '@craftjs/core';
 import { MenuBlockSettings } from '../settings/MenuBlockSettings';
 import { DEFAULT_LAYOUT_PROPS, getLayoutStyle } from '../shared/layoutProps';
+import type { LayoutProps } from '../shared/layoutProps';
 
-export interface MenuItem {
+// Reutiliza o mesmo tipo de item do ChatInterfaceBlock para paridade total
+export interface MenuItemProps {
   id: string;
-  emoji: string;
+  type: 'action' | 'folder';
+  icon: string;
   label: string;
-  action: string;
-  color: string;
+  description?: string;
+  prompt?: string;
+  gradient?: string;
+  children?: MenuItemProps[];
 }
 
-export interface MenuBlockProps {
+// Mantém compatibilidade reversa
+export type MenuItem = MenuItemProps;
+
+export interface MenuBlockProps extends Partial<LayoutProps> {
   title: string;
   titleIcon: string;
-  items: MenuItem[];
-  layout: 'grid' | 'list' | 'pills';
-  columns: number;
-  bgColor: string;
-  bgOpacity: number;
+  items: MenuItemProps[];
   bgBlur: number;
+  bgColor: string;
   borderRadius: number;
   gap: number;
   padding: number;
   titleColor: string;
-  titleFontSize: number;
-  itemBgColor: string;
-  itemTextColor: string;
-  itemFontSize: number;
-  itemBorderRadius: number;
-  showItemEmoji: boolean;
-  collapsible: boolean;
-  defaultOpen: boolean;
+  folderArrowSymbol: string;
+  itemArrowSymbol: string;
+  closeOnSelect: boolean;
+  // legados (mantidos para não quebrar configs antigas)
+  layout?: string;
+  columns?: number;
+  showItemEmoji?: boolean;
+  collapsible?: boolean;
 }
 
-const DEFAULT_ITEMS: MenuItem[] = [
-  { id: '1', emoji: 'ℹ️', label: 'Informações', action: 'Quem é você?', color: '#6366f1' },
-  { id: '2', emoji: '📍', label: 'Localização', action: 'Onde estamos?', color: '#8b5cf6' },
-  { id: '3', emoji: '📞', label: 'Contato', action: 'Como falar conosco?', color: '#10b981' },
-  { id: '4', emoji: '⭐', label: 'Destaques', action: 'Quais são os destaques?', color: '#ec4899' },
+const DEFAULT_ITEMS: MenuItemProps[] = [
+  {
+    id: '1', type: 'folder', icon: '📋', label: 'Serviços',
+    children: [
+      { id: '1-1', type: 'action', icon: '💬', label: 'Informações', prompt: 'Me fale sobre os serviços', gradient: 'from-blue-400 to-indigo-400' },
+      { id: '1-2', type: 'action', icon: '📍', label: 'Localização', prompt: 'Onde fica o local?', gradient: 'from-teal-400 to-cyan-400' },
+    ],
+  },
+  { id: '2', type: 'action', icon: '⭐', label: 'Destaques', prompt: 'Quais são os destaques?', gradient: 'from-orange-400 to-yellow-400' },
+  { id: '3', type: 'action', icon: '🆘', label: 'Ajuda', prompt: 'Preciso de ajuda', gradient: 'from-rose-400 to-red-400' },
 ];
+
+// Extrai as classes Tailwind do gradiente para o CSS inline
+function gradientToCss(gradient: string = 'from-blue-400 to-indigo-400'): string {
+  const map: Record<string, string> = {
+    'from-blue-400 to-indigo-400': 'linear-gradient(135deg, #60a5fa, #818cf8)',
+    'from-teal-400 to-cyan-400': 'linear-gradient(135deg, #2dd4bf, #22d3ee)',
+    'from-purple-400 to-pink-400': 'linear-gradient(135deg, #c084fc, #f472b6)',
+    'from-orange-400 to-yellow-400': 'linear-gradient(135deg, #fb923c, #facc15)',
+    'from-green-400 to-emerald-400': 'linear-gradient(135deg, #4ade80, #34d399)',
+    'from-rose-400 to-red-400': 'linear-gradient(135deg, #fb7185, #f87171)',
+  };
+  return map[gradient] || map['from-blue-400 to-indigo-400'];
+}
+
+/** Item de menu suspense — ação ou pasta colapsável */
+function MenuDropdownItem({
+  item,
+  depth = 0,
+  folderArrow = '▼',
+  itemArrow = '→',
+  onSelect,
+}: {
+  item: MenuItemProps;
+  depth?: number;
+  folderArrow?: string;
+  itemArrow?: string;
+  onSelect?: (item: MenuItemProps) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isFolder = item.type === 'folder' || (item.children && item.children.length > 0);
+  const bg = gradientToCss(item.gradient);
+
+  return (
+    <div style={{ marginLeft: depth * 12 }}>
+      <div
+        onClick={() => {
+          if (isFolder) { setOpen((v) => !v); }
+          else { onSelect?.(item); }
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 16px',
+          background: isFolder ? 'rgba(255,255,255,0.07)' : `${bg.replace(')', ', 0.18)').replace('linear-gradient(', 'linear-gradient(')}`,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: 16,
+          marginBottom: 6,
+          cursor: 'pointer',
+          border: '1px solid rgba(255,255,255,0.12)',
+          fontSize: 13,
+          color: '#fff',
+          fontWeight: 600,
+          letterSpacing: '-0.01em',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+          transition: 'all 0.15s ease',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
+        <span style={{ flex: 1 }}>{item.label}</span>
+        {item.description && (
+          <span style={{ fontSize: 11, opacity: 0.6 }}>{item.description}</span>
+        )}
+        <span style={{ opacity: 0.6, fontSize: 11, flexShrink: 0 }}>
+          {isFolder ? (open ? '▲' : folderArrow) : itemArrow}
+        </span>
+      </div>
+
+      {/* Sub-itens */}
+      {isFolder && open && (
+        <div style={{ marginBottom: 4 }}>
+          {(item.children || []).map((child) => (
+            <MenuDropdownItem
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              folderArrow={folderArrow}
+              itemArrow={itemArrow}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const MenuBlock: UserComponent<Partial<MenuBlockProps>> = (allProps) => {
   const {
-    title = 'Menu',
+    title = 'Menu Interativo',
     titleIcon = '💬',
     items = DEFAULT_ITEMS,
-    layout = 'grid',
-    columns = 2,
-    bgColor = 'rgba(30,41,59,0.65)',
-    bgOpacity = 1,
     bgBlur = 20,
+    bgColor = 'rgba(30,41,59,0.75)',
     borderRadius = 28,
-    gap = 10,
+    gap = 8,
     padding = 20,
     titleColor = '#ffffff',
-    titleFontSize = 15,
-    itemBgColor = 'rgba(255,255,255,0.08)',
-    itemTextColor = '#ffffff',
-    itemFontSize = 14,
-    itemBorderRadius = 18,
-    showItemEmoji = true,
-    collapsible = false,
-    defaultOpen = true,
+    folderArrowSymbol = '▼',
+    itemArrowSymbol = '→',
   } = allProps;
 
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
     isActive: node.events.selected,
   }));
-
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  const renderItems = () => {
-    if (layout === 'pills') {
-      return (
-        <div className="flex flex-wrap" style={{ gap }}>
-          {items.map((item) => (
-            <button
-              key={item.id}
-              className="inline-flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-              style={{
-                background: `linear-gradient(135deg, ${item.color}33, ${item.color}18)`,
-                color: itemTextColor,
-                fontSize: itemFontSize,
-                borderRadius: 999,
-                padding: '10px 20px',
-                border: `1px solid ${item.color}55`,
-                fontWeight: 600,
-                backdropFilter: 'blur(12px)',
-                boxShadow: `0 2px 12px ${item.color}22`,
-                letterSpacing: '-0.01em',
-              }}
-              onClick={(e) => e.preventDefault()}
-            >
-              {showItemEmoji && <span>{item.emoji}</span>}
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    const gridStyle = layout === 'grid'
-      ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }
-      : { display: 'flex', flexDirection: 'column' as const, gap };
-
-    return (
-      <div style={gridStyle}>
-        {items.map((item) => (
-          <button
-            key={item.id}
-            className="flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
-            style={{
-              background: `linear-gradient(135deg, ${item.color}22, rgba(255,255,255,0.05))`,
-              color: itemTextColor,
-              fontSize: itemFontSize,
-              borderRadius: itemBorderRadius,
-              padding: layout === 'list' ? '14px 18px' : '16px 14px',
-              border: `1px solid ${item.color}33`,
-              textAlign: layout === 'grid' ? 'center' : 'left',
-              flexDirection: layout === 'grid' ? 'column' : 'row',
-              fontWeight: 600,
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              minHeight: 52,
-              boxShadow: `0 4px 16px rgba(0,0,0,0.18), 0 0 0 1px ${item.color}18`,
-              letterSpacing: '-0.01em',
-            }}
-            onClick={(e) => e.preventDefault()}
-          >
-            {showItemEmoji && (
-              <span
-                className="flex items-center justify-center shrink-0"
-                style={{
-                  width: layout === 'grid' ? 42 : 36,
-                  height: layout === 'grid' ? 42 : 36,
-                  borderRadius: layout === 'grid' ? 16 : 12,
-                  background: `linear-gradient(135deg, ${item.color}40, ${item.color}20)`,
-                  border: `1px solid ${item.color}40`,
-                  fontSize: layout === 'grid' ? 20 : 18,
-                }}
-              >
-                {item.emoji}
-              </span>
-            )}
-            <span className="truncate">{item.label}</span>
-          </button>
-        ))}
-      </div>
-    );
-  };
 
   const layoutStyle = getLayoutStyle(allProps as any);
 
@@ -162,31 +169,37 @@ export const MenuBlock: UserComponent<Partial<MenuBlockProps>> = (allProps) => {
       <div
         style={{
           backgroundColor: bgColor,
-          opacity: bgOpacity,
           borderRadius,
           padding,
-          backdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.5)` : undefined,
-          WebkitBackdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.5)` : undefined,
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          backdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.6)` : undefined,
+          WebkitBackdropFilter: bgBlur > 0 ? `blur(${bgBlur}px) saturate(1.6)` : undefined,
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
         }}
       >
+        {/* Header */}
         {title && (
-          <button
-            className="w-full flex items-center gap-2.5 mb-4"
-            style={{ color: titleColor, fontSize: titleFontSize, fontWeight: 700, letterSpacing: '-0.02em' }}
-            onClick={() => collapsible && setIsOpen(!isOpen)}
+          <div
+            className="flex items-center gap-2.5 mb-4"
+            style={{ color: titleColor, fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}
           >
-            <span style={{ fontSize: titleFontSize * 1.2 }}>{titleIcon}</span>
+            <span style={{ fontSize: 18 }}>{titleIcon}</span>
             <span>{title}</span>
-            {collapsible && (
-              <span className="ml-auto text-sm opacity-50" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                ▾
-              </span>
-            )}
-          </button>
+          </div>
         )}
-        {(!collapsible || isOpen) && renderItems()}
+
+        {/* Items */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap }}>
+          {(items || []).map((item) => (
+            <MenuDropdownItem
+              key={item.id}
+              item={item}
+              folderArrow={folderArrowSymbol}
+              itemArrow={itemArrowSymbol}
+              onSelect={() => { /* no-op no editor */ }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -197,23 +210,15 @@ MenuBlock.craft = {
     title: 'Menu Interativo',
     titleIcon: '💬',
     items: DEFAULT_ITEMS,
-    layout: 'grid',
-    columns: 2,
-    bgColor: 'rgba(30,41,59,0.65)',
-    bgOpacity: 1,
     bgBlur: 20,
+    bgColor: 'rgba(30,41,59,0.75)',
     borderRadius: 28,
-    gap: 10,
+    gap: 8,
     padding: 20,
     titleColor: '#ffffff',
-    titleFontSize: 15,
-    itemBgColor: 'rgba(255,255,255,0.08)',
-    itemTextColor: '#ffffff',
-    itemFontSize: 14,
-    itemBorderRadius: 18,
-    showItemEmoji: true,
-    collapsible: false,
-    defaultOpen: true,
+    folderArrowSymbol: '▼',
+    itemArrowSymbol: '→',
+    closeOnSelect: true,
     ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: MenuBlockSettings },

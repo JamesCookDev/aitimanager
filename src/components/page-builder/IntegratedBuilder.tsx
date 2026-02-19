@@ -394,23 +394,30 @@ function IntegratedBuilderInner({
     if (!deviceId) { toast.error('Nenhum dispositivo selecionado'); return; }
     setPublishing(true);
     try {
-      const json = query.serialize();
+      // Força sync antes de publicar para garantir dados mais recentes
+      let json: string;
+      try { json = query.serialize(); } catch { json = lastSyncedJsonRef.current || '{}'; }
+
       const current = configRef.current;
       const configToSave = { ...current, craft_blocks: json };
+
       const { data, error } = await supabase
         .from('devices')
         .update({ ui_config: configToSave as any })
         .eq('id', deviceId)
         .select('updated_at')
         .single();
+
       if (error) throw error;
+
       onUpdateConfigRef.current(configToSave);
+      lastSyncedJsonRef.current = json;
       if (data?.updated_at) setLastPublishedAt(data.updated_at);
       setHasUnpublished(false);
-      toast.success('Salvo e publicado no Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo de polling.' });
+      toast.success('✅ Publicado no Totem!', { description: 'O hardware receberá as mudanças no próximo ciclo.' });
     } catch (err: any) {
       console.error('[Publish] Erro:', err);
-      toast.error('Erro ao salvar', { description: err.message });
+      toast.error('Erro ao publicar', { description: err?.message ?? 'Verifique sua conexão e tente novamente.' });
     } finally {
       setPublishing(false);
     }
@@ -425,94 +432,80 @@ function IntegratedBuilderInner({
     <div className="flex flex-col h-[calc(100vh-11rem)] rounded-xl border border-border bg-card overflow-hidden">
 
       {/* ═══ TOP BAR ═══ */}
-      <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-foreground tracking-tight">{deviceName}</span>
-          <div className="flex items-center gap-1.5">
-            <div className={cn('w-2 h-2 rounded-full', isOnline ? 'bg-primary' : 'bg-muted-foreground/40')} />
-            <span className="text-[11px] text-muted-foreground">{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-          {/* Live preview badge */}
+      <div className="flex items-center justify-between px-3 h-12 border-b border-border bg-card shrink-0 gap-2">
+
+        {/* Esquerda: nome + status + live */}
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <span className="text-sm font-semibold text-foreground tracking-tight truncate max-w-[120px]">{deviceName}</span>
+          <div className={cn('w-2 h-2 rounded-full shrink-0', isOnline ? 'bg-primary' : 'bg-muted-foreground/40')} />
           {liveActive && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0"
               style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
-              <Radio className="w-2.5 h-2.5 animate-pulse" />
-              Ao Vivo
+              <Radio className="w-2 h-2 animate-pulse" /> Ao Vivo
             </div>
           )}
         </div>
 
-        {/* Center: mode toggle */}
-        <div className="flex items-center bg-muted rounded-lg p-0.5">
+        {/* Centro: modo Editar | Preview */}
+        <div className="flex items-center bg-muted rounded-lg p-0.5 shrink-0">
           <button
             onClick={() => setPreviewMode(false)}
-            className={cn(
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
-              !previewMode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            )}
+            className={cn('px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1',
+              !previewMode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}
           >
-            <Edit3 className="w-3.5 h-3.5 inline mr-1.5" />Editar
+            <Edit3 className="w-3 h-3" /> Editar
           </button>
           <button
             onClick={() => setPreviewMode(true)}
-            className={cn(
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
-              previewMode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            )}
+            className={cn('px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1',
+              previewMode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}
           >
-            <Eye className="w-3.5 h-3.5 inline mr-1.5" />Preview
+            <Eye className="w-3 h-3" /> Preview
           </button>
         </div>
 
-        {/* Right: actions */}
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canUndo} onClick={() => actions.history.undo()} title="Desfazer">
-            <Undo2 className="w-4 h-4" />
+        {/* Direita: undo/redo + preview totem + publicar */}
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={!canUndo} onClick={() => actions.history.undo()} title="Desfazer (Ctrl+Z)">
+            <Undo2 className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canRedo} onClick={() => actions.history.redo()} title="Refazer">
-            <Redo2 className="w-4 h-4" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={!canRedo} onClick={() => actions.history.redo()} title="Refazer (Ctrl+Y)">
+            <Redo2 className="w-3.5 h-3.5" />
           </Button>
-          <div className="w-px h-5 bg-border mx-1" />
-          <Button variant="ghost" size="sm" className="text-xs gap-1.5 h-8" onClick={handleExport}>
-            <Download className="w-3.5 h-3.5" /> Exportar
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleExport} title="Exportar JSON">
+            <Download className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-xs gap-1.5 h-8" onClick={handleImport}>
-            <Upload className="w-3.5 h-3.5" /> Importar
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleImport} title="Importar JSON">
+            <Upload className="w-3.5 h-3.5" />
           </Button>
-          <div className="w-px h-5 bg-border mx-1" />
-          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={onFullscreen}>
-            <Maximize2 className="w-3.5 h-3.5" /> Preview Totem
+          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-7 px-2.5" onClick={onFullscreen} title="Fullscreen Totem">
+            <Maximize2 className="w-3 h-3" />
+            <span className="hidden sm:inline">Preview</span>
           </Button>
-          <div className="flex flex-col items-end gap-0.5">
-            <div className="relative">
-              <Button
-                size="sm"
-                className="text-xs gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handlePublish}
-                disabled={publishing || !deviceId}
-                title={!deviceId ? 'Selecione um dispositivo para salvar' : 'Salvar e publicar no Totem'}
-              >
-                <Send className="w-3.5 h-3.5" />
-                {publishing ? 'Salvando...' : hasUnpublished ? 'Salvar & Publicar' : 'Salvo & Publicado'}
-              </Button>
-              {hasUnpublished && !publishing && (
-                <span
-                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold shadow animate-pulse"
-                  title="Há alterações não salvas"
-                  style={{ backgroundColor: 'hsl(48 96% 53%)', color: 'hsl(26 83% 14%)' }}
-                >
-                  !
-                </span>
+          <div className="w-px h-4 bg-border mx-0.5" />
+          {/* Botão Publicar — estado visual claro */}
+          <div className="relative">
+            <Button
+              size="sm"
+              className={cn(
+                'text-xs gap-1.5 h-7 px-3 font-semibold transition-all',
+                hasUnpublished
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
               )}
-            </div>
-            {lastPublishedAt && (
-              <span className="text-[9px] text-muted-foreground leading-none px-0.5 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5 inline" />
-                {formatTimeAgo(lastPublishedAt)}
-                {hasUnpublished && (
-                  <span className="ml-1 font-semibold" style={{ color: 'hsl(48 96% 53%)' }}>· não salvo</span>
-                )}
-              </span>
+              onClick={handlePublish}
+              disabled={publishing || !deviceId}
+              title={!deviceId ? 'Selecione um dispositivo' : hasUnpublished ? 'Publicar alterações no Totem' : 'Tudo publicado'}
+            >
+              <Send className="w-3 h-3" />
+              {publishing ? 'Publicando...' : hasUnpublished ? 'Publicar' : 'Publicado ✓'}
+            </Button>
+            {hasUnpublished && !publishing && (
+              <span
+                className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold animate-pulse"
+                style={{ backgroundColor: 'hsl(48 96% 53%)', color: 'hsl(26 83% 14%)' }}
+              >!</span>
             )}
           </div>
         </div>
@@ -637,12 +630,18 @@ function IntegratedBuilderInner({
       {/* ═══ BOTTOM STATUS BAR ═══ */}
       <div className="h-7 flex items-center justify-between px-4 border-t border-border bg-card/80 shrink-0">
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
-          <span>1080×1920 (9:16)</span>
-          <span>•</span>
-          <span>{Object.keys(BLOCK_CATEGORIES).length} categorias • {BLOCK_CATEGORIES.reduce((a, c) => a + c.blocks.length, 0)} blocos</span>
+          <span>Totem 1080×1920</span>
+          {lastPublishedAt && (
+            <>
+              <span>•</span>
+              <span className={hasUnpublished ? 'text-yellow-500/80' : ''}>
+                {hasUnpublished ? '● Alterações não publicadas' : `✓ Publicado ${formatTimeAgo(lastPublishedAt)}`}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-          <span>{previewMode ? 'Modo Preview' : 'Modo Edição'}</span>
+          <span>{previewMode ? '👁 Preview' : '✏️ Edição'}</span>
         </div>
       </div>
     </div>
