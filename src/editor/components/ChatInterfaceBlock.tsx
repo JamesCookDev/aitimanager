@@ -25,6 +25,7 @@ export interface ChatInterfaceBlockProps extends Partial<LayoutProps> {
   headerIndicatorColor: string;
   ctaText: string;
   ctaIcon: string;
+  ctaButtonText: string;
   opacity: number;
   blur: number;
   zIndex: number;
@@ -115,6 +116,7 @@ export const ChatInterfaceBlock: UserComponent<Partial<ChatInterfaceBlockProps>>
     headerIndicatorColor = '#10b981',
     ctaText = 'Como posso ajudar?',
     ctaIcon = '💬',
+    ctaButtonText = 'Iniciar Conversa',
     opacity = 1,
     blur = 20,
     zIndex = 1000,
@@ -232,6 +234,7 @@ ChatInterfaceBlock.craft = {
     headerIndicatorColor: '#10b981',
     ctaText: 'Como posso ajudar?',
     ctaIcon: '💬',
+    ctaButtonText: 'Iniciar Conversa',
     opacity: 1,
     blur: 20,
     zIndex: 1000,

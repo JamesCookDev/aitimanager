@@ -68,18 +68,32 @@ function MenuDropdownItem({
 }) {
   const [open, setOpen] = useState(false);
   const isFolder = item.type === 'folder' || (item.children && item.children.length > 0);
-  const bg = gradientToCss(item.gradient);
+
+  const handleClick = () => {
+    if (isFolder) {
+      setOpen((v) => !v);
+    } else {
+      onSelect?.(item);
+      // Fire prompt via totem bridge when running in hardware
+      const msg = item.prompt || item.label || '';
+      if (msg && typeof (window as any).__totemSendMessage === 'function') {
+        (window as any).__totemSendMessage(msg);
+      }
+    }
+  };
 
   return (
     <div style={{ marginLeft: depth * 12 }}>
-      <div
-        onClick={() => { if (isFolder) setOpen((v) => !v); else onSelect?.(item); }}
+      <button
+        type="button"
+        onClick={handleClick}
         style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-          background: isFolder ? 'rgba(255,255,255,0.07)' : bg.replace(')', ', 0.18)').replace('linear-gradient(', 'linear-gradient('),
+          background: isFolder ? 'rgba(255,255,255,0.07)' : 'rgba(99,102,241,0.18)',
           backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
           borderRadius: 16, marginBottom: 6, cursor: 'pointer',
-          border: '1px solid rgba(255,255,255,0.12)', fontSize: 13, color: '#fff',
+          border: `1px solid ${isFolder && open ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.12)'}`,
+          fontSize: 13, color: '#fff', width: '100%', textAlign: 'left',
           fontWeight: 600, letterSpacing: '-0.01em', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
           transition: 'all 0.15s ease', userSelect: 'none',
         }}
@@ -90,7 +104,7 @@ function MenuDropdownItem({
         <span style={{ opacity: 0.6, fontSize: 11, flexShrink: 0 }}>
           {isFolder ? (open ? '▲' : folderArrow) : itemArrow}
         </span>
-      </div>
+      </button>
       {isFolder && open && (
         <div style={{ marginBottom: 4 }}>
           {(item.children || []).map((child) => (

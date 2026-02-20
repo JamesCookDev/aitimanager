@@ -22,6 +22,7 @@ import { Leva } from "leva";
 import { Scenario } from "./components/Scenario";
 import { useCMSConfig } from "./hooks/useCMSConfig";
 import { ChatInterface } from "./components/ChatInterface";
+// ChatInterface is used as InlineChatInterface replacement below
 
 // ─── Supabase client (live preview) ───────────
 const _supabase = createClient(
@@ -256,19 +257,10 @@ const LiveCountdown = React.memo(({ mode, targetDate, countdownMinutes, showLabe
 // ─────────────────────────────────────────────
 
 /**
- * InlineChatInterface — Kiosk Premium UI
- * Mantém toda a lógica de estado, handlers e renderNode idênticos.
- * Apenas o visual foi redesenhado com glassmorphism + kiosk scale.
+ * InlineChatInterface — usa o componente ChatInterface importado
+ * e adapta as props vindas do Craft.js para posicionamento absoluto na tela.
  */
 function InlineChatInterface({ p }) {
-  const [dropOpen, setDropOpen] = React.useState(false);
-  const [activeSubmenu, setActiveSubmenu] = React.useState(null);
-
-  const items = Array.isArray(p.items) ? p.items : [];
-  const blur = p.blur ?? 20;
-  const opacity = p.opacity ?? 1;
-
-  const headerShow = p.headerShow !== false;
   const position = p.position || 'center';
   const posStyles = {
     bottom_right: { bottom: 32, right: 32 },
@@ -279,202 +271,27 @@ function InlineChatInterface({ p }) {
   };
   const posStyle = posStyles[position] || posStyles.center;
 
-  const handleAction = (node) => {
-    const msg = node.prompt || node.message || node.label || '';
-    if (msg && window.__totemSendMessage) window.__totemSendMessage(msg);
-    if (p.closeOnSelect !== false) { setDropOpen(false); setActiveSubmenu(null); }
-  };
-
-  const renderNode = (node, depth = 0) => {
-    const isFolder = node.type === 'folder' || (node.children && node.children.length > 0);
-    const isOpen = activeSubmenu === node.id || String(activeSubmenu || '').startsWith(`${node.id}-`);
-    return (
-      <div key={node.id} style={{ marginLeft: depth * 16 }}>
-        <div
-          className="kiosk-menu-item"
-          onClick={isFolder ? () => setActiveSubmenu(isOpen ? null : node.id) : () => handleAction(node)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: depth === 0 ? '16px 20px' : '12px 16px',
-            background: isFolder && isOpen
-              ? 'rgba(99,102,241,0.15)'
-              : 'rgba(255,255,255,0.05)',
-            borderRadius: 16, marginBottom: 6,
-            border: `1px solid ${isFolder && isOpen ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
-            color: '#fff',
-          }}
-        >
-          {/* Icon pill */}
-          <div style={{
-            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-            background: node.gradient
-              ? `linear-gradient(135deg, ${node.gradient.replace('from-', '').split(' ')[0]}, ${node.gradient.split(' ').pop()})`
-              : 'rgba(99,102,241,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            {node.icon}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-              {node.label}
-            </div>
-            {node.description && (
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {node.description}
-              </div>
-            )}
-          </div>
-          {isFolder
-            ? <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }}>
-                {p.folderArrowSymbol || '▾'}
-              </span>
-            : <div style={{
-                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, color: 'rgba(255,255,255,0.5)',
-              }}>
-                {p.itemArrowSymbol || '→'}
-              </div>
-          }
-        </div>
-        {isFolder && isOpen && (
-          <div style={{ animation: 'kiosk-menu-in 0.2s ease-out forwards' }}>
-            {(node.children || []).map(c => renderNode(c, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className="kiosk-card" style={{
+    <div style={{
       position: 'absolute', zIndex: p.zIndex || 1000, ...posStyle,
       pointerEvents: 'auto', width: 'min(520px, calc(100vw - 64px))',
     }}>
-
-      {/* ── Menu dropdown (abre acima do card) ── */}
-      {dropOpen && (
-        <div className="kiosk-menu-panel" style={{
-          marginBottom: 12,
-          background: 'rgba(10, 14, 28, 0.88)',
-          backdropFilter: `blur(${blur + 4}px)`, WebkitBackdropFilter: `blur(${blur + 4}px)`,
-          border: '1px solid rgba(99,102,241,0.25)',
-          borderRadius: 24, padding: '12px 12px 8px',
-          maxHeight: '60vh', overflowY: 'auto', opacity,
-          boxShadow: '0 -8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}>
-          {/* Menu header */}
-          <div style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'rgba(99,102,241,0.8)', padding: '4px 8px 10px',
-          }}>
-            O que você precisa?
-          </div>
-          {items.length === 0
-            ? <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14, padding: '20px 0' }}>
-                Nenhum item configurado
-              </p>
-            : items.map(item => renderNode(item))}
-        </div>
-      )}
-
-      {/* ── Glass card principal ── */}
-      <div style={{
-        background: 'rgba(8, 12, 24, 0.72)',
-        backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`,
-        borderRadius: 28,
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 8px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
-        overflow: 'hidden', opacity,
-      }}>
-
-        {/* Header strip */}
-        {headerShow && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 24px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Pulsing online dot */}
-              <div style={{ position: 'relative', width: 10, height: 10 }}>
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: '50%',
-                  backgroundColor: p.headerIndicatorColor || '#10b981',
-                }} />
-                <div className="kiosk-glow-ring" style={{
-                  position: 'absolute', inset: -4, borderRadius: '50%',
-                  border: `2px solid ${p.headerIndicatorColor || '#10b981'}`,
-                  animation: 'kiosk-glow-ring 2s ease-out infinite',
-                }} />
-              </div>
-              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
-                {p.headerTitle || 'Assistente Virtual'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-              <span>{p.headerIcon || '📍'}</span>
-              <span>{p.headerSubtitle || 'Online agora'}</span>
-            </div>
-          </div>
-        )}
-
-        {/* CTA area */}
-        <div style={{ padding: headerShow ? '20px 24px 24px' : '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-          {/* Welcome text */}
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{
-              margin: 0, fontSize: 'clamp(24px, 3.5vw, 42px)', fontWeight: 800,
-              color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1,
-              textShadow: '0 2px 20px rgba(0,0,0,0.4)',
-            }}>
-              {p.ctaText || 'Olá, como posso ajudar?'}
-            </h2>
-            <p style={{
-              margin: '10px 0 0', fontSize: 'clamp(14px, 1.8vw, 19px)',
-              color: 'rgba(255,255,255,0.5)', letterSpacing: '-0.01em',
-            }}>
-              Toque para iniciar uma conversa
-            </p>
-          </div>
-
-          {/* CTA pill button */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: 360 }}>
-            {/* Glow ring behind button */}
-            <div style={{
-              position: 'absolute', inset: -8, borderRadius: 999,
-              background: 'radial-gradient(ellipse, rgba(99,102,241,0.35) 0%, transparent 70%)',
-              pointerEvents: 'none',
-            }} />
-            <button
-              className="kiosk-cta-btn"
-              onClick={() => setDropOpen(!dropOpen)}
-              type="button"
-              style={{
-                position: 'relative', width: '100%',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
-                color: '#fff', border: 'none', borderRadius: 999,
-                padding: 'clamp(16px, 2.2vw, 22px) clamp(32px, 4vw, 48px)',
-                fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 700,
-                letterSpacing: '-0.01em', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-                minHeight: 64,
-              }}
-            >
-              <span style={{ fontSize: 'clamp(22px, 2.5vw, 28px)' }}>{p.ctaIcon || '💬'}</span>
-              <span>Iniciar Conversa</span>
-              <span style={{
-                fontSize: 'clamp(14px, 1.6vw, 18px)', opacity: 0.75,
-                transform: dropOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.25s',
-              }}>
-                {dropOpen ? '▲' : '▾'}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <ChatInterface
+        items={Array.isArray(p.items) ? p.items : []}
+        blur={p.blur ?? 20}
+        opacity={p.opacity ?? 1}
+        headerShow={p.headerShow !== false}
+        headerTitle={p.headerTitle || 'Assistente Virtual'}
+        headerSubtitle={p.headerSubtitle || 'Online agora'}
+        headerIcon={p.headerIcon || '📍'}
+        headerIndicatorColor={p.headerIndicatorColor || '#10b981'}
+        ctaText={p.ctaText || 'Olá, como posso ajudar?'}
+        ctaIcon={p.ctaIcon || '💬'}
+        ctaButtonText={p.ctaButtonText || 'Iniciar Conversa'}
+        folderArrowSymbol={p.folderArrowSymbol || '▾'}
+        itemArrowSymbol={p.itemArrowSymbol || '→'}
+        closeOnSelect={p.closeOnSelect !== false}
+      />
     </div>
   );
 }
