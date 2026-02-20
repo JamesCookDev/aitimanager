@@ -41,8 +41,9 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps & LayoutProps>>
     iconPosition = 'left',
   } = props;
 
-  const { connectors: { connect, drag }, isActive } = useNode((node) => ({
+  const { connectors: { connect, drag }, isActive, isHovered } = useNode((node) => ({
     isActive: node.events.selected,
+    isHovered: node.events.hovered,
   }));
 
   const shadowMap = {
@@ -60,10 +61,17 @@ export const ButtonBlock: UserComponent<Partial<ButtonBlockProps & LayoutProps>>
   const layoutStyle = getLayoutStyle(props as any);
 
   return (
-    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto', opacity }}>
+    <div style={{
+      ...layoutStyle,
+      cursor: 'move',
+      pointerEvents: 'auto',
+      opacity,
+      zIndex: isActive ? 50 : isHovered ? 40 : (layoutStyle.zIndex || undefined),
+      isolation: 'isolate',
+    }}>
       <div
         ref={(ref) => { if (ref) connect(drag(ref)); }}
-        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-sm' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-md shadow-lg shadow-primary/20' : isHovered ? 'ring-1 ring-primary/50 rounded-md' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
         style={{ padding: 4 }}
       >
         <button
