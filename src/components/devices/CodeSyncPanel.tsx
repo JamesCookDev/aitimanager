@@ -302,26 +302,87 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
         </CardContent>
       </Card>
 
-      {/* Instruções */}
+      {/* Sync Worker */}
+      <Card className="card-industrial">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-primary" />
+            Sync Worker Automático
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Rode o worker no hardware para sincronizar arquivos automaticamente sempre que o Hub for atualizado.
+            Não requer nenhuma dependência extra — apenas Node.js.
+          </p>
+
+          {/* Passo 1 */}
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-foreground">1. Configure o .env no hardware</p>
+            <div className="bg-muted rounded-md p-2.5 font-mono text-[11px] text-foreground space-y-0.5 border border-border">
+              <p><span className="text-muted-foreground"># Copie .env.sync.example → .env e preencha:</span></p>
+              <p>HUB_URL=<span className="text-primary">https://seu-hub.lovable.app</span></p>
+              <p>SYNC_INTERVAL_MS=<span className="text-warning">30000</span></p>
+              <p>RESTART_COMMAND=<span className="text-warning">pm2 restart totem</span></p>
+            </div>
+          </div>
+
+          {/* Passo 2 */}
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-foreground">2. Inicie o worker</p>
+            <div className="bg-muted rounded-md p-2.5 font-mono text-[11px] text-foreground border border-border">
+              <p><span className="text-muted-foreground">$</span> node sync-worker.js</p>
+            </div>
+          </div>
+
+          {/* Fluxo */}
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+            <p className="text-foreground font-semibold text-[11px] mb-1">Fluxo automático</p>
+            <div className="flex items-start gap-1.5">
+              <span className="text-primary font-bold">1.</span>
+              <span>Você edita um arquivo em <code className="text-foreground">public/totem-local/</code> no Hub e incrementa a versão no <code className="text-foreground">manifest.json</code></span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="text-primary font-bold">2.</span>
+              <span>O worker detecta a diferença de versão e baixa o arquivo atualizado direto do Hub</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="text-primary font-bold">3.</span>
+              <span>Se o arquivo for crítico, o totem é reiniciado automaticamente via <code className="text-foreground">RESTART_COMMAND</code></span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="text-primary font-bold">4.</span>
+              <span>O próximo heartbeat reporta as novas versões e o painel acima fica verde ✅</span>
+            </div>
+          </div>
+
+          {/* Aviso backup */}
+          <p className="text-[10px] text-muted-foreground">
+            O worker mantém um backup <code className="font-mono">.bak</code> de cada arquivo antes de substituir (desative com <code className="font-mono">BACKUP_FILES=false</code>).
+            Estado local salvo em <code className="font-mono">.sync-state.json</code>.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Instruções manuais */}
       <Card className="card-industrial">
         <CardContent className="pt-4">
-          <p className="text-xs font-semibold text-foreground mb-2">Como manter sincronizado</p>
+          <p className="text-xs font-semibold text-foreground mb-2">Atualização manual (sem o worker)</p>
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
             <li>
               Edite os arquivos em{' '}
               <code className="text-foreground font-mono">public/totem-local/</code> no Hub
             </li>
             <li>
-              Atualize a versão do arquivo em{' '}
-              <code className="text-foreground font-mono">manifest.json</code> e no topo de{' '}
-              <code className="text-foreground font-mono">App.jsx</code> (constante{' '}
-              <code className="text-foreground font-mono">LOCAL_FILE_VERSIONS</code>)
+              Incremente a versão em{' '}
+              <code className="text-foreground font-mono">manifest.json</code> e na constante{' '}
+              <code className="text-foreground font-mono">LOCAL_FILE_VERSIONS</code> do <code className="text-foreground font-mono">App.jsx</code>
             </li>
-            <li>Copie os arquivos modificados para o hardware local do totem</li>
-            <li>Reinicie o totem — o novo heartbeat reportará as versões atualizadas</li>
+            <li>Copie os arquivos modificados para o hardware e reinicie o totem</li>
           </ol>
         </CardContent>
       </Card>
     </div>
   );
 }
+
