@@ -537,30 +537,6 @@ function IntegratedBuilderInner({
               <span className="hidden sm:inline">{restarting ? '...' : 'Reiniciar'}</span>
             </Button>
           )}
-          {/* Botão Publicar — estado visual claro */}
-          <div className="relative">
-            <Button
-              size="sm"
-              className={cn(
-                'text-xs gap-1.5 h-7 px-3 font-semibold transition-all',
-                hasUnpublished
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
-              )}
-              onClick={handlePublish}
-              disabled={publishing}
-              title={hasUnpublished ? 'Publicar alterações no Totem' : 'Tudo publicado'}
-            >
-              <Send className="w-3 h-3" />
-              {publishing ? 'Publicando...' : hasUnpublished ? 'Publicar' : 'Publicado ✓'}
-            </Button>
-            {hasUnpublished && !publishing && (
-              <span
-                className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold animate-pulse"
-                style={{ backgroundColor: 'hsl(48 96% 53%)', color: 'hsl(26 83% 14%)' }}
-              >!</span>
-            )}
-          </div>
         </div>
       </div>
 
@@ -685,14 +661,6 @@ function IntegratedBuilderInner({
       <div className="h-7 flex items-center justify-between px-4 border-t border-border bg-card/80 shrink-0">
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
           <span>{CANVAS_WIDTHS[canvasWidthIdx]}px preview</span>
-          {lastPublishedAt && (
-            <>
-              <span>•</span>
-              <span className={hasUnpublished ? 'text-yellow-500/80' : ''}>
-                {hasUnpublished ? '● Alterações não publicadas' : `✓ Publicado ${formatTimeAgo(lastPublishedAt)}`}
-              </span>
-            </>
-          )}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
           <span>{previewMode ? '👁 Preview' : '✏️ Edição'}</span>

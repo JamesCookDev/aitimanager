@@ -1560,10 +1560,54 @@ export default function App() {
     return { ...ui, canvas: { ...(ui?.canvas || {}), ...effectiveSceneOverride } };
   }, [ui, sceneOverride, remoteSceneConfig]);
 
+  // ── Pan com mouse ──────────────────────────────────────────────────────
+  const panRef = useRef({ dragging: false, startX: 0, startY: 0, scrollX: 0, scrollY: 0 });
+  const outerRef = useRef(null);
+
+  const handleMouseDown = useCallback((e) => {
+    // Só arrastar com botão do meio (roda) ou com Alt + botão esquerdo
+    if (e.button !== 1 && !(e.button === 0 && e.altKey)) return;
+    e.preventDefault();
+    const state = panRef.current;
+    state.dragging = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.scrollX = outerRef.current?.scrollLeft ?? 0;
+    state.scrollY = outerRef.current?.scrollTop ?? 0;
+    document.body.style.cursor = "grab";
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    const state = panRef.current;
+    if (!state.dragging) return;
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+    if (outerRef.current) {
+      outerRef.current.scrollLeft = state.scrollX - dx;
+      outerRef.current.scrollTop = state.scrollY - dy;
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    panRef.current.dragging = false;
+    document.body.style.cursor = "";
+  }, []);
+
   return (
     <>
       <GlobalStyles />
-      <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden", ...bgStyle }}>
+      <div
+        ref={outerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{
+          width: "100vw", height: "100vh", position: "relative", overflow: "auto",
+          userSelect: "none",
+          ...bgStyle,
+        }}
+      >
         <Loader />
         <Leva collapsed hidden />
 
