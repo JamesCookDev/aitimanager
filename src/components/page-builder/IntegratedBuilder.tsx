@@ -4,7 +4,7 @@ import {
   Eye, Edit3, Download, Upload, Undo2, Redo2, Maximize2,
   Type, ImageIcon, MousePointer2, LayoutGrid, User, Minus, MoveVertical,
   Menu, Sparkles, Tag, CreditCard, LayoutTemplate, BarChart3, Clock, Palette, Share2,
-  Send, Layers, Radio,
+  Send, Layers, Radio, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -148,9 +148,13 @@ function IntegratedBuilderInner({
 
   const [leftTab, setLeftTab] = useState<'blocks' | 'templates'>('blocks');
   const [publishing, setPublishing] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
   const [hasUnpublished, setHasUnpublished] = useState(false);
   const [liveActive, setLiveActive] = useState(false);
+  // Canvas preview size controls
+  const CANVAS_WIDTHS = [320, 420, 540, 720] as const;
+  const [canvasWidthIdx, setCanvasWidthIdx] = useState(1); // default 420
 
   // Supabase Realtime broadcast channel for live preview
   const liveChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -423,6 +427,27 @@ function IntegratedBuilderInner({
     }
   }, [deviceId, query]);
 
+  const handleRestart = useCallback(async () => {
+    if (!deviceId) { toast.error('Nenhum dispositivo selecionado'); return; }
+    setRestarting(true);
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .update({ pending_command: 'restart', command_sent_at: new Date().toISOString() } as any)
+        .eq('id', deviceId);
+      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('command_logs').insert({ device_id: deviceId, command: 'restart', sent_by: user.id } as any);
+      }
+      toast.success('🔄 Comando de reinicialização enviado!', { description: 'O totem reiniciará no próximo heartbeat.' });
+    } catch (err: any) {
+      toast.error('Erro ao enviar comando de reinicialização', { description: err?.message });
+    } finally {
+      setRestarting(false);
+    }
+  }, [deviceId]);
+
   useImperativeHandle(builderRef, () => ({
     forceSyncCraftState: syncCraftState,
     publish: handlePublish,
@@ -464,7 +489,7 @@ function IntegratedBuilderInner({
           </button>
         </div>
 
-        {/* Direita: undo/redo + preview totem + publicar */}
+        {/* Direita: undo/redo + controles + publicar */}
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="icon" className="h-7 w-7" disabled={!canUndo} onClick={() => actions.history.undo()} title="Desfazer (Ctrl+Z)">
             <Undo2 className="w-3.5 h-3.5" />
@@ -479,11 +504,39 @@ function IntegratedBuilderInner({
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleImport} title="Importar JSON">
             <Upload className="w-3.5 h-3.5" />
           </Button>
+          {/* Canvas size picker */}
+          <div className="flex items-center gap-0.5 bg-muted rounded-md px-1 h-7">
+            {CANVAS_WIDTHS.map((w, i) => (
+              <button
+                key={w}
+                onClick={() => setCanvasWidthIdx(i)}
+                className={cn(
+                  'text-[9px] font-bold px-1.5 h-5 rounded transition-all',
+                  canvasWidthIdx === i ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={`Preview ${w}px`}
+              >{w}</button>
+            ))}
+          </div>
           <Button variant="outline" size="sm" className="text-xs gap-1.5 h-7 px-2.5" onClick={onFullscreen} title="Fullscreen Totem">
             <Maximize2 className="w-3 h-3" />
-            <span className="hidden sm:inline">Preview</span>
+            <span className="hidden sm:inline">Full</span>
           </Button>
           <div className="w-px h-4 bg-border mx-0.5" />
+          {/* Botão Reiniciar */}
+          {deviceId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1 h-7 px-2.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
+              onClick={handleRestart}
+              disabled={restarting}
+              title="Reiniciar totem"
+            >
+              <RefreshCw className={cn('w-3 h-3', restarting && 'animate-spin')} />
+              <span className="hidden sm:inline">{restarting ? '...' : 'Reiniciar'}</span>
+            </Button>
+          )}
           {/* Botão Publicar — estado visual claro */}
           <div className="relative">
             <Button
@@ -495,8 +548,8 @@ function IntegratedBuilderInner({
                   : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
               )}
               onClick={handlePublish}
-              disabled={publishing || !deviceId}
-              title={!deviceId ? 'Selecione um dispositivo' : hasUnpublished ? 'Publicar alterações no Totem' : 'Tudo publicado'}
+              disabled={publishing}
+              title={hasUnpublished ? 'Publicar alterações no Totem' : 'Tudo publicado'}
             >
               <Send className="w-3 h-3" />
               {publishing ? 'Publicando...' : hasUnpublished ? 'Publicar' : 'Publicado ✓'}
@@ -586,12 +639,11 @@ function IntegratedBuilderInner({
         )}>
           <div
             className={cn(
-              'rounded-xl border-2 shadow-xl shrink-0 transition-all',
+              'rounded-xl border-2 shadow-xl shrink-0 transition-all duration-300',
               previewMode ? 'border-primary/30 shadow-primary/10' : 'border-border/60'
             )}
             style={{
-              /* Fixed totem-like width. Height grows with CanvasDropArea content. */
-              width: 'min(100%, 420px)',
+              width: `min(100%, ${CANVAS_WIDTHS[canvasWidthIdx]}px)`,
               backgroundColor: '#0f172a',
             }}
           >
@@ -632,7 +684,7 @@ function IntegratedBuilderInner({
       {/* ═══ BOTTOM STATUS BAR ═══ */}
       <div className="h-7 flex items-center justify-between px-4 border-t border-border bg-card/80 shrink-0">
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
-          <span>Totem 1080×1920</span>
+          <span>{CANVAS_WIDTHS[canvasWidthIdx]}px preview</span>
           {lastPublishedAt && (
             <>
               <span>•</span>

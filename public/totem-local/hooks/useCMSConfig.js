@@ -123,12 +123,13 @@ export function useCMSConfig(options = {}) {
     const channel = supabase
       .channel(`live-preview:${DEVICE_ID}`)
       .on('broadcast', { event: 'ui-update' }, ({ payload }) => {
-        if (!payload?.ui) return;
-        const hash = JSON.stringify(payload.ui);
-        if (hash !== lastHashRef.current) {
-          lastHashRef.current = hash;
-          setUi(payload.ui);
-          console.log('[Realtime] ✅ UI atualizada via Realtime (instantâneo)!');
+        // Hub envia craft_blocks (JSON string dos nós Craft.js)
+        const craftBlocks = payload?.craft_blocks;
+        if (!craftBlocks) return;
+        if (craftBlocks !== lastHashRef.current) {
+          lastHashRef.current = craftBlocks;
+          setUi(prev => ({ ...prev, _live_craft_blocks: craftBlocks, _live_ts: payload.ts }));
+          console.log('[Realtime] ✅ craft_blocks atualizados via Realtime!');
         }
       })
       .subscribe((status) => {

@@ -321,6 +321,7 @@ export default function DeviceDetail() {
             onUpdateConfig={handleBuilderChange}
             onFullscreen={() => setShowFullscreen(true)}
             deviceName={device.name}
+            deviceId={deviceId}
             isOnline={status === 'online'}
           />
 
