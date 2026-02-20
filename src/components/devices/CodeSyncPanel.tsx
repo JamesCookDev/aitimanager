@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, FileCode2, Info } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, FileCode2, Info, Terminal, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // ─── Types ───────────────────────────────────────────────────────
 interface ManifestFile {
@@ -79,6 +80,9 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
   const [manifest, setManifest] = useState<HubManifest | null>(null);
   const [loadingManifest, setLoadingManifest] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [scriptMode, setScriptMode] = useState<'rsync' | 'scp'>('rsync');
+  const [showScript, setShowScript] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
 
   const fetchManifest = async () => {
     setLoadingManifest(true);
@@ -141,6 +145,104 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
     (f) => f.critical && (f.status === 'outdated' || f.status === 'missing'),
   );
 
+  // Arquivos que precisam de atualização (outdated + missing) ou todos se sem dados
+  const filesToSync = hasHeartbeatData
+    ? fileStatuses.filter((f) => f.status === 'outdated' || f.status === 'missing')
+    : fileStatuses; // sem heartbeat → inclui todos no script
+
+  const hubOrigin = window.location.origin;
+
+  function generateScript(mode: 'rsync' | 'scp'): string {
+    const hubBase = `${hubOrigin}/totem-local`;
+    const files = filesToSync.map((f) => f.fileName);
+
+    if (files.length === 0) {
+      return '# ✅ Todos os arquivos já estão sincronizados.';
+    }
+
+    const header = [
+      '#!/usr/bin/env bash',
+      '# ══════════════════════════════════════════════════════',
+      `# Totem Sync Script — gerado em ${new Date().toLocaleString('pt-BR')}`,
+      `# Hub: ${hubBase}`,
+      `# Arquivos: ${files.length} para sincronizar`,
+      '# ══════════════════════════════════════════════════════',
+      '',
+      '# Configure antes de rodar:',
+      'HARDWARE_USER="pi"                   # usuário SSH do hardware',
+      'HARDWARE_HOST="192.168.1.100"        # IP ou hostname do totem',
+      'HARDWARE_DIR="/home/pi/totem"        # pasta do projeto no hardware',
+      '',
+    ];
+
+    let body: string[] = [];
+
+    if (mode === 'rsync') {
+      body = [
+        '# Baixar arquivos atualizados do Hub e enviar ao hardware via rsync',
+        'TMP_DIR=$(mktemp -d)',
+        '',
+        ...files.flatMap((f) => {
+          const dir = f.includes('/') ? f.substring(0, f.lastIndexOf('/')) : '';
+          return [
+            `# ${f}`,
+            `mkdir -p "$TMP_DIR/${dir}"`,
+            `curl -fsSL "${hubBase}/${f}" -o "$TMP_DIR/${f}"`,
+          ];
+        }),
+        '',
+        '# Enviar ao hardware (preserva permissões, cria dirs automaticamente)',
+        `rsync -avz --relative \\`,
+        ...files.map((f, i) => `  "$TMP_DIR/${f}"${i < files.length - 1 ? ' \\' : ' \\'}`),
+        `  "$\{HARDWARE_USER}@$\{HARDWARE_HOST}:$\{HARDWARE_DIR}/"`,
+        '',
+        'rm -rf "$TMP_DIR"',
+        'echo "✅ Sincronização concluída!"',
+        '',
+        '# Opcional: reiniciar o totem remotamente',
+        '# ssh "$HARDWARE_USER@$HARDWARE_HOST" "cd $HARDWARE_DIR && pm2 restart totem"',
+      ];
+    } else {
+      body = [
+        '# Baixar arquivos atualizados do Hub e enviar ao hardware via scp',
+        'TMP_DIR=$(mktemp -d)',
+        '',
+        ...files.flatMap((f) => {
+          const dir = f.includes('/') ? f.substring(0, f.lastIndexOf('/')) : '';
+          return [
+            `# ${f}`,
+            `mkdir -p "$TMP_DIR/${dir}"`,
+            `curl -fsSL "${hubBase}/${f}" -o "$TMP_DIR/${f}"`,
+          ];
+        }),
+        '',
+        '# Criar diretórios remotos necessários',
+        ...Array.from(new Set(files.filter((f) => f.includes('/')).map((f) => f.substring(0, f.lastIndexOf('/')))))
+              .map((dir) => `ssh "$\{HARDWARE_USER}@$\{HARDWARE_HOST}" "mkdir -p $\{HARDWARE_DIR}/${dir}"`),
+        '',
+        '# Enviar arquivos via scp',
+        ...files.map((f) => `scp "$TMP_DIR/${f}" "$\{HARDWARE_USER}@$\{HARDWARE_HOST}:$\{HARDWARE_DIR}/${f}"`),
+        '',
+        'rm -rf "$TMP_DIR"',
+        'echo "✅ Sincronização concluída!"',
+        '',
+        '# Opcional: reiniciar o totem remotamente',
+        '# ssh "$HARDWARE_USER@$HARDWARE_HOST" "cd $HARDWARE_DIR && pm2 restart totem"',
+      ];
+    }
+
+    return [...header, ...body].join('\n');
+  }
+
+  function handleCopyScript() {
+    const script = generateScript(scriptMode);
+    navigator.clipboard.writeText(script).then(() => {
+      setScriptCopied(true);
+      toast.success('Script copiado!', { description: 'Cole no terminal do hardware ou salve como .sh' });
+      setTimeout(() => setScriptCopied(false), 2500);
+    });
+  }
+
   return (
     <div className="space-y-4">
       {/* Header card */}
@@ -167,8 +269,8 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
           {/* Resumo */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: 'Sincronizados', value: counts.synced, color: 'text-green-400' },
-              { label: 'Desatualizados', value: counts.outdated, color: 'text-yellow-400' },
+              { label: 'Sincronizados', value: counts.synced, color: 'text-success' },
+              { label: 'Desatualizados', value: counts.outdated, color: 'text-warning' },
               { label: 'Ausentes', value: counts.missing, color: 'text-destructive' },
               { label: 'Sem dados', value: counts.unknown, color: 'text-muted-foreground' },
             ].map((item) => (
@@ -229,9 +331,85 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
       {/* Tabela de arquivos */}
       <Card className="card-industrial">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-muted-foreground font-medium">
-            Arquivos ({fileStatuses.length})
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm text-muted-foreground font-medium">
+              Arquivos ({fileStatuses.length})
+              {filesToSync.length > 0 && (
+                <span className="ml-2 text-warning font-semibold">
+                  · {filesToSync.length} para sincronizar
+                </span>
+              )}
+            </CardTitle>
+
+            {/* Botão Copiar Script */}
+            {!loadingManifest && fileStatuses.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                {/* Toggle rsync / scp */}
+                <div className="flex items-center rounded-md border border-border overflow-hidden text-[11px] font-medium">
+                  {(['rsync', 'scp'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setScriptMode(m)}
+                      className={cn(
+                        'px-2.5 py-1 transition-colors',
+                        scriptMode === m
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted',
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2.5 gap-1.5 text-xs"
+                  onClick={handleCopyScript}
+                >
+                  {scriptCopied ? (
+                    <CheckIcon className="w-3.5 h-3.5 text-success" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  {scriptCopied ? 'Copiado!' : 'Copiar Script'}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowScript((v) => !v)}
+                  title={showScript ? 'Ocultar script' : 'Visualizar script'}
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  {showScript ? <ChevronUp className="w-3 h-3 ml-0.5" /> : <ChevronDown className="w-3 h-3 ml-0.5" />}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Preview do script */}
+          {showScript && !loadingManifest && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                  Script {scriptMode} gerado
+                </span>
+                <button
+                  onClick={handleCopyScript}
+                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                >
+                  {scriptCopied ? <CheckIcon className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {scriptCopied ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+              <pre className="bg-muted/60 border border-border rounded-md p-3 text-[11px] font-mono text-foreground overflow-x-auto max-h-80 overflow-y-auto leading-relaxed whitespace-pre">
+                {generateScript(scriptMode)}
+              </pre>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {loadingManifest ? (
