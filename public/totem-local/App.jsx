@@ -14,6 +14,7 @@
  *  ─ 3D:        AvatarBlock (renderizado pela camada Three.js, ignorado aqui)
  * ══════════════════════════════════════════════════════════════
  */
+import './index.css';
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Loader, OrbitControls } from "@react-three/drei";
