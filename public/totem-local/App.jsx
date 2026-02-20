@@ -1312,6 +1312,42 @@ export default function App() {
   const [toastKey, setToastKey] = useState(0);
   const { isIdle, wake } = useIdleDetection(IDLE_TIMEOUT_MS);
 
+  // ── Registra handlers globais do bridge Totem ──────────────────────────
+  useEffect(() => {
+    // Handler para abrir URLs externas — usa Electron shell.openExternal se disponível,
+    // caso contrário faz fallback para window.open (browser/dev mode)
+    if (typeof window.__totemOpenUrl !== "function") {
+      window.__totemOpenUrl = (url) => {
+        if (!url || url === "#") return;
+        // Electron: window.electronAPI.openExternal (exposto via preload/contextBridge)
+        if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal(url);
+          return;
+        }
+        // Electron legado: require('electron').shell (não recomendado em renderer moderno)
+        try {
+          const { shell } = window.require?.("electron") || {};
+          if (shell?.openExternal) {
+            shell.openExternal(url);
+            return;
+          }
+        } catch (_) { /* não estamos no Electron */ }
+        // Fallback web
+        window.open(url, "_blank", "noopener,noreferrer");
+      };
+      console.info("[Totem] ✅ window.__totemOpenUrl registrado");
+    }
+
+    // Garante que __totemSendMessage existe (deve ser registrado pelo chat/IA)
+    if (typeof window.__totemSendMessage !== "function") {
+      // Stub de desenvolvimento — loga no console até o chat real registrar o handler
+      window.__totemSendMessage = (msg) => {
+        console.info("[Totem] 💬 __totemSendMessage (stub):", msg);
+      };
+      console.info("[Totem] ⚠️ __totemSendMessage stub registrado — substitua pelo handler real da IA");
+    }
+  }, []);
+
   // Device ID: read from env (set on hardware) or fallback to config response
   const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || null;
 
