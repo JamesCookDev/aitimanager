@@ -154,7 +154,22 @@ export function MenuBlockSettings() {
     props: node.data.props as Partial<MenuBlockProps>,
   }));
 
-  const p = props as MenuBlockProps;
+  const p: MenuBlockProps = {
+    title: 'Menu Interativo',
+    titleIcon: '💬',
+    items: [],
+    bgBlur: 20,
+    bgColor: 'rgba(30,41,59,0.75)',
+    borderRadius: 28,
+    gap: 8,
+    padding: 20,
+    titleColor: '#ffffff',
+    folderArrowSymbol: '▼',
+    itemArrowSymbol: '→',
+    closeOnSelect: true,
+    ...(props || {}),
+  };
+
   const set = (field: keyof MenuBlockProps, value: any) =>
     setProp((pr: any) => { pr[field] = value; });
 
