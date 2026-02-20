@@ -5,18 +5,32 @@ import type { LayoutProps } from '../shared/layoutProps';
 
 export interface ContainerBlockProps {
   bgColor: string;
+  // Padding individual por lado
   padding: number;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingIndividual: boolean;
   gap: number;
   direction: 'column' | 'row';
-  alignItems: 'flex-start' | 'center' | 'flex-end' | 'stretch';
-  justifyContent: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
-  borderRadius: number;
+  wrap: 'nowrap' | 'wrap' | 'wrap-reverse';
+  alignItems: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
+  justifyContent: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  // Tamanho explícito
+  width: string;   // 'auto' | '100%' | '50%' | Npx
+  height: string;  // 'auto' | '100%' | Npx
   minHeight: number;
+  maxWidth?: number;
+  // Visual
+  borderRadius: number;
   opacity: number;
+  bgOpacity: number;
   borderColor: string;
   borderWidth: number;
   shadow: 'none' | 'sm' | 'md' | 'lg';
   blur: number;
+  overflow: 'visible' | 'hidden' | 'auto' | 'scroll';
   children?: React.ReactNode;
 }
 
@@ -24,18 +38,26 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps & LayoutP
   const {
     bgColor = 'rgba(255,255,255,0.05)',
     padding = 16,
+    paddingTop, paddingRight, paddingBottom, paddingLeft,
+    paddingIndividual = false,
     gap = 10,
     direction = 'column',
+    wrap = 'nowrap',
     alignItems = 'stretch',
     justifyContent = 'flex-start',
-    borderRadius = 24,
+    width = 'auto',
+    height = 'auto',
     minHeight = 80,
+    maxWidth,
     opacity = 1,
+    bgOpacity = 1,
     borderColor = 'rgba(255,255,255,0.1)',
     borderWidth = 1,
     shadow = 'sm',
     blur = 16,
-    children,
+  overflow = 'visible',
+  borderRadius = 24,
+  children,
   } = props;
 
   const { connectors: { connect, drag }, isActive } = useNode((node) => ({
@@ -51,6 +73,24 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps & LayoutP
 
   const layoutStyle = getLayoutStyle(props as any);
 
+  // Compute padding style
+  const paddingStyle = paddingIndividual
+    ? {
+        paddingTop: paddingTop ?? padding,
+        paddingRight: paddingRight ?? padding,
+        paddingBottom: paddingBottom ?? padding,
+        paddingLeft: paddingLeft ?? padding,
+      }
+    : { padding };
+
+  // Width/height from own props (overridden by LayoutProps if set there)
+  const sizeStyle = {
+    width: layoutStyle.width ?? (width !== 'auto' ? width : undefined),
+    height: layoutStyle.height ?? (height !== 'auto' ? height : undefined),
+    minHeight,
+    maxWidth: maxWidth ? maxWidth : undefined,
+  };
+
   return (
     <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto', opacity }}>
       <div
@@ -60,16 +100,18 @@ export const ContainerBlock: UserComponent<Partial<ContainerBlockProps & LayoutP
           backgroundColor: bgColor,
           backdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
           WebkitBackdropFilter: blur > 0 ? `blur(${blur}px) saturate(1.4)` : undefined,
-          padding,
+          ...paddingStyle,
           gap,
           display: 'flex',
           flexDirection: direction,
+          flexWrap: wrap,
           alignItems,
           justifyContent,
+          ...sizeStyle,
           borderRadius,
-          minHeight,
-          border: `${Math.max(borderWidth, 1)}px solid ${borderColor}`,
+          border: `${Math.max(borderWidth, 0)}px solid ${borderColor}`,
           boxShadow: shadowMap[shadow],
+          overflow,
         }}
       >
         {children}
@@ -82,17 +124,22 @@ ContainerBlock.craft = {
   props: {
     bgColor: 'rgba(255,255,255,0.05)',
     padding: 16,
+    paddingIndividual: false,
     gap: 10,
     direction: 'column',
+    wrap: 'nowrap',
     alignItems: 'stretch',
     justifyContent: 'flex-start',
-    borderRadius: 24,
+    width: 'auto',
+    height: 'auto',
     minHeight: 80,
     opacity: 1,
+    bgOpacity: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     shadow: 'sm',
     blur: 16,
+    overflow: 'visible',
     ...DEFAULT_LAYOUT_PROPS,
   },
   related: { settings: ContainerBlockSettings },
