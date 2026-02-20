@@ -18,8 +18,8 @@
       "description": "Estilos globais do totem",
       "critical": false
     },
-    "hooks/useSpeech.js": {
-      "version": "2.1.0",
+    "hooks/useSpeech.jsx": {
+      "version": "2.2.0",
       "description": "VAD, MediaRecorder, fila de mensagens do avatar, SpeechProvider",
       "critical": true
     },
