@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Copy as CopyIcon, Eye, EyeOff, Upload, FileBox, Clock,
-  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save, Wand2,
+  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save, Wand2, GitCompare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,7 @@ import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
 import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
 import { IntegratedBuilder } from '@/components/page-builder/IntegratedBuilder';
+import { CodeSyncPanel } from '@/components/devices/CodeSyncPanel';
 import type { CanvasSelection } from '@/components/page-builder/TotemCanvas';
 
 export default function DeviceDetail() {
@@ -312,6 +313,9 @@ export default function DeviceDetail() {
           <TabsTrigger value="details" className="gap-1.5">
             <FileBox className="w-4 h-4" /> Detalhes
           </TabsTrigger>
+          <TabsTrigger value="code-sync" className="gap-1.5">
+            <GitCompare className="w-4 h-4" /> Code Sync
+          </TabsTrigger>
         </TabsList>
 
         {/* PAGE BUILDER TAB */}
@@ -437,6 +441,14 @@ export default function DeviceDetail() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* CODE SYNC TAB */}
+        <TabsContent value="code-sync" className="mt-4">
+          <CodeSyncPanel
+            statusDetails={(device as any).status_details}
+            deviceName={device.name}
+          />
         </TabsContent>
       </Tabs>
     </div>

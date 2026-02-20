@@ -127,6 +127,21 @@ function useConfigPoller(onUpdate) {
 }
 
 // ─────────────────────────────────────────────
+// 📦 VERSÕES DOS ARQUIVOS LOCAIS — sincronizado com public/totem-local/manifest.json
+// Atualize estas versões sempre que modificar os arquivos correspondentes.
+// ─────────────────────────────────────────────
+const LOCAL_FILE_VERSIONS = {
+  "App.jsx": "3.0.0",
+  "main.jsx": "1.0.0",
+  "index.css": "1.1.0",
+  "hooks/useSpeech.js": "2.1.0",
+  "hooks/useCMSConfig.js": "1.2.0",
+  "components/Avatar.jsx": "1.5.0",
+  "components/ChatInterface.jsx": "1.3.0",
+  "components/Scenario.jsx": "1.2.0",
+};
+
+// ─────────────────────────────────────────────
 // 🔄 HEARTBEAT WORKER — bate pulso a cada 30s e trata comandos remotos
 // ─────────────────────────────────────────────
 function useHeartbeat() {
@@ -143,7 +158,13 @@ function useHeartbeat() {
           "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ is_speaking: false, status_details: { version: "1.0.0", uptime: Math.floor(performance.now() / 1000) } }),
+        body: JSON.stringify({
+          is_speaking: false,
+          status_details: {
+            uptime: Math.floor(performance.now() / 1000),
+            code_manifest: LOCAL_FILE_VERSIONS,
+          },
+        }),
       });
 
       if (!res.ok) {
