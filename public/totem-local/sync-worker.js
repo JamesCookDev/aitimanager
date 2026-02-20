@@ -22,6 +22,8 @@
  *                     Se não configurado, apenas avisa no console.
  *    BACKUP_FILES     "true" para manter .bak dos arquivos antigos (padrão: true)
  *    VERBOSE          "true" para logs detalhados (padrão: false)
+ *    API_KEY          API key do dispositivo (para receber "Forçar Sync" do Hub)
+ *    SUPABASE_URL     URL do projeto (sem barra final)
  *
  * ══════════════════════════════════════════════════════════════
  */
@@ -57,7 +59,7 @@ const SYNC_INTERVAL    = parseInt(process.env.SYNC_INTERVAL_MS || '30000', 10);
 const RESTART_COMMAND  = process.env.RESTART_COMMAND || null;
 const BACKUP_FILES     = process.env.BACKUP_FILES !== 'false';
 const VERBOSE          = process.env.VERBOSE === 'true';
-const API_KEY          = process.env.API_KEY || null;          // mesma chave usada pelo App.jsx
+const API_KEY          = process.env.API_KEY || null;
 const SUPABASE_URL     = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 
 // Arquivo local que guarda as versões já instaladas no hardware
@@ -129,28 +131,20 @@ function triggerRestart() {
   });
 }
 
-// ─── Verificar comando remoto via heartbeat ───────────────────
-// Se API_KEY e SUPABASE_URL estiverem configurados, o worker faz um
-// heartbeat próprio para buscar comandos pendentes (ex: 'sync').
+// ─── Verificar comando remoto (SEM atualizar last_ping) ───────
+// Usa endpoint dedicado que NÃO toca em last_ping, evitando que o worker
+// mascare o status offline/online real da aplicação UI do totem.
 async function checkRemoteCommand() {
   if (!API_KEY || !SUPABASE_URL) return null;
 
   try {
-    const url   = `${SUPABASE_URL}/functions/v1/totem-heartbeat`;
-    const body  = JSON.stringify({
-      is_speaking: false,
-      status_details: { worker: true, uptime: Math.floor(process.uptime()) },
-    });
+    const url = `${SUPABASE_URL}/functions/v1/totem-poll-command`;
 
     const text = await new Promise((resolve, reject) => {
       const client = url.startsWith('https://') ? https : http;
       const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-totem-api-key': API_KEY,
-          'Content-Length': Buffer.byteLength(body),
-        },
+        method: 'GET',
+        headers: { 'x-totem-api-key': API_KEY },
         timeout: 10_000,
       };
       const req = client.request(url, options, (res) => {
@@ -159,15 +153,14 @@ async function checkRemoteCommand() {
         res.on('end', () => resolve(data));
       });
       req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout heartbeat')); });
-      req.write(body);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout poll-command')); });
       req.end();
     });
 
     const json = JSON.parse(text);
     return json.command || null;
   } catch (err) {
-    debug(`Heartbeat do worker falhou: ${err.message}`);
+    debug(`Poll-command falhou: ${err.message}`);
     return null;
   }
 }
@@ -214,7 +207,6 @@ async function syncFiles() {
       backupFile(localPath);
       fs.writeFileSync(localPath, content, 'utf8');
 
-      // Atualiza estado local
       if (!state.files) state.files = {};
       state.files[fileName] = { version: hubVersion, updated_at: new Date().toISOString() };
 
@@ -227,7 +219,6 @@ async function syncFiles() {
     }
   }
 
-  // Persiste o novo estado mesmo se alguns arquivos falharam
   saveState(state);
 
   if (updatedFiles.length === 0) {
@@ -252,17 +243,18 @@ process.on('SIGTERM', shutdown);
 // ─── Bootstrap ───────────────────────────────────────────────
 console.log('');
 console.log('╔══════════════════════════════════════════════╗');
-console.log('║         TOTEM SYNC WORKER  v1.0.0           ║');
+console.log('║         TOTEM SYNC WORKER  v1.1.0           ║');
 console.log('╚══════════════════════════════════════════════╝');
 log(`Hub URL       : ${HUB_URL || '(não configurado!)'}`);
 log(`Diretório     : ${LOCAL_DIR}`);
 log(`Intervalo     : ${SYNC_INTERVAL / 1000}s`);
 log(`Restart cmd   : ${RESTART_COMMAND || '(nenhum — reinicie manualmente)'}`);
 log(`Backups       : ${BACKUP_FILES ? 'ativados' : 'desativados'}`);
-log(`Cmd remoto    : ${API_KEY ? 'ativado (API_KEY + SUPABASE_URL configurados)' : 'desativado (API_KEY não configurado)'}`);
+log(`Cmd remoto    : ${API_KEY ? 'ativado (via totem-poll-command — não afeta status online)' : 'desativado (API_KEY não configurado)'}`);
 console.log('');
 
 // Verificação de comandos remotos a cada 5s (separada do sync de arquivos)
+// Usa endpoint dedicado que NÃO atualiza last_ping
 async function checkLoop() {
   const command = await checkRemoteCommand();
   if (command === 'sync') {
@@ -277,6 +269,6 @@ intervalId = setInterval(syncFiles, SYNC_INTERVAL);
 
 // Loop de verificação de comandos (só ativo se API_KEY configurado)
 if (API_KEY && SUPABASE_URL) {
-  log('🔌 Polling de comandos remotos ativo (a cada 5s)');
+  log('🔌 Polling de comandos remotos ativo (a cada 5s, sem afetar status online)');
   setInterval(checkLoop, 5000);
 }
