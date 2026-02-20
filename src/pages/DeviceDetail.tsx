@@ -448,6 +448,7 @@ export default function DeviceDetail() {
           <CodeSyncPanel
             statusDetails={(device as any).status_details}
             deviceName={device.name}
+            deviceId={device.id}
           />
         </TabsContent>
       </Tabs>

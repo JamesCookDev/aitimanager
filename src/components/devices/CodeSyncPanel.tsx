@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, FileCode2, Info, Terminal, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, FileCode2, Info, Terminal, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Types ───────────────────────────────────────────────────────
 interface ManifestFile {
@@ -33,6 +34,7 @@ interface CodeSyncPanelProps {
   /** status_details do device (vem do banco via heartbeat) */
   statusDetails: Record<string, any> | null;
   deviceName: string;
+  deviceId: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -76,13 +78,14 @@ function StatusBadge({ status }: { status: FileStatus['status'] }) {
 }
 
 // ─── Component ───────────────────────────────────────────────────
-export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps) {
+export function CodeSyncPanel({ statusDetails, deviceName, deviceId }: CodeSyncPanelProps) {
   const [manifest, setManifest] = useState<HubManifest | null>(null);
   const [loadingManifest, setLoadingManifest] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [scriptMode, setScriptMode] = useState<'rsync' | 'scp'>('rsync');
   const [showScript, setShowScript] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
+  const [forcingSynced, setForcingSynced] = useState(false);
 
   const fetchManifest = async () => {
     setLoadingManifest(true);
@@ -104,6 +107,29 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
   useEffect(() => {
     fetchManifest();
   }, []);
+
+  async function handleForceSync() {
+    setForcingSynced(true);
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          pending_command: 'sync',
+          command_sent_at: new Date().toISOString(),
+        })
+        .eq('id', deviceId);
+
+      if (error) throw error;
+
+      toast.success('Comando enviado!', {
+        description: 'O sync-worker receberá o comando "sync" no próximo heartbeat e sincronizará imediatamente.',
+      });
+    } catch (err: any) {
+      toast.error('Falha ao enviar comando', { description: err.message });
+    } finally {
+      setTimeout(() => setForcingSynced(false), 3000);
+    }
+  }
 
   // Versões reportadas pelo hardware via heartbeat
   const hardwareManifest: Record<string, string> | null =
@@ -253,6 +279,17 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
               <FileCode2 className="w-4 h-4 text-primary" />
               Sincronização de Código
             </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleForceSync}
+              disabled={forcingSynced}
+              className="h-7 px-2.5 gap-1.5 text-xs border-warning/40 text-warning hover:bg-warning/10 hover:text-warning hover:border-warning"
+            >
+              <Zap className={cn('w-3.5 h-3.5', forcingSynced && 'animate-pulse')} />
+              {forcingSynced ? 'Enviado!' : 'Forçar Sync'}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -263,6 +300,7 @@ export function CodeSyncPanel({ statusDetails, deviceName }: CodeSyncPanelProps)
               <RefreshCw className={cn('w-3.5 h-3.5', loadingManifest && 'animate-spin')} />
               <span className="ml-1 text-xs">Atualizar</span>
             </Button>
+          </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

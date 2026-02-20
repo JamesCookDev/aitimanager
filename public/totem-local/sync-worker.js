@@ -57,6 +57,8 @@ const SYNC_INTERVAL    = parseInt(process.env.SYNC_INTERVAL_MS || '30000', 10);
 const RESTART_COMMAND  = process.env.RESTART_COMMAND || null;
 const BACKUP_FILES     = process.env.BACKUP_FILES !== 'false';
 const VERBOSE          = process.env.VERBOSE === 'true';
+const API_KEY          = process.env.API_KEY || null;          // mesma chave usada pelo App.jsx
+const SUPABASE_URL     = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 
 // Arquivo local que guarda as versões já instaladas no hardware
 const LOCAL_STATE_PATH = path.join(LOCAL_DIR, '.sync-state.json');
@@ -125,6 +127,49 @@ function triggerRestart() {
       if (stdout) debug(stdout.trim());
     }
   });
+}
+
+// ─── Verificar comando remoto via heartbeat ───────────────────
+// Se API_KEY e SUPABASE_URL estiverem configurados, o worker faz um
+// heartbeat próprio para buscar comandos pendentes (ex: 'sync').
+async function checkRemoteCommand() {
+  if (!API_KEY || !SUPABASE_URL) return null;
+
+  try {
+    const url   = `${SUPABASE_URL}/functions/v1/totem-heartbeat`;
+    const body  = JSON.stringify({
+      is_speaking: false,
+      status_details: { worker: true, uptime: Math.floor(process.uptime()) },
+    });
+
+    const text = await new Promise((resolve, reject) => {
+      const client = url.startsWith('https://') ? https : http;
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-totem-api-key': API_KEY,
+          'Content-Length': Buffer.byteLength(body),
+        },
+        timeout: 10_000,
+      };
+      const req = client.request(url, options, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => resolve(data));
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout heartbeat')); });
+      req.write(body);
+      req.end();
+    });
+
+    const json = JSON.parse(text);
+    return json.command || null;
+  } catch (err) {
+    debug(`Heartbeat do worker falhou: ${err.message}`);
+    return null;
+  }
 }
 
 // ─── Loop principal ──────────────────────────────────────────
@@ -214,8 +259,24 @@ log(`Diretório     : ${LOCAL_DIR}`);
 log(`Intervalo     : ${SYNC_INTERVAL / 1000}s`);
 log(`Restart cmd   : ${RESTART_COMMAND || '(nenhum — reinicie manualmente)'}`);
 log(`Backups       : ${BACKUP_FILES ? 'ativados' : 'desativados'}`);
+log(`Cmd remoto    : ${API_KEY ? 'ativado (API_KEY + SUPABASE_URL configurados)' : 'desativado (API_KEY não configurado)'}`);
 console.log('');
+
+// Verificação de comandos remotos a cada 5s (separada do sync de arquivos)
+async function checkLoop() {
+  const command = await checkRemoteCommand();
+  if (command === 'sync') {
+    log('⚡ Comando "sync" recebido do Hub — sincronizando imediatamente...');
+    await syncFiles();
+  }
+}
 
 // Primeira execução imediata, depois em loop
 syncFiles();
 intervalId = setInterval(syncFiles, SYNC_INTERVAL);
+
+// Loop de verificação de comandos (só ativo se API_KEY configurado)
+if (API_KEY && SUPABASE_URL) {
+  log('🔌 Polling de comandos remotos ativo (a cada 5s)');
+  setInterval(checkLoop, 5000);
+}
