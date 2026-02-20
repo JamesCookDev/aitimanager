@@ -91,8 +91,8 @@ export function getDeviceStatus(lastPing: string | null): DeviceStatus {
   const now = Date.now();
   const diffSeconds = (now - pingTime) / 1000;
   
-  // Online if pinged within last 60 seconds
-  if (diffSeconds < 60) return 'online';
+  // Online if pinged within last 90 seconds
+  if (diffSeconds < 90) return 'online';
   return 'offline';
 }
 

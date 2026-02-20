@@ -123,6 +123,52 @@ function useConfigPoller(onUpdate) {
   }, [fetchLatest]);
 }
 
+// ─────────────────────────────────────────────
+// 🔄 HEARTBEAT WORKER — bate pulso a cada 30s e trata comandos remotos
+// ─────────────────────────────────────────────
+function useHeartbeat() {
+  const sendHeartbeat = useCallback(async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_CMS_API_URL;
+      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
+      if (!apiUrl || !apiKey) return;
+
+      const res = await fetch(`${apiUrl}/totem-heartbeat`, {
+        method: "POST",
+        headers: {
+          "x-totem-api-key": apiKey,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ is_speaking: false, status_details: { version: "1.0.0", uptime: Math.floor(performance.now() / 1000) } }),
+      });
+
+      if (!res.ok) {
+        console.warn(`[Heartbeat] ❌ Erro HTTP: ${res.status}`);
+        return;
+      }
+
+      const data = await res.json();
+      console.info("[Heartbeat] ✅ OK —", data.name);
+
+      // Processar comando remoto
+      if (data.command === "restart") {
+        console.warn("[Heartbeat] 🔄 Comando RESTART recebido — recarregando...");
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (err) {
+      console.error("[Heartbeat] ❌ Erro:", err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    sendHeartbeat();
+    const id = setInterval(sendHeartbeat, 30_000);
+    return () => clearInterval(id);
+  }, [sendHeartbeat]);
+}
+
+
 
 // ─────────────────────────────────────────────
 // ⏱️ COUNTDOWN EM TEMPO REAL
@@ -1389,6 +1435,7 @@ export default function App() {
   }, []);
 
   useConfigPoller(handleConfigUpdate);
+  useHeartbeat();
   const isLive = useLivePreview(deviceId, handleLiveUpdate);
 
   const ui = liveUi || initialUi;
