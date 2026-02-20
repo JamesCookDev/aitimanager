@@ -131,7 +131,7 @@ function useConfigPoller(onUpdate) {
 // Atualize estas versões sempre que modificar os arquivos correspondentes.
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "3.0.0",
+  "App.jsx": "3.1.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
