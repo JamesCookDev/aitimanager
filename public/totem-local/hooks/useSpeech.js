@@ -1,193 +1,251 @@
-/**
- * useSpeech — Hook + Provider para síntese e reconhecimento de voz
- * 
- * Exposto via SpeechContext para que qualquer componente do totem
- * possa iniciar/parar TTS ou STT sem prop drilling.
- * 
- * Variáveis de ambiente opcionais:
- *   VITE_TTS_URL   — endpoint TTS externo (se omitido usa Web Speech API)
- *   VITE_STT_URL   — endpoint STT externo (se omitido usa SpeechRecognition nativo)
- */
-import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 
-// ─────────────────────────────────────────────
-// CONTEXT
-// ─────────────────────────────────────────────
-const SpeechContext = createContext(null);
+const SpeechContext = createContext();
 
-// ─────────────────────────────────────────────
-// PROVIDER
-// ─────────────────────────────────────────────
-export function SpeechProvider({ children }) {
-  const [isSpeaking, setIsSpeaking]     = useState(false);
-  const [isListening, setIsListening]   = useState(false);
-  const [transcript, setTranscript]     = useState("");
-  const [lastUtterance, setLastUtterance] = useState("");
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONSTANTES DE COMPORTAMENTO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const TENANT_ID = import.meta.env.VITE_TENANT_ID || null;
 
-  const audioRef       = useRef(null);   // HTMLAudioElement para TTS externo
-  const recognitionRef = useRef(null);   // SpeechRecognition
-  const utteranceRef   = useRef(null);   // SpeechSynthesisUtterance
+// 🎚️ AJUSTE DE SENSIBILIDADE
+const VOICE_THRESHOLD = 45;   // 45 = só voz, ignora ruído de fundo
+const SILENCE_TIMEOUT = 2000; // Tempo de silêncio para "Fim da frase"
+const MIN_AUDIO_SIZE = 1500;  // Ignora áudios muito curtos (cliques)
+const PLAYBACK_COOLDOWN = 500;// Delay após avatar falar antes de reabrir mic
 
-  const ttsUrl = import.meta.env.VITE_TTS_URL || "";
-  const sttUrl = import.meta.env.VITE_STT_URL || "";
+export const useSpeech = () => {
+  const context = useContext(SpeechContext);
+  if (!context) throw new Error("useSpeech must be used within a SpeechProvider");
+  return context;
+};
 
-  // ── Registrar handler global para que o Avatar possa disparar TTS ──
+export const SpeechProvider = ({ children }) => {
+  // Estados da UI
+  const [message, setMessage] = useState(null);   // Objeto de mensagem do avatar (audio, lipsync, text)
+  const [loading, setLoading] = useState(false);  // Carregando resposta da IA
+  const [listening, setListening] = useState(false); // Microfone ativo / VAD detectou voz
+
+  // Referências (não causam re-render)
+  const queueRef = useRef([]);          // Fila de frases para o avatar falar
+  const isPlayingRef = useRef(false);   // Avatar está falando?
+  const isProcessingRef = useRef(false);// Enviando áudio pro backend?
+
+  // Refs de áudio/VAD
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const silenceTimerRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 1. GERENCIADOR DE FILA (FALA DO AVATAR)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const processQueue = () => {
+    if (isPlayingRef.current || queueRef.current.length === 0) return;
+
+    const nextMessage = queueRef.current.shift();
+
+    // 🔒 Bloqueia microfone enquanto o avatar fala
+    isPlayingRef.current = true;
+    setMessage(nextMessage);
+
+    console.log("🤖 Avatar falando:", nextMessage.text?.substring(0, 40) + "...");
+  };
+
+  // Chamado pelo <Avatar /> quando o áudio termina
+  const onMessagePlayed = () => {
+    setMessage(null);
+
+    setTimeout(() => {
+      isPlayingRef.current = false;
+      console.log("✅ Avatar terminou. Microfone liberado.");
+      processQueue(); // Verifica se há mais frases na fila
+    }, PLAYBACK_COOLDOWN);
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 2. ENVIO DE DADOS (TEXTO E ÁUDIO)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const handleBackendResponse = async (response) => {
+    const data = await response.json();
+    if (data.messages && data.messages.length > 0) {
+      data.messages.forEach(msg => queueRef.current.push(msg));
+      processQueue();
+    }
+  };
+
+  const sendAudioToBackend = async (blob) => {
+    isProcessingRef.current = true;
+    setLoading(true);
+    console.log("📦 Enviando áudio para processamento...");
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result.split(",")[1];
+        try {
+          const response = await fetch(`${API_URL}/sts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: base64Audio, tenantId: TENANT_ID }),
+          });
+          await handleBackendResponse(response);
+        } catch (err) {
+          console.error("❌ Erro no Backend (STS):", err);
+        } finally {
+          isProcessingRef.current = false;
+          setLoading(false);
+        }
+      };
+    } catch (error) {
+      console.error("Erro leitura áudio:", error);
+      isProcessingRef.current = false;
+      setLoading(false);
+    }
+  };
+
+  // Envio manual de texto (botões de menu / chat escrito)
+  const sendMessage = async (text) => {
+    if (loading || isPlayingRef.current) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, tenantId: TENANT_ID }),
+      });
+      await handleBackendResponse(response);
+    } catch (error) {
+      console.error("❌ Erro no Backend (TEXT):", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 3. SISTEMA DE ÁUDIO (VAD + SELEÇÃO DE MIC)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
-    window.__totemSpeak = speak;
-    window.__totemStopSpeech = stopSpeech;
-    window.__totemStartListening = startListening;
-    window.__totemStopListening = stopListening;
+    let animationFrame;
+
+    const initAudio = async () => {
+      try {
+        console.log("🎤 Inicializando VAD...");
+
+        // A. Seleção inteligente de microfone (ignora Steam/Virtual)
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter(d => d.kind === 'audioinput');
+
+        let selectedMic = mics.find(m =>
+          (m.label.toLowerCase().includes('high definition') ||
+           m.label.toLowerCase().includes('realtek') ||
+           m.label.toLowerCase().includes('usb')) &&
+          !m.label.toLowerCase().includes('steam')
+        );
+        if (!selectedMic) selectedMic = mics.find(m => !m.label.toLowerCase().includes('steam'));
+
+        const deviceId = selectedMic ? selectedMic.deviceId : 'default';
+        console.log(`🎤 Usando Microfone: ${selectedMic ? selectedMic.label : 'Padrão Sistema'}`);
+
+        // B. Stream real
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: { exact: deviceId },
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+        streamRef.current = stream;
+
+        // C. Analisador de frequência
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContext();
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 512;
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        source.connect(analyserRef.current);
+
+        // D. MediaRecorder
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+        mediaRecorderRef.current.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+          audioChunksRef.current = [];
+          setListening(false);
+
+          if (blob.size > MIN_AUDIO_SIZE) {
+            sendAudioToBackend(blob);
+          } else {
+            console.log("🗑️ Áudio descartado (muito curto / ruído)");
+          }
+        };
+
+        // E. Loop de monitoramento (VAD)
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+
+        const checkAudioLevel = () => {
+          animationFrame = requestAnimationFrame(checkAudioLevel);
+
+          // ⛔ Bloqueio total: avatar falando ou sistema processando → não ouve
+          if (isPlayingRef.current || isProcessingRef.current || loading) return;
+
+          analyserRef.current.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const volume = sum / dataArray.length;
+
+          if (volume > VOICE_THRESHOLD) {
+            if (mediaRecorderRef.current.state === "inactive") {
+              console.log("🎙️ Voz detectada! Gravando...");
+              mediaRecorderRef.current.start();
+              setListening(true);
+            }
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = null;
+            }
+          } else {
+            if (mediaRecorderRef.current.state === "recording" && !silenceTimerRef.current) {
+              silenceTimerRef.current = setTimeout(() => {
+                if (mediaRecorderRef.current.state === "recording") {
+                  console.log("🛑 Silêncio detectado. Parando gravação.");
+                  mediaRecorderRef.current.stop();
+                }
+                silenceTimerRef.current = null;
+              }, SILENCE_TIMEOUT);
+            }
+          }
+        };
+
+        checkAudioLevel();
+
+      } catch (err) {
+        console.error("❌ Erro fatal no áudio (VAD):", err);
+      }
+    };
+
+    initAudio();
 
     return () => {
-      delete window.__totemSpeak;
-      delete window.__totemStopSpeech;
-      delete window.__totemStartListening;
-      delete window.__totemStopListening;
+      cancelAnimationFrame(animationFrame);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (audioContextRef.current) audioContextRef.current.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─────────────────────────────────────────────
-  // TTS — Text To Speech
-  // ─────────────────────────────────────────────
-  const speak = useCallback(async (text, options = {}) => {
-    if (!text) return;
-    stopSpeech();                 // cancela qualquer fala anterior
-    setIsSpeaking(true);
-    setLastUtterance(text);
-
-    // 1️⃣ TTS externo (edge function ou endpoint local)
-    if (ttsUrl) {
-      try {
-        const res = await fetch(ttsUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            voice: options.voice || import.meta.env.VITE_TTS_VOICE || "alloy",
-            model: options.model || import.meta.env.VITE_TTS_MODEL || "tts-1",
-            speed: options.speed ?? Number(import.meta.env.VITE_TTS_SPEED ?? 1),
-          }),
-        });
-        if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsSpeaking(false);
-          URL.revokeObjectURL(url);
-        };
-        audio.onerror = () => setIsSpeaking(false);
-        audio.play();
-        return;
-      } catch (err) {
-        console.warn("[Speech] TTS externo falhou, usando Web Speech:", err.message);
-      }
-    }
-
-    // 2️⃣ Fallback — Web Speech API nativa
-    if (!window.speechSynthesis) {
-      console.warn("[Speech] speechSynthesis não disponível.");
-      setIsSpeaking(false);
-      return;
-    }
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang  = options.lang || import.meta.env.VITE_TTS_LANG || "pt-BR";
-    utter.rate  = options.rate ?? Number(import.meta.env.VITE_TTS_SPEED ?? 1);
-    utter.pitch = options.pitch ?? 1;
-    utter.onend = () => setIsSpeaking(false);
-    utter.onerror = () => setIsSpeaking(false);
-    utteranceRef.current = utter;
-    window.speechSynthesis.speak(utter);
-  }, [ttsUrl]);
-
-  const stopSpeech = useCallback(() => {
-    // Para áudio externo
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    }
-    // Para Web Speech
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  }, []);
-
-  // ─────────────────────────────────────────────
-  // STT — Speech To Text
-  // ─────────────────────────────────────────────
-  const startListening = useCallback((onResult) => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("[Speech] SpeechRecognition não disponível.");
-      return;
-    }
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    const rec = new SpeechRecognition();
-    rec.lang = import.meta.env.VITE_STT_LANG || "pt-BR";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-
-    rec.onstart  = () => setIsListening(true);
-    rec.onend    = () => setIsListening(false);
-    rec.onerror  = () => setIsListening(false);
-    rec.onresult = (e) => {
-      const text = e.results[0][0].transcript;
-      setTranscript(text);
-      if (typeof onResult === "function") onResult(text);
-      // Envia automaticamente para a IA
-      if (typeof window.__totemSendMessage === "function") {
-        window.__totemSendMessage(text);
-      }
-    };
-
-    recognitionRef.current = rec;
-    rec.start();
-  }, []);
-
-  const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  }, []);
-
-  // ─────────────────────────────────────────────
-  // CONTEXT VALUE
-  // ─────────────────────────────────────────────
-  const value = {
-    // Estado
-    isSpeaking,
-    isListening,
-    transcript,
-    lastUtterance,
-    // Ações
-    speak,
-    stopSpeech,
-    startListening,
-    stopListening,
-  };
-
   return (
-    <SpeechContext.Provider value={value}>
+    <SpeechContext.Provider value={{ message, onMessagePlayed, loading, listening, sendMessage }}>
       {children}
     </SpeechContext.Provider>
   );
-}
-
-// ─────────────────────────────────────────────
-// HOOK
-// ─────────────────────────────────────────────
-export function useSpeech() {
-  const ctx = useContext(SpeechContext);
-  if (!ctx) {
-    throw new Error("useSpeech deve ser usado dentro de <SpeechProvider>");
-  }
-  return ctx;
-}
+};
 
 export default useSpeech;
