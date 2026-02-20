@@ -253,6 +253,40 @@ const LiveCountdown = React.memo(({ mode, targetDate, countdownMinutes, showLabe
 });
 
 // ─────────────────────────────────────────────
+// 📐 LAYOUT PROPS — espelha getLayoutStyle() do Hub
+// ─────────────────────────────────────────────
+function getLayoutStyle(p) {
+  const isAbs = p.positionType === "absolute";
+  if (isAbs) {
+    const hasRight = p.positionRight != null;
+    const hasBottom = p.positionBottom != null;
+    return {
+      position: "absolute",
+      top: hasBottom ? undefined : (p.positionTop ?? 0),
+      bottom: hasBottom ? p.positionBottom : undefined,
+      left: hasRight ? undefined : (p.positionLeft ?? 0),
+      right: hasRight ? p.positionRight : undefined,
+      width: p.layoutWidth && p.layoutWidth !== "auto" ? p.layoutWidth : undefined,
+      height: p.layoutHeight && p.layoutHeight !== "auto" ? p.layoutHeight : undefined,
+      zIndex: p.zIndex || undefined,
+      overflow: p.overflow === "visible" ? undefined : p.overflow,
+    };
+  }
+  return {
+    position: "relative",
+    width: p.layoutWidth && p.layoutWidth !== "auto" ? p.layoutWidth : undefined,
+    height: p.layoutHeight && p.layoutHeight !== "auto" ? p.layoutHeight : undefined,
+    marginTop: p.marginTop || undefined,
+    marginBottom: p.marginBottom || undefined,
+    marginLeft: p.marginLeft || undefined,
+    marginRight: p.marginRight || undefined,
+    alignSelf: p.alignSelf && p.alignSelf !== "auto" ? p.alignSelf : undefined,
+    overflow: p.overflow === "visible" ? undefined : p.overflow,
+    zIndex: p.zIndex || undefined,
+  };
+}
+
+// ─────────────────────────────────────────────
 // 🧱 RENDERIZADORES INDIVIDUAIS POR BLOCO
 // ─────────────────────────────────────────────
 
@@ -477,75 +511,88 @@ function renderBlock(blockName, props, childElements) {
   // ── MenuBlock ──
   if (blockName === "MenuBlock") {
     const items = Array.isArray(p.items) ? p.items : [];
-    const lay = p.layout || "grid";
-    const cols = p.columns || 2;
-    const gridStyle = lay === "grid"
-      ? { display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: px(p.gap || 8) }
-      : lay === "pills"
-        ? { display: "flex", flexWrap: "wrap", gap: px(p.gap || 8) }
-        : { display: "flex", flexDirection: "column", gap: px(p.gap || 8) };
+
+    // Função recursiva para renderizar item com suporte a pastas
+    function MenuItemRow({ item, depth = 0 }) {
+      const [open, setOpen] = React.useState(false);
+      const isFolder = item.type === "folder" || (item.children && item.children.length > 0);
+
+      const handleClick = () => {
+        if (isFolder) {
+          setOpen(v => !v);
+        } else {
+          const msg = item.prompt || item.label || "";
+          if (msg && typeof window.__totemSendMessage === "function") {
+            window.__totemSendMessage(msg);
+          }
+        }
+      };
+
+      const gradMap = {
+        "from-blue-400 to-indigo-400": "linear-gradient(135deg,#60a5fa,#818cf8)",
+        "from-teal-400 to-cyan-400": "linear-gradient(135deg,#2dd4bf,#22d3ee)",
+        "from-purple-400 to-pink-400": "linear-gradient(135deg,#c084fc,#f472b6)",
+        "from-orange-400 to-yellow-400": "linear-gradient(135deg,#fb923c,#facc15)",
+        "from-green-400 to-emerald-400": "linear-gradient(135deg,#4ade80,#34d399)",
+        "from-rose-400 to-red-400": "linear-gradient(135deg,#fb7185,#f87171)",
+      };
+
+      return (
+        <div style={{ marginLeft: depth * 12 }}>
+          <button
+            type="button"
+            onClick={handleClick}
+            className="kiosk-menu-item"
+            style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+              background: isFolder ? "rgba(255,255,255,0.07)" : "rgba(99,102,241,0.18)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              borderRadius: 16, marginBottom: 6, cursor: "pointer",
+              border: `1px solid ${isFolder && open ? "rgba(99,102,241,0.35)" : "rgba(255,255,255,0.12)"}`,
+              fontSize: 13, color: p.titleColor || "#fff", width: "100%", textAlign: "left",
+              fontWeight: 600, letterSpacing: "-0.01em", boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+              transition: "all 0.15s ease", userSelect: "none", outline: "none",
+              minHeight: 44,
+            }}
+          >
+            <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.description && <span style={{ fontSize: 11, opacity: 0.6 }}>{item.description}</span>}
+            <span style={{ opacity: 0.6, fontSize: 11, flexShrink: 0 }}>
+              {isFolder ? (open ? "▲" : (p.folderArrowSymbol || "▼")) : (p.itemArrowSymbol || "→")}
+            </span>
+          </button>
+          {isFolder && open && (
+            <div style={{ marginBottom: 4 }}>
+              {(item.children || []).map((child, ci) => (
+                <MenuItemRow key={child.id || ci} item={child} depth={depth + 1} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div style={{
-        backgroundColor: p.bgColor || "rgba(255,255,255,0.06)",
-        opacity: p.bgOpacity ?? 1,
-        borderRadius: px(p.borderRadius || 16),
-        padding: px(p.padding || 16),
-        backdropFilter: (p.bgBlur || 0) > 0 ? `blur(${p.bgBlur}px)` : undefined,
-        border: "1px solid rgba(255,255,255,0.08)",
+        backgroundColor: p.bgColor || "rgba(30,41,59,0.75)",
+        borderRadius: px(p.borderRadius || 28),
+        padding: px(p.padding || 20),
+        backdropFilter: (p.bgBlur || 0) > 0 ? `blur(${p.bgBlur}px) saturate(1.6)` : undefined,
+        WebkitBackdropFilter: (p.bgBlur || 0) > 0 ? `blur(${p.bgBlur}px) saturate(1.6)` : undefined,
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
       }}>
         {p.title && (
-          <div style={{ fontWeight: 600, marginBottom: "10px", display: "flex", gap: "8px", color: p.titleColor || "#fff", fontSize: px(p.titleFontSize || 14) }}>
-            {p.titleIcon && <span>{p.titleIcon}</span>}
+          <div style={{ fontWeight: 700, marginBottom: "16px", display: "flex", gap: "10px", alignItems: "center", color: p.titleColor || "#fff", fontSize: px(15), letterSpacing: "-0.02em" }}>
+            {p.titleIcon && <span style={{ fontSize: 18 }}>{p.titleIcon}</span>}
             <span>{p.title}</span>
           </div>
         )}
-        <div style={gridStyle}>
-          {items.map((item, idx) => {
-            if (lay === "pills") {
-              return (
-                <div key={idx} style={{
-                  backgroundColor: (item.color || "#6366f1") + "22",
-                  color: p.itemTextColor || "#fff",
-                  fontSize: px(p.itemFontSize || 13),
-                  borderRadius: "999px", padding: "8px 16px",
-                  border: `1px solid ${(item.color || "#6366f1")}44`,
-                  fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "6px",
-                  cursor: "pointer",
-                }}>
-                  {p.showItemEmoji !== false && item.emoji && <span>{item.emoji}</span>}
-                  <span>{item.label}</span>
-                </div>
-              );
-            }
-            return (
-              <div key={idx} style={{
-                backgroundColor: p.itemBgColor || "rgba(255,255,255,0.08)",
-                color: p.itemTextColor || "#fff",
-                fontSize: px(p.itemFontSize || 13),
-                borderRadius: px(p.itemBorderRadius || 12),
-                padding: lay === "list" ? "12px 16px" : "14px 12px",
-                border: "1px solid rgba(255,255,255,0.06)",
-                textAlign: lay === "grid" ? "center" : "left",
-                display: "flex", flexDirection: lay === "grid" ? "column" : "row",
-                alignItems: "center", gap: "8px",
-                fontWeight: 500, backdropFilter: "blur(8px)", minHeight: "44px",
-                cursor: "pointer",
-              }}>
-                {p.showItemEmoji !== false && item.emoji && (
-                  <span style={{
-                    width: lay === "grid" ? "36px" : "32px", height: lay === "grid" ? "36px" : "32px",
-                    borderRadius: "10px", backgroundColor: (item.color || "#6366f1") + "25",
-                    fontSize: lay === "grid" ? "18px" : "16px",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    {item.emoji}
-                  </span>
-                )}
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-              </div>
-            );
-          })}
+        <div style={{ display: "flex", flexDirection: "column", gap: px(p.gap || 8) }}>
+          {items.map((item, idx) => (
+            <MenuItemRow key={item.id || idx} item={item} />
+          ))}
         </div>
       </div>
     );
@@ -642,11 +689,26 @@ function renderBlock(blockName, props, childElements) {
         border: bgOn ? "1px solid rgba(255,255,255,0.08)" : undefined,
       }}>
         {links.map((link, idx) => (
-          <a key={idx} href={link.url || "#"} target="_blank" rel="noopener noreferrer" style={{
-            display: "flex", flexDirection: dir === "column" ? "row" : "column",
-            alignItems: "center", gap: "6px", textDecoration: "none", cursor: "pointer",
-            transition: "transform 0.2s",
-          }}>
+          <button
+            key={idx}
+            type="button"
+            onClick={() => {
+              const url = link.url || link.href || "";
+              if (url && url !== "#") {
+                if (typeof window.__totemOpenUrl === "function") {
+                  window.__totemOpenUrl(url);
+                } else {
+                  window.open(url, "_blank", "noopener,noreferrer");
+                }
+              }
+            }}
+            style={{
+              display: "flex", flexDirection: dir === "column" ? "row" : "column",
+              alignItems: "center", gap: "6px", cursor: "pointer",
+              transition: "transform 0.2s", background: "none", border: "none",
+              outline: "none", padding: 0,
+            }}
+          >
             <div style={{
               width: px(p.iconSize || 40), height: px(p.iconSize || 40),
               backgroundColor: (link.color || "#6366f1") + "20",
@@ -661,7 +723,7 @@ function renderBlock(blockName, props, childElements) {
                 {link.label}
               </span>
             )}
-          </a>
+          </button>
         ))}
       </div>
     );
@@ -785,6 +847,19 @@ const CraftEngine = React.memo(({ nodes, nodeId = "ROOT" }) => {
   // Renderiza filhos recursivamente
   const allChildIds = [...childIds, ...Object.values(linkedNodes)];
   const childElements = allChildIds.map((id) => <CraftEngine key={id} nodes={nodes} nodeId={id} />);
+
+  // Aplica layout props no wrapper (exceto ROOT e blocos que gerenciam posição própria)
+  if (nodeId !== "ROOT" && blockName !== "CanvasDropArea" && blockName !== "ChatInterfaceBlock") {
+    const layoutStyle = getLayoutStyle(props);
+    const hasLayout = props.positionType === "absolute" || props.layoutWidth || props.layoutHeight || props.marginTop || props.marginBottom || props.marginLeft || props.marginRight || props.zIndex;
+    if (hasLayout) {
+      return (
+        <div style={layoutStyle}>
+          {renderBlock(blockName, props, childElements)}
+        </div>
+      );
+    }
+  }
 
   return renderBlock(blockName, props, childElements);
 });
