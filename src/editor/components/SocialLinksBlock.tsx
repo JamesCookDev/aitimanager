@@ -23,13 +23,19 @@ export const SocialLinksBlock: UserComponent<Partial<SocialLinksBlockProps & Lay
     showLabels = true, bgEnabled = false, bgColor = 'rgba(255,255,255,0.06)',
     borderRadius = 16, padding = 12,
   } = props;
-  const { connectors: { connect, drag }, isActive } = useNode((node) => ({ isActive: node.events.selected }));
+  const { connectors: { connect, drag }, isActive, isHovered } = useNode((node) => ({ isActive: node.events.selected, isHovered: node.events.hovered }));
   const layoutStyle = getLayoutStyle(props as any);
   return (
-    <div style={{ ...layoutStyle, cursor: 'move', pointerEvents: 'auto' }}>
+    <div style={{
+      ...layoutStyle,
+      cursor: 'move',
+      pointerEvents: 'auto',
+      zIndex: isActive ? 50 : isHovered ? 40 : (layoutStyle.zIndex || undefined),
+      isolation: 'isolate',
+    }}>
       <div
         ref={(ref) => { if (ref) connect(drag(ref)); }}
-        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-sm' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
+        className={`transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2 rounded-md shadow-lg shadow-primary/20' : isHovered ? 'ring-1 ring-primary/50 rounded-md' : 'hover:ring-1 hover:ring-primary/30 rounded-sm'}`}
         style={{ padding: 4 }}
       >
         <div className="flex items-center justify-center" style={{

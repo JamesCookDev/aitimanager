@@ -16,18 +16,12 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
       ref={(ref) => { if (ref) connect(ref); }}
       style={{
         backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
-        /* 
-         * CRITICAL for absolute positioning:
-         * - position: relative → makes this the offsetParent for all absolute children
-         * - min-height → ensures canvas has enough space even when empty
-         * - width: 100% → fills the container
-         * NO display:flex here — flex changes offsetParent calculations and
-         * breaks top/left pixel values for absolutely-positioned children.
-         */
         position: 'relative',
         width: '100%',
         minHeight: '740px',
         padding: 0,
+        /* Ensure all children can receive pointer events */
+        isolation: 'isolate',
       }}
     >
       {children}
@@ -39,6 +33,7 @@ export const CanvasDropArea: UserComponent<CanvasDropAreaProps> = ({ bgColor, ch
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         >
           <div

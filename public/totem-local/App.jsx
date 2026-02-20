@@ -131,7 +131,7 @@ function useConfigPoller(onUpdate) {
 // Atualize estas versões sempre que modificar os arquivos correspondentes.
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "3.1.0",
+  "App.jsx": "3.2.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -503,12 +503,37 @@ function renderBlock(blockName, props, childElements) {
 
   // ── ButtonBlock ──
   if (blockName === "ButtonBlock") {
+    const isGradientPreset = (p.bgColor || "").startsWith("gradient-");
+    const gradientStyle = isGradientPreset
+      ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)"
+      : undefined;
+
+    const handleButtonClick = () => {
+      const action = p.action || "";
+      const label = p.label || p.text || "";
+      // If action looks like a URL
+      if (action && (action.startsWith("http") || action.startsWith("/"))) {
+        if (typeof window.__totemOpenUrl === "function") {
+          window.__totemOpenUrl(action);
+        } else {
+          window.open(action, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        // Send as prompt to AI
+        const msg = action || label;
+        if (msg && typeof window.__totemSendMessage === "function") {
+          window.__totemSendMessage(msg);
+        }
+      }
+    };
+
     return (
       <div style={{ padding: "4px" }}>
         <button
           type="button"
+          onClick={handleButtonClick}
           style={{
-            backgroundColor: p.bgColor || "hsl(221,83%,53%)",
+            background: gradientStyle ?? (p.bgColor || "hsl(221,83%,53%)"),
             color: p.textColor || "#fff",
             fontSize: px(p.fontSize || 16),
             borderRadius: px(p.borderRadius || 8),
@@ -522,6 +547,7 @@ function renderBlock(blockName, props, childElements) {
             display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
             flexDirection: p.iconPosition === "right" ? "row-reverse" : "row",
             transition: "transform 0.15s",
+            letterSpacing: "-0.01em",
           }}
         >
           {p.icon && <span style={{ fontSize: px((p.fontSize || 16) * 0.9) }}>{p.icon}</span>}
@@ -877,7 +903,7 @@ const CraftEngine = React.memo(({ nodes, nodeId = "ROOT" }) => {
     const hasLayout = props.positionType === "absolute" || props.layoutWidth || props.layoutHeight || props.marginTop || props.marginBottom || props.marginLeft || props.marginRight || props.zIndex;
     if (hasLayout) {
       return (
-        <div style={layoutStyle}>
+        <div style={{ ...layoutStyle, pointerEvents: "auto" }}>
           {renderBlock(blockName, props, childElements)}
         </div>
       );
