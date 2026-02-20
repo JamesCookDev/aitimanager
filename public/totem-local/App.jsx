@@ -16,6 +16,7 @@
  */
 import './index.css';
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useSpeech } from "./hooks/useSpeech";
 import { createClient } from "@supabase/supabase-js";
 import { Loader, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
@@ -1313,40 +1314,62 @@ export default function App() {
   const [toastKey, setToastKey] = useState(0);
   const { isIdle, wake } = useIdleDetection(IDLE_TIMEOUT_MS);
 
+  // ── Integração com SpeechProvider ────────────────────────────────────
+  // useSpeech() só funciona se App estiver dentro de <SpeechProvider> (ver main.jsx)
+  let speechCtx = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    speechCtx = useSpeech();
+  } catch (_) {
+    // SpeechProvider não está presente — funciona sem TTS
+  }
+
   // ── Registra handlers globais do bridge Totem ──────────────────────────
   useEffect(() => {
-    // Handler para abrir URLs externas — usa Electron shell.openExternal se disponível,
-    // caso contrário faz fallback para window.open (browser/dev mode)
+    // 🔊 TTS: window.__totemSpeak(text) — usa SpeechProvider se disponível
+    if (typeof window.__totemSpeak !== "function") {
+      window.__totemSpeak = (text, options) => {
+        if (speechCtx?.speak) {
+          speechCtx.speak(text, options);
+        } else if (window.speechSynthesis) {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = options?.lang || import.meta.env.VITE_TTS_LANG || "pt-BR";
+          window.speechSynthesis.speak(utter);
+        } else {
+          console.info("[Totem] 🔊 TTS stub:", text);
+        }
+      };
+      console.info("[Totem] ✅ window.__totemSpeak registrado");
+    }
+
+    // 🌐 URL: window.__totemOpenUrl(url) — usa Electron shell ou window.open
     if (typeof window.__totemOpenUrl !== "function") {
       window.__totemOpenUrl = (url) => {
         if (!url || url === "#") return;
-        // Electron: window.electronAPI.openExternal (exposto via preload/contextBridge)
+        // Electron moderno: contextBridge expõe electronAPI
         if (window.electronAPI?.openExternal) {
           window.electronAPI.openExternal(url);
           return;
         }
-        // Electron legado: require('electron').shell (não recomendado em renderer moderno)
+        // Electron legado: require('electron').shell
         try {
           const { shell } = window.require?.("electron") || {};
-          if (shell?.openExternal) {
-            shell.openExternal(url);
-            return;
-          }
-        } catch (_) { /* não estamos no Electron */ }
+          if (shell?.openExternal) { shell.openExternal(url); return; }
+        } catch (_) { /* não está no Electron */ }
         // Fallback web
         window.open(url, "_blank", "noopener,noreferrer");
       };
       console.info("[Totem] ✅ window.__totemOpenUrl registrado");
     }
 
-    // Garante que __totemSendMessage existe (deve ser registrado pelo chat/IA)
+    // 💬 IA: stub de desenvolvimento (deve ser sobrescrito pelo handler real da IA)
     if (typeof window.__totemSendMessage !== "function") {
-      // Stub de desenvolvimento — loga no console até o chat real registrar o handler
       window.__totemSendMessage = (msg) => {
         console.info("[Totem] 💬 __totemSendMessage (stub):", msg);
       };
-      console.info("[Totem] ⚠️ __totemSendMessage stub registrado — substitua pelo handler real da IA");
+      console.info("[Totem] ⚠️ __totemSendMessage stub — substitua pelo handler real da IA");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Device ID: read from env (set on hardware) or fallback to config response
