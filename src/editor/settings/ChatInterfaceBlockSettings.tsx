@@ -306,9 +306,13 @@ export function ChatInterfaceBlockSettings() {
                 <Input value={p.ctaIcon || '💬'} onChange={e => set('ctaIcon', e.target.value)} className="h-7 text-center text-base" />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Texto</Label>
+                <Label className="text-[10px] text-muted-foreground">Título (acima do botão)</Label>
                 <Input value={p.ctaText || ''} onChange={e => set('ctaText', e.target.value)} className="h-7 text-xs" />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">Texto do Botão CTA</Label>
+              <Input value={(p as any).ctaButtonText || 'Iniciar Conversa'} onChange={e => set('ctaButtonText' as any, e.target.value)} className="h-7 text-xs" placeholder="Iniciar Conversa" />
             </div>
           </AccordionContent>
         </AccordionItem>
