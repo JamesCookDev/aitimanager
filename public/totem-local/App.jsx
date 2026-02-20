@@ -134,7 +134,7 @@ const LOCAL_FILE_VERSIONS = {
   "App.jsx": "3.0.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
-  "hooks/useSpeech.js": "2.1.0",
+  "hooks/useSpeech.jsx": "2.2.0",
   "hooks/useCMSConfig.js": "1.2.0",
   "components/Avatar.jsx": "1.5.0",
   "components/ChatInterface.jsx": "1.3.0",
