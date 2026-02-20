@@ -1314,63 +1314,62 @@ export default function App() {
   const [toastKey, setToastKey] = useState(0);
   const { isIdle, wake } = useIdleDetection(IDLE_TIMEOUT_MS);
 
-  // ── Integração com SpeechProvider ────────────────────────────────────
-  // useSpeech() só funciona se App estiver dentro de <SpeechProvider> (ver main.jsx)
+  // ── Integração com SpeechProvider (nova API: message, onMessagePlayed, loading, listening, sendMessage) ──
   let speechCtx = null;
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     speechCtx = useSpeech();
   } catch (_) {
-    // SpeechProvider não está presente — funciona sem TTS
+    // SpeechProvider não está presente — funciona sem TTS/VAD
   }
 
   // ── Registra handlers globais do bridge Totem ──────────────────────────
   useEffect(() => {
-    // 🔊 TTS: window.__totemSpeak(text) — usa SpeechProvider se disponível
+    // 💬 IA: window.__totemSendMessage(text) → chama sendMessage do SpeechProvider
+    // Isso dispara o pipeline completo: texto → backend /text → LLM → TTS → avatar fala
+    window.__totemSendMessage = (msg) => {
+      if (speechCtx?.sendMessage) {
+        speechCtx.sendMessage(msg);
+      } else {
+        console.info("[Totem] 💬 __totemSendMessage (sem SpeechProvider):", msg);
+      }
+    };
+    console.info("[Totem] ✅ window.__totemSendMessage registrado (via SpeechProvider.sendMessage)");
+
+    // 🔊 TTS direto: window.__totemSpeak(text) — fallback via Web Speech API
+    // Com a nova arquitetura o TTS é feito pelo backend (Kokoro), mas mantemos
+    // o fallback para uso fora do fluxo principal (notificações, etc.)
     if (typeof window.__totemSpeak !== "function") {
       window.__totemSpeak = (text, options) => {
-        if (speechCtx?.speak) {
-          speechCtx.speak(text, options);
-        } else if (window.speechSynthesis) {
+        if (window.speechSynthesis) {
           const utter = new SpeechSynthesisUtterance(text);
           utter.lang = options?.lang || import.meta.env.VITE_TTS_LANG || "pt-BR";
           window.speechSynthesis.speak(utter);
         } else {
-          console.info("[Totem] 🔊 TTS stub:", text);
+          console.info("[Totem] 🔊 TTS stub (sem speechSynthesis):", text);
         }
       };
-      console.info("[Totem] ✅ window.__totemSpeak registrado");
+      console.info("[Totem] ✅ window.__totemSpeak registrado (fallback Web Speech)");
     }
 
     // 🌐 URL: window.__totemOpenUrl(url) — usa Electron shell ou window.open
     if (typeof window.__totemOpenUrl !== "function") {
       window.__totemOpenUrl = (url) => {
         if (!url || url === "#") return;
-        // Electron moderno: contextBridge expõe electronAPI
         if (window.electronAPI?.openExternal) {
           window.electronAPI.openExternal(url);
           return;
         }
-        // Electron legado: require('electron').shell
         try {
           const { shell } = window.require?.("electron") || {};
           if (shell?.openExternal) { shell.openExternal(url); return; }
         } catch (_) { /* não está no Electron */ }
-        // Fallback web
         window.open(url, "_blank", "noopener,noreferrer");
       };
       console.info("[Totem] ✅ window.__totemOpenUrl registrado");
     }
-
-    // 💬 IA: stub de desenvolvimento (deve ser sobrescrito pelo handler real da IA)
-    if (typeof window.__totemSendMessage !== "function") {
-      window.__totemSendMessage = (msg) => {
-        console.info("[Totem] 💬 __totemSendMessage (stub):", msg);
-      };
-      console.info("[Totem] ⚠️ __totemSendMessage stub — substitua pelo handler real da IA");
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [speechCtx?.sendMessage]);
 
   // Device ID: read from env (set on hardware) or fallback to config response
   const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || null;
