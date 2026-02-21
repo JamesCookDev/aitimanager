@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import type { CanvasElement } from '../types/canvas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +8,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Upload, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Props {
   element: CanvasElement | null;
@@ -147,6 +150,73 @@ function PropInput({ label, value, onChange, type = 'text' }: { label: string; v
   );
 }
 
+function ImageUploadField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error } = await supabase.storage.from('canvas-images').upload(path, file);
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage.from('canvas-images').getPublicUrl(path);
+      onChange(urlData.publicUrl);
+      toast.success('Imagem enviada!');
+    } catch (err: any) {
+      toast.error('Erro ao enviar: ' + (err.message || 'tente novamente'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-[11px]">Imagem</Label>
+
+      {/* Preview */}
+      {value && (
+        <div className="w-full h-20 rounded-md overflow-hidden border border-border/50">
+          <img src={value} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+
+      {/* Upload button */}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full text-xs gap-1.5"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+      >
+        {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+        {uploading ? 'Enviando…' : 'Enviar imagem'}
+      </Button>
+
+      {/* URL fallback */}
+      <Input
+        placeholder="ou cole a URL da imagem"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 text-xs font-mono"
+      />
+    </div>
+  );
+}
+
 function TypeProps({ type, props, onChange }: { type: string; props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
@@ -185,7 +255,7 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
     case 'image':
       return (
         <Section title="Imagem">
-          <PropInput label="URL da imagem" value={props.src} onChange={set('src')} />
+          <ImageUploadField value={props.src} onChange={set('src')} />
           <div>
             <Label className="text-[11px]">Ajuste</Label>
             <Select value={props.fit || 'cover'} onValueChange={set('fit')}>
