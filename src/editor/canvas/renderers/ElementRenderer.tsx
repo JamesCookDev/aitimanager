@@ -558,6 +558,19 @@ function StoreRenderer(props: any) {
   const showHours = props.showHours !== false;
   const showPhone = props.showPhone !== false;
   const showFloor = props.showFloor !== false;
+  const showFilter = props.showFilter !== false;
+
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Extract unique categories
+  const categories = useMemo(() => {
+    const cats = stores.map((s: any) => s.category).filter(Boolean);
+    return [...new Set(cats)] as string[];
+  }, [stores]);
+
+  const filtered = activeCategory
+    ? stores.filter((s: any) => s.category === activeCategory)
+    : stores;
 
   if (stores.length === 0) {
     return (
@@ -571,16 +584,46 @@ function StoreRenderer(props: any) {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none" style={{ background: bgColor, borderRadius, padding: 16 }}>
       {/* Title */}
-      <div className="flex-shrink-0 mb-3 flex items-center gap-2">
+      <div className="flex-shrink-0 mb-2 flex items-center gap-2">
         <div className="w-1 h-6 rounded-full" style={{ background: accentColor }} />
         <span style={{ color: titleColor, fontSize: titleSize, fontWeight: 700, letterSpacing: '-0.02em' }}>{title}</span>
       </div>
 
+      {/* Category filter */}
+      {showFilter && categories.length > 1 && (
+        <div className="flex-shrink-0 flex gap-1.5 mb-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          <button
+            onClick={() => setActiveCategory(null)}
+            className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all"
+            style={{
+              background: !activeCategory ? accentColor : 'rgba(255,255,255,0.08)',
+              color: !activeCategory ? '#fff' : 'rgba(255,255,255,0.6)',
+              border: `1px solid ${!activeCategory ? accentColor : 'rgba(255,255,255,0.1)'}`,
+            }}
+          >
+            Todas
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+              className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all"
+              style={{
+                background: activeCategory === cat ? accentColor : 'rgba(255,255,255,0.08)',
+                color: activeCategory === cat ? '#fff' : 'rgba(255,255,255,0.6)',
+                border: `1px solid ${activeCategory === cat ? accentColor : 'rgba(255,255,255,0.1)'}`,
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Store cards */}
       <div className="flex-1 overflow-y-auto" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}>
-        {stores.map((store: any) => (
+        {filtered.map((store: any) => (
           <div key={store.id} className="flex gap-3 p-3 transition-colors" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)' }}>
-            {/* Logo */}
             <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: accentColor + '22', border: `1px solid ${accentColor}33` }}>
               {store.logo ? (
                 <img src={store.logo} alt="" className="w-full h-full object-cover" />
@@ -588,28 +631,23 @@ function StoreRenderer(props: any) {
                 <Store className="w-5 h-5" style={{ color: accentColor }} />
               )}
             </div>
-
-            {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-white text-sm leading-tight truncate">{store.name || 'Loja'}</div>
               {store.description && <div className="text-white/50 text-[10px] mt-0.5 line-clamp-2">{store.description}</div>}
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
-                {showFloor && store.floor && (
-                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">📍 {store.floor}</span>
-                )}
-                {showCategory && store.category && (
-                  <span className="text-[10px] flex items-center gap-0.5" style={{ color: accentColor }}>🏷️ {store.category}</span>
-                )}
-                {showHours && store.hours && (
-                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">🕐 {store.hours}</span>
-                )}
-                {showPhone && store.phone && (
-                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">📞 {store.phone}</span>
-                )}
+                {showFloor && store.floor && <span className="text-[10px] text-white/60 flex items-center gap-0.5">📍 {store.floor}</span>}
+                {showCategory && store.category && <span className="text-[10px] flex items-center gap-0.5" style={{ color: accentColor }}>🏷️ {store.category}</span>}
+                {showHours && store.hours && <span className="text-[10px] text-white/60 flex items-center gap-0.5">🕐 {store.hours}</span>}
+                {showPhone && store.phone && <span className="text-[10px] text-white/60 flex items-center gap-0.5">📞 {store.phone}</span>}
               </div>
             </div>
           </div>
         ))}
+        {filtered.length === 0 && (
+          <div className="col-span-full flex items-center justify-center py-6">
+            <span className="text-white/40 text-xs">Nenhuma loja nesta categoria</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.8.0",
+  "App.jsx": "4.9.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -563,6 +563,19 @@ function StoreDirectory({ props: p }) {
   const showHours = p.showHours !== false;
   const showPhone = p.showPhone !== false;
   const showFloor = p.showFloor !== false;
+  const showFilter = p.showFilter !== false;
+
+  const [activeCategory, setActiveCategory] = useState(null);
+
+  // Extract unique categories
+  const categories = useMemo(() => {
+    const cats = stores.map(s => s.category).filter(Boolean);
+    return [...new Set(cats)];
+  }, [stores]);
+
+  const filtered = activeCategory
+    ? stores.filter(s => s.category === activeCategory)
+    : stores;
 
   if (stores.length === 0) {
     return <PlaceholderBox emoji="🏬" label="Diretório de Lojas" />;
@@ -578,7 +591,7 @@ function StoreDirectory({ props: p }) {
       padding: 16,
     }}>
       {/* Title */}
-      <div style={{ flexShrink: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flexShrink: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 4, height: 24, borderRadius: 2, background: accentColor }} />
         <span style={{
           color: titleColor,
@@ -587,6 +600,34 @@ function StoreDirectory({ props: p }) {
           letterSpacing: "-0.02em",
         }}>{title}</span>
       </div>
+
+      {/* Category filter pills */}
+      {showFilter && categories.length > 1 && (
+        <div style={{
+          flexShrink: 0, display: "flex", gap: 6, marginBottom: 8,
+          overflowX: "auto", paddingBottom: 4,
+          scrollbarWidth: "none", msOverflowStyle: "none",
+        }}>
+          <button type="button" onClick={() => setActiveCategory(null)} style={{
+            flexShrink: 0, padding: "5px 12px", borderRadius: 999,
+            fontSize: `clamp(9px, ${11 / CANVAS_W * 100}vw, 14px)`, fontWeight: 600,
+            background: !activeCategory ? accentColor : "rgba(255,255,255,0.08)",
+            color: !activeCategory ? "#fff" : "rgba(255,255,255,0.6)",
+            border: `1px solid ${!activeCategory ? accentColor : "rgba(255,255,255,0.1)"}`,
+            cursor: "pointer", transition: "all 0.2s",
+          }}>Todas</button>
+          {categories.map(cat => (
+            <button key={cat} type="button" onClick={() => setActiveCategory(activeCategory === cat ? null : cat)} style={{
+              flexShrink: 0, padding: "5px 12px", borderRadius: 999,
+              fontSize: `clamp(9px, ${11 / CANVAS_W * 100}vw, 14px)`, fontWeight: 600,
+              background: activeCategory === cat ? accentColor : "rgba(255,255,255,0.08)",
+              color: activeCategory === cat ? "#fff" : "rgba(255,255,255,0.6)",
+              border: `1px solid ${activeCategory === cat ? accentColor : "rgba(255,255,255,0.1)"}`,
+              cursor: "pointer", transition: "all 0.2s",
+            }}>{cat}</button>
+          ))}
+        </div>
+      )}
 
       {/* Store cards — scrollable */}
       <div style={{
@@ -597,7 +638,7 @@ function StoreDirectory({ props: p }) {
         gap,
         alignContent: "start",
       }}>
-        {stores.map((store, idx) => (
+        {filtered.map((store, idx) => (
           <div key={store.id || idx} style={{
             display: "flex", gap: 12, padding: 12,
             background: cardBgColor,
@@ -644,29 +685,26 @@ function StoreDirectory({ props: p }) {
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 6 }}>
                 {showFloor && store.floor && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
-                    📍 {store.floor}
-                  </span>
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>
                 )}
                 {showCategory && store.category && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>
-                    🏷️ {store.category}
-                  </span>
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ {store.category}</span>
                 )}
                 {showHours && store.hours && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
-                    🕐 {store.hours}
-                  </span>
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>🕐 {store.hours}</span>
                 )}
                 {showPhone && store.phone && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
-                    📞 {store.phone}
-                  </span>
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📞 {store.phone}</span>
                 )}
               </div>
             </div>
           </div>
         ))}
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Nenhuma loja nesta categoria</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -679,6 +679,10 @@ function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onCh
           <Label className="text-[11px]">Mostrar telefone</Label>
           <Switch checked={props.showPhone !== false} onCheckedChange={set('showPhone')} />
         </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Filtro por categoria</Label>
+          <Switch checked={props.showFilter !== false} onCheckedChange={set('showFilter')} />
+        </div>
       </div>
     </Section>
   );
