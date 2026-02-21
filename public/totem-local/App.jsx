@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.1.0",
+  "App.jsx": "4.2.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -533,24 +533,44 @@ function LiveCarousel({ images = [], autoplay = true, interval = 5, transition =
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius }}>
-      {filtered.map((src, i) => (
-        <img
-          key={i}
-          src={src}
-          alt=""
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: objectFit || "contain",
-            opacity: isFade ? (i === current ? 1 : 0) : 1,
-            transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
-            transition: "opacity 0.8s ease, transform 0.6s ease",
-            pointerEvents: "none",
-          }}
-        />
-      ))}
+      {filtered.map((src, i) => {
+        const fit = objectFit || "contain";
+        const isContain = fit === "contain";
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: isFade ? (i === current ? 1 : 0) : 1,
+              transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
+              transition: "opacity 0.8s ease, transform 0.6s ease",
+              pointerEvents: "none",
+            }}
+          >
+            <img
+              src={src}
+              alt=""
+              style={isContain ? {
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                objectPosition: "center",
+              } : {
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+              }}
+            />
+          </div>
+        );
+      })}
       {/* Dots indicator */}
       {len > 1 && (
         <div style={{
