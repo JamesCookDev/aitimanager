@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.3.0",
+  "App.jsx": "4.4.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -229,7 +229,7 @@ function FreeCanvasElement({ element }) {
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
-    pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" ? "auto" : "none",
+    pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" || type === "iframe" ? "auto" : "none",
     overflow: "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
   };
@@ -421,20 +421,31 @@ function ElementRenderer({ type, props: p }) {
       const url = p.url || "";
       if (!url) return <PlaceholderBox emoji="🌐" label="Iframe — configure a URL" />;
       return (
-        <iframe
-          src={url}
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            borderRadius: p.borderRadius || 0,
-            background: "#fff",
-          }}
-          scrolling={p.scrolling === false ? "no" : "yes"}
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-          loading="lazy"
-          title="Iframe embed"
-        />
+        <div style={{
+          width: "100%",
+          height: "100%",
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: p.borderRadius || 0,
+          background: "#fff",
+        }}>
+          <iframe
+            src={url}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+              pointerEvents: "auto",
+            }}
+            scrolling={p.scrolling === false ? "no" : "yes"}
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            loading="lazy"
+            title="Iframe embed"
+          />
+        </div>
       );
     }
 
