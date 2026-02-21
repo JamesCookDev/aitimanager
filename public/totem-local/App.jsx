@@ -454,9 +454,14 @@ function PlaceholderBox({ emoji, label }) {
 // 🤖 AVATAR 3D CANVAS ELEMENT — renderiza o avatar dentro do elemento do canvas
 // ─────────────────────────────────────────────
 function AvatarCanvasElement({ props: p }) {
+  const camY = p.cameraY ?? 1.65;
+  const camZ = p.cameraZ ?? 4;
+  const fov = p.fov ?? 26;
+  const targetY = p.cameraTargetY ?? 1.5;
+
   return (
     <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
-      <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
+      <Canvas shadows camera={{ position: [0, camY, camZ], fov }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
         <Scenario uiOverride={{
           components: {
             avatar: {
@@ -471,6 +476,22 @@ function AvatarCanvasElement({ props: p }) {
               },
               animations: { idle: "Idle", talking: "TalkingOne" },
               materials: { roughness: 0.5, metalness: 0.0 },
+            },
+          },
+          canvas: {
+            camera: {
+              initial_look_at: {
+                position: [0, camY, camZ],
+                target: [0, targetY, 0],
+                smooth: false,
+              },
+              controls: {
+                // Lock camera — user cannot change framing
+                minDistance: camZ,
+                maxDistance: camZ,
+                minPolarAngle: Math.PI / 2,
+                maxPolarAngle: Math.PI / 2,
+              },
             },
           },
         }} />
