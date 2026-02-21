@@ -124,8 +124,8 @@ export default function PageEditorPage() {
     if (selectedDeviceId) {
       await supabase.channel(`live-preview:${selectedDeviceId}`).send({
         type: 'broadcast',
-        event: 'layout-update',
-        payload: { free_canvas: state },
+        event: 'ui-update',
+        payload: { free_canvas: state, ts: Date.now() },
       });
     }
   };
