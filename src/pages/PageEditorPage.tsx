@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,12 +9,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { IntegratedBuilder, type IntegratedBuilderRef } from '@/components/page-builder/IntegratedBuilder';
-import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
-import { DEFAULT_PAGE_BUILDER_CONFIG, migrateUiConfig } from '@/types/page-builder';
-import type { PageBuilderConfig } from '@/types/page-builder';
+import { FreeFormEditor } from '@/editor/canvas/FreeFormEditor';
 import { getDeviceStatus, type DeviceStatus } from '@/types/database';
 import { cn } from '@/lib/utils';
+import type { CanvasState } from '@/editor/types/canvas';
+import { DEFAULT_CANVAS_STATE } from '@/editor/types/canvas';
 
 interface DeviceSummary {
   id: string;
@@ -31,9 +30,7 @@ export default function PageEditorPage() {
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
-  const [builderConfig, setBuilderConfig] = useState<PageBuilderConfig>(DEFAULT_PAGE_BUILDER_CONFIG);
-  const [showFullscreen, setShowFullscreen] = useState(false);
-  const builderRef = useRef<IntegratedBuilderRef | null>(null);
+  const [canvasState, setCanvasState] = useState<CanvasState | null>(null);
 
   const selectedDevice = devices.find(d => d.id === selectedDeviceId) || null;
 
@@ -63,7 +60,7 @@ export default function PageEditorPage() {
     fetchDevices();
   }, []);
 
-  // Load ui_config when device changes
+  // Load canvas state from ui_config when device changes
   useEffect(() => {
     if (!selectedDeviceId) return;
     setLoadingConfig(true);
@@ -81,12 +78,57 @@ export default function PageEditorPage() {
         return;
       }
 
-      const migrated = migrateUiConfig(data?.ui_config as Record<string, any> | null);
-      setBuilderConfig(migrated);
+      const raw = data?.ui_config as Record<string, any> | null;
+      // Check if there's a free_canvas key in the existing config
+      if (raw?.free_canvas) {
+        setCanvasState(raw.free_canvas as CanvasState);
+      } else {
+        setCanvasState(DEFAULT_CANVAS_STATE);
+      }
       setLoadingConfig(false);
     }
     loadConfig();
   }, [selectedDeviceId]);
+
+  const handleSave = async (state: CanvasState) => {
+    if (!selectedDeviceId) return;
+
+    // Load existing ui_config first to preserve other settings
+    const { data: existing } = await supabase
+      .from('devices')
+      .select('ui_config')
+      .eq('id', selectedDeviceId)
+      .single();
+
+    const currentConfig = (existing?.ui_config as Record<string, any>) || {};
+
+    const { error } = await supabase
+      .from('devices')
+      .update({
+        ui_config: { ...currentConfig, free_canvas: state } as any,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', selectedDeviceId);
+
+    if (error) {
+      toast.error('Erro ao salvar');
+      console.error(error);
+    }
+  };
+
+  const handlePublish = async (state: CanvasState) => {
+    await handleSave(state);
+    toast.success('Layout publicado no dispositivo!');
+
+    // Broadcast via realtime for instant preview
+    if (selectedDeviceId) {
+      await supabase.channel(`live-preview:${selectedDeviceId}`).send({
+        type: 'broadcast',
+        event: 'layout-update',
+        payload: { free_canvas: state },
+      });
+    }
+  };
 
   const getStatus = (d: DeviceSummary): DeviceStatus => getDeviceStatus(d.last_ping);
 
@@ -110,8 +152,8 @@ export default function PageEditorPage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header: device selector only — save/publish lives inside the builder */}
+    <div className="p-4 space-y-3">
+      {/* Device selector */}
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -131,9 +173,7 @@ export default function PageEditorPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[280px]">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Dispositivos
-            </DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Dispositivos</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {devices.map((d) => {
               const status = getStatus(d);
@@ -169,28 +209,16 @@ export default function PageEditorPage() {
         )}
       </div>
 
-      {/* Builder */}
+      {/* Canvas Editor */}
       {loadingConfig ? (
-        <Skeleton className="h-[calc(100vh-14rem)] rounded-xl" />
+        <Skeleton className="h-[calc(100vh-12rem)] rounded-xl" />
       ) : (
-        <>
-          <IntegratedBuilder
-            config={builderConfig}
-            onUpdateConfig={setBuilderConfig}
-            onFullscreen={() => setShowFullscreen(true)}
-            deviceName={selectedDevice?.name || 'Totem'}
-            deviceId={selectedDeviceId}
-            isOnline={selectedDevice ? getStatus(selectedDevice) === 'online' : false}
-            builderRef={builderRef}
-          />
-          <FullscreenPreview
-            open={showFullscreen}
-            onOpenChange={setShowFullscreen}
-            config={builderConfig}
-            deviceName={selectedDevice?.name || 'Totem'}
-            isOnline={selectedDevice ? getStatus(selectedDevice) === 'online' : false}
-          />
-        </>
+        <FreeFormEditor
+          initialState={canvasState}
+          onSave={handleSave}
+          onPublish={handlePublish}
+          deviceName={selectedDevice?.name || 'Totem'}
+        />
       )}
     </div>
   );
