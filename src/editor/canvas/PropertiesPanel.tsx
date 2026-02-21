@@ -513,6 +513,25 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           </div>
         </Section>
       );
+    case 'map':
+      return (
+        <Section title="Mapa">
+          <PropInput label="Latitude" value={props.lat ?? -23.5505} onChange={set('lat')} type="number" />
+          <PropInput label="Longitude" value={props.lng ?? -46.6333} onChange={set('lng')} type="number" />
+          <div>
+            <Label className="text-[11px]">Zoom: {props.zoom ?? 15}</Label>
+            <Slider value={[props.zoom ?? 15]} onValueChange={([v]) => onChange({ zoom: v })} min={3} max={20} step={1} />
+          </div>
+          <PropInput label="Border Radius" value={props.borderRadius ?? 12} onChange={set('borderRadius')} type="number" />
+          <div className="space-y-2 pt-2 border-t border-border">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase">Legenda</p>
+            <PropInput label="Texto" value={props.label || ''} onChange={set('label')} />
+            <PropInput label="Cor" value={props.labelColor || '#ffffff'} onChange={set('labelColor')} type="color" />
+            <PropInput label="Tamanho" value={props.labelSize || 14} onChange={set('labelSize')} type="number" />
+          </div>
+          <p className="text-[9px] text-muted-foreground mt-2">💡 Dica: pesquise as coordenadas no Google Maps e cole aqui.</p>
+        </Section>
+      );
     default:
       return (
         <Section title="Propriedades">

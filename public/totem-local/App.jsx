@@ -370,8 +370,31 @@ function ElementRenderer({ type, props: p }) {
       );
     }
 
-    case "map":
-      return <PlaceholderBox emoji="📍" label={`Mapa (${p.lat?.toFixed(2)}, ${p.lng?.toFixed(2)})`} />;
+    case "map": {
+      const mLat = p.lat ?? -23.5505;
+      const mLng = p.lng ?? -46.6333;
+      const mZoom = p.zoom ?? 15;
+      const mRadius = p.borderRadius ?? 12;
+      const mLabel = p.label || "";
+      const mLabelColor = p.labelColor || "#ffffff";
+      const mLabelSize = p.labelSize || 14;
+      const span = 0.01 / (mZoom / 15);
+      const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${mLng - span},${mLat - span * 0.6},${mLng + span},${mLat + span * 0.6}&layer=mapnik&marker=${mLat},${mLng}`;
+      return (
+        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: mRadius }}>
+          <iframe
+            src={mapSrc}
+            title="Mapa"
+            style={{ flex: 1, width: "100%", border: "none", pointerEvents: "auto" }}
+          />
+          {mLabel && (
+            <div style={{ flexShrink: 0, padding: "4px 8px", textAlign: "center", background: "rgba(0,0,0,0.6)" }}>
+              <span style={{ color: mLabelColor, fontSize: `clamp(10px, ${mLabelSize / CANVAS_W * 100}vw, ${mLabelSize * 1.5}px)`, fontWeight: 500 }}>{mLabel}</span>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     case "social": {
       const platforms = { instagram: "📷", facebook: "👤", twitter: "🐦", tiktok: "🎵", youtube: "▶️", whatsapp: "💬", linkedin: "💼" };

@@ -66,7 +66,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   icon: { w: 80, h: 80, name: 'Ícone', props: { icon: '⭐', size: 48, color: '#ffffff' } },
   video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true, borderRadius: 12 } },
   qrcode: { w: 200, h: 200, name: 'QR Code', props: { value: 'https://example.com', fgColor: '#ffffff', bgColor: 'transparent' } },
-  map: { w: 480, h: 360, name: 'Mapa', props: { lat: -23.5505, lng: -46.6333, zoom: 15, style: 'dark' } },
+  map: { w: 400, h: 500, name: 'Mapa', props: { lat: -23.5505, lng: -46.6333, zoom: 15, borderRadius: 12, label: '', labelColor: '#ffffff', labelSize: 14 } },
   social: { w: 360, h: 60, name: 'Redes Sociais', props: { links: [{ platform: 'instagram', url: '' }, { platform: 'facebook', url: '' }], iconSize: 32, gap: 16, color: '#ffffff' } },
   chat: { w: 420, h: 500, name: 'Chat IA', props: { placeholder: 'Pergunte algo...', theme: 'dark' } },
   carousel: { w: 480, h: 360, name: 'Carrossel', props: { images: [], autoplay: true, interval: 5, borderRadius: 12, transition: 'fade' } },
