@@ -250,6 +250,17 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           <PropInput label="Tamanho" value={props.fontSize} onChange={set('fontSize')} type="number" />
         </Section>
       );
+    case 'avatar':
+      return (
+        <Section title="Avatar 3D">
+          <PropInput label="URL do modelo" value={props.avatarUrl} onChange={set('avatarUrl')} />
+          <PropInput label="URL das animações" value={props.animationsUrl} onChange={set('animationsUrl')} />
+          <PropInput label="Escala" value={props.scale} onChange={set('scale')} type="number" />
+          <PropInput label="Cor da camisa" value={props.colors?.shirt || '#1E3A8A'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), shirt: v } })} type="color" />
+          <PropInput label="Cor da calça" value={props.colors?.pants || '#1F2937'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), pants: v } })} type="color" />
+          <PropInput label="Cor dos sapatos" value={props.colors?.shoes || '#000000'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), shoes: v } })} type="color" />
+        </Section>
+      );
     default:
       return (
         <Section title="Propriedades">
