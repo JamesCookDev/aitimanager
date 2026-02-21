@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.4.0",
+  "App.jsx": "4.5.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -420,33 +420,7 @@ function ElementRenderer({ type, props: p }) {
     case "iframe": {
       const url = p.url || "";
       if (!url) return <PlaceholderBox emoji="🌐" label="Iframe — configure a URL" />;
-      return (
-        <div style={{
-          width: "100%",
-          height: "100%",
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: p.borderRadius || 0,
-          background: "#fff",
-        }}>
-          <iframe
-            src={url}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              border: "none",
-              pointerEvents: "auto",
-            }}
-            scrolling={p.scrolling === false ? "no" : "yes"}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            loading="lazy"
-            title="Iframe embed"
-          />
-        </div>
-      );
+      return <ScaledIframe url={url} scrolling={p.scrolling} borderRadius={p.borderRadius} />;
     }
 
     case "carousel":
@@ -527,6 +501,59 @@ function AvatarCanvasElement({ props: p }) {
           },
         }} />
       </Canvas>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🌐 SCALED IFRAME — Renderiza site completo escalado para caber no elemento
+// ─────────────────────────────────────────────
+function ScaledIframe({ url, scrolling, borderRadius }) {
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState({ sx: 1, sy: 1 });
+  const VIRTUAL_W = 1280;
+  const VIRTUAL_H = 960;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setScale({ sx: rect.width / VIRTUAL_W, sy: rect.height / VIRTUAL_H });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: borderRadius || 0,
+      background: "#fff",
+    }}>
+      <iframe
+        src={url}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: VIRTUAL_W + "px",
+          height: VIRTUAL_H + "px",
+          border: "none",
+          pointerEvents: "auto",
+          transformOrigin: "0 0",
+          transform: `scale(${scale.sx}, ${scale.sy})`,
+        }}
+        scrolling={scrolling === false ? "no" : "yes"}
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        loading="lazy"
+        title="Iframe embed"
+      />
     </div>
   );
 }
