@@ -192,14 +192,27 @@ function SocialRenderer(props: any) {
 }
 
 function AvatarRenderer(props: any) {
+  const frameY = props.frameY ?? 0;
+  const frameZoom = props.frameZoom ?? 50;
+
+  // Map zoom 10..100 → SVG scale 0.5..1.8
+  const scale = 0.5 + (frameZoom / 100) * 1.3;
+  // Map frameY -100..100 → vertical translate (positive = shift avatar down in view)
+  const translateY = -(frameY / 100) * 120;
+
+  // ViewBox center shifts with frameY; zoom changes viewBox size
+  const vbW = 200 / scale;
+  const vbH = 400 / scale;
+  const vbX = 100 - vbW / 2;
+  const vbY = 200 - vbH / 2 + translateY / scale;
+
   return (
     <div className="w-full h-full flex flex-col items-center justify-end relative overflow-hidden" style={{ background: 'transparent' }}>
-      {/* Silhouette SVG */}
-      <svg viewBox="0 0 200 400" className="w-full h-full" style={{ opacity: 0.85 }}>
+      <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ opacity: 0.85 }}>
         <defs>
           <linearGradient id="avatar-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#818cf8" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.6" />
+            <stop offset="0%" stopColor={props.colors?.shirt || '#818cf8'} stopOpacity="0.9" />
+            <stop offset="100%" stopColor={props.colors?.shirt || '#6366f1'} stopOpacity="0.6" />
           </linearGradient>
           <filter id="avatar-glow">
             <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -210,7 +223,7 @@ function AvatarRenderer(props: any) {
           </filter>
         </defs>
         {/* Head */}
-        <circle cx="100" cy="60" r="35" fill="url(#avatar-grad)" filter="url(#avatar-glow)" />
+        <circle cx="100" cy="60" r="35" fill="#e8beac" filter="url(#avatar-glow)" />
         {/* Body */}
         <path d="M60 100 Q100 85 140 100 L150 250 Q100 260 50 250 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.8" filter="url(#avatar-glow)" />
         {/* Legs */}
@@ -226,7 +239,7 @@ function AvatarRenderer(props: any) {
       {/* Label */}
       <div className="absolute bottom-2 left-0 right-0 text-center">
         <span className="text-[10px] font-semibold text-white/60 bg-black/30 px-2 py-0.5 rounded-full">
-          Avatar 3D
+          Avatar 3D · V{frameY} Z{frameZoom}
         </span>
       </div>
     </div>
