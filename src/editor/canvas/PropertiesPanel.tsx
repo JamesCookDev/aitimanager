@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Upload, Loader2, Plus, X, GripVertical } from 'lucide-react';
+import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Upload, Loader2, Plus, X, GripVertical, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -561,6 +561,129 @@ function SocialPropsPanel({ props, onChange }: { props: Record<string, any>; onC
   );
 }
 
+/* ── Store / Mall Directory Properties ─────── */
+
+const STORE_CATEGORIES = [
+  'Moda', 'Alimentação', 'Eletrônicos', 'Saúde & Beleza', 'Esportes',
+  'Casa & Decoração', 'Entretenimento', 'Serviços', 'Joalheria', 'Infantil', 'Outro',
+];
+
+function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  const stores: Array<{ id: string; name: string; logo: string; floor: string; category: string; hours: string; phone: string; description: string }> = props.stores || [];
+  const set = (key: string) => (val: any) => onChange({ [key]: val });
+
+  const addStore = () => {
+    const newStore = {
+      id: Date.now().toString(),
+      name: 'Nova Loja',
+      logo: '',
+      floor: 'Piso 1',
+      category: 'Moda',
+      hours: '10h–22h',
+      phone: '',
+      description: '',
+    };
+    onChange({ stores: [...stores, newStore] });
+  };
+
+  const removeStore = (id: string) => onChange({ stores: stores.filter(s => s.id !== id) });
+
+  const updateStore = (id: string, field: string, value: string) => {
+    onChange({ stores: stores.map(s => s.id === id ? { ...s, [field]: value } : s) });
+  };
+
+  return (
+    <Section title="Diretório de Lojas">
+      {/* Title settings */}
+      <PropInput label="Título" value={props.title || 'Lojas'} onChange={set('title')} />
+      <PropInput label="Cor do título" value={props.titleColor || '#ffffff'} onChange={set('titleColor')} type="color" />
+      <PropInput label="Tamanho título" value={props.titleSize || 28} onChange={set('titleSize')} type="number" />
+
+      {/* Store list */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase">Lojas ({stores.length})</p>
+          <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1" onClick={addStore}>
+            <Plus className="w-3 h-3" /> Adicionar
+          </Button>
+        </div>
+
+        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          {stores.map((store) => (
+            <div key={store.id} className="p-2.5 rounded-lg border border-border/50 bg-muted/20 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Store className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-[11px] font-medium flex-1 truncate">{store.name}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => removeStore(store.id)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+              <Input value={store.name} onChange={(e) => updateStore(store.id, 'name', e.target.value)} placeholder="Nome da loja" className="h-7 text-xs" />
+              <Input value={store.description || ''} onChange={(e) => updateStore(store.id, 'description', e.target.value)} placeholder="Descrição breve" className="h-7 text-xs" />
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={store.floor} onChange={(e) => updateStore(store.id, 'floor', e.target.value)} placeholder="Piso" className="h-7 text-xs" />
+                <Select value={store.category || 'Outro'} onValueChange={(v) => updateStore(store.id, 'category', v)}>
+                  <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STORE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={store.hours} onChange={(e) => updateStore(store.id, 'hours', e.target.value)} placeholder="Horário" className="h-7 text-xs" />
+                <Input value={store.phone} onChange={(e) => updateStore(store.id, 'phone', e.target.value)} placeholder="Telefone" className="h-7 text-xs" />
+              </div>
+              <Input value={store.logo} onChange={(e) => updateStore(store.id, 'logo', e.target.value)} placeholder="URL do logo" className="h-7 text-xs" />
+            </div>
+          ))}
+        </div>
+
+        {stores.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">Clique "Adicionar" para criar lojas</p>}
+      </div>
+
+      {/* Appearance */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase">Aparência</p>
+        <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.6)'} onChange={set('bgColor')} type="color" />
+        <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
+        <PropInput label="Cor card" value={props.cardBgColor || 'rgba(255,255,255,0.08)'} onChange={set('cardBgColor')} type="color" />
+        <PropInput label="Border Radius" value={props.borderRadius || 16} onChange={set('borderRadius')} type="number" />
+        <PropInput label="Border Radius card" value={props.cardBorderRadius || 12} onChange={set('cardBorderRadius')} type="number" />
+        <div>
+          <Label className="text-[11px]">Colunas</Label>
+          <Select value={String(props.columns || 1)} onValueChange={(v) => onChange({ columns: parseInt(v) })}>
+            <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 coluna</SelectItem>
+              <SelectItem value="2">2 colunas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-[11px]">Espaçamento: {props.gap || 12}px</Label>
+          <Slider value={[props.gap || 12]} onValueChange={([v]) => onChange({ gap: v })} min={4} max={24} step={2} />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar piso</Label>
+          <Switch checked={props.showFloor !== false} onCheckedChange={set('showFloor')} />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar categoria</Label>
+          <Switch checked={props.showCategory !== false} onCheckedChange={set('showCategory')} />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar horário</Label>
+          <Switch checked={props.showHours !== false} onCheckedChange={set('showHours')} />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar telefone</Label>
+          <Switch checked={props.showPhone !== false} onCheckedChange={set('showPhone')} />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function TypeProps({ type, props, onChange }: { type: string; props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
@@ -742,6 +865,8 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
       return <MapPropsPanel props={props} onChange={onChange} />;
     case 'social':
       return <SocialPropsPanel props={props} onChange={onChange} />;
+    case 'store':
+      return <StorePropsPanel props={props} onChange={onChange} />;
     default:
       return (
         <Section title="Propriedades">
