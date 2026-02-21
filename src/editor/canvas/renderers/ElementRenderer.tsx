@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import QRCode from 'qrcode';
 import type { CanvasElement } from '../../types/canvas';
 import { MapPin, Image as ImageIcon, Play, QrCode, MessageSquare, Clock, CloudSun, Timer, Globe, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -199,8 +200,31 @@ function VideoRenderer(props: any) {
   return <Placeholder icon={Play} label="URL inválida" gradient="bg-gradient-to-br from-red-900/80 to-purple-900/80" />;
 }
 
-function QRPlaceholder(_props: any) {
-  return <Placeholder icon={QrCode} label="QR Code" gradient="bg-gradient-to-br from-slate-800 to-slate-900" />;
+function QRPlaceholder(props: any) {
+  const value = props.value || '';
+  const fgColor = props.fgColor || '#ffffff';
+  const bgColor = !props.bgColor || props.bgColor === 'transparent' ? 'rgba(0,0,0,0)' : props.bgColor;
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!value) { setDataUrl(null); return; }
+    QRCode.toDataURL(value, {
+      width: 512,
+      margin: 1,
+      color: { dark: fgColor, light: bgColor },
+      errorCorrectionLevel: 'M',
+    }).then(setDataUrl).catch(() => setDataUrl(null));
+  }, [value, fgColor, bgColor]);
+
+  if (!value || !dataUrl) {
+    return <Placeholder icon={QrCode} label="Configure a URL" gradient="bg-gradient-to-br from-slate-800 to-slate-900" />;
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-[8%]">
+      <img src={dataUrl} alt="QR Code" className="max-w-full max-h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+    </div>
+  );
 }
 
 function MapPlaceholder(_props: any) {

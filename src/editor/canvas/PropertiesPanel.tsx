@@ -429,7 +429,8 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
       return (
         <Section title="QR Code">
           <PropInput label="URL / Valor" value={props.value} onChange={set('value')} />
-          <PropInput label="Cor" value={props.fgColor} onChange={set('fgColor')} type="color" />
+          <PropInput label="Cor do QR" value={props.fgColor} onChange={set('fgColor')} type="color" />
+          <PropInput label="Cor de fundo" value={props.bgColor || 'transparent'} onChange={set('bgColor')} type="color" />
         </Section>
       );
     case 'clock':
