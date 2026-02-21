@@ -69,7 +69,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   map: { w: 480, h: 360, name: 'Mapa', props: { lat: -23.5505, lng: -46.6333, zoom: 15, style: 'dark' } },
   social: { w: 360, h: 60, name: 'Redes Sociais', props: { links: [{ platform: 'instagram', url: '' }, { platform: 'facebook', url: '' }], iconSize: 32, gap: 16, color: '#ffffff' } },
   chat: { w: 420, h: 500, name: 'Chat IA', props: { placeholder: 'Pergunte algo...', theme: 'dark' } },
-  carousel: { w: 480, h: 360, name: 'Carrossel', props: { images: [], autoplay: true, interval: 5 } },
+  carousel: { w: 480, h: 360, name: 'Carrossel', props: { images: [], autoplay: true, interval: 5, borderRadius: 12, transition: 'fade' } },
   clock: { w: 240, h: 100, name: 'Relógio', props: { format: '24h', showDate: true, color: '#ffffff', fontSize: 36 } },
   weather: { w: 300, h: 160, name: 'Clima', props: { city: 'São Paulo', units: 'metric', color: '#ffffff' } },
   countdown: { w: 360, h: 120, name: 'Contagem', props: { targetDate: '', label: 'Faltam', color: '#ffffff', fontSize: 28 } },

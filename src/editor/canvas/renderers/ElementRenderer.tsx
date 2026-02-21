@@ -1,5 +1,6 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { CanvasElement } from '../../types/canvas';
-import { MapPin, Image as ImageIcon, Play, QrCode, MessageSquare, Clock, CloudSun, Timer, Globe, Share2 } from 'lucide-react';
+import { MapPin, Image as ImageIcon, Play, QrCode, MessageSquare, Clock, CloudSun, Timer, Globe, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   element: CanvasElement;
@@ -36,7 +37,7 @@ export function ElementRenderer({ element }: Props) {
     case 'iframe':
       return <IframePlaceholder {...element.props} />;
     case 'carousel':
-      return <CarouselPlaceholder {...element.props} />;
+      return <CarouselRenderer {...element.props} />;
     case 'avatar':
       return <AvatarRenderer {...element.props} />;
     default:
@@ -222,8 +223,84 @@ function IframePlaceholder(_props: any) {
   return <Placeholder icon={Globe} label="Iframe" gradient="bg-gradient-to-br from-gray-800 to-gray-900" />;
 }
 
-function CarouselPlaceholder(_props: any) {
-  return <Placeholder icon={ImageIcon} label="Carrossel" gradient="bg-gradient-to-br from-pink-900/80 to-rose-900/80" />;
+function CarouselRenderer(props: any) {
+  const images: string[] = (props.images || []).filter((s: string) => !!s);
+  const [current, setCurrent] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoplay = props.autoplay !== false;
+  const interval = (props.interval || 5) * 1000;
+  const transition = props.transition || 'fade';
+
+  const next = useCallback(() => {
+    if (images.length <= 1) return;
+    setCurrent((c) => (c + 1) % images.length);
+  }, [images.length]);
+
+  const prev = useCallback(() => {
+    if (images.length <= 1) return;
+    setCurrent((c) => (c - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (!autoplay || images.length <= 1) return;
+    intervalRef.current = setInterval(next, interval);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [autoplay, interval, next, images.length]);
+
+  // Reset index if images change
+  useEffect(() => {
+    if (current >= images.length) setCurrent(0);
+  }, [images.length, current]);
+
+  if (images.length === 0) {
+    return <Placeholder icon={ImageIcon} label="Adicione imagens ao carrossel" gradient="bg-gradient-to-br from-pink-900/80 to-rose-900/80" />;
+  }
+
+  return (
+    <div className="w-full h-full relative overflow-hidden select-none" style={{ borderRadius: props.borderRadius || 0 }}>
+      {images.map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{
+            opacity: transition === 'fade' ? (i === current ? 1 : 0) : 1,
+            transform: transition === 'slide' ? `translateX(${(i - current) * 100}%)` : undefined,
+            transition: 'opacity 0.6s ease, transform 0.5s ease',
+          }}
+        />
+      ))}
+      {/* Nav arrows */}
+      {images.length > 1 && (
+        <>
+          <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 rounded-full p-1 transition-colors z-10">
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 rounded-full p-1 transition-colors z-10">
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
+        </>
+      )}
+      {/* Dots */}
+      {images.length > 1 && (
+        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className="rounded-full transition-all"
+              style={{
+                width: i === current ? 16 : 6,
+                height: 6,
+                background: i === current ? 'white' : 'rgba(255,255,255,0.4)',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ClockRenderer(props: any) {
