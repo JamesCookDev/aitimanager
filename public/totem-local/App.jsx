@@ -454,15 +454,15 @@ function PlaceholderBox({ emoji, label }) {
 // 🤖 AVATAR 3D CANVAS ELEMENT — renderiza o avatar dentro do elemento do canvas
 // ─────────────────────────────────────────────
 function AvatarCanvasElement({ props: p }) {
-  // frameY: -100..100 → camera vertical offset (negative=up, positive=down)
+  // frameY: -100..100 → vertical pan (neg=up, pos=down)
   // frameZoom: 10..100 → distance (10=far, 100=close)
   const frameY = p.frameY ?? 0;
   const frameZoom = p.frameZoom ?? 50;
 
   // Map frameZoom 10..100 → camera Z distance 8..2
   const camZ = 8 - (frameZoom / 100) * 6;
-  // Map frameY -100..100 → camera Y offset around avatar center (1.0)
-  const camY = 1.0 + (frameY / 100) * 1.5;
+  // Base camera at avatar mid-height (1.5), frameY shifts ±1.5
+  const camY = 1.5 + (frameY / 100) * 1.5;
   const targetY = 1.0 + (frameY / 100) * 1.2;
 
   return (
