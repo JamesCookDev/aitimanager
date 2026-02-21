@@ -568,6 +568,56 @@ const STORE_CATEGORIES = [
   'Casa & Decoração', 'Entretenimento', 'Serviços', 'Joalheria', 'Infantil', 'Outro',
 ];
 
+function StoreLogoUpload({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `store-logos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('canvas-images').upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('canvas-images').getPublicUrl(path);
+      onChange(urlData.publicUrl);
+      toast.success('Logo enviado!');
+    } catch (err: any) {
+      toast.error('Erro: ' + (err.message || 'tente novamente'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-[10px]">Logo</Label>
+      <div className="flex items-center gap-1.5">
+        {value && (
+          <div className="w-8 h-8 rounded border border-border/50 overflow-hidden shrink-0">
+            <img src={value} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 flex-1" onClick={() => fileRef.current?.click()} disabled={uploading}>
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+          {uploading ? 'Enviando…' : value ? 'Trocar' : 'Enviar logo'}
+        </Button>
+        {value && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onChange('')}>
+            <X className="w-3 h-3" />
+          </Button>
+        )}
+      </div>
+      <Input placeholder="ou cole URL" value={value || ''} onChange={(e) => onChange(e.target.value)} className="h-6 text-[10px] font-mono" />
+    </div>
+  );
+}
+
 function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
   const stores: Array<{ id: string; name: string; logo: string; floor: string; category: string; hours: string; phone: string; description: string }> = props.stores || [];
   const set = (key: string) => (val: any) => onChange({ [key]: val });
@@ -633,7 +683,7 @@ function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onCh
                 <Input value={store.hours} onChange={(e) => updateStore(store.id, 'hours', e.target.value)} placeholder="Horário" className="h-7 text-xs" />
                 <Input value={store.phone} onChange={(e) => updateStore(store.id, 'phone', e.target.value)} placeholder="Telefone" className="h-7 text-xs" />
               </div>
-              <Input value={store.logo} onChange={(e) => updateStore(store.id, 'logo', e.target.value)} placeholder="URL do logo" className="h-7 text-xs" />
+              <StoreLogoUpload value={store.logo} onChange={(v) => updateStore(store.id, 'logo', v)} />
             </div>
           ))}
         </div>
