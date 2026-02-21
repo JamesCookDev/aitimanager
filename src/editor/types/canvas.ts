@@ -64,7 +64,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   button: { w: 360, h: 64, name: 'Botão', props: { label: 'Toque aqui', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 18, borderRadius: 999, action: '' } },
   shape: { w: 200, h: 200, name: 'Forma', props: { shapeType: 'rectangle', fill: '#6366f1', borderRadius: 16, borderColor: 'transparent', borderWidth: 0 } },
   icon: { w: 80, h: 80, name: 'Ícone', props: { icon: '⭐', size: 48, color: '#ffffff' } },
-  video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true } },
+  video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true, borderRadius: 12 } },
   qrcode: { w: 200, h: 200, name: 'QR Code', props: { value: 'https://example.com', fgColor: '#ffffff', bgColor: 'transparent' } },
   map: { w: 480, h: 360, name: 'Mapa', props: { lat: -23.5505, lng: -46.6333, zoom: 15, style: 'dark' } },
   social: { w: 360, h: 60, name: 'Redes Sociais', props: { links: [{ platform: 'instagram', url: '' }, { platform: 'facebook', url: '' }], iconSize: 32, gap: 16, color: '#ffffff' } },
