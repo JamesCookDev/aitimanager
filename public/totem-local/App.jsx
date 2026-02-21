@@ -676,13 +676,14 @@ function StoreDirectory({ props: p }) {
         gap,
         alignContent: "start",
       }}>
-        {filtered.map((store, idx) => (
-          <div key={store.id || idx} style={{
+        {filtered.map((store, sIdx) => (
+          <div key={store.id || sIdx} style={{
             display: "flex", gap: 12, padding: 12,
             background: cardBgColor,
             borderRadius: cardBorderRadius,
             border: "1px solid rgba(255,255,255,0.06)",
             transition: "background 0.2s",
+            animation: `storeCardIn 0.3s ease-out ${sIdx * 50}ms both`,
           }}>
             {/* Logo */}
             <div style={{

@@ -942,3 +942,8 @@ body {
 /* Header Dinâmico */
 .chat-header.bottom_right, .chat-header.top_right { right: 30px; left: auto; transform: none; }
 .chat-header.bottom_left, .chat-header.top_left { left: 30px; right: auto; transform: none; }
+
+@keyframes storeCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

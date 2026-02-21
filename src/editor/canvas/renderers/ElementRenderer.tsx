@@ -658,8 +658,8 @@ function StoreRenderer(props: any) {
 
       {/* Store cards */}
       <div className="flex-1 overflow-y-auto" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}>
-        {filtered.map((store: any) => (
-          <div key={store.id} className="flex gap-3 p-3 transition-colors" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)' }}>
+        {filtered.map((store: any, idx: number) => (
+          <div key={store.id} className="flex gap-3 p-3 transition-colors animate-scale-in" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)', animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
             <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: accentColor + '22', border: `1px solid ${accentColor}33` }}>
               {store.logo ? (
                 <img src={store.logo} alt="" className="w-full h-full object-cover" />
