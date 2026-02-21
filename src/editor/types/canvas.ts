@@ -67,7 +67,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true, borderRadius: 12 } },
   qrcode: { w: 200, h: 200, name: 'QR Code', props: { value: 'https://example.com', fgColor: '#ffffff', bgColor: 'transparent' } },
   map: { w: 400, h: 500, name: 'Mapa', props: { lat: -23.5505, lng: -46.6333, zoom: 15, borderRadius: 12, label: '', labelColor: '#ffffff', labelSize: 14 } },
-  social: { w: 360, h: 60, name: 'Redes Sociais', props: { links: [{ platform: 'instagram', url: '' }, { platform: 'facebook', url: '' }], iconSize: 32, gap: 16, color: '#ffffff' } },
+  social: { w: 420, h: 80, name: 'Redes Sociais', props: { links: [{ id: '1', platform: 'instagram', label: 'Instagram', url: '', color: '#E1306C' }, { id: '2', platform: 'facebook', label: 'Facebook', url: '', color: '#1877F2' }, { id: '3', platform: 'whatsapp', label: 'WhatsApp', url: '', color: '#25D366' }, { id: '4', platform: 'email', label: 'E-mail', url: '', color: '#EA4335' }], iconSize: 36, gap: 16, showLabels: true, layout: 'horizontal', bgEnabled: false, bgColor: 'rgba(0,0,0,0.3)', borderRadius: 16, padding: 12 } },
   chat: { w: 420, h: 500, name: 'Chat IA', props: { placeholder: 'Pergunte algo...', theme: 'dark' } },
   carousel: { w: 480, h: 360, name: 'Carrossel', props: { images: [], autoplay: true, interval: 5, borderRadius: 12, transition: 'fade' } },
   clock: { w: 240, h: 100, name: 'Relógio', props: { format: '24h', showDate: true, color: '#ffffff', fontSize: 36 } },

@@ -386,16 +386,63 @@ function ClockRenderer(props: any) {
 }
 
 function SocialRenderer(props: any) {
-  const platforms: Record<string, string> = {
-    instagram: '📷', facebook: '👤', twitter: '🐦', tiktok: '🎵', youtube: '▶️', whatsapp: '💬', linkedin: '💼',
+  const PLATFORM_ICONS: Record<string, string> = {
+    instagram: '📸', facebook: '👤', whatsapp: '💬', twitter: '𝕏', x: '𝕏',
+    tiktok: '🎵', youtube: '▶️', linkedin: '💼', telegram: '✈️',
+    email: '📧', website: '🌐', phone: '📞', maps: '📍', spotify: '🎧',
+    pinterest: '📌', threads: '🧵', discord: '🎮', github: '🐱',
   };
   const links = props.links || [];
+  const layout = props.layout || 'horizontal';
+  const iconSize = props.iconSize || 36;
+  const gap = props.gap || 16;
+  const showLabels = props.showLabels !== false;
+  const bgEnabled = props.bgEnabled || false;
+  const bgColor = props.bgColor || 'rgba(0,0,0,0.3)';
+  const borderRadius = props.borderRadius || 16;
+  const padding = props.padding || 12;
+
+  if (links.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Share2 className="w-8 h-8 text-white/30" />
+        <span className="text-white/30 text-xs ml-2">Adicione redes sociais</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-full flex items-center justify-center" style={{ gap: props.gap || 16 }}>
-      {links.map((l: any, i: number) => (
-        <span key={i} style={{ fontSize: props.iconSize || 32 }}>{platforms[l.platform] || '🔗'}</span>
-      ))}
-      {links.length === 0 && <Share2 className="w-6 h-6 text-white/40" />}
+    <div className="w-full h-full flex items-center justify-center" style={{ padding: 4 }}>
+      <div className="flex items-center justify-center" style={{
+        flexDirection: layout === 'vertical' ? 'column' : 'row',
+        gap,
+        padding,
+        backgroundColor: bgEnabled ? bgColor : 'transparent',
+        borderRadius: bgEnabled ? borderRadius : 0,
+        backdropFilter: bgEnabled ? 'blur(8px)' : undefined,
+        border: bgEnabled ? '1px solid rgba(255,255,255,0.08)' : undefined,
+        flexWrap: 'wrap',
+      }}>
+        {links.map((link: any) => (
+          <div key={link.id || link.platform} className="flex items-center transition-all"
+            style={{ flexDirection: layout === 'vertical' ? 'row' : 'column', gap: showLabels ? 4 : 0 }}>
+            <div className="flex items-center justify-center rounded-xl transition-transform"
+              style={{
+                width: iconSize, height: iconSize,
+                backgroundColor: (link.color || '#6366f1') + '22',
+                border: `1.5px solid ${(link.color || '#6366f1')}44`,
+                fontSize: iconSize * 0.5,
+              }}>
+              {PLATFORM_ICONS[link.platform] || '🔗'}
+            </div>
+            {showLabels && (
+              <span style={{ fontSize: Math.max(9, iconSize * 0.28), color: 'rgba(255,255,255,0.65)', fontWeight: 500, textAlign: 'center' }}>
+                {link.label || link.platform}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
