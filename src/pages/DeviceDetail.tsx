@@ -5,7 +5,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { StatusBadge } from '@/components/devices/StatusBadge';
 import { Device, DeviceVersion, getDeviceStatus } from '@/types/database';
-import { PageBuilderConfig, DEFAULT_PAGE_BUILDER_CONFIG, migrateUiConfig } from '@/types/page-builder';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Copy as CopyIcon, Eye, EyeOff, Upload, FileBox, Clock,
-  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, Save, Wand2, GitCompare,
+  ArrowLeft, Copy as CopyIcon, Eye, EyeOff, FileBox, Clock,
+  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, GitCompare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,10 +22,7 @@ import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
-import { FullscreenPreview } from '@/components/devices/FullscreenPreview';
-import { IntegratedBuilder } from '@/components/page-builder/IntegratedBuilder';
 import { CodeSyncPanel } from '@/components/devices/CodeSyncPanel';
-import type { CanvasSelection } from '@/components/page-builder/TotemCanvas';
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -40,13 +37,7 @@ export default function DeviceDetail() {
   const [editingField, setEditingField] = useState<'name' | 'description' | 'location' | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // Page Builder state
-  const [builderConfig, setBuilderConfig] = useState<PageBuilderConfig>(DEFAULT_PAGE_BUILDER_CONFIG);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('builder');
-  const [showFullscreen, setShowFullscreen] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<CanvasSelection>(null);
+  const [activeTab, setActiveTab] = useState('ai');
 
   // Force re-render every 15s for status
   const [, setTick] = useState(0);
@@ -98,10 +89,6 @@ export default function DeviceDetail() {
     } as unknown as Device;
 
     setDevice(deviceData);
-
-    // Migrate ui_config to new format
-    const migrated = migrateUiConfig(data.ui_config as Record<string, any> | null);
-    setBuilderConfig(migrated);
     setLoading(false);
   };
 
@@ -114,38 +101,8 @@ export default function DeviceDetail() {
     if (data) setVersions(data as DeviceVersion[]);
   };
 
-  const handleBuilderChange = (newConfig: PageBuilderConfig) => {
-    setBuilderConfig(newConfig);
-    setHasChanges(true);
-  };
 
-  const handleSaveBuilder = async () => {
-    if (!device) return;
-    setSaving(true);
-    try {
-      // Preserve free_canvas from the Page Builder when saving legacy config
-      const { data: current } = await supabase
-        .from('devices')
-        .select('ui_config')
-        .eq('id', device.id)
-        .single();
-      const existingConfig = (current?.ui_config as Record<string, any>) || {};
-      const merged = { ...builderConfig, free_canvas: existingConfig.free_canvas || null };
 
-      const { error } = await supabase
-        .from('devices')
-        .update({ ui_config: merged as any })
-        .eq('id', device.id);
-      if (error) throw error;
-      toast.success('Configuração visual salva!', { description: 'Mudanças aplicadas no próximo carregamento do totem.' });
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      toast.error('Erro ao salvar configuração');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleRestart = async () => {
     if (!device) return;
@@ -179,7 +136,6 @@ export default function DeviceDetail() {
           description: device.description,
           location: device.location,
           org_id: device.org_id,
-          ui_config: builderConfig as any,
           ai_prompt: (device as any).ai_prompt,
           avatar_config: device.avatar_config as any,
         } as any)
@@ -296,10 +252,6 @@ export default function DeviceDetail() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleSaveBuilder} disabled={saving || !hasChanges} size="sm" className="gap-1.5">
-            <Save className="w-4 h-4" />
-            {saving ? 'Salvando...' : hasChanges ? 'Salvar' : 'Salvo'}
-          </Button>
           <Button variant="outline" size="sm" onClick={handleCloneDevice} disabled={cloning}>
             <CopyPlus className="w-4 h-4 mr-1" /> {cloning ? 'Clonando...' : 'Clonar'}
           </Button>
@@ -313,9 +265,6 @@ export default function DeviceDetail() {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
-          <TabsTrigger value="builder" className="gap-1.5">
-            <Wand2 className="w-4 h-4" /> Page Builder
-          </TabsTrigger>
           <TabsTrigger value="ai" className="gap-1.5">
             🧠 Prompt de IA
           </TabsTrigger>
@@ -326,20 +275,6 @@ export default function DeviceDetail() {
             <GitCompare className="w-4 h-4" /> Code Sync
           </TabsTrigger>
         </TabsList>
-
-        {/* PAGE BUILDER TAB */}
-        <TabsContent value="builder" className="mt-4">
-          <IntegratedBuilder
-            config={builderConfig}
-            onUpdateConfig={handleBuilderChange}
-            onFullscreen={() => setShowFullscreen(true)}
-            deviceName={device.name}
-            deviceId={deviceId}
-            isOnline={status === 'online'}
-          />
-
-          <FullscreenPreview open={showFullscreen} onOpenChange={setShowFullscreen} config={builderConfig} deviceName={device.name} isOnline={status === 'online'} />
-        </TabsContent>
 
         {/* AI PROMPT TAB */}
         <TabsContent value="ai" className="mt-4">
