@@ -431,6 +431,23 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           <PropInput label="URL / Valor" value={props.value} onChange={set('value')} />
           <PropInput label="Cor do QR" value={props.fgColor} onChange={set('fgColor')} type="color" />
           <PropInput label="Cor de fundo" value={props.bgColor || 'transparent'} onChange={set('bgColor')} type="color" />
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground">Correção de erro</label>
+            <select
+              value={props.errorCorrectionLevel || 'M'}
+              onChange={(e) => set('errorCorrectionLevel')(e.target.value)}
+              className="w-full h-8 rounded border border-input bg-background px-2 text-xs"
+            >
+              <option value="L">L – Baixa (7%)</option>
+              <option value="M">M – Média (15%)</option>
+              <option value="Q">Q – Alta (25%)</option>
+              <option value="H">H – Máxima (30%)</option>
+            </select>
+          </div>
+          <PropInput label="Margem" value={props.margin ?? 1} onChange={set('margin')} type="number" />
+          <PropInput label="Legenda" value={props.label || ''} onChange={set('label')} />
+          <PropInput label="Cor da legenda" value={props.labelColor || '#ffffff'} onChange={set('labelColor')} type="color" />
+          <PropInput label="Tamanho legenda" value={props.labelSize || 14} onChange={set('labelSize')} type="number" />
         </Section>
       );
     case 'clock':
