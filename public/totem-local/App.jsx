@@ -5,11 +5,11 @@
  *  Renderizador de canvas livre (1080×1920) com posicionamento
  *  absoluto pixel-perfect. Substitui completamente o Craft.js.
  *
- *  Elementos suportados (15 tipos):
+ *  Elementos suportados (16 tipos):
  *  ─ Conteúdo:  text, image, button, shape, icon
  *  ─ Mídia:     video, carousel, qrcode, social
  *  ─ Dados:     clock, weather, countdown
- *  ─ Interação: chat, map, iframe
+ *  ─ Interação: chat, map, iframe, store
  * ══════════════════════════════════════════════════════════════
  */
 import './index.css';
@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.7.0",
+  "App.jsx": "4.8.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -229,7 +229,7 @@ function FreeCanvasElement({ element }) {
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
-    pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" || type === "iframe" ? "auto" : "none",
+    pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" || type === "iframe" || type === "store" ? "auto" : "none",
     overflow: type === "social" ? "visible" : "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
   };
@@ -517,6 +517,9 @@ function ElementRenderer({ type, props: p }) {
     case "carousel":
       return <LiveCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} objectFit={p.objectFit} />;
 
+    case "store":
+      return <StoreDirectory props={p} />;
+
     default:
       return <PlaceholderBox emoji="❓" label={type} />;
   }
@@ -537,6 +540,134 @@ function PlaceholderBox({ emoji, label }) {
     }}>
       <span style={{ fontSize: 28 }}>{emoji}</span>
       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🏬 STORE DIRECTORY — Diretório de lojas (shopping)
+// ─────────────────────────────────────────────
+function StoreDirectory({ props: p }) {
+  const stores = p.stores || [];
+  const title = p.title || "Lojas";
+  const titleColor = p.titleColor || "#ffffff";
+  const titleSize = p.titleSize || 28;
+  const bgColor = p.bgColor || "rgba(0,0,0,0.6)";
+  const borderRadius = p.borderRadius || 16;
+  const columns = p.columns || 1;
+  const gap = p.gap || 12;
+  const cardBgColor = p.cardBgColor || "rgba(255,255,255,0.08)";
+  const cardBorderRadius = p.cardBorderRadius || 12;
+  const accentColor = p.accentColor || "#6366f1";
+  const showCategory = p.showCategory !== false;
+  const showHours = p.showHours !== false;
+  const showPhone = p.showPhone !== false;
+  const showFloor = p.showFloor !== false;
+
+  if (stores.length === 0) {
+    return <PlaceholderBox emoji="🏬" label="Diretório de Lojas" />;
+  }
+
+  return (
+    <div style={{
+      width: "100%", height: "100%",
+      display: "flex", flexDirection: "column",
+      overflow: "hidden",
+      background: bgColor,
+      borderRadius,
+      padding: 16,
+    }}>
+      {/* Title */}
+      <div style={{ flexShrink: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 4, height: 24, borderRadius: 2, background: accentColor }} />
+        <span style={{
+          color: titleColor,
+          fontSize: `clamp(16px, ${titleSize / CANVAS_W * 100}vw, ${titleSize * 1.5}px)`,
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+        }}>{title}</span>
+      </div>
+
+      {/* Store cards — scrollable */}
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        display: "grid",
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gap,
+        alignContent: "start",
+      }}>
+        {stores.map((store, idx) => (
+          <div key={store.id || idx} style={{
+            display: "flex", gap: 12, padding: 12,
+            background: cardBgColor,
+            borderRadius: cardBorderRadius,
+            border: "1px solid rgba(255,255,255,0.06)",
+            transition: "background 0.2s",
+          }}>
+            {/* Logo */}
+            <div style={{
+              flexShrink: 0, width: 48, height: 48,
+              borderRadius: 10, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              overflow: "hidden",
+              background: accentColor + "22",
+              border: `1px solid ${accentColor}33`,
+            }}>
+              {store.logo ? (
+                <img src={store.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 20 }}>🏪</span>
+              )}
+            </div>
+
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                color: "#fff", fontWeight: 600,
+                fontSize: `clamp(11px, ${14 / CANVAS_W * 100}vw, 18px)`,
+                lineHeight: 1.2,
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>{store.name || "Loja"}</div>
+
+              {store.description && (
+                <div style={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
+                  marginTop: 2,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}>{store.description}</div>
+              )}
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 6 }}>
+                {showFloor && store.floor && (
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
+                    📍 {store.floor}
+                  </span>
+                )}
+                {showCategory && store.category && (
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>
+                    🏷️ {store.category}
+                  </span>
+                )}
+                {showHours && store.hours && (
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
+                    🕐 {store.hours}
+                  </span>
+                )}
+                {showPhone && store.phone && (
+                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>
+                    📞 {store.phone}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
