@@ -342,6 +342,26 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           </div>
         </Section>
       );
+    case 'video':
+      return (
+        <Section title="Vídeo">
+          <PropInput label="URL do vídeo" value={props.url} onChange={set('url')} />
+          <p className="text-[9px] text-muted-foreground -mt-1">YouTube, Vimeo ou link direto (.mp4)</p>
+          <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Autoplay</Label>
+            <Switch checked={props.autoplay !== false} onCheckedChange={set('autoplay')} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mudo</Label>
+            <Switch checked={props.muted !== false} onCheckedChange={set('muted')} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Loop</Label>
+            <Switch checked={props.loop !== false} onCheckedChange={set('loop')} />
+          </div>
+        </Section>
+      );
     default:
       return (
         <Section title="Propriedades">
