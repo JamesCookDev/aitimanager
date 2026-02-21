@@ -230,7 +230,7 @@ function FreeCanvasElement({ element }) {
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
     pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" || type === "iframe" ? "auto" : "none",
-    overflow: "hidden",
+    overflow: type === "social" ? "visible" : "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
   };
 
