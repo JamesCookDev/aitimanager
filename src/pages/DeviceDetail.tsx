@@ -123,9 +123,18 @@ export default function DeviceDetail() {
     if (!device) return;
     setSaving(true);
     try {
+      // Preserve free_canvas from the Page Builder when saving legacy config
+      const { data: current } = await supabase
+        .from('devices')
+        .select('ui_config')
+        .eq('id', device.id)
+        .single();
+      const existingConfig = (current?.ui_config as Record<string, any>) || {};
+      const merged = { ...builderConfig, free_canvas: existingConfig.free_canvas || null };
+
       const { error } = await supabase
         .from('devices')
-        .update({ ui_config: builderConfig as any })
+        .update({ ui_config: merged as any })
         .eq('id', device.id);
       if (error) throw error;
       toast.success('Configuração visual salva!', { description: 'Mudanças aplicadas no próximo carregamento do totem.' });
