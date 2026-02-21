@@ -454,14 +454,20 @@ function PlaceholderBox({ emoji, label }) {
 // 🤖 AVATAR 3D CANVAS ELEMENT — renderiza o avatar dentro do elemento do canvas
 // ─────────────────────────────────────────────
 function AvatarCanvasElement({ props: p }) {
-  const camY = p.cameraY ?? 1.65;
-  const camZ = p.cameraZ ?? 4;
-  const fov = p.fov ?? 26;
-  const targetY = p.cameraTargetY ?? 1.5;
+  // frameY: -100..100 → camera vertical offset (negative=up, positive=down)
+  // frameZoom: 10..100 → distance (10=far, 100=close)
+  const frameY = p.frameY ?? 0;
+  const frameZoom = p.frameZoom ?? 50;
+
+  // Map frameZoom 10..100 → camera Z distance 8..2
+  const camZ = 8 - (frameZoom / 100) * 6;
+  // Map frameY -100..100 → camera Y offset around avatar center (1.0)
+  const camY = 1.0 + (frameY / 100) * 1.5;
+  const targetY = 1.0 + (frameY / 100) * 1.2;
 
   return (
     <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
-      <Canvas shadows camera={{ position: [0, camY, camZ], fov }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
+      <Canvas shadows camera={{ position: [0, camY, camZ], fov: 30 }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
         <Scenario uiOverride={{
           components: {
             avatar: {
@@ -486,7 +492,6 @@ function AvatarCanvasElement({ props: p }) {
                 smooth: false,
               },
               controls: {
-                // Lock camera — user cannot change framing
                 minDistance: camZ,
                 maxDistance: camZ,
                 minPolarAngle: Math.PI / 2,
