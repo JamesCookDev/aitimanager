@@ -37,6 +37,8 @@ export function ElementRenderer({ element }: Props) {
       return <IframePlaceholder {...element.props} />;
     case 'carousel':
       return <CarouselPlaceholder {...element.props} />;
+    case 'avatar':
+      return <AvatarRenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
@@ -185,6 +187,48 @@ function SocialRenderer(props: any) {
         <span key={i} style={{ fontSize: props.iconSize || 32 }}>{platforms[l.platform] || '🔗'}</span>
       ))}
       {links.length === 0 && <Share2 className="w-6 h-6 text-white/40" />}
+    </div>
+  );
+}
+
+function AvatarRenderer(props: any) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-end relative overflow-hidden" style={{ background: 'transparent' }}>
+      {/* Silhouette SVG */}
+      <svg viewBox="0 0 200 400" className="w-full h-full" style={{ opacity: 0.85 }}>
+        <defs>
+          <linearGradient id="avatar-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#818cf8" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.6" />
+          </linearGradient>
+          <filter id="avatar-glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Head */}
+        <circle cx="100" cy="60" r="35" fill="url(#avatar-grad)" filter="url(#avatar-glow)" />
+        {/* Body */}
+        <path d="M60 100 Q100 85 140 100 L150 250 Q100 260 50 250 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.8" filter="url(#avatar-glow)" />
+        {/* Legs */}
+        <rect x="65" y="250" width="28" height="110" rx="10" fill={props.colors?.pants || '#1F2937'} opacity="0.8" />
+        <rect x="107" y="250" width="28" height="110" rx="10" fill={props.colors?.pants || '#1F2937'} opacity="0.8" />
+        {/* Shoes */}
+        <ellipse cx="79" cy="365" rx="18" ry="10" fill={props.colors?.shoes || '#000'} opacity="0.7" />
+        <ellipse cx="121" cy="365" rx="18" ry="10" fill={props.colors?.shoes || '#000'} opacity="0.7" />
+        {/* Arms */}
+        <rect x="30" y="110" width="22" height="100" rx="10" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.7" transform="rotate(-8 41 110)" />
+        <rect x="148" y="110" width="22" height="100" rx="10" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.7" transform="rotate(8 159 110)" />
+      </svg>
+      {/* Label */}
+      <div className="absolute bottom-2 left-0 right-0 text-center">
+        <span className="text-[10px] font-semibold text-white/60 bg-black/30 px-2 py-0.5 rounded-full">
+          Avatar 3D
+        </span>
+      </div>
     </div>
   );
 }

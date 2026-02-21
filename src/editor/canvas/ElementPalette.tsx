@@ -1,6 +1,6 @@
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
-  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe,
+  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -45,6 +45,12 @@ const CATEGORIES = [
       { type: 'clock' as ElementType, icon: Clock, label: 'Relógio' },
       { type: 'weather' as ElementType, icon: CloudSun, label: 'Clima' },
       { type: 'countdown' as ElementType, icon: Timer, label: 'Contagem' },
+    ],
+  },
+  {
+    label: '3D',
+    items: [
+      { type: 'avatar' as ElementType, icon: User, label: 'Avatar 3D' },
     ],
   },
 ];

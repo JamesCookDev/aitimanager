@@ -405,6 +405,9 @@ function ElementRenderer({ type, props: p }) {
     case "chat":
       return <PlaceholderBox emoji="💬" label="Chat IA" />;
 
+    case "avatar":
+      return <AvatarCanvasElement props={p} />;
+
     case "clock":
       return <LiveClock color={p.color} fontSize={p.fontSize} />;
 
@@ -443,6 +446,35 @@ function PlaceholderBox({ emoji, label }) {
     }}>
       <span style={{ fontSize: 28 }}>{emoji}</span>
       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🤖 AVATAR 3D CANVAS ELEMENT — renderiza o avatar dentro do elemento do canvas
+// ─────────────────────────────────────────────
+function AvatarCanvasElement({ props: p }) {
+  return (
+    <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
+      <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
+        <Scenario uiOverride={{
+          components: {
+            avatar: {
+              enabled: true,
+              position: "center",
+              scale: p.scale || 1.5,
+              animation: p.animation || "idle",
+              colors: p.colors || { shirt: "#1E3A8A", pants: "#1F2937", shoes: "#000000" },
+              models: {
+                avatar_url: p.avatarUrl || "/models/avatar.glb",
+                animations_url: p.animationsUrl || "/models/animations.glb",
+              },
+              animations: { idle: "Idle", talking: "TalkingOne" },
+              materials: { roughness: 0.5, metalness: 0.0 },
+            },
+          },
+        }} />
+      </Canvas>
     </div>
   );
 }
@@ -839,20 +871,9 @@ export default function App() {
     return { background: "linear-gradient(160deg, #050a18 0%, #0c1630 60%, #0a0e1f 100%)" };
   }, [ui, freeCanvas, hasFreeCanvas]);
 
-  const avatarOn = ui?.components?.avatar?.enabled !== false;
+  // Avatar is now rendered as a free canvas element (type: 'avatar')
+  // No longer a fixed background layer
 
-  // Chat interface config (fallback when no free_canvas chat element exists)
-  const chatInterfaceConfig = useMemo(() => {
-    return ui?.components?.chat_interface || null;
-  }, [ui]);
-
-  const chatOn = chatInterfaceConfig?.enabled !== false;
-
-  // Scene override from remote config
-  const mergedUi = useMemo(() => {
-    if (!ui?.canvas?.scene) return ui;
-    return ui;
-  }, [ui]);
 
   return (
     <>
@@ -867,27 +888,18 @@ export default function App() {
         <Loader />
         <Leva collapsed hidden />
 
-        {/* 🤖 CAMADA 1: Avatar 3D + Cenário */}
-        {avatarOn && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
-            <Canvas shadows camera={{ position: [0, 0, 0], fov: 26 }} gl={{ preserveDrawingBuffer: true }}>
-              <Scenario uiOverride={mergedUi} />
-            </Canvas>
-          </div>
-        )}
-
-        {/* 🖼️ CAMADA 2: Free Canvas Overlay (elementos posicionados livremente) */}
+        {/* 🖼️ Free Canvas — todos os elementos (incluindo avatar 3D) */}
         {hasFreeCanvas && (
           <div style={{ position: "absolute", inset: 0, zIndex: 30 }}>
             <FreeCanvasRenderer canvas={freeCanvas} />
           </div>
         )}
 
-        {/* 💬 CAMADA 3: Chat Interface fallback (quando não há free_canvas) */}
-        {!hasFreeCanvas && chatOn && (
+        {/* 💬 Chat Interface fallback (quando não há free_canvas) */}
+        {!hasFreeCanvas && (
           <div style={{ position: "absolute", inset: 0, zIndex: 30, pointerEvents: "none" }}>
             <div style={{ pointerEvents: "auto", height: "100%" }}>
-              <ChatInterface uiConfig={chatInterfaceConfig} />
+              <ChatInterface uiConfig={ui?.components?.chat_interface || null} />
             </div>
           </div>
         )}
