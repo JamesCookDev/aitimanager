@@ -1,6 +1,6 @@
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
-  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User,
+  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -37,6 +37,7 @@ const CATEGORIES = [
       { type: 'map' as ElementType, icon: MapPin, label: 'Mapa' },
       { type: 'social' as ElementType, icon: Share2, label: 'Redes Sociais' },
       { type: 'chat' as ElementType, icon: MessageSquare, label: 'Chat IA' },
+      { type: 'store' as ElementType, icon: Store, label: 'Lojas' },
     ],
   },
   {

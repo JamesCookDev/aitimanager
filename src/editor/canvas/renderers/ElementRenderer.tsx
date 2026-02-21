@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import QRCode from 'qrcode';
 import type { CanvasElement } from '../../types/canvas';
-import { MapPin, Image as ImageIcon, Play, QrCode, MessageSquare, Clock, CloudSun, Timer, Globe, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Image as ImageIcon, Play, QrCode, MessageSquare, Clock, CloudSun, Timer, Globe, Share2, ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { SocialIcon } from '@/editor/shared/socialIcons';
 
 interface Props {
@@ -42,6 +42,8 @@ export function ElementRenderer({ element }: Props) {
       return <CarouselRenderer {...element.props} />;
     case 'avatar':
       return <AvatarRenderer {...element.props} />;
+    case 'store':
+      return <StoreRenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
@@ -535,6 +537,79 @@ function AvatarRenderer(props: any) {
         <span className="text-[9px] font-semibold text-white/50 bg-black/30 px-2 py-0.5 rounded-full">
           Avatar 3D
         </span>
+      </div>
+    </div>
+  );
+}
+
+function StoreRenderer(props: any) {
+  const stores = props.stores || [];
+  const title = props.title || 'Lojas';
+  const titleColor = props.titleColor || '#ffffff';
+  const titleSize = props.titleSize || 28;
+  const bgColor = props.bgColor || 'rgba(0,0,0,0.6)';
+  const borderRadius = props.borderRadius || 16;
+  const columns = props.columns || 1;
+  const gap = props.gap || 12;
+  const cardBgColor = props.cardBgColor || 'rgba(255,255,255,0.08)';
+  const cardBorderRadius = props.cardBorderRadius || 12;
+  const accentColor = props.accentColor || '#6366f1';
+  const showCategory = props.showCategory !== false;
+  const showHours = props.showHours !== false;
+  const showPhone = props.showPhone !== false;
+  const showFloor = props.showFloor !== false;
+
+  if (stores.length === 0) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: bgColor, borderRadius }}>
+        <Store className="w-10 h-10 text-white/30" />
+        <span className="text-white/40 text-xs">Adicione lojas ao diretório</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col overflow-hidden select-none" style={{ background: bgColor, borderRadius, padding: 16 }}>
+      {/* Title */}
+      <div className="flex-shrink-0 mb-3 flex items-center gap-2">
+        <div className="w-1 h-6 rounded-full" style={{ background: accentColor }} />
+        <span style={{ color: titleColor, fontSize: titleSize, fontWeight: 700, letterSpacing: '-0.02em' }}>{title}</span>
+      </div>
+
+      {/* Store cards */}
+      <div className="flex-1 overflow-y-auto" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}>
+        {stores.map((store: any) => (
+          <div key={store.id} className="flex gap-3 p-3 transition-colors" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Logo */}
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: accentColor + '22', border: `1px solid ${accentColor}33` }}>
+              {store.logo ? (
+                <img src={store.logo} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Store className="w-5 h-5" style={{ color: accentColor }} />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-white text-sm leading-tight truncate">{store.name || 'Loja'}</div>
+              {store.description && <div className="text-white/50 text-[10px] mt-0.5 line-clamp-2">{store.description}</div>}
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                {showFloor && store.floor && (
+                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">📍 {store.floor}</span>
+                )}
+                {showCategory && store.category && (
+                  <span className="text-[10px] flex items-center gap-0.5" style={{ color: accentColor }}>🏷️ {store.category}</span>
+                )}
+                {showHours && store.hours && (
+                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">🕐 {store.hours}</span>
+                )}
+                {showPhone && store.phone && (
+                  <span className="text-[10px] text-white/60 flex items-center gap-0.5">📞 {store.phone}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
