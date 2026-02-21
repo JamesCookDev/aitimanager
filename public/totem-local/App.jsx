@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.10.0",
+  "App.jsx": "4.10.1",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -563,7 +563,7 @@ function StoreDirectory({ props: p }) {
   const showHours = p.showHours !== false;
   const showPhone = p.showPhone !== false;
   const showFloor = p.showFloor !== false;
-  const showFilter = p.showFilter !== false;
+  const showFilter = p.showCategoryFilter !== false;
   const showSearch = p.showSearch !== false;
 
   const [activeCategory, setActiveCategory] = useState(null);
