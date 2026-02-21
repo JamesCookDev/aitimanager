@@ -559,8 +559,10 @@ function StoreRenderer(props: any) {
   const showPhone = props.showPhone !== false;
   const showFloor = props.showFloor !== false;
   const showFilter = props.showFilter !== false;
+  const showSearch = props.showSearch !== false;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -568,9 +570,18 @@ function StoreRenderer(props: any) {
     return [...new Set(cats)] as string[];
   }, [stores]);
 
-  const filtered = activeCategory
-    ? stores.filter((s: any) => s.category === activeCategory)
-    : stores;
+  const filtered = useMemo(() => {
+    let result = stores;
+    if (activeCategory) result = result.filter((s: any) => s.category === activeCategory);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((s: any) =>
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.description || '').toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [stores, activeCategory, search]);
 
   if (stores.length === 0) {
     return (
@@ -588,6 +599,31 @@ function StoreRenderer(props: any) {
         <div className="w-1 h-6 rounded-full" style={{ background: accentColor }} />
         <span style={{ color: titleColor, fontSize: titleSize, fontWeight: 700, letterSpacing: '-0.02em' }}>{title}</span>
       </div>
+
+      {/* Search bar */}
+      {showSearch && stores.length > 2 && (
+        <div className="flex-shrink-0 mb-2 relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Buscar loja..."
+            className="w-full h-8 rounded-lg border-none outline-none text-xs px-3"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              color: '#fff',
+              fontSize: 11,
+            }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
+            >✕</button>
+          )}
+        </div>
+      )}
 
       {/* Category filter */}
       {showFilter && categories.length > 1 && (

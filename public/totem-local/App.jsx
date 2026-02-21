@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.9.0",
+  "App.jsx": "4.10.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -564,8 +564,10 @@ function StoreDirectory({ props: p }) {
   const showPhone = p.showPhone !== false;
   const showFloor = p.showFloor !== false;
   const showFilter = p.showFilter !== false;
+  const showSearch = p.showSearch !== false;
 
   const [activeCategory, setActiveCategory] = useState(null);
+  const [search, setSearch] = useState("");
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -573,9 +575,18 @@ function StoreDirectory({ props: p }) {
     return [...new Set(cats)];
   }, [stores]);
 
-  const filtered = activeCategory
-    ? stores.filter(s => s.category === activeCategory)
-    : stores;
+  const filtered = useMemo(() => {
+    let result = stores;
+    if (activeCategory) result = result.filter(s => s.category === activeCategory);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(s =>
+        (s.name || "").toLowerCase().includes(q) ||
+        (s.description || "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [stores, activeCategory, search]);
 
   if (stores.length === 0) {
     return <PlaceholderBox emoji="🏬" label="Diretório de Lojas" />;
@@ -600,6 +611,33 @@ function StoreDirectory({ props: p }) {
           letterSpacing: "-0.02em",
         }}>{title}</span>
       </div>
+
+      {/* Search bar */}
+      {showSearch && stores.length > 2 && (
+        <div style={{ flexShrink: 0, marginBottom: 8, position: "relative" }}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Buscar loja..."
+            style={{
+              width: "100%", height: 36, borderRadius: 10,
+              border: "none", outline: "none",
+              padding: "0 32px 0 12px",
+              background: "rgba(255,255,255,0.08)",
+              color: "#fff",
+              fontSize: `clamp(10px, ${12 / CANVAS_W * 100}vw, 15px)`,
+            }}
+          />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} style={{
+              position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", cursor: "pointer",
+              color: "rgba(255,255,255,0.4)", fontSize: 16,
+            }}>✕</button>
+          )}
+        </div>
+      )}
 
       {/* Category filter pills */}
       {showFilter && categories.length > 1 && (
