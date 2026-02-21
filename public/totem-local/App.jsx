@@ -424,7 +424,7 @@ function ElementRenderer({ type, props: p }) {
     }
 
     case "carousel":
-      return <PlaceholderBox emoji="🎠" label="Carrossel" />;
+      return <LiveCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} />;
 
     default:
       return <PlaceholderBox emoji="❓" label={type} />;
@@ -506,7 +506,76 @@ function AvatarCanvasElement({ props: p }) {
 }
 
 // ─────────────────────────────────────────────
-// 🕐 LIVE CLOCK
+// 🎠 LIVE CAROUSEL — Carrossel de imagens funcional
+// ─────────────────────────────────────────────
+function LiveCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0 }) {
+  const [current, setCurrent] = useState(0);
+  const filtered = useMemo(() => (images || []).filter(Boolean), [images]);
+  const len = filtered.length;
+
+  useEffect(() => {
+    if (!autoplay || len <= 1) return;
+    const id = setInterval(() => {
+      setCurrent((c) => (c + 1) % len);
+    }, (interval || 5) * 1000);
+    return () => clearInterval(id);
+  }, [autoplay, interval, len]);
+
+  useEffect(() => {
+    if (current >= len) setCurrent(0);
+  }, [len, current]);
+
+  if (len === 0) {
+    return <PlaceholderBox emoji="🎠" label="Carrossel" />;
+  }
+
+  const isFade = transition !== "slide";
+
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius }}>
+      {filtered.map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt=""
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: isFade ? (i === current ? 1 : 0) : 1,
+            transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
+            transition: "opacity 0.8s ease, transform 0.6s ease",
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+      {/* Dots indicator */}
+      {len > 1 && (
+        <div style={{
+          position: "absolute", bottom: 12, left: 0, right: 0,
+          display: "flex", justifyContent: "center", gap: 6, zIndex: 10,
+        }}>
+          {filtered.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: i === current ? 18 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: i === current ? "#fff" : "rgba(255,255,255,0.4)",
+                transition: "all 0.3s ease",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
 const LiveClock = React.memo(({ color, fontSize }) => {
   const [now, setNow] = useState(new Date());
