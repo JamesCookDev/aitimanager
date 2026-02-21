@@ -558,7 +558,7 @@ function StoreRenderer(props: any) {
   const showHours = props.showHours !== false;
   const showPhone = props.showPhone !== false;
   const showFloor = props.showFloor !== false;
-  const showFilter = props.showFilter !== false;
+  const showFilter = props.showCategoryFilter !== false;
   const showSearch = props.showSearch !== false;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
