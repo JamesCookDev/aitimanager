@@ -263,8 +263,9 @@ function CarouselRenderer(props: any) {
           key={i}
           src={src}
           alt=""
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          className="absolute inset-0 w-full h-full pointer-events-none"
           style={{
+            objectFit: props.objectFit || 'contain',
             opacity: transition === 'fade' ? (i === current ? 1 : 0) : 1,
             transform: transition === 'slide' ? `translateX(${(i - current) * 100}%)` : undefined,
             transition: 'opacity 0.6s ease, transform 0.5s ease',
