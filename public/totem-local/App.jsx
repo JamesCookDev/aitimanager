@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.2.0",
+  "App.jsx": "4.3.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -419,8 +419,23 @@ function ElementRenderer({ type, props: p }) {
 
     case "iframe": {
       const url = p.url || "";
-      if (!url) return <PlaceholderBox emoji="🌐" label="Iframe" />;
-      return <iframe src={url} style={{ width: "100%", height: "100%", border: "none", borderRadius: p.borderRadius || 0 }} />;
+      if (!url) return <PlaceholderBox emoji="🌐" label="Iframe — configure a URL" />;
+      return (
+        <iframe
+          src={url}
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            borderRadius: p.borderRadius || 0,
+            background: "#fff",
+          }}
+          scrolling={p.scrolling === false ? "no" : "yes"}
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          loading="lazy"
+          title="Iframe embed"
+        />
+      );
     }
 
     case "carousel":

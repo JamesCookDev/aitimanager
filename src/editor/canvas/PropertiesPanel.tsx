@@ -483,6 +483,18 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           </div>
         </Section>
       );
+    case 'iframe':
+      return (
+        <Section title="Iframe">
+          <PropInput label="URL do site" value={props.url} onChange={set('url')} />
+          <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
+          <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Scrolling</Label>
+            <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
+          </div>
+        </Section>
+      );
     default:
       return (
         <Section title="Propriedades">
