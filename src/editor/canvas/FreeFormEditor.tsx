@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ import {
 import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
+import { FreeFormTemplatePicker } from './FreeFormTemplatePicker';
 
 interface Props {
   initialState?: CanvasState | null;
@@ -117,6 +118,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <ZoomIn className="w-4 h-4" />
           </Button>
           <div className="h-4 w-px bg-border mx-1" />
+          <FreeFormTemplatePicker
+            onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
+            trigger={
+              <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                <LayoutTemplate className="w-3.5 h-3.5" /> Templates
+              </Button>
+            }
+          />
+          <div className="h-4 w-px bg-border" />
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={handleSave}>
             <Save className="w-3.5 h-3.5" /> Salvar
           </Button>
