@@ -397,30 +397,64 @@ function ElementRenderer({ type, props: p }) {
     }
 
     case "social": {
-      const platforms = { instagram: "📷", facebook: "👤", twitter: "🐦", tiktok: "🎵", youtube: "▶️", whatsapp: "💬", linkedin: "💼" };
       const links = p.links || [];
+      const layout = p.layout || "horizontal";
+      const iconSize = p.iconSize || 36;
+      const gap = p.gap || 16;
+      const showLabels = p.showLabels !== false;
+      const bgEnabled = p.bgEnabled || false;
+      const bgColor = p.bgColor || "rgba(0,0,0,0.3)";
+      const borderRadius = p.borderRadius || 16;
+      const padding = p.padding || 12;
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: p.gap || 16 }}>
-          {links.map((l, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => {
-                const url = l.url || "";
-                if (url && url !== "#") {
-                  if (typeof window.__totemOpenUrl === "function") window.__totemOpenUrl(url);
-                  else window.open(url, "_blank", "noopener,noreferrer");
-                }
-              }}
-              style={{
-                background: "none", border: "none", cursor: "pointer", padding: 0,
-                fontSize: `clamp(16px, ${(p.iconSize || 32) / CANVAS_W * 100}vw, ${(p.iconSize || 32) * 1.5}px)`,
-              }}
-            >
-              {platforms[l.platform] || "🔗"}
-            </button>
-          ))}
-          {links.length === 0 && <span style={{ opacity: 0.4, fontSize: 24 }}>🔗</span>}
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 4 }}>
+          <style>{`
+            @keyframes social-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+            .social-btn:hover .social-circle { animation: social-pulse 0.6s ease-in-out; box-shadow: 0 0 16px var(--glow); }
+            .social-btn:hover { transform: scale(1.12); }
+            .social-btn:active { transform: scale(0.95); }
+            .social-btn { transition: transform 0.2s ease; }
+          `}</style>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap",
+            flexDirection: layout === "vertical" ? "column" : "row",
+            gap, padding,
+            backgroundColor: bgEnabled ? bgColor : "transparent",
+            borderRadius: bgEnabled ? borderRadius : 0,
+            backdropFilter: bgEnabled ? "blur(8px)" : undefined,
+            border: bgEnabled ? "1px solid rgba(255,255,255,0.08)" : undefined,
+          }}>
+            {links.map((l, i) => {
+              const color = l.color || "#6366f1";
+              return (
+                <button key={l.id || i} className="social-btn" type="button"
+                  onClick={() => {
+                    const url = l.url || "";
+                    if (url && url !== "#") {
+                      if (typeof window.__totemOpenUrl === "function") window.__totemOpenUrl(url);
+                      else window.open(url, "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    display: "flex", alignItems: "center",
+                    flexDirection: layout === "vertical" ? "row" : "column",
+                    gap: showLabels ? 4 : 0, "--glow": color + "66",
+                  }}>
+                  <div className="social-circle" style={{
+                    width: iconSize, height: iconSize,
+                    backgroundColor: color + "22", border: `1.5px solid ${color}44`,
+                    borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s",
+                  }}>
+                    <SocialSVGIcon platform={l.platform || l.label?.toLowerCase() || ""} size={iconSize * 0.55} color={color} />
+                  </div>
+                  {showLabels && <span style={{ fontSize: Math.max(9, iconSize * 0.28), color: "rgba(255,255,255,0.65)", fontWeight: 500, textAlign: "center" }}>{l.label || l.platform}</span>}
+                </button>
+              );
+            })}
+            {links.length === 0 && <span style={{ opacity: 0.4, fontSize: 24 }}>🔗</span>}
+          </div>
         </div>
       );
     }
