@@ -131,44 +131,48 @@ const shoppingDirectory: CanvasState = (() => {
         text: 'Diretório de Lojas e Serviços', fontSize: 20, fontWeight: 'normal',
         color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
       }),
-      // Category buttons (2 cols × 4 rows)
-      ...[
-        { emoji: '🍔', label: 'Alimentação', color: '#ef4444', prompt: 'Lojas de alimentação' },
-        { emoji: '👕', label: 'Moda', color: '#8b5cf6', prompt: 'Lojas de moda' },
-        { emoji: '💊', label: 'Saúde', color: '#10b981', prompt: 'Farmácias e saúde' },
-        { emoji: '🎬', label: 'Entretenimento', color: '#f59e0b', prompt: 'Cinema e diversão' },
-        { emoji: '📱', label: 'Tecnologia', color: '#3b82f6', prompt: 'Lojas de tecnologia' },
-        { emoji: '💈', label: 'Beleza', color: '#ec4899', prompt: 'Salões e beleza' },
-        { emoji: '🏠', label: 'Casa & Decor', color: '#14b8a6', prompt: 'Casa e decoração' },
-        { emoji: '🎁', label: 'Presentes', color: '#f97316', prompt: 'Lojas de presentes' },
-      ].map((item, i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        return el('button', 80 + col * 480, 340 + row * 140, 440, 110, {
-          label: `${item.emoji}  ${item.label}`, bgColor: item.color + '22',
-          textColor: '#ffffff', fontSize: 22, borderRadius: 20, action: item.prompt,
-        });
-      }),
-      // Separator
-      el('shape', 80, 920, 920, 2, {
-        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.06)', borderRadius: 1,
-        borderColor: 'transparent', borderWidth: 0,
+      // Store directory element with search + category filter
+      el('store', 60, 300, 960, 800, {
+        title: 'Lojas & Serviços',
+        titleColor: '#ffffff',
+        titleSize: 26,
+        bgColor: 'rgba(0,0,0,0.4)',
+        borderRadius: 20,
+        stores: [
+          { id: '1', name: 'Burger King', logo: '', floor: 'Piso 1', category: 'Alimentação', hours: '10h–22h', phone: '', description: 'Fast food e lanches' },
+          { id: '2', name: 'Zara', logo: '', floor: 'Piso 2', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda feminina e masculina' },
+          { id: '3', name: 'Farmácia Popular', logo: '', floor: 'Piso 1', category: 'Saúde', hours: '8h–22h', phone: '(11) 1234-5678', description: 'Medicamentos e bem-estar' },
+          { id: '4', name: 'Cinema IMAX', logo: '', floor: 'Piso 3', category: 'Entretenimento', hours: '12h–00h', phone: '', description: 'Filmes e sessões especiais' },
+          { id: '5', name: 'iPlace', logo: '', floor: 'Piso 2', category: 'Tecnologia', hours: '10h–22h', phone: '', description: 'Produtos Apple e acessórios' },
+          { id: '6', name: 'Starbucks', logo: '', floor: 'Piso 1', category: 'Alimentação', hours: '9h–22h', phone: '', description: 'Cafés e bebidas' },
+        ],
+        columns: 1,
+        gap: 10,
+        cardBgColor: 'rgba(255,255,255,0.06)',
+        cardBorderRadius: 14,
+        accentColor: '#8b5cf6',
+        showCategory: true,
+        showHours: true,
+        showPhone: true,
+        showFloor: true,
+        showCategoryFilter: true,
+        showSearch: true,
       }),
       // Chat IA
-      el('chat', 80, 960, 920, 500, {
+      el('chat', 80, 1140, 920, 420, {
         placeholder: 'Pergunte sobre lojas, horários, promoções...', theme: 'dark',
       }),
       // Footer
-      el('text', 60, 1520, 960, 40, {
+      el('text', 60, 1600, 960, 40, {
         text: 'Toque nos botões ou pergunte ao assistente virtual', fontSize: 16,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.3)', align: 'center', fontFamily: 'Inter',
       }),
       // Clock
-      el('clock', 380, 1600, 320, 100, {
+      el('clock', 380, 1680, 320, 100, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 24,
       }),
       // QR code
-      el('qrcode', 440, 1720, 200, 160, {
+      el('qrcode', 440, 1800, 200, 100, {
         value: 'https://example.com', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
       }),
     ],
@@ -553,7 +557,7 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   {
     id: 'shopping-directory',
     name: 'Diretório de Lojas',
-    description: 'Grid de categorias com chat IA integrado',
+    description: 'Diretório com busca, filtro por categoria e chat IA',
     icon: '🏪',
     category: 'menu',
     state: shoppingDirectory,
