@@ -192,101 +192,83 @@ function SocialRenderer(props: any) {
 }
 
 function AvatarRenderer(props: any) {
-  const frameY = props.frameY ?? 0;
-  const frameZoom = props.frameZoom ?? 50;
-
-  // Map zoom 10..100 → scale 0.5..1.8
-  const scale = 0.5 + (frameZoom / 100) * 1.3;
-  // Map frameY → vertical offset
-  const translateY = -(frameY / 100) * 120;
-  const vbW = 200 / scale;
-  const vbH = 400 / scale;
-  const vbX = 100 - vbW / 2;
-  const vbY = 200 - vbH / 2 + translateY / scale;
-
-  // Floor position in viewBox coords (avatar feet ~365)
-  const floorY = 340;
-
   return (
     <div className="w-full h-full relative overflow-hidden" style={{ background: '#0f3460' }}>
       {/* Sparkle dots */}
-      {[...Array(5)].map((_, i) => (
+      {[...Array(4)].map((_, i) => (
         <div
           key={i}
           className="absolute rounded-full"
           style={{
             width: 3, height: 3,
             background: 'rgba(74,144,255,0.5)',
-            left: `${15 + i * 18}%`,
-            top: `${20 + (i % 3) * 25}%`,
+            left: `${12 + i * 22}%`,
+            top: `${25 + (i % 3) * 22}%`,
             animation: `pulse ${2 + i * 0.5}s ease-in-out infinite`,
           }}
         />
       ))}
 
-      {/* Scene SVG with avatar */}
+      {/* Scene SVG — fills the entire element, scales with it */}
       <svg
-        viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+        viewBox="0 0 200 380"
         className="w-full h-full absolute inset-0"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="xMidYMax slice"
       >
+        {/* Sky background */}
+        <rect x="0" y="0" width="200" height="380" fill="#0f3460" />
+
         {/* Floor */}
-        <rect x="-200" y={floorY} width="600" height="300" fill="#4a5568" />
-        <rect x="-200" y={floorY} width="600" height="8" fill="rgba(255,255,255,0.06)" />
+        <rect x="0" y="280" width="200" height="100" fill="#4a5568" />
+        <rect x="0" y="280" width="200" height="6" fill="rgba(255,255,255,0.06)" />
 
         {/* Shadow under avatar */}
-        <ellipse cx="100" cy={floorY + 4} rx="40" ry="8" fill="rgba(0,0,0,0.35)" />
+        <ellipse cx="100" cy="283" rx="35" ry="6" fill="rgba(0,0,0,0.35)" />
 
         {/* Head - skin */}
-        <circle cx="100" cy="45" r="28" fill="#d4a088" />
+        <circle cx="100" cy="48" r="24" fill="#d4a088" />
         {/* Hair */}
-        <ellipse cx="100" cy="30" rx="26" ry="18" fill="#8B4513" />
-        <ellipse cx="100" cy="38" rx="24" ry="12" fill="#8B4513" opacity="0.6" />
+        <ellipse cx="100" cy="34" rx="22" ry="16" fill="#8B4513" />
+        <ellipse cx="100" cy="40" rx="20" ry="10" fill="#8B4513" opacity="0.6" />
         {/* Eyes */}
-        <circle cx="90" cy="48" r="3" fill="#2d3748" />
-        <circle cx="110" cy="48" r="3" fill="#2d3748" />
-        <circle cx="91" cy="47" r="1" fill="white" />
-        <circle cx="111" cy="47" r="1" fill="white" />
-        {/* Nose */}
-        <path d="M97 53 Q100 57 103 53" stroke="#c4956e" strokeWidth="1.2" fill="none" />
-        {/* Mouth */}
-        <path d="M93 60 Q100 64 107 60" stroke="#b07d6a" strokeWidth="1.5" fill="none" />
-        {/* Ears */}
-        <ellipse cx="72" cy="48" rx="5" ry="8" fill="#d4a088" />
-        <ellipse cx="128" cy="48" rx="5" ry="8" fill="#d4a088" />
+        <circle cx="92" cy="50" r="2.5" fill="#2d3748" />
+        <circle cx="108" cy="50" r="2.5" fill="#2d3748" />
+        <circle cx="93" cy="49" r="0.8" fill="white" />
+        <circle cx="109" cy="49" r="0.8" fill="white" />
+        {/* Nose & Mouth */}
+        <path d="M97 55 Q100 58 103 55" stroke="#c4956e" strokeWidth="1" fill="none" />
+        <path d="M94 61 Q100 64 106 61" stroke="#b07d6a" strokeWidth="1.2" fill="none" />
 
         {/* Neck */}
-        <rect x="90" y="70" width="20" height="16" rx="4" fill="#d4a088" />
+        <rect x="92" y="70" width="16" height="12" rx="3" fill="#d4a088" />
 
         {/* Body / Shirt */}
-        <path d="M55 90 Q55 82 70 78 L90 86 L110 86 L130 78 Q145 82 145 90 L150 220 Q150 224 146 224 L54 224 Q50 224 50 220 Z" fill={props.colors?.shirt || '#1E3A8A'} />
-        {/* Collar */}
-        <path d="M90 86 Q100 92 110 86" stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" />
-        {/* Shirt shading */}
-        <path d="M75 100 L72 220" stroke="rgba(0,0,0,0.1)" strokeWidth="4" />
-        <path d="M125 100 L128 220" stroke="rgba(0,0,0,0.1)" strokeWidth="4" />
+        <path d="M60 86 Q60 80 72 77 L92 84 L108 84 L128 77 Q140 80 140 86 L144 190 Q144 193 141 193 L59 193 Q56 193 56 190 Z" fill={props.colors?.shirt || '#1E3A8A'} />
+        <path d="M92 84 Q100 89 108 84" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" fill="none" />
+        <path d="M78 95 L76 190" stroke="rgba(0,0,0,0.08)" strokeWidth="3" />
+        <path d="M122 95 L124 190" stroke="rgba(0,0,0,0.08)" strokeWidth="3" />
 
         {/* Arms */}
-        <path d="M55 90 L38 170 Q36 178 42 178 L55 175 L60 120 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.9" />
-        <path d="M145 90 L162 170 Q164 178 158 178 L145 175 L140 120 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.9" />
+        <path d="M60 86 L46 150 Q44 156 49 156 L60 154 L64 110 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.9" />
+        <path d="M140 86 L154 150 Q156 156 151 156 L140 154 L136 110 Z" fill={props.colors?.shirt || '#1E3A8A'} opacity="0.9" />
         {/* Hands */}
-        <ellipse cx="40" cy="178" rx="8" ry="7" fill="#d4a088" />
-        <ellipse cx="160" cy="178" rx="8" ry="7" fill="#d4a088" />
+        <ellipse cx="47" cy="156" rx="6" ry="5.5" fill="#d4a088" />
+        <ellipse cx="153" cy="156" rx="6" ry="5.5" fill="#d4a088" />
 
         {/* Belt */}
-        <rect x="54" y="222" width="92" height="8" rx="2" fill="rgba(0,0,0,0.3)" />
+        <rect x="59" y="191" width="82" height="7" rx="1.5" fill="rgba(0,0,0,0.25)" />
 
         {/* Legs / Pants */}
-        <path d="M54 230 L60 330 Q60 335 68 335 L98 335 L100 230 Z" fill={props.colors?.pants || '#1F2937'} />
-        <path d="M146 230 L140 330 Q140 335 132 335 L102 335 L100 230 Z" fill={props.colors?.pants || '#1F2937'} />
+        <path d="M59 198 L64 272 Q64 276 70 276 L98 276 L100 198 Z" fill={props.colors?.pants || '#1F2937'} />
+        <path d="M141 198 L136 272 Q136 276 130 276 L102 276 L100 198 Z" fill={props.colors?.pants || '#1F2937'} />
 
         {/* Shoes */}
-        <path d="M60 330 L52 345 Q50 352 60 352 L98 352 Q102 352 100 345 L98 335 L68 335 Z" fill={props.colors?.shoes || '#111'} />
-        <path d="M140 330 L148 345 Q150 352 140 352 L102 352 Q98 352 100 345 L102 335 L132 335 Z" fill={props.colors?.shoes || '#111'} />
+        <path d="M64 272 L58 283 Q56 288 64 288 L98 288 Q101 288 100 283 L98 276 L70 276 Z" fill={props.colors?.shoes || '#111'} />
+        <path d="M136 272 L142 283 Q144 288 136 288 L102 288 Q99 288 100 283 L102 276 L130 276 Z" fill={props.colors?.shoes || '#111'} />
       </svg>
 
-      {/* Label overlay */}
-      <div className="absolute bottom-2 left-0 right-0 text-center">
+      {/* Label */}
+      <div className="absolute bottom-1 left-0 right-0 text-center">
         <span className="text-[9px] font-semibold text-white/50 bg-black/30 px-2 py-0.5 rounded-full">
           Avatar 3D
         </span>
