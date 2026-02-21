@@ -317,6 +317,17 @@ function CarouselPropsPanel({ props, onChange }: { props: Record<string, any>; o
         </Select>
       </div>
 
+      <div>
+        <Label className="text-[11px]">Ajuste da imagem</Label>
+        <Select value={props.objectFit || 'contain'} onValueChange={set('objectFit')}>
+          <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="contain">Sem corte (contain)</SelectItem>
+            <SelectItem value="cover">Preencher (cover)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="flex items-center justify-between">
         <Label className="text-[11px]">Autoplay</Label>
         <Switch checked={props.autoplay !== false} onCheckedChange={set('autoplay')} />

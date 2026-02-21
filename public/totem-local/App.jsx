@@ -424,7 +424,7 @@ function ElementRenderer({ type, props: p }) {
     }
 
     case "carousel":
-      return <LiveCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} />;
+      return <LiveCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} objectFit={p.objectFit} />;
 
     default:
       return <PlaceholderBox emoji="❓" label={type} />;
@@ -508,7 +508,7 @@ function AvatarCanvasElement({ props: p }) {
 // ─────────────────────────────────────────────
 // 🎠 LIVE CAROUSEL — Carrossel de imagens funcional
 // ─────────────────────────────────────────────
-function LiveCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0 }) {
+function LiveCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0, objectFit = "contain" }) {
   const [current, setCurrent] = useState(0);
   const filtered = useMemo(() => (images || []).filter(Boolean), [images]);
   const len = filtered.length;
@@ -543,7 +543,7 @@ function LiveCarousel({ images = [], autoplay = true, interval = 5, transition =
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "contain",
+            objectFit: objectFit || "contain",
             opacity: isFade ? (i === current ? 1 : 0) : 1,
             transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
             transition: "opacity 0.8s ease, transform 0.6s ease",
