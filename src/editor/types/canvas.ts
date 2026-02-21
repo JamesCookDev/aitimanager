@@ -74,7 +74,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   weather: { w: 300, h: 160, name: 'Clima', props: { city: 'São Paulo', units: 'metric', color: '#ffffff' } },
   countdown: { w: 360, h: 120, name: 'Contagem', props: { targetDate: '', label: 'Faltam', color: '#ffffff', fontSize: 28 } },
   iframe: { w: 480, h: 400, name: 'Iframe', props: { url: '', borderRadius: 8 } },
-  avatar: { w: 500, h: 900, name: 'Avatar 3D', props: { position: 'center', scale: 1.5, animation: 'idle', enabled: true, avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb', colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' }, frameY: 0, frameZoom: 50 } },
+  avatar: { w: 500, h: 500, name: 'Avatar 3D', props: { position: 'center', scale: 1.5, animation: 'idle', enabled: true, avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb', colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' }, frameY: 0, frameZoom: 50 } },
 };
 
 export function createElement(type: ElementType, x = 100, y = 100): CanvasElement {
