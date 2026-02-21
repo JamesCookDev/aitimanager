@@ -259,6 +259,23 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           <PropInput label="Cor da camisa" value={props.colors?.shirt || '#1E3A8A'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), shirt: v } })} type="color" />
           <PropInput label="Cor da calça" value={props.colors?.pants || '#1F2937'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), pants: v } })} type="color" />
           <PropInput label="Cor dos sapatos" value={props.colors?.shoes || '#000000'} onChange={(v) => onChange({ colors: { ...(props.colors || {}), shoes: v } })} type="color" />
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Enquadramento da Câmera</p>
+          <div>
+            <Label className="text-[11px]">Altura da câmera (Y): {(props.cameraY ?? 1.65).toFixed(2)}</Label>
+            <Slider value={[(props.cameraY ?? 1.65) * 100]} onValueChange={([v]) => onChange({ cameraY: v / 100 })} min={0} max={300} step={5} />
+          </div>
+          <div>
+            <Label className="text-[11px]">Distância (Z): {(props.cameraZ ?? 4).toFixed(1)}</Label>
+            <Slider value={[(props.cameraZ ?? 4) * 10]} onValueChange={([v]) => onChange({ cameraZ: v / 10 })} min={15} max={100} step={1} />
+          </div>
+          <div>
+            <Label className="text-[11px]">Alvo Y (olhar para): {(props.cameraTargetY ?? 1.5).toFixed(2)}</Label>
+            <Slider value={[(props.cameraTargetY ?? 1.5) * 100]} onValueChange={([v]) => onChange({ cameraTargetY: v / 100 })} min={0} max={300} step={5} />
+          </div>
+          <div>
+            <Label className="text-[11px]">FOV: {props.fov ?? 26}</Label>
+            <Slider value={[props.fov ?? 26]} onValueChange={([v]) => onChange({ fov: v })} min={10} max={75} step={1} />
+          </div>
         </Section>
       );
     default:
