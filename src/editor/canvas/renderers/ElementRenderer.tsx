@@ -887,6 +887,18 @@ function StoreRenderer(props: any) {
                   {store.zone && <span className="text-[10px] text-white/60 flex items-center gap-1">🗺️ Zona: {store.zone}</span>}
                   {store.category && <span className="text-[10px] flex items-center gap-1" style={{ color: accentColor }}>🏷️ Categoria: {store.category}</span>}
                 </div>
+                {/* Back button */}
+                <button
+                  onClick={() => setExpandedId(null)}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                  style={{
+                    background: accentColor + '22',
+                    color: accentColor,
+                    border: `1px solid ${accentColor}44`,
+                  }}
+                >
+                  ← Voltar para lista
+                </button>
               </div>
             )}
           </div>
