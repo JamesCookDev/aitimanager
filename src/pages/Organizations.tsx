@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Organization } from '@/types/database';
+import { Organization, Device, getDeviceStatus, formatTimeAgo } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,14 +31,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/devices/StatusBadge';
 import { toast } from 'sonner';
 import {
   Building2,
@@ -50,27 +48,35 @@ import {
   Users,
   Cpu,
   RefreshCw,
+  ChevronDown,
+  MapPin,
+  Clock,
+  ExternalLink,
+  RotateCcw,
+  Settings,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { MetricCard } from '@/components/devices/MetricCard';
 
-interface OrgWithCounts extends Organization {
-  deviceCount: number;
+interface OrgWithDevices extends Organization {
+  devices: Device[];
   userCount: number;
 }
 
 export default function Organizations() {
   const { role } = useAuth();
-  const [organizations, setOrganizations] = useState<OrgWithCounts[]>([]);
+  const navigate = useNavigate();
+  const [organizations, setOrganizations] = useState<OrgWithDevices[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set());
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState<OrgWithCounts | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<OrgWithDevices | null>(null);
 
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
@@ -79,11 +85,8 @@ export default function Organizations() {
   const isSuperAdmin = role === 'super_admin';
 
   useEffect(() => {
-    if (isSuperAdmin) {
-      fetchOrganizations();
-    } else {
-      setLoading(false);
-    }
+    if (isSuperAdmin) fetchOrganizations();
+    else setLoading(false);
   }, [isSuperAdmin]);
 
   const fetchOrganizations = async () => {
@@ -95,23 +98,21 @@ export default function Organizations() {
         .order('name');
       if (error) throw error;
 
-      // Fetch device counts
       const { data: devices } = await supabase
         .from('devices')
-        .select('org_id');
+        .select('id, org_id, name, description, location, last_ping, status_details, api_key, avatar_config, model_3d_url, is_speaking, last_interaction, current_version_id, created_at, updated_at');
 
-      // Fetch user counts
       const { data: profiles } = await supabase
         .from('profiles')
         .select('org_id');
 
-      const orgsWithCounts: OrgWithCounts[] = (orgs as Organization[]).map((org) => ({
+      const orgsWithDevices: OrgWithDevices[] = (orgs as Organization[]).map((org) => ({
         ...org,
-        deviceCount: devices?.filter((d) => d.org_id === org.id).length || 0,
+        devices: (devices || []).filter((d) => d.org_id === org.id) as unknown as Device[],
         userCount: profiles?.filter((p) => p.org_id === org.id).length || 0,
       }));
 
-      setOrganizations(orgsWithCounts);
+      setOrganizations(orgsWithDevices);
     } catch (error) {
       console.error('Erro ao buscar organizações:', error);
       toast.error('Erro ao carregar organizações');
@@ -120,14 +121,8 @@ export default function Organizations() {
     }
   };
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-  };
+  const generateSlug = (name: string) =>
+    name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const handleNameChange = (name: string) => {
     setFormName(name);
@@ -135,125 +130,88 @@ export default function Organizations() {
   };
 
   const handleCreate = async () => {
-    if (!formName.trim() || !formSlug.trim()) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
+    if (!formName.trim() || !formSlug.trim()) { toast.error('Preencha todos os campos'); return; }
     setFormLoading(true);
     try {
-      const { error } = await supabase.from('organizations').insert({
-        name: formName.trim(),
-        slug: formSlug.trim(),
-      });
-
+      const { error } = await supabase.from('organizations').insert({ name: formName.trim(), slug: formSlug.trim() });
       if (error) throw error;
-
       toast.success('Organização criada com sucesso!');
       setCreateDialogOpen(false);
-      setFormName('');
-      setFormSlug('');
+      setFormName(''); setFormSlug('');
       fetchOrganizations();
     } catch (error: any) {
-      if (error.code === '23505') {
-        toast.error('Slug já existe', { description: 'Escolha um identificador único' });
-      } else {
-        toast.error('Erro ao criar organização');
-      }
-    } finally {
-      setFormLoading(false);
-    }
+      toast.error(error.code === '23505' ? 'Slug já existe' : 'Erro ao criar organização');
+    } finally { setFormLoading(false); }
   };
 
   const handleEdit = async () => {
-    if (!selectedOrg || !formName.trim() || !formSlug.trim()) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
+    if (!selectedOrg || !formName.trim() || !formSlug.trim()) { toast.error('Preencha todos os campos'); return; }
     setFormLoading(true);
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .update({ name: formName.trim(), slug: formSlug.trim() })
-        .eq('id', selectedOrg.id);
-
+      const { error } = await supabase.from('organizations').update({ name: formName.trim(), slug: formSlug.trim() }).eq('id', selectedOrg.id);
       if (error) throw error;
-
       toast.success('Organização atualizada!');
-      setEditDialogOpen(false);
-      setSelectedOrg(null);
-      setFormName('');
-      setFormSlug('');
+      setEditDialogOpen(false); setSelectedOrg(null); setFormName(''); setFormSlug('');
       fetchOrganizations();
     } catch (error: any) {
-      if (error.code === '23505') {
-        toast.error('Slug já existe');
-      } else {
-        toast.error('Erro ao atualizar organização');
-      }
-    } finally {
-      setFormLoading(false);
-    }
+      toast.error(error.code === '23505' ? 'Slug já existe' : 'Erro ao atualizar organização');
+    } finally { setFormLoading(false); }
   };
 
   const handleDelete = async () => {
     if (!selectedOrg) return;
-
-    if (selectedOrg.deviceCount > 0) {
-      toast.error('Não é possível excluir', {
-        description: `Esta organização possui ${selectedOrg.deviceCount} dispositivo(s) vinculado(s).`,
-      });
-      setDeleteDialogOpen(false);
-      return;
+    if (selectedOrg.devices.length > 0) {
+      toast.error('Não é possível excluir', { description: `Esta organização possui ${selectedOrg.devices.length} dispositivo(s) vinculado(s).` });
+      setDeleteDialogOpen(false); return;
     }
-
     setFormLoading(true);
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', selectedOrg.id);
-
+      const { error } = await supabase.from('organizations').delete().eq('id', selectedOrg.id);
       if (error) throw error;
-
       toast.success('Organização excluída!');
-      setDeleteDialogOpen(false);
-      setSelectedOrg(null);
+      setDeleteDialogOpen(false); setSelectedOrg(null);
       fetchOrganizations();
-    } catch (error) {
-      toast.error('Erro ao excluir organização', {
-        description: 'Verifique se não há dispositivos ou usuários vinculados',
-      });
-    } finally {
-      setFormLoading(false);
-    }
+    } catch { toast.error('Erro ao excluir organização'); }
+    finally { setFormLoading(false); }
   };
 
-  const openEditDialog = (org: OrgWithCounts) => {
-    setSelectedOrg(org);
-    setFormName(org.name);
-    setFormSlug(org.slug);
-    setEditDialogOpen(true);
+  const handleSendCommand = async (deviceId: string, command: string) => {
+    try {
+      const { error } = await supabase.from('devices').update({ pending_command: command, command_sent_at: new Date().toISOString() }).eq('id', deviceId);
+      if (error) throw error;
+      toast.success(`Comando "${command}" enviado!`);
+    } catch { toast.error('Erro ao enviar comando'); }
   };
 
-  const openDeleteDialog = (org: OrgWithCounts) => {
-    setSelectedOrg(org);
-    setDeleteDialogOpen(true);
+  const openEditDialog = (org: OrgWithDevices) => {
+    setSelectedOrg(org); setFormName(org.name); setFormSlug(org.slug); setEditDialogOpen(true);
   };
 
-  const filteredOrganizations = organizations.filter(
-    (org) =>
+  const openDeleteDialog = (org: OrgWithDevices) => {
+    setSelectedOrg(org); setDeleteDialogOpen(true);
+  };
+
+  const toggleOrg = (orgId: string) => {
+    setExpandedOrgs(prev => {
+      const next = new Set(prev);
+      if (next.has(orgId)) next.delete(orgId);
+      else next.add(orgId);
+      return next;
+    });
+  };
+
+  const filteredOrganizations = useMemo(() =>
+    organizations.filter(org =>
       org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      org.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      org.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      org.devices.some(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ), [organizations, searchQuery]);
 
-  const totalDevices = organizations.reduce((sum, org) => sum + org.deviceCount, 0);
+  const totalDevices = organizations.reduce((sum, org) => sum + org.devices.length, 0);
   const totalUsers = organizations.reduce((sum, org) => sum + org.userCount, 0);
+  const onlineDevices = organizations.reduce((sum, org) => sum + org.devices.filter(d => getDeviceStatus(d.last_ping) === 'online').length, 0);
 
-  if (!isSuperAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!isSuperAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="p-6 space-y-6 industrial-grid min-h-screen">
@@ -265,10 +223,9 @@ export default function Organizations() {
             Organizações
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Gerencie as organizações e seus clientes
+            Hierarquia de organizações e seus dispositivos
           </p>
         </div>
-
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={fetchOrganizations} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -284,47 +241,23 @@ export default function Organizations() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Criar Nova Organização</DialogTitle>
-                <DialogDescription>
-                  Adicione uma nova organização ao sistema
-                </DialogDescription>
+                <DialogDescription>Adicione uma nova organização ao sistema</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="create-name">Nome da Organização</Label>
-                  <Input
-                    id="create-name"
-                    placeholder="Ex: Porto Futuro"
-                    value={formName}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                  />
+                  <Input id="create-name" placeholder="Ex: Porto Futuro" value={formName} onChange={(e) => handleNameChange(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="create-slug">Identificador (Slug)</Label>
-                  <Input
-                    id="create-slug"
-                    placeholder="ex: porto-futuro"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                    className="font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Usado para URLs e identificação única
-                  </p>
+                  <Input id="create-slug" placeholder="ex: porto-futuro" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} className="font-mono" />
+                  <p className="text-xs text-muted-foreground">Usado para URLs e identificação única</p>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancelar
-                </Button>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
                 <Button onClick={handleCreate} disabled={formLoading}>
-                  {formLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Criando...
-                    </>
-                  ) : (
-                    'Criar Organização'
-                  )}
+                  {formLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando...</> : 'Criar Organização'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -333,10 +266,11 @@ export default function Organizations() {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Organizações" value={organizations.length} subtitle="Total cadastradas" icon={Building2} />
-        <MetricCard title="Dispositivos" value={totalDevices} subtitle="Em todas as orgs" icon={Cpu} />
+        <MetricCard title="Dispositivos" value={totalDevices} subtitle={`${onlineDevices} online agora`} icon={Cpu} />
         <MetricCard title="Usuários" value={totalUsers} subtitle="Vinculados" icon={Users} />
+        <MetricCard title="Online" value={`${totalDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100) : 0}%`} subtitle="Taxa de disponibilidade" icon={Clock} />
       </div>
 
       {/* Search */}
@@ -345,7 +279,7 @@ export default function Organizations() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar organizações..."
+              placeholder="Buscar organizações ou dispositivos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -354,88 +288,156 @@ export default function Organizations() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card className="card-industrial">
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Lista de Organizações ({filteredOrganizations.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filteredOrganizations.length === 0 ? (
-            <div className="text-center py-12">
-              <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                {searchQuery ? 'Nenhuma organização encontrada' : 'Nenhuma organização cadastrada'}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border">
-                  <TableHead className="text-muted-foreground">Nome</TableHead>
-                  <TableHead className="text-muted-foreground">Slug</TableHead>
-                  <TableHead className="text-muted-foreground text-center">Dispositivos</TableHead>
-                  <TableHead className="text-muted-foreground text-center">Usuários</TableHead>
-                  <TableHead className="text-muted-foreground">Criado em</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrganizations.map((org) => (
-                  <TableRow key={org.id} className="border-border">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+      {/* Org Cards with Accordion */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredOrganizations.length === 0 ? (
+        <Card className="card-industrial">
+          <CardContent className="py-12 text-center">
+            <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              {searchQuery ? 'Nenhuma organização encontrada' : 'Nenhuma organização cadastrada'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredOrganizations.map((org) => {
+            const isExpanded = expandedOrgs.has(org.id);
+            const orgOnlineCount = org.devices.filter(d => getDeviceStatus(d.last_ping) === 'online').length;
+
+            return (
+              <Card key={org.id} className="card-industrial overflow-hidden transition-all duration-200">
+                <Collapsible open={isExpanded} onOpenChange={() => toggleOrg(org.id)}>
+                  {/* Org Header */}
+                  <div className="flex items-center justify-between p-4 md:p-5">
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center gap-4 flex-1 text-left group cursor-pointer">
+                        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                           <Building2 className="w-5 h-5 text-primary" />
                         </div>
-                        <span className="font-medium text-foreground">{org.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-sm font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-                        {org.slug}
-                      </code>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={org.deviceCount > 0 ? 'default' : 'secondary'}>
-                        {org.deviceCount}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={org.userCount > 0 ? 'default' : 'secondary'}>
-                        {org.userCount}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(org.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(org)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => openDeleteDialog(org)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-foreground truncate">{org.name}</h3>
+                            <code className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded hidden sm:inline">
+                              {org.slug}
+                            </code>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Cpu className="w-3 h-3" />
+                              {org.devices.length} dispositivo{org.devices.length !== 1 ? 's' : ''}
+                            </span>
+                            {org.devices.length > 0 && (
+                              <span className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                                {orgOnlineCount} online
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {org.userCount} usuário{org.userCount !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+
+                    <div className="flex items-center gap-1 ml-3">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(org)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => openDeleteDialog(org)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Devices Accordion Content */}
+                  <CollapsibleContent>
+                    <div className="border-t border-border bg-muted/30">
+                      {org.devices.length === 0 ? (
+                        <div className="px-5 py-8 text-center">
+                          <Cpu className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Nenhum dispositivo vinculado</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border">
+                          {org.devices.map((device) => {
+                            const status = getDeviceStatus(device.last_ping);
+                            const version = (device.status_details as any)?.code_manifest?.['App.jsx'] || '—';
+
+                            return (
+                              <div key={device.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-muted/50 transition-colors">
+                                {/* Status indicator */}
+                                <div className="shrink-0">
+                                  <StatusBadge status={status} />
+                                </div>
+
+                                {/* Device info */}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm text-foreground truncate">{device.name}</span>
+                                    {device.description && (
+                                      <span className="text-xs text-muted-foreground truncate hidden md:inline">
+                                        — {device.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                                    {device.location && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {device.location}
+                                      </span>
+                                    )}
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {formatTimeAgo(device.last_ping)}
+                                    </span>
+                                    <span className="hidden sm:inline">
+                                      v{version}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Quick actions */}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button
+                                    variant="ghost" size="icon" className="h-7 w-7"
+                                    title="Reiniciar dispositivo"
+                                    onClick={() => handleSendCommand(device.id, 'restart')}
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost" size="icon" className="h-7 w-7"
+                                    title="Ver detalhes"
+                                    onClick={() => navigate(`/dashboard/devices/${device.id}`)}
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -457,14 +459,7 @@ export default function Organizations() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleEdit} disabled={formLoading}>
-              {formLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                'Salvar Alterações'
-              )}
+              {formLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -477,9 +472,9 @@ export default function Organizations() {
             <AlertDialogTitle>Excluir Organização</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a organização "{selectedOrg?.name}"?
-              {selectedOrg && selectedOrg.deviceCount > 0 && (
+              {selectedOrg && selectedOrg.devices.length > 0 && (
                 <span className="block mt-2 text-destructive font-medium">
-                  ⚠️ Esta organização possui {selectedOrg.deviceCount} dispositivo(s). Remova-os antes de excluir.
+                  ⚠️ Esta organização possui {selectedOrg.devices.length} dispositivo(s). Remova-os antes de excluir.
                 </span>
               )}
             </AlertDialogDescription>
@@ -489,16 +484,9 @@ export default function Organizations() {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={selectedOrg?.deviceCount ? selectedOrg.deviceCount > 0 : false}
+              disabled={selectedOrg?.devices?.length ? selectedOrg.devices.length > 0 : false}
             >
-              {formLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
+              {formLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Excluindo...</> : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
