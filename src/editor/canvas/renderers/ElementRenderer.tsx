@@ -863,11 +863,28 @@ function StoreRenderer(props: any) {
             </div>
             {expandedId === store.id && (
               <div className="px-3 pb-3 pt-0 border-t border-white/5 mt-0" style={{ animation: 'storeCardIn 0.2s ease-out both' }}>
+                {/* Cover image */}
+                {store.coverImage && (
+                  <div className="mt-2 rounded-lg overflow-hidden" style={{ maxHeight: 120 }}>
+                    <img src={store.coverImage} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 {store.description && <div className="text-white/60 text-[10px] mt-2 leading-relaxed">{store.description}</div>}
+                {/* Gallery */}
+                {store.gallery && store.gallery.length > 0 && (
+                  <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {store.gallery.filter(Boolean).map((img: string, gi: number) => (
+                      <div key={gi} className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex flex-col gap-1 mt-2">
                   {store.hours && <span className="text-[10px] text-white/60 flex items-center gap-1">🕐 Horário: {store.hours}</span>}
                   {store.phone && <span className="text-[10px] text-white/60 flex items-center gap-1">📞 Telefone: {store.phone}</span>}
                   {store.floor && <span className="text-[10px] text-white/60 flex items-center gap-1">📍 Localização: {store.floor}</span>}
+                  {store.zone && <span className="text-[10px] text-white/60 flex items-center gap-1">🗺️ Zona: {store.zone}</span>}
                   {store.category && <span className="text-[10px] flex items-center gap-1" style={{ color: accentColor }}>🏷️ Categoria: {store.category}</span>}
                 </div>
               </div>
