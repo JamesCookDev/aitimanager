@@ -268,11 +268,13 @@ function ChatPlaceholder(props: any) {
   const placeholder = props.placeholder || 'Pergunte algo...';
   const theme = props.theme || 'dark';
   const isDark = theme === 'dark';
+  const accentColor = props.accentColor || '#6366f1';
+  const borderRadius = props.borderRadius || 16;
   const bgMain = isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)';
   const textColor = isDark ? '#e2e8f0' : '#1e293b';
   const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const bubbleBgUser = '#6366f1';
+  const bubbleBgUser = accentColor;
   const bubbleBgBot = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
   type Msg = { role: 'user' | 'assistant'; content: string };
@@ -364,7 +366,7 @@ function ChatPlaceholder(props: any) {
   }, [input, loading]);
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden rounded-xl" style={{ background: bgMain, border: '1px solid rgba(255,255,255,0.1)' }}>
+    <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: bgMain, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius }}>
       {/* Header */}
       <div className="flex-shrink-0 px-3 py-2 flex items-center gap-2 border-b" style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
         <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
