@@ -794,7 +794,7 @@ function StoreLogoUpload({ value, onChange }: { value: string; onChange: (v: str
 }
 
 function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
-  const stores: Array<{ id: string; name: string; logo: string; floor: string; category: string; hours: string; phone: string; description: string }> = props.stores || [];
+  const stores: Array<{ id: string; name: string; logo: string; coverImage: string; gallery: string[]; floor: string; category: string; hours: string; phone: string; description: string; mapX: number; mapY: number; zone: string }> = props.stores || [];
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
   const addStore = () => {
@@ -802,11 +802,16 @@ function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onCh
       id: Date.now().toString(),
       name: 'Nova Loja',
       logo: '',
+      coverImage: '',
+      gallery: [] as string[],
       floor: 'Piso 1',
       category: 'Moda',
       hours: '10h–22h',
       phone: '',
       description: '',
+      mapX: 50,
+      mapY: 50,
+      zone: '',
     };
     onChange({ stores: [...stores, newStore] });
   };
@@ -859,6 +864,59 @@ function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onCh
                 <Input value={store.phone} onChange={(e) => updateStore(store.id, 'phone', e.target.value)} placeholder="Telefone" className="h-7 text-xs" />
               </div>
               <StoreLogoUpload value={store.logo} onChange={(v) => updateStore(store.id, 'logo', v)} />
+
+              {/* Cover Image */}
+              <div className="space-y-1 pt-1.5 border-t border-border/30">
+                <Label className="text-[10px] text-muted-foreground">📷 Capa</Label>
+                <Input value={store.coverImage || ''} onChange={(e) => updateStore(store.id, 'coverImage', e.target.value)} placeholder="URL da imagem de capa" className="h-7 text-xs" />
+              </div>
+
+              {/* Gallery */}
+              <div className="space-y-1 pt-1.5 border-t border-border/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-muted-foreground">🖼️ Galeria ({(store.gallery || []).length})</Label>
+                  <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5" onClick={() => {
+                    const gallery = [...(store.gallery || []), ''];
+                    onChange({ stores: stores.map(s => s.id === store.id ? { ...s, gallery } : s) });
+                  }}>
+                    <Plus className="w-2.5 h-2.5 mr-0.5" /> Img
+                  </Button>
+                </div>
+                {(store.gallery || []).map((url: string, gi: number) => (
+                  <div key={gi} className="flex gap-1">
+                    <Input value={url} onChange={(e) => {
+                      const gallery = [...(store.gallery || [])];
+                      gallery[gi] = e.target.value;
+                      onChange({ stores: stores.map(s => s.id === store.id ? { ...s, gallery } : s) });
+                    }} placeholder={`Imagem ${gi + 1}`} className="h-6 text-[10px] flex-1" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-destructive" onClick={() => {
+                      const gallery = (store.gallery || []).filter((_: any, i: number) => i !== gi);
+                      onChange({ stores: stores.map(s => s.id === store.id ? { ...s, gallery } : s) });
+                    }}>
+                      <X className="w-2.5 h-2.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Location on map */}
+              <div className="space-y-1 pt-1.5 border-t border-border/30">
+                <Label className="text-[10px] text-muted-foreground">📍 Localização no mapa</Label>
+                <div className="grid grid-cols-3 gap-1">
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground/60">X%</Label>
+                    <Input type="number" min={0} max={100} value={store.mapX ?? 50} onChange={(e) => updateStore(store.id, 'mapX', e.target.value)} className="h-6 text-[10px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground/60">Y%</Label>
+                    <Input type="number" min={0} max={100} value={store.mapY ?? 50} onChange={(e) => updateStore(store.id, 'mapY', e.target.value)} className="h-6 text-[10px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground/60">Zona</Label>
+                    <Input value={store.zone || ''} onChange={(e) => updateStore(store.id, 'zone', e.target.value)} placeholder="A1" className="h-6 text-[10px]" />
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
