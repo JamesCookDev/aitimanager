@@ -60,14 +60,14 @@ export function ElementPalette({ onAdd }: Props) {
   return (
     <ScrollArea className="h-full">
       <div className="p-3 space-y-4">
-        <h3 className="text-[10px] font-bold text-foreground uppercase tracking-widest">Elementos</h3>
+        <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">Elementos</h3>
 
         {CATEGORIES.map((cat) => (
           <div key={cat.label}>
-            <p className="text-[9px] font-semibold text-muted-foreground/70 uppercase tracking-widest mb-2 px-0.5">
+            <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest mb-2 px-0.5">
               {cat.label}
             </p>
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-1.5">
               {cat.items.map((item) => (
                 <button
                   key={item.type}
@@ -77,10 +77,10 @@ export function ElementPalette({ onAdd }: Props) {
                     onAdd(el);
                   }}
                   title={`Adicionar ${item.label}`}
-                  className="flex flex-col items-center gap-1 py-2 px-1 rounded-lg border border-transparent bg-transparent hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-90 group cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-lg border border-transparent bg-transparent hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-90 group cursor-pointer"
                 >
-                  <item.icon className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                  <span className="text-[9px] font-medium text-muted-foreground/60 group-hover:text-foreground transition-colors leading-none">
+                  <item.icon className="w-5 h-5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                  <span className="text-[11px] font-medium text-muted-foreground/60 group-hover:text-foreground transition-colors leading-none">
                     {item.label}
                   </span>
                 </button>
