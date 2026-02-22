@@ -1,6 +1,7 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 import {
@@ -20,11 +21,79 @@ interface Props {
   deviceName?: string;
 }
 
+/* ── Undo / Redo history ──────────────────── */
+const MAX_HISTORY = 40;
+
+function useHistory(initialState: CanvasState) {
+  const [past, setPast] = useState<CanvasState[]>([]);
+  const [present, setPresent] = useState(initialState);
+  const [future, setFuture] = useState<CanvasState[]>([]);
+
+  const push = useCallback((next: CanvasState) => {
+    setPast(p => [...p.slice(-MAX_HISTORY), present]);
+    setPresent(next);
+    setFuture([]);
+  }, [present]);
+
+  const undo = useCallback(() => {
+    if (past.length === 0) return;
+    setFuture(f => [present, ...f]);
+    const prev = past[past.length - 1];
+    setPast(p => p.slice(0, -1));
+    setPresent(prev);
+  }, [past, present]);
+
+  const redo = useCallback(() => {
+    if (future.length === 0) return;
+    setPast(p => [...p, present]);
+    const next = future[0];
+    setFuture(f => f.slice(1));
+    setPresent(next);
+  }, [future, present]);
+
+  const load = useCallback((s: CanvasState) => {
+    setPast([]);
+    setFuture([]);
+    setPresent(s);
+  }, []);
+
+  return { state: present, push, undo, redo, load, canUndo: past.length > 0, canRedo: future.length > 0 };
+}
+
 export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: Props) {
-  const [state, dispatch] = useReducer(canvasReducer, initialState || DEFAULT_CANVAS_STATE);
+  const history = useHistory(initialState || DEFAULT_CANVAS_STATE);
+  const [state, rawDispatch] = useReducer(canvasReducer, initialState || DEFAULT_CANVAS_STATE);
+
+  // Keep reducer and history in sync
+  const dispatch = useCallback((action: Parameters<typeof rawDispatch>[0]) => {
+    rawDispatch(action);
+  }, []);
+
+  // Sync reducer state → history (skip SELECT-only actions)
+  const prevStateRef = useRef(state);
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    prevStateRef.current = state;
+    // Only push meaningful changes (not just selection changes)
+    if (prev.elements !== state.elements || prev.bgColor !== state.bgColor) {
+      history.push(state);
+    }
+  }, [state]);
+
+  // Apply undo/redo to reducer
+  useEffect(() => {
+    if (history.state !== state && history.state.elements !== state.elements) {
+      rawDispatch({ type: 'LOAD', state: history.state });
+    }
+  }, [history.state]);
+
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
   const [viewportSize, setViewportSize] = useState({ w: 600, h: 800 });
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Auto-fit scale on mount and resize
   useEffect(() => {
@@ -40,28 +109,37 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     fitScale();
     window.addEventListener('resize', fitScale);
     return () => window.removeEventListener('resize', fitScale);
-  }, []);
+  }, [leftOpen, rightOpen]);
 
   // Load initial state
   useEffect(() => {
     if (initialState) {
       dispatch({ type: 'LOAD', state: initialState });
+      history.load(initialState);
+      setDirty(false);
     }
   }, [initialState]);
+
+  // Mark dirty on meaningful changes
+  useEffect(() => {
+    setDirty(true);
+  }, [state.elements, state.bgColor]);
 
   const selectedElement = state.elements.find(e => e.id === state.selectedId) || null;
 
   const handleAdd = useCallback((el: CanvasElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: el });
-  }, []);
+  }, [dispatch]);
 
   const handleSave = useCallback(() => {
     onSave?.(state);
+    setDirty(false);
     toast.success('Layout salvo!');
   }, [state, onSave]);
 
   const handlePublish = useCallback(() => {
     onPublish?.(state);
+    setDirty(false);
   }, [state, onPublish]);
 
   const handleExport = useCallback(() => {
@@ -93,146 +171,254 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       }
     };
     input.click();
-  }, []);
+  }, [dispatch]);
+
+  // ── Keyboard shortcuts ─────────────────────
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selectedId) { dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId }); e.preventDefault(); }
+      }
+      if (ctrl && e.key === 'd') {
+        if (state.selectedId) { dispatch({ type: 'DUPLICATE', id: state.selectedId }); e.preventDefault(); }
+      }
+      if (ctrl && e.key === 's') {
+        handleSave(); e.preventDefault();
+      }
+      if (ctrl && e.key === 'z' && !e.shiftKey) {
+        history.undo(); e.preventDefault();
+      }
+      if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        history.redo(); e.preventDefault();
+      }
+      if (e.key === 'Escape') {
+        dispatch({ type: 'SELECT', id: null });
+      }
+      // Arrow keys to nudge element
+      if (state.selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const el = state.elements.find(x => x.id === state.selectedId);
+        if (el && !el.locked) {
+          const step = e.shiftKey ? 10 : 1;
+          const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+          const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+          dispatch({ type: 'MOVE', id: el.id, x: el.x + dx, y: el.y + dy });
+          e.preventDefault();
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [state.selectedId, state.elements, dispatch, handleSave, history]);
 
   const canvasX = (viewportSize.w - CANVAS_WIDTH * scale) / 2;
   const canvasY = Math.max(20, (viewportSize.h - CANVAS_HEIGHT * scale) / 2);
 
+  const zoomPercent = Math.round(scale * 100);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-xl border border-border overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/50 shrink-0">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-foreground">Canvas Editor</h2>
-          {deviceName && (
-            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{deviceName}</span>
-          )}
-          <span className="text-[10px] font-mono text-muted-foreground">{CANVAS_WIDTH}×{CANVAS_HEIGHT}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setScale(s => Math.max(0.15, s - 0.05))}>
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{Math.round(scale * 100)}%</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setScale(s => Math.min(1, s + 0.05))}>
-            <ZoomIn className="w-4 h-4" />
-          </Button>
-          <div className="h-4 w-px bg-border mx-1" />
-          <FreeFormTemplatePicker
-            onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
-            trigger={
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <LayoutTemplate className="w-3.5 h-3.5" /> Templates
-              </Button>
-            }
-          />
-          <div className="h-4 w-px bg-border" />
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={handleSave}>
-            <Save className="w-3.5 h-3.5" /> Salvar
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={handleExport}>
-            <Download className="w-3.5 h-3.5" /> Exportar
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={handleImport}>
-            <Upload className="w-3.5 h-3.5" /> Importar
-          </Button>
-          {onPublish && (
-            <Button size="sm" className="text-xs gap-1.5" onClick={handlePublish}>
-              <Maximize2 className="w-3.5 h-3.5" /> Publicar
-            </Button>
-          )}
-        </div>
-      </div>
+    <TooltipProvider delayDuration={400}>
+      <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-xl border border-border overflow-hidden">
+        {/* ── Toolbar ─────────────────────────── */}
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
+          {/* Left: info + toggle */}
+          <div className="flex items-center gap-2">
+            <Tb tip={leftOpen ? "Ocultar paleta (⇐)" : "Mostrar paleta"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
+            <div className="h-4 w-px bg-border" />
+            <h2 className="text-xs font-semibold text-foreground hidden sm:block">Canvas</h2>
+            {deviceName && (
+              <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full hidden sm:inline">{deviceName}</span>
+            )}
+            <span className="text-[9px] font-mono text-muted-foreground/60">{CANVAS_WIDTH}×{CANVAS_HEIGHT}</span>
+            {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Alterações não salvas" />}
+          </div>
 
-      {/* Main area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar — element palette */}
-        <div className="w-48 border-r border-border bg-card/30 shrink-0">
-          <ElementPalette onAdd={handleAdd} />
-        </div>
-
-        {/* Canvas viewport */}
-        <div
-          ref={viewportRef}
-          className="flex-1 overflow-auto relative"
-          style={{
-            background: 'radial-gradient(circle at center, hsl(var(--muted)/0.3) 1px, transparent 1px)',
-            backgroundSize: `${20 * scale}px ${20 * scale}px`,
-            backgroundColor: 'hsl(var(--muted)/0.1)',
-          }}
-          onClick={() => dispatch({ type: 'SELECT', id: null })}
-        >
-          {/* Scaled canvas */}
-          <div
-            style={{
-              position: 'absolute',
-              left: canvasX,
-              top: canvasY,
-              width: CANVAS_WIDTH,
-              height: CANVAS_HEIGHT,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-            }}
-          >
-            {/* Canvas background */}
-            <div
-              style={{
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
-                backgroundColor: state.bgColor,
-                borderRadius: 16,
-                boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.5)',
-                position: 'relative',
-                overflow: 'hidden',
+          {/* Center: zoom */}
+          <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-0.5">
+            <Tb tip="Diminuir zoom" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
+            <button
+              className="text-[10px] font-mono text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
+              onClick={() => {
+                // Fit to viewport
+                if (viewportRef.current) {
+                  const rect = viewportRef.current.getBoundingClientRect();
+                  const sw = (rect.width - 40) / CANVAS_WIDTH;
+                  const sh = (rect.height - 40) / CANVAS_HEIGHT;
+                  setScale(Math.max(0.15, Math.min(sw, sh, 0.6)));
+                }
               }}
-              onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
+              title="Ajustar ao viewport"
             >
-              {/* Elements */}
-              {state.elements
-                .slice()
-                .sort((a, b) => a.zIndex - b.zIndex)
-                .map((el) => (
-                  <DraggableElement
-                    key={el.id}
-                    element={el}
-                    scale={scale}
-                    selected={el.id === state.selectedId}
-                    onSelect={() => dispatch({ type: 'SELECT', id: el.id })}
-                    onMove={(x, y) => dispatch({ type: 'MOVE', id: el.id, x, y })}
-                    onResize={(x, y, w, h) => dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h })}
-                  />
-                ))}
-            </div>
+              {zoomPercent}%
+            </button>
+            <Tb tip="Aumentar zoom" onClick={() => setScale(s => Math.min(1, s + 0.05))} icon={ZoomIn} />
+          </div>
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-1">
+            <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
+            <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
+            <div className="h-4 w-px bg-border mx-0.5" />
+
+            <FreeFormTemplatePicker
+              onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
+              trigger={
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1.5 px-2">
+                  <LayoutTemplate className="w-3.5 h-3.5" /> <span className="hidden md:inline">Templates</span>
+                </Button>
+              }
+            />
+
+            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
+            <Tb tip="Exportar JSON" onClick={handleExport} icon={Download} />
+            <Tb tip="Importar JSON" onClick={handleImport} icon={Upload} />
+            <Tb tip="Atalhos de teclado" onClick={() => setShowShortcuts(p => !p)} icon={Keyboard} />
+
+            <Tb tip={rightOpen ? "Ocultar propriedades (⇒)" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
+
+            <div className="h-4 w-px bg-border mx-0.5" />
+            {onPublish && (
+              <Button size="sm" className="h-7 text-[11px] gap-1.5 px-3" onClick={handlePublish}>
+                <Maximize2 className="w-3.5 h-3.5" /> Publicar
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Right sidebar — properties */}
-        <div className="w-64 border-l border-border bg-card/30 shrink-0">
-          <PropertiesPanel
-            element={selectedElement}
-            onUpdate={(patch) => {
-              if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch });
+        {/* Shortcuts hint bar */}
+        {showShortcuts && (
+          <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
+            <span><kbd className="kbd">Del</kbd> Excluir</span>
+            <span><kbd className="kbd">Ctrl+D</kbd> Duplicar</span>
+            <span><kbd className="kbd">Ctrl+S</kbd> Salvar</span>
+            <span><kbd className="kbd">Ctrl+Z</kbd> Desfazer</span>
+            <span><kbd className="kbd">Ctrl+Y</kbd> Refazer</span>
+            <span><kbd className="kbd">Esc</kbd> Desselecionar</span>
+            <span><kbd className="kbd">↑↓←→</kbd> Mover (Shift=10px)</span>
+          </div>
+        )}
+
+        {/* ── Main area ──────────────────────── */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left sidebar — element palette */}
+          {leftOpen && (
+            <div className="w-52 border-r border-border bg-card/30 shrink-0 transition-all">
+              <ElementPalette onAdd={handleAdd} />
+            </div>
+          )}
+
+          {/* Canvas viewport */}
+          <div
+            ref={viewportRef}
+            className="flex-1 overflow-auto relative"
+            style={{
+              background: 'radial-gradient(circle at center, hsl(var(--muted)/0.3) 1px, transparent 1px)',
+              backgroundSize: `${20 * scale}px ${20 * scale}px`,
+              backgroundColor: 'hsl(var(--muted)/0.08)',
             }}
-            onUpdateProps={(props) => {
-              if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props });
-            }}
-            onDelete={() => {
-              if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId });
-            }}
-            onDuplicate={() => {
-              if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId });
-            }}
-            onBringForward={() => {
-              if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId });
-            }}
-            onSendBackward={() => {
-              if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId });
-            }}
-            bgColor={state.bgColor}
-            onBgColorChange={(c) => dispatch({ type: 'SET_BG_COLOR', color: c })}
-          />
+            onClick={() => dispatch({ type: 'SELECT', id: null })}
+          >
+            {/* Scaled canvas */}
+            <div
+              style={{
+                position: 'absolute',
+                left: canvasX,
+                top: canvasY,
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+              }}
+            >
+              <div
+                style={{
+                  width: CANVAS_WIDTH,
+                  height: CANVAS_HEIGHT,
+                  backgroundColor: state.bgColor,
+                  borderRadius: 16,
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.5)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
+              >
+                {state.elements
+                  .slice()
+                  .sort((a, b) => a.zIndex - b.zIndex)
+                  .map((el) => (
+                    <DraggableElement
+                      key={el.id}
+                      element={el}
+                      scale={scale}
+                      selected={el.id === state.selectedId}
+                      onSelect={() => dispatch({ type: 'SELECT', id: el.id })}
+                      onMove={(x, y) => dispatch({ type: 'MOVE', id: el.id, x, y })}
+                      onResize={(x, y, w, h) => dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h })}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right sidebar — properties + layers */}
+          {rightOpen && (
+            <div className="w-72 border-l border-border bg-card/30 shrink-0 transition-all">
+              <PropertiesPanel
+                element={selectedElement}
+                elements={state.elements}
+                onUpdate={(patch) => {
+                  if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch });
+                }}
+                onUpdateProps={(props) => {
+                  if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props });
+                }}
+                onDelete={() => {
+                  if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId });
+                }}
+                onDuplicate={() => {
+                  if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId });
+                }}
+                onBringForward={() => {
+                  if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId });
+                }}
+                onSendBackward={() => {
+                  if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId });
+                }}
+                onSelectElement={(id) => dispatch({ type: 'SELECT', id })}
+                onToggleVisibility={(id) => {
+                  const el = state.elements.find(e => e.id === id);
+                  if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { visible: !el.visible } });
+                }}
+                onToggleLock={(id) => {
+                  const el = state.elements.find(e => e.id === id);
+                  if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { locked: !el.locked } });
+                }}
+                bgColor={state.bgColor}
+                onBgColorChange={(c) => dispatch({ type: 'SET_BG_COLOR', color: c })}
+                selectedId={state.selectedId}
+              />
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </TooltipProvider>
+  );
+}
+
+/* ── Toolbar button with tooltip ─────────── */
+function Tb({ tip, onClick, icon: Icon, disabled }: { tip: string; onClick: () => void; icon: any; disabled?: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClick} disabled={disabled}>
+          <Icon className="w-3.5 h-3.5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-[10px]">{tip}</TooltipContent>
+    </Tooltip>
   );
 }
