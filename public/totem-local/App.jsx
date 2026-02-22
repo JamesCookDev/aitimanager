@@ -191,14 +191,19 @@ function useHeartbeat() {
 // 🖼️ FREE CANVAS RENDERER — Renderiza elementos com posição absoluta
 // Escala de 1080×1920 → tela real
 // ─────────────────────────────────────────────
-const FreeCanvasRenderer = React.memo(({ canvas }) => {
+const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => {
   if (!canvas || !canvas.elements || canvas.elements.length === 0) return null;
 
   const sortedElements = useMemo(() => {
     return [...canvas.elements]
-      .filter(el => el.visible !== false)
+      .filter(el => {
+        if (el.visible === false) return false;
+        // View filtering: show global + elements matching active view
+        if (!el.viewId || el.viewId === '__global__') return true;
+        return el.viewId === activeViewId;
+      })
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-  }, [canvas.elements]);
+  }, [canvas.elements, activeViewId]);
 
   return (
     <div style={{
@@ -210,13 +215,13 @@ const FreeCanvasRenderer = React.memo(({ canvas }) => {
       pointerEvents: "none",
     }}>
       {sortedElements.map(el => (
-        <FreeCanvasElement key={el.id} element={el} />
+        <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
       ))}
     </div>
   );
 });
 
-function FreeCanvasElement({ element }) {
+function FreeCanvasElement({ element, onNavigate }) {
   const { x, y, width, height, rotation, opacity, props, type } = element;
 
   // Convert pixel coords from 1080×1920 canvas to percentages
@@ -236,7 +241,7 @@ function FreeCanvasElement({ element }) {
 
   return (
     <div style={style}>
-      <ElementRenderer type={type} props={props || {}} />
+      <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
     </div>
   );
 }
@@ -278,7 +283,7 @@ function SocialSVGIcon({ platform, size = 24, color = "#fff" }) {
 // ─────────────────────────────────────────────
 // 🧱 ELEMENT RENDERER — renderiza cada tipo de elemento
 // ─────────────────────────────────────────────
-function ElementRenderer({ type, props: p }) {
+function ElementRenderer({ type, props: p, onNavigate }) {
   switch (type) {
     case "text":
       return (
@@ -326,9 +331,16 @@ function ElementRenderer({ type, props: p }) {
           <button
             type="button"
             onClick={() => {
-              const action = p.action || p.label || "";
-              if (action && typeof window.__totemSendMessage === "function") {
-                window.__totemSendMessage(action);
+              const actionType = p.actionType || "prompt";
+              if (actionType === "navigate" && p.navigateTarget && onNavigate) {
+                onNavigate(p.navigateTarget);
+              } else if (actionType === "url" && p.action) {
+                if (typeof window.__totemOpenUrl === "function") window.__totemOpenUrl(p.action);
+              } else {
+                const action = p.action || p.label || "";
+                if (action && typeof window.__totemSendMessage === "function") {
+                  window.__totemSendMessage(action);
+                }
               }
             }}
             style={{
@@ -1687,6 +1699,33 @@ export default function App() {
 
   const hasFreeCanvas = freeCanvas && Array.isArray(freeCanvas.elements) && freeCanvas.elements.length > 0;
 
+  // ── View navigation state ──
+  const views = freeCanvas?.views || [];
+  const defaultViewId = views.find(v => v.isDefault)?.id || views[0]?.id || '__default__';
+  const viewIdleTimeout = (freeCanvas?.viewIdleTimeout ?? 30) * 1000;
+  const [activeViewId, setActiveViewId] = useState(defaultViewId);
+  const viewTimeoutRef = useRef(null);
+
+  // Reset idle timeout on view change
+  useEffect(() => {
+    if (viewIdleTimeout <= 0 || activeViewId === defaultViewId) {
+      if (viewTimeoutRef.current) clearTimeout(viewTimeoutRef.current);
+      return;
+    }
+    viewTimeoutRef.current = setTimeout(() => {
+      setActiveViewId(defaultViewId);
+    }, viewIdleTimeout);
+    return () => { if (viewTimeoutRef.current) clearTimeout(viewTimeoutRef.current); };
+  }, [activeViewId, defaultViewId, viewIdleTimeout]);
+
+  // Reset to default view when config changes
+  useEffect(() => { setActiveViewId(defaultViewId); }, [defaultViewId]);
+
+  const handleNavigate = useCallback((viewId) => {
+    setActiveViewId(viewId);
+    wake?.(); // reset idle screen too
+  }, [wake]);
+
   // Background
   const bgStyle = useMemo(() => {
     // Free canvas background color
@@ -1722,7 +1761,7 @@ export default function App() {
         {/* 🖼️ Free Canvas — todos os elementos (incluindo avatar 3D) */}
         {hasFreeCanvas && (
           <div style={{ position: "absolute", inset: 0, zIndex: 30 }}>
-            <FreeCanvasRenderer canvas={freeCanvas} />
+            <FreeCanvasRenderer canvas={freeCanvas} activeViewId={activeViewId} onNavigate={handleNavigate} />
           </div>
         )}
 
