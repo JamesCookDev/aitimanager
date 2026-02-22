@@ -1,11 +1,11 @@
 {
-  "hub_version": "4.12.0",
+  "hub_version": "4.13.0",
   "updated_at": "2026-02-22",
   "description": "Manifesto de versões dos arquivos do totem local. Mantido automaticamente pelo Hub.",
   "files": {
     "App.jsx": {
-      "version": "4.12.0",
-      "description": "Aplicação principal — renderizadores de blocos, polling, heartbeat, live preview",
+      "version": "4.13.0",
+      "description": "Aplicação principal — renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge",
       "critical": true
     },
     "main.jsx": {
@@ -19,8 +19,8 @@
       "critical": false
     },
     "hooks/useSpeech.jsx": {
-      "version": "2.2.0",
-      "description": "VAD, MediaRecorder, fila de mensagens do avatar, SpeechProvider",
+      "version": "2.3.0",
+      "description": "VAD, MediaRecorder, fila de mensagens do avatar, SpeechProvider, speakDirect para Chat IA",
       "critical": true
     },
     "hooks/useCMSConfig.js": {

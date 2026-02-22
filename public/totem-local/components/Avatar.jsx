@@ -181,6 +181,14 @@ export function Avatar(props) {
       return;
     }
 
+    // _browserTTS messages: audio handled externally by Web Speech API
+    // Avatar just animates (talking animation is already triggered above)
+    if (message._browserTTS) {
+      setLipsync(null); // No lipsync data — avatar will just animate
+      audioRef.current = null;
+      return;
+    }
+
     setLipsync(message.lipsync);
     const audio = new Audio("data:audio/mp3;base64," + message.audio);
     audioRef.current = audio;
