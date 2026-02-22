@@ -25,6 +25,18 @@ export type ElementType =
   | 'avatar'
   | 'store';
 
+/* ── Views ──────────────────────────────────── */
+
+export interface CanvasView {
+  id: string;
+  name: string;
+  isDefault?: boolean;
+}
+
+export const DEFAULT_VIEW: CanvasView = { id: '__default__', name: 'Home', isDefault: true };
+
+export type ButtonActionType = 'prompt' | 'url' | 'navigate';
+
 export interface CanvasElement {
   id: string;
   type: ElementType;
@@ -38,6 +50,8 @@ export interface CanvasElement {
   locked: boolean;
   visible: boolean;
   name: string;
+  /** View this element belongs to. null or '__global__' = always visible */
+  viewId?: string | null;
   props: Record<string, any>;
 }
 
@@ -45,24 +59,34 @@ export interface CanvasState {
   bgColor: string;
   elements: CanvasElement[];
   selectedId: string | null;
+  /** Available views for internal navigation */
+  views?: CanvasView[];
+  /** Active view being edited (editor-only, not persisted to hardware) */
+  activeViewId?: string;
+  /** Idle timeout in seconds — returns to default view after inactivity (0 = disabled) */
+  viewIdleTimeout?: number;
 }
 
 export const DEFAULT_CANVAS_STATE: CanvasState = {
   bgColor: '#0f172a',
   elements: [],
   selectedId: null,
+  views: [{ ...DEFAULT_VIEW }],
+  activeViewId: '__default__',
+  viewIdleTimeout: 30,
 };
 
 /* ── helpers ────────────────────────────────────── */
 
 let _counter = 0;
 const uid = () => `el_${Date.now()}_${++_counter}`;
+export const viewUid = () => `view_${Date.now()}_${++_counter}`;
 
 /** Default size & props per element type */
 const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string; props: Record<string, any> }> = {
   text: { w: 400, h: 80, name: 'Texto', props: { text: 'Seu texto aqui', fontSize: 32, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' } },
   image: { w: 400, h: 300, name: 'Imagem', props: { src: '', fit: 'cover', borderRadius: 12 } },
-  button: { w: 360, h: 64, name: 'Botão', props: { label: 'Toque aqui', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 18, borderRadius: 999, action: '' } },
+  button: { w: 360, h: 64, name: 'Botão', props: { label: 'Toque aqui', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 18, borderRadius: 999, actionType: 'prompt' as ButtonActionType, action: '', navigateTarget: '' } },
   shape: { w: 200, h: 200, name: 'Forma', props: { shapeType: 'rectangle', fill: '#6366f1', borderRadius: 16, borderColor: 'transparent', borderWidth: 0 } },
   icon: { w: 80, h: 80, name: 'Ícone', props: { icon: '⭐', size: 48, color: '#ffffff' } },
   video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true, borderRadius: 12 } },
@@ -94,6 +118,7 @@ export function createElement(type: ElementType, x = 100, y = 100): CanvasElemen
     locked: false,
     visible: true,
     name: def.name,
+    viewId: null, // null = global (visible in all views)
     props: { ...def.props },
   };
 }
@@ -112,15 +137,24 @@ export type CanvasAction =
   | { type: 'SEND_BACKWARD'; id: string }
   | { type: 'SET_BG_COLOR'; color: string }
   | { type: 'DUPLICATE'; id: string }
-  | { type: 'LOAD'; state: CanvasState };
+  | { type: 'LOAD'; state: CanvasState }
+  // View actions
+  | { type: 'ADD_VIEW'; view: CanvasView }
+  | { type: 'UPDATE_VIEW'; id: string; patch: Partial<CanvasView> }
+  | { type: 'DELETE_VIEW'; id: string }
+  | { type: 'SET_ACTIVE_VIEW'; id: string }
+  | { type: 'SET_VIEW_IDLE_TIMEOUT'; seconds: number }
+  | { type: 'ASSIGN_ELEMENT_VIEW'; elementId: string; viewId: string | null };
 
 export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasState {
   switch (action.type) {
     case 'ADD_ELEMENT': {
       const maxZ = state.elements.reduce((m, e) => Math.max(m, e.zIndex), 0);
+      // Assign current active view to new elements (unless it's __default__ → keep global)
+      const viewId = state.activeViewId && state.activeViewId !== '__default__' ? state.activeViewId : null;
       return {
         ...state,
-        elements: [...state.elements, { ...action.payload, zIndex: maxZ + 1 }],
+        elements: [...state.elements, { ...action.payload, zIndex: maxZ + 1, viewId: action.payload.viewId ?? viewId }],
         selectedId: action.payload.id,
       };
     }
@@ -184,11 +218,43 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
       const dup = createElement(el.type);
       return canvasReducer(state, {
         type: 'ADD_ELEMENT',
-        payload: { ...el, ...dup, id: dup.id, x: el.x + 30, y: el.y + 30, name: `${el.name} (cópia)` },
+        payload: { ...el, ...dup, id: dup.id, x: el.x + 30, y: el.y + 30, name: `${el.name} (cópia)`, viewId: el.viewId },
       });
     }
     case 'LOAD':
-      return action.state;
+      return {
+        ...action.state,
+        views: action.state.views?.length ? action.state.views : [{ ...DEFAULT_VIEW }],
+        activeViewId: action.state.activeViewId || '__default__',
+        viewIdleTimeout: action.state.viewIdleTimeout ?? 30,
+      };
+
+    // ── View actions ──
+    case 'ADD_VIEW':
+      return { ...state, views: [...(state.views || []), action.view] };
+    case 'UPDATE_VIEW':
+      return { ...state, views: (state.views || []).map(v => v.id === action.id ? { ...v, ...action.patch } : v) };
+    case 'DELETE_VIEW': {
+      // Remove view and reassign elements to global
+      const newViews = (state.views || []).filter(v => v.id !== action.id);
+      const newElements = state.elements.map(e => e.viewId === action.id ? { ...e, viewId: null } : e);
+      return {
+        ...state,
+        views: newViews.length ? newViews : [{ ...DEFAULT_VIEW }],
+        elements: newElements,
+        activeViewId: state.activeViewId === action.id ? '__default__' : state.activeViewId,
+      };
+    }
+    case 'SET_ACTIVE_VIEW':
+      return { ...state, activeViewId: action.id, selectedId: null };
+    case 'SET_VIEW_IDLE_TIMEOUT':
+      return { ...state, viewIdleTimeout: action.seconds };
+    case 'ASSIGN_ELEMENT_VIEW':
+      return {
+        ...state,
+        elements: state.elements.map(e => e.id === action.elementId ? { ...e, viewId: action.viewId } : e),
+      };
+
     default:
       return state;
   }

@@ -1,14 +1,15 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, Layers3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, DEFAULT_CANVAS_STATE,
-  canvasReducer, createElement,
-  type CanvasState, type CanvasElement, type ElementType,
+  canvasReducer, createElement, viewUid,
+  type CanvasState, type CanvasElement, type ElementType, type CanvasView,
 } from '../types/canvas';
+import { ViewsManager } from './ViewsManager';
 import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -126,6 +127,16 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [state.elements, state.bgColor]);
 
   const selectedElement = state.elements.find(e => e.id === state.selectedId) || null;
+
+  // Current active view
+  const activeViewId = state.activeViewId || '__default__';
+  const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
+
+  // Filter elements visible in current view (global + current view)
+  const visibleElements = state.elements.filter(el => {
+    if (!el.viewId || el.viewId === '__global__') return true; // global
+    return el.viewId === activeViewId; // belongs to active view
+  });
 
   const handleAdd = useCallback((el: CanvasElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: el });
@@ -322,6 +333,24 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
           >
+            {/* Views bar */}
+            <ViewsManager
+              views={views}
+              activeViewId={activeViewId}
+              viewIdleTimeout={state.viewIdleTimeout ?? 30}
+              elementCounts={views.reduce((acc, v) => {
+                acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
+                return acc;
+              }, { '__global__': state.elements.filter(e => !e.viewId || e.viewId === '__global__').length } as Record<string, number>)}
+              onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
+              onAddView={(name) => dispatch({ type: 'ADD_VIEW', view: { id: viewUid(), name } })}
+              onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
+              onDeleteView={(id) => dispatch({ type: 'DELETE_VIEW', id })}
+              onSetDefault={(id) => {
+                views.forEach(v => dispatch({ type: 'UPDATE_VIEW', id: v.id, patch: { isDefault: v.id === id } }));
+              }}
+              onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
+            />
             {/* Scaled canvas */}
             <div
               style={{
@@ -346,7 +375,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 }}
                 onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
               >
-                {state.elements
+                {visibleElements
                   .slice()
                   .sort((a, b) => a.zIndex - b.zIndex)
                   .map((el) => (
@@ -400,6 +429,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 bgColor={state.bgColor}
                 onBgColorChange={(c) => dispatch({ type: 'SET_BG_COLOR', color: c })}
                 selectedId={state.selectedId}
+                views={views}
+                onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}
               />
             </div>
           )}

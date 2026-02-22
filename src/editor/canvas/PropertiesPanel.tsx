@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import type { CanvasElement } from '../types/canvas';
+import type { CanvasElement, CanvasView } from '../types/canvas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Upload, Loader2, Plus, X, GripVertical, Store, Layers, Settings2 } from 'lucide-react';
+import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Upload, Loader2, Plus, X, GripVertical, Store, Layers, Settings2, Globe, Navigation } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,12 +28,14 @@ interface Props {
   bgColor: string;
   onBgColorChange: (c: string) => void;
   selectedId?: string | null;
+  views?: CanvasView[];
+  onAssignView?: (elementId: string, viewId: string | null) => void;
 }
 
 export function PropertiesPanel({
   element, elements = [], onUpdate, onUpdateProps, onDelete, onDuplicate,
   onBringForward, onSendBackward, onSelectElement, onToggleVisibility, onToggleLock,
-  bgColor, onBgColorChange, selectedId,
+  bgColor, onBgColorChange, selectedId, views, onAssignView,
 }: Props) {
   const [activeTab, setActiveTab] = useState<string>('props');
 
@@ -83,6 +85,8 @@ export function PropertiesPanel({
             onDuplicate={onDuplicate}
             onBringForward={onBringForward}
             onSendBackward={onSendBackward}
+            views={views}
+            onAssignView={onAssignView}
           />
         )}
       </TabsContent>
@@ -170,6 +174,7 @@ function LayersPanel({
 
 function PropsContent({
   element, onUpdate, onUpdateProps, onDelete, onDuplicate, onBringForward, onSendBackward,
+  views, onAssignView,
 }: {
   element: CanvasElement;
   onUpdate: (patch: Partial<CanvasElement>) => void;
@@ -178,6 +183,8 @@ function PropsContent({
   onDuplicate: () => void;
   onBringForward: () => void;
   onSendBackward: () => void;
+  views?: CanvasView[];
+  onAssignView?: (elementId: string, viewId: string | null) => void;
 }) {
   return (
     <ScrollArea className="h-full">
@@ -216,7 +223,41 @@ function PropsContent({
         </Section>
 
         {/* Type-specific props */}
-        <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} />
+        <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} views={views} />
+
+        {/* View assignment */}
+        {views && views.length > 0 && onAssignView && (
+          <Section title="View">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] text-muted-foreground">Visível na view</Label>
+              <Select
+                value={element.viewId || '__global__'}
+                onValueChange={(v) => onAssignView(element.id, v === '__global__' ? null : v)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__global__">
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3 h-3" /> Global (todas as views)
+                    </span>
+                  </SelectItem>
+                  {views.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="flex items-center gap-1.5">
+                        <Navigation className="w-3 h-3" /> {v.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[9px] text-muted-foreground">
+                Elementos globais aparecem em todas as views. Elementos vinculados só aparecem na view selecionada.
+              </p>
+            </div>
+          </Section>
+        )}
 
         {/* Actions */}
         <Section title="Ações">
@@ -876,7 +917,7 @@ function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onCh
   );
 }
 
-function TypeProps({ type, props, onChange }: { type: string; props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+function TypeProps({ type, props, onChange, views }: { type: string; props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
   switch (type) {
@@ -937,7 +978,47 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
           <PropInput label="Cor do texto" value={props.textColor} onChange={set('textColor')} type="color" />
           <PropInput label="Tamanho da fonte" value={props.fontSize} onChange={set('fontSize')} type="number" />
           <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
-          <PropInput label="Ação (URL ou prompt IA)" value={props.action} onChange={set('action')} />
+
+          {/* Action type */}
+          <div className="pt-2 border-t border-border space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase">Ação do botão</p>
+            <div>
+              <Label className="text-[11px]">Tipo de ação</Label>
+              <Select value={props.actionType || 'prompt'} onValueChange={set('actionType')}>
+                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prompt">💬 Prompt IA</SelectItem>
+                  <SelectItem value="url">🔗 Abrir URL</SelectItem>
+                  <SelectItem value="navigate">📄 Navegar para View</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(props.actionType || 'prompt') === 'prompt' && (
+              <PropInput label="Prompt" value={props.action || ''} onChange={set('action')} />
+            )}
+            {props.actionType === 'url' && (
+              <PropInput label="URL" value={props.action || ''} onChange={set('action')} />
+            )}
+            {props.actionType === 'navigate' && views && views.length > 0 && (
+              <div>
+                <Label className="text-[11px]">View de destino</Label>
+                <Select value={props.navigateTarget || ''} onValueChange={set('navigateTarget')}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {views.map(v => (
+                      <SelectItem key={v.id} value={v.id}>
+                        <span className="flex items-center gap-1.5">
+                          <Navigation className="w-3 h-3" /> {v.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[9px] text-muted-foreground mt-1">Ao tocar, muda para esta view no totem</p>
+              </div>
+            )}
+          </div>
         </Section>
       );
     case 'shape':
