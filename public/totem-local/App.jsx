@@ -127,10 +127,10 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.12.0",
+  "App.jsx": "4.13.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
-  "hooks/useSpeech.jsx": "2.2.0",
+  "hooks/useSpeech.jsx": "2.3.0",
   "hooks/useCMSConfig.js": "1.2.0",
   "components/Avatar.jsx": "1.5.0",
   "components/ChatInterface.jsx": "1.3.0",
@@ -885,6 +885,11 @@ function ChatElement({ props: p, deviceId }) {
           }
         }
       }
+
+      // 🗣️ Quando o streaming termina, faz o avatar falar a resposta
+      if (assistantSoFar && typeof window.__totemSpeakAvatar === "function") {
+        window.__totemSpeakAvatar(assistantSoFar);
+      }
     } catch (err) {
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${err.message || "Erro desconhecido"}` }]);
     } finally {
@@ -1516,6 +1521,17 @@ export default function App() {
         speechCtx.sendMessage(msg);
       } else {
         console.info("[Totem] 💬 __totemSendMessage (sem SpeechProvider):", msg);
+      }
+    };
+
+    // Fala direta via avatar (sem chamar LLM) — usado pelo Chat IA
+    window.__totemSpeakAvatar = (text) => {
+      if (speechCtx?.speakDirect) {
+        speechCtx.speakDirect(text);
+      } else if (typeof window.__totemSpeak === "function") {
+        window.__totemSpeak(text);
+      } else {
+        console.info("[Totem] 🗣️ __totemSpeakAvatar (sem SpeechProvider):", text);
       }
     };
 

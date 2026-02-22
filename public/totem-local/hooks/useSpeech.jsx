@@ -125,6 +125,42 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
+  // Fala direta (sem chamar LLM — usado pelo Chat IA)
+  // Usa Web Speech API para áudio e sinaliza o avatar para animar
+  const speakDirect = useCallback((text) => {
+    if (!text || isPlayingRef.current) return;
+
+    // Sinaliza que o avatar está "falando"
+    isPlayingRef.current = true;
+
+    // Cria mensagem com flag especial para o Avatar usar Web Speech API
+    const msg = { text, _browserTTS: true };
+    setMessage(msg);
+
+    // Usa Web Speech API para a fala real
+    if (window.speechSynthesis) {
+      // Cancela qualquer fala em andamento
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = import.meta.env.VITE_TTS_LANG || "pt-BR";
+      utter.rate = 1.0;
+
+      utter.onend = () => {
+        onMessagePlayed();
+      };
+      utter.onerror = () => {
+        onMessagePlayed();
+      };
+
+      window.speechSynthesis.speak(utter);
+      console.log("🗣️ speakDirect: Avatar falando via Web Speech API");
+    } else {
+      // Sem Web Speech API — apenas mostra por 3s
+      setTimeout(() => onMessagePlayed(), Math.max(2000, text.length * 60));
+    }
+  }, [onMessagePlayed]);
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 3. SISTEMA DE ÁUDIO (VAD + SELEÇÃO DE MIC)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -242,7 +278,7 @@ export const SpeechProvider = ({ children }) => {
   }, []);
 
   return (
-    <SpeechContext.Provider value={{ message, onMessagePlayed, loading, listening, sendMessage }}>
+    <SpeechContext.Provider value={{ message, onMessagePlayed, loading, listening, sendMessage, speakDirect }}>
       {children}
     </SpeechContext.Provider>
   );
