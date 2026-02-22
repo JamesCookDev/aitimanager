@@ -788,8 +788,10 @@ function StoreDirectory({ props: p }) {
 }
 
 // ─────────────────────────────────────────────
-// 💬 CHAT IA ELEMENT — chat funcional com streaming
+// 💬 CHAT IA ELEMENT — dual-mode: backend local (Ollama/Kokoro) ou cloud (Gemini)
 // ─────────────────────────────────────────────
+const LOCAL_API_URL = import.meta.env.VITE_API_URL || null;
+
 function ChatElement({ props: p, deviceId }) {
   const placeholder = p.placeholder || "Pergunte algo...";
   const theme = p.theme || "dark";
@@ -807,11 +809,131 @@ function ChatElement({ props: p, deviceId }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState(LOCAL_API_URL ? "local" : "cloud");
   const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
+
+  // ─── Modo LOCAL: usa backend Express (Ollama + Kokoro + LipSync) ───
+  const sendLocal = useCallback(async (text, allMsgs) => {
+    try {
+      const tenantId = import.meta.env.VITE_TENANT_ID || null;
+      const resp = await fetch(`${LOCAL_API_URL}/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, tenantId }),
+      });
+
+      if (!resp.ok) throw new Error(`Erro backend local: ${resp.status}`);
+      const data = await resp.json();
+
+      if (data.messages && data.messages.length > 0) {
+        // Extrai texto da resposta do backend local
+        const fullText = data.messages.map(m => m.text).join(" ");
+        setMessages(prev => [...prev, { role: "assistant", content: fullText }]);
+
+        // 🗣️ Envia para o avatar com áudio e lipsync do backend local
+        if (speakResponse && data.messages.length > 0) {
+          data.messages.forEach(msg => {
+            if (typeof window.__totemPlayMessage === "function") {
+              // Pipeline completo: usa áudio do Kokoro + LipSync do Rhubarb
+              window.__totemPlayMessage(msg);
+            } else if (typeof window.__totemSpeakAvatar === "function") {
+              // Fallback: usa Web Speech API
+              window.__totemSpeakAvatar(msg.text);
+            }
+          });
+        }
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: "Não consegui gerar uma resposta." }]);
+      }
+    } catch (err) {
+      console.error("[Chat Local] Erro:", err);
+      // Fallback para cloud se backend local falhar
+      if (mode === "local") {
+        console.warn("[Chat] Backend local falhou, tentando cloud...");
+        setMode("cloud");
+        await sendCloud(text, allMsgs);
+      } else {
+        throw err;
+      }
+    }
+  }, [speakResponse, mode]);
+
+  // ─── Modo CLOUD: usa Edge Function totem-chat (Gemini streaming) ───
+  const sendCloud = useCallback(async (text, allMsgs) => {
+    let assistantSoFar = "";
+    const cmsUrl = import.meta.env.VITE_CMS_API_URL;
+    const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+    if (!cmsUrl) throw new Error("VITE_CMS_API_URL não configurada");
+
+    const resp = await fetch(`${cmsUrl}/totem-chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": anonKey,
+        "x-totem-api-key": apiKey || "",
+      },
+      body: JSON.stringify({
+        messages: allMsgs,
+        device_id: deviceId || undefined,
+      }),
+    });
+
+    if (!resp.ok || !resp.body) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error || `Erro ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let streamDone = false;
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") { streamDone = true; break; }
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantSoFar += content;
+            const snapshot = assistantSoFar;
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
+              }
+              return [...prev, { role: "assistant", content: snapshot }];
+            });
+          }
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
+
+    // 🗣️ Cloud mode: fala via Web Speech API (sem áudio do backend)
+    if (assistantSoFar && speakResponse && typeof window.__totemSpeakAvatar === "function") {
+      window.__totemSpeakAvatar(assistantSoFar);
+    }
+  }, [deviceId, speakResponse]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -823,82 +945,18 @@ function ChatElement({ props: p, deviceId }) {
     setMessages(allMsgs);
     setLoading(true);
 
-    let assistantSoFar = "";
     try {
-      const cmsUrl = import.meta.env.VITE_CMS_API_URL;
-      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-      if (!cmsUrl) throw new Error("VITE_CMS_API_URL não configurada");
-
-      const resp = await fetch(`${cmsUrl}/totem-chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": anonKey,
-          "x-totem-api-key": apiKey || "",
-        },
-        body: JSON.stringify({
-          messages: allMsgs,
-          device_id: deviceId || undefined,
-        }),
-      });
-
-      if (!resp.ok || !resp.body) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || `Erro ${resp.status}`);
-      }
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let streamDone = false;
-
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") { streamDone = true; break; }
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantSoFar += content;
-              const snapshot = assistantSoFar;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
-                }
-                return [...prev, { role: "assistant", content: snapshot }];
-              });
-            }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
-      }
-
-      // 🗣️ Quando o streaming termina, faz o avatar falar a resposta (se habilitado)
-      if (assistantSoFar && speakResponse && typeof window.__totemSpeakAvatar === "function") {
-        window.__totemSpeakAvatar(assistantSoFar);
+      if (mode === "local" && LOCAL_API_URL) {
+        await sendLocal(text, allMsgs);
+      } else {
+        await sendCloud(text, allMsgs);
       }
     } catch (err) {
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${err.message || "Erro desconhecido"}` }]);
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, deviceId]);
+  }, [input, loading, messages, mode, sendLocal, sendCloud]);
 
   const fs = (base) => `clamp(${base * 0.7}px, ${base / CANVAS_W * 100}vw, ${base * 1.3}px)`;
 
@@ -1535,6 +1593,44 @@ export default function App() {
         window.__totemSpeak(text);
       } else {
         console.info("[Totem] 🗣️ __totemSpeakAvatar (sem SpeechProvider):", text);
+      }
+    };
+
+    // Reproduz mensagem com áudio+lipsync do backend local (Kokoro + Rhubarb)
+    window.__totemPlayMessage = (msg) => {
+      if (speechCtx?.onMessagePlayed && msg) {
+        // Enfileira diretamente no SpeechProvider — reproduz áudio base64 + lipsync
+        const audioMessage = {
+          text: msg.text || "",
+          audio: msg.audio ? `data:audio/wav;base64,${msg.audio}` : null,
+          lipsync: msg.lipsync || [],
+          facialExpression: msg.facialExpression || "smile",
+          animation: msg.animation || "TalkingOne",
+        };
+        // Usa a mesma interface de mensagem do SpeechProvider
+        if (typeof speechCtx?.message !== "undefined") {
+          // Injeta diretamente na fila via o método padrão
+          window.__totemSendMessage?.(null); // noop para evitar conflito
+        }
+        // Dispara mensagem diretamente — o SpeechProvider vai reproduzir
+        if (speechCtx?.speakDirect) {
+          // Para backend local, precisamos usar o áudio nativo em vez de Web Speech API
+          // Criamos um áudio element e sincronizamos com o avatar
+          const audio = new Audio(audioMessage.audio);
+          audio.onended = () => {
+            speechCtx.onMessagePlayed?.();
+          };
+          audio.onerror = () => {
+            // Fallback: usa Web Speech API
+            speechCtx.speakDirect(msg.text);
+          };
+          audio.play().catch(() => {
+            speechCtx.speakDirect(msg.text);
+          });
+          console.log("🔊 [Chat Local] Reproduzindo áudio do Kokoro via avatar");
+        } else {
+          console.info("[Totem] 🔊 __totemPlayMessage (sem SpeechProvider):", msg.text);
+        }
       }
     };
 
