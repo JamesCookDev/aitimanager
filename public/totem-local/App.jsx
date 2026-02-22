@@ -794,11 +794,14 @@ function ChatElement({ props: p, deviceId }) {
   const placeholder = p.placeholder || "Pergunte algo...";
   const theme = p.theme || "dark";
   const isDark = theme === "dark";
+  const accentColor = p.accentColor || "#6366f1";
+  const speakResponse = p.speakResponse !== false;
+  const borderRadius = p.borderRadius || 16;
   const bgMain = isDark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)";
   const textColor = isDark ? "#e2e8f0" : "#1e293b";
   const mutedColor = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
   const inputBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  const bubbleBgUser = "#6366f1";
+  const bubbleBgUser = accentColor;
   const bubbleBgBot = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   const [messages, setMessages] = useState([]);
@@ -886,8 +889,8 @@ function ChatElement({ props: p, deviceId }) {
         }
       }
 
-      // 🗣️ Quando o streaming termina, faz o avatar falar a resposta
-      if (assistantSoFar && typeof window.__totemSpeakAvatar === "function") {
+      // 🗣️ Quando o streaming termina, faz o avatar falar a resposta (se habilitado)
+      if (assistantSoFar && speakResponse && typeof window.__totemSpeakAvatar === "function") {
         window.__totemSpeakAvatar(assistantSoFar);
       }
     } catch (err) {
@@ -903,9 +906,9 @@ function ChatElement({ props: p, deviceId }) {
     <div style={{
       width: "100%", height: "100%",
       display: "flex", flexDirection: "column",
-      overflow: "hidden", borderRadius: 16,
+      overflow: "hidden", borderRadius,
       background: bgMain,
-      border: "1px solid rgba(255,255,255,0.1)",
+      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
     }}>
       {/* Header */}
       <div style={{

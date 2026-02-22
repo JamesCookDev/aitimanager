@@ -1055,6 +1055,29 @@ function TypeProps({ type, props, onChange }: { type: string; props: Record<stri
       );
     case 'map':
       return <MapPropsPanel props={props} onChange={onChange} />;
+    case 'chat':
+      return (
+        <Section title="Chat IA">
+          <PropInput label="Placeholder" value={props.placeholder || 'Pergunte algo...'} onChange={set('placeholder')} />
+          <div>
+            <Label className="text-[11px]">Tema</Label>
+            <Select value={props.theme || 'dark'} onValueChange={set('theme')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dark">Escuro</SelectItem>
+                <SelectItem value="light">Claro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
+          <PropInput label="Border Radius" value={props.borderRadius || 16} onChange={set('borderRadius')} type="number" />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Avatar fala resposta</Label>
+            <Switch checked={props.speakResponse !== false} onCheckedChange={set('speakResponse')} />
+          </div>
+          <p className="text-[9px] text-muted-foreground -mt-1">Quando ativo, o avatar fala a resposta do chat via Web Speech API</p>
+        </Section>
+      );
     case 'social':
       return <SocialPropsPanel props={props} onChange={onChange} />;
     case 'store':
