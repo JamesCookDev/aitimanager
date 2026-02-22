@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.10.1",
+  "App.jsx": "4.11.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -568,6 +568,7 @@ function StoreDirectory({ props: p }) {
 
   const [activeCategory, setActiveCategory] = useState(null);
   const [search, setSearch] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -678,65 +679,102 @@ function StoreDirectory({ props: p }) {
       }}>
         {filtered.map((store, sIdx) => (
           <div key={store.id || sIdx} style={{
-            display: "flex", gap: 12, padding: 12,
+            display: "flex", flexDirection: "column",
             background: cardBgColor,
             borderRadius: cardBorderRadius,
             border: "1px solid rgba(255,255,255,0.06)",
             transition: "background 0.2s",
             animation: `storeCardIn 0.3s ease-out ${sIdx * 50}ms both`,
           }}>
-            {/* Logo */}
-            <div style={{
-              flexShrink: 0, width: 48, height: 48,
-              borderRadius: 10, display: "flex",
-              alignItems: "center", justifyContent: "center",
-              overflow: "hidden",
-              background: accentColor + "22",
-              border: `1px solid ${accentColor}33`,
-            }}>
-              {store.logo ? (
-                <img src={store.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <span style={{ fontSize: 20 }}>🏪</span>
-              )}
-            </div>
-
-            {/* Info */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", gap: 12, padding: 12 }}>
+              {/* Logo */}
               <div style={{
-                color: "#fff", fontWeight: 600,
-                fontSize: `clamp(11px, ${14 / CANVAS_W * 100}vw, 18px)`,
-                lineHeight: 1.2,
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              }}>{store.name || "Loja"}</div>
-
-              {store.description && (
-                <div style={{
-                  color: "rgba(255,255,255,0.5)",
-                  fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
-                  marginTop: 2,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}>{store.description}</div>
-              )}
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 6 }}>
-                {showFloor && store.floor && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>
-                )}
-                {showCategory && store.category && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ {store.category}</span>
-                )}
-                {showHours && store.hours && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>🕐 {store.hours}</span>
-                )}
-                {showPhone && store.phone && (
-                  <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📞 {store.phone}</span>
+                flexShrink: 0, width: 48, height: 48,
+                borderRadius: 10, display: "flex",
+                alignItems: "center", justifyContent: "center",
+                overflow: "hidden",
+                background: accentColor + "22",
+                border: `1px solid ${accentColor}33`,
+              }}>
+                {store.logo ? (
+                  <img src={store.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: 20 }}>🏪</span>
                 )}
               </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  color: "#fff", fontWeight: 600,
+                  fontSize: `clamp(11px, ${14 / CANVAS_W * 100}vw, 18px)`,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>{store.name || "Loja"}</div>
+
+                {store.description && expandedId !== store.id && (
+                  <div style={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
+                    marginTop: 2,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{store.description}</div>
+                )}
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 6 }}>
+                  {showFloor && store.floor && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>
+                  )}
+                  {showCategory && store.category && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ {store.category}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Details button */}
+              <button type="button" onClick={() => setExpandedId(expandedId === store.id ? null : store.id)} style={{
+                flexShrink: 0, alignSelf: "flex-start",
+                padding: "4px 10px", borderRadius: 8,
+                fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 12px)`,
+                fontWeight: 600,
+                background: expandedId === store.id ? accentColor : accentColor + "22",
+                color: expandedId === store.id ? "#fff" : accentColor,
+                border: `1px solid ${accentColor}44`,
+                cursor: "pointer", transition: "all 0.2s",
+              }}>
+                {expandedId === store.id ? "✕" : "Detalhes"}
+              </button>
             </div>
+
+            {/* Expanded details */}
+            {expandedId === store.id && (
+              <div style={{
+                padding: "0 12px 12px", borderTop: "1px solid rgba(255,255,255,0.05)",
+                animation: "storeCardIn 0.2s ease-out both",
+              }}>
+                {store.description && (
+                  <div style={{
+                    color: "rgba(255,255,255,0.6)",
+                    fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
+                    marginTop: 8, lineHeight: 1.5,
+                  }}>{store.description}</div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                  {store.hours && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>🕐 Horário: {store.hours}</span>
+                  )}
+                  {store.phone && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📞 Telefone: {store.phone}</span>
+                  )}
+                  {store.floor && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 Localização: {store.floor}</span>
+                  )}
+                  {store.category && (
+                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ Categoria: {store.category}</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {filtered.length === 0 && (

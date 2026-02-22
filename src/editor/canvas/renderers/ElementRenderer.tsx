@@ -563,6 +563,7 @@ function StoreRenderer(props: any) {
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -659,24 +660,46 @@ function StoreRenderer(props: any) {
       {/* Store cards */}
       <div className="flex-1 overflow-y-auto" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}>
         {filtered.map((store: any, idx: number) => (
-          <div key={store.id} className="flex gap-3 p-3 transition-colors animate-scale-in" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)', animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: accentColor + '22', border: `1px solid ${accentColor}33` }}>
-              {store.logo ? (
-                <img src={store.logo} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <Store className="w-5 h-5" style={{ color: accentColor }} />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-white text-sm leading-tight truncate">{store.name || 'Loja'}</div>
-              {store.description && <div className="text-white/50 text-[10px] mt-0.5 line-clamp-2">{store.description}</div>}
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
-                {showFloor && store.floor && <span className="text-[10px] text-white/60 flex items-center gap-0.5">📍 {store.floor}</span>}
-                {showCategory && store.category && <span className="text-[10px] flex items-center gap-0.5" style={{ color: accentColor }}>🏷️ {store.category}</span>}
-                {showHours && store.hours && <span className="text-[10px] text-white/60 flex items-center gap-0.5">🕐 {store.hours}</span>}
-                {showPhone && store.phone && <span className="text-[10px] text-white/60 flex items-center gap-0.5">📞 {store.phone}</span>}
+          <div key={store.id} className="flex flex-col transition-colors animate-scale-in" style={{ background: cardBgColor, borderRadius: cardBorderRadius, border: '1px solid rgba(255,255,255,0.06)', animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
+            <div className="flex gap-3 p-3">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: accentColor + '22', border: `1px solid ${accentColor}33` }}>
+                {store.logo ? (
+                  <img src={store.logo} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-5 h-5" style={{ color: accentColor }} />
+                )}
               </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-white text-sm leading-tight truncate">{store.name || 'Loja'}</div>
+                {store.description && expandedId !== store.id && <div className="text-white/50 text-[10px] mt-0.5 line-clamp-1">{store.description}</div>}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                  {showFloor && store.floor && <span className="text-[10px] text-white/60 flex items-center gap-0.5">📍 {store.floor}</span>}
+                  {showCategory && store.category && <span className="text-[10px] flex items-center gap-0.5" style={{ color: accentColor }}>🏷️ {store.category}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => setExpandedId(expandedId === store.id ? null : store.id)}
+                className="flex-shrink-0 self-start px-2 py-1 rounded-md text-[9px] font-semibold transition-all"
+                style={{
+                  background: expandedId === store.id ? accentColor : accentColor + '22',
+                  color: expandedId === store.id ? '#fff' : accentColor,
+                  border: `1px solid ${accentColor}44`,
+                }}
+              >
+                {expandedId === store.id ? '✕' : 'Detalhes'}
+              </button>
             </div>
+            {expandedId === store.id && (
+              <div className="px-3 pb-3 pt-0 border-t border-white/5 mt-0" style={{ animation: 'storeCardIn 0.2s ease-out both' }}>
+                {store.description && <div className="text-white/60 text-[10px] mt-2 leading-relaxed">{store.description}</div>}
+                <div className="flex flex-col gap-1 mt-2">
+                  {store.hours && <span className="text-[10px] text-white/60 flex items-center gap-1">🕐 Horário: {store.hours}</span>}
+                  {store.phone && <span className="text-[10px] text-white/60 flex items-center gap-1">📞 Telefone: {store.phone}</span>}
+                  {store.floor && <span className="text-[10px] text-white/60 flex items-center gap-1">📍 Localização: {store.floor}</span>}
+                  {store.category && <span className="text-[10px] flex items-center gap-1" style={{ color: accentColor }}>🏷️ Categoria: {store.category}</span>}
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {filtered.length === 0 && (
