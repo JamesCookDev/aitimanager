@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keyboard shortcut badges */
+.kbd {
+  @apply inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-mono font-medium;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
 /* NEXUS FLEET COMMAND - Industrial Dark Theme */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
