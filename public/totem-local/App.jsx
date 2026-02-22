@@ -127,7 +127,7 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.11.0",
+  "App.jsx": "4.12.0",
   "main.jsx": "1.0.0",
   "index.css": "1.1.0",
   "hooks/useSpeech.jsx": "2.2.0",
@@ -494,7 +494,7 @@ function ElementRenderer({ type, props: p }) {
     }
 
     case "chat":
-      return <PlaceholderBox emoji="💬" label="Chat IA" />;
+      return <ChatElement props={p} deviceId={import.meta.env.VITE_TOTEM_DEVICE_ID} />;
 
     case "avatar":
       return <AvatarCanvasElement props={p} />;
@@ -788,8 +788,219 @@ function StoreDirectory({ props: p }) {
 }
 
 // ─────────────────────────────────────────────
-// 🤖 AVATAR 3D CANVAS ELEMENT — renderiza o avatar dentro do elemento do canvas
+// 💬 CHAT IA ELEMENT — chat funcional com streaming
 // ─────────────────────────────────────────────
+function ChatElement({ props: p, deviceId }) {
+  const placeholder = p.placeholder || "Pergunte algo...";
+  const theme = p.theme || "dark";
+  const isDark = theme === "dark";
+  const bgMain = isDark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)";
+  const textColor = isDark ? "#e2e8f0" : "#1e293b";
+  const mutedColor = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
+  const inputBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const bubbleBgUser = "#6366f1";
+  const bubbleBgBot = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+
+    const userMsg = { role: "user", content: text };
+    const allMsgs = [...messages, userMsg];
+    setMessages(allMsgs);
+    setLoading(true);
+
+    let assistantSoFar = "";
+    try {
+      const cmsUrl = import.meta.env.VITE_CMS_API_URL;
+      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+      if (!cmsUrl) throw new Error("VITE_CMS_API_URL não configurada");
+
+      const resp = await fetch(`${cmsUrl}/totem-chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": anonKey,
+          "x-totem-api-key": apiKey || "",
+        },
+        body: JSON.stringify({
+          messages: allMsgs,
+          device_id: deviceId || undefined,
+        }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || `Erro ${resp.status}`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantSoFar += content;
+              const snapshot = assistantSoFar;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
+                }
+                return [...prev, { role: "assistant", content: snapshot }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { role: "assistant", content: `❌ ${err.message || "Erro desconhecido"}` }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [input, loading, messages, deviceId]);
+
+  const fs = (base) => `clamp(${base * 0.7}px, ${base / CANVAS_W * 100}vw, ${base * 1.3}px)`;
+
+  return (
+    <div style={{
+      width: "100%", height: "100%",
+      display: "flex", flexDirection: "column",
+      overflow: "hidden", borderRadius: 16,
+      background: bgMain,
+      border: "1px solid rgba(255,255,255,0.1)",
+    }}>
+      {/* Header */}
+      <div style={{
+        flexShrink: 0, padding: "8px 12px",
+        display: "flex", alignItems: "center", gap: 8,
+        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+      }}>
+        <div style={{ width: 8, height: 8, borderRadius: 999, background: "#4ade80", animation: "pulse 2s infinite" }} />
+        <span style={{ color: textColor, fontSize: fs(14), fontWeight: 600 }}>Chat IA</span>
+        {messages.length > 0 && (
+          <button type="button" onClick={() => setMessages([])} style={{
+            marginLeft: "auto", color: mutedColor, fontSize: fs(11),
+            background: "none", border: "none", cursor: "pointer",
+          }}>Limpar</button>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} style={{
+        flex: 1, overflowY: "auto", padding: "8px 12px",
+        display: "flex", flexDirection: "column", gap: 8,
+        scrollbarWidth: "thin",
+      }}>
+        {messages.length === 0 && (
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 8,
+          }}>
+            <span style={{ fontSize: 32 }}>💬</span>
+            <span style={{ color: mutedColor, fontSize: fs(12) }}>Envie uma mensagem para começar</span>
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "80%",
+              padding: "8px 12px",
+              borderRadius: msg.role === "user" ? "14px 14px 2px 14px" : "14px 14px 14px 2px",
+              background: msg.role === "user" ? bubbleBgUser : bubbleBgBot,
+              color: msg.role === "user" ? "#fff" : textColor,
+              fontSize: fs(13),
+              lineHeight: 1.5,
+              wordBreak: "break-word",
+              whiteSpace: "pre-wrap",
+            }}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {loading && messages[messages.length - 1]?.role !== "assistant" && (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{
+              padding: "8px 12px",
+              borderRadius: "14px 14px 14px 2px",
+              background: bubbleBgBot,
+              color: mutedColor,
+              fontSize: fs(13),
+            }}>
+              <span style={{ animation: "pulse 1.5s infinite" }}>●●●</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{ flexShrink: 0, padding: "6px 8px", display: "flex", gap: 6 }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder={placeholder}
+          style={{
+            flex: 1, height: 40, borderRadius: 12,
+            border: "none", outline: "none",
+            padding: "0 14px",
+            background: inputBg, color: textColor,
+            fontSize: fs(13),
+          }}
+        />
+        <button
+          type="button"
+          onClick={send}
+          disabled={loading || !input.trim()}
+          style={{
+            flexShrink: 0, width: 40, height: 40,
+            borderRadius: 12, border: "none",
+            background: bubbleBgUser, color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: loading || !input.trim() ? "default" : "pointer",
+            opacity: loading || !input.trim() ? 0.4 : 1,
+            transition: "opacity 0.2s",
+            fontSize: 16,
+          }}
+        >▶</button>
+      </div>
+    </div>
+  );
+}
+
 function AvatarCanvasElement({ props: p }) {
   // frameY: -100..100 → vertical pan (neg=up, pos=down)
   // frameZoom: 10..100 → distance (10=far, 100=close)
