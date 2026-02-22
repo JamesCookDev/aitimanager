@@ -34,6 +34,8 @@ Deno.serve(async (req) => {
         model_3d_url,
         current_version_id,
         ui_config,
+        ai_prompt,
+        org_id,
         organization:organizations(name)
       `)
       .eq('api_key', apiKey)
@@ -196,6 +198,70 @@ Deno.serve(async (req) => {
     const elementCount = mergedUi.free_canvas?.elements?.length || 0
     console.log(`[totem-config] free_canvas elements: ${elementCount}`)
 
+    // ── AI CONFIG: buscar config de IA (device > org > default) ──
+    let aiConfigResult: any = null
+
+    // 1. Config específica do dispositivo
+    const { data: deviceAiConfig } = await supabase
+      .from('ai_configs')
+      .select('*')
+      .eq('device_id', device.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (deviceAiConfig) {
+      aiConfigResult = deviceAiConfig
+    } else {
+      // 2. Fallback: config geral da org
+      const { data: orgAiConfig } = await supabase
+        .from('ai_configs')
+        .select('*')
+        .eq('org_id', device.org_id)
+        .is('device_id', null)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      aiConfigResult = orgAiConfig
+    }
+
+    const defaultAi = {
+      system_prompt: device.ai_prompt || 'Você é um assistente virtual amigável. Responda de forma curta e objetiva.',
+      knowledge_base: '',
+      model: 'llama3.2:1b',
+      temperature: 0.3,
+      max_tokens: 50,
+      avatar_name: 'Assistente',
+      voice: 'af_bella',
+      base_url: null,
+      tts_url: null,
+      stt_url: null,
+      llm_url: null,
+      tts_speed: 1,
+      tts_model: 'kokoro',
+    }
+
+    const ai = aiConfigResult ? {
+      system_prompt: aiConfigResult.system_prompt,
+      knowledge_base: aiConfigResult.knowledge_base,
+      model: aiConfigResult.model || defaultAi.model,
+      temperature: aiConfigResult.temperature ?? defaultAi.temperature,
+      max_tokens: aiConfigResult.max_tokens ?? defaultAi.max_tokens,
+      avatar_name: aiConfigResult.avatar_name || defaultAi.avatar_name,
+      voice: aiConfigResult.voice || defaultAi.voice,
+      base_url: aiConfigResult.base_url || null,
+      tts_url: aiConfigResult.tts_url || null,
+      stt_url: aiConfigResult.stt_url || null,
+      llm_url: aiConfigResult.llm_url || null,
+      tts_speed: aiConfigResult.tts_speed ?? defaultAi.tts_speed,
+      tts_model: aiConfigResult.tts_model || defaultAi.tts_model,
+    } : defaultAi
+
+    console.log(`[totem-config] AI config source: ${aiConfigResult ? 'database' : 'default'}`)
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -211,6 +277,7 @@ Deno.serve(async (req) => {
             updated_at: modelData.created_at
           } : null,
           ui: mergedUi,
+          ai,
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
