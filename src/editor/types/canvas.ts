@@ -23,7 +23,10 @@ export type ElementType =
   | 'countdown'
   | 'iframe'
   | 'avatar'
-  | 'store';
+  | 'store'
+  | 'list'
+  | 'gallery'
+  | 'animated-number';
 
 /* ── Views ──────────────────────────────────── */
 
@@ -105,6 +108,9 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   iframe: { w: 480, h: 400, name: 'Iframe', props: { url: '', borderRadius: 8 } },
   avatar: { w: 500, h: 500, name: 'Avatar 3D', props: { position: 'center', scale: 1.5, animation: 'idle', enabled: true, avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb', colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' }, frameY: 0, frameZoom: 50 } },
   store: { w: 480, h: 600, name: 'Diretório de Lojas', props: { title: 'Lojas', titleColor: '#ffffff', titleSize: 28, bgColor: 'rgba(0,0,0,0.6)', borderRadius: 16, stores: [{ id: '1', name: 'Loja Exemplo', logo: '', coverImage: '', gallery: [], floor: 'Piso 1', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda masculina e feminina', mapX: 50, mapY: 50, zone: '' }], columns: 1, gap: 12, cardBgColor: 'rgba(255,255,255,0.08)', cardBorderRadius: 12, accentColor: '#6366f1', showCategory: true, showHours: true, showPhone: true, showFloor: true, showCategoryFilter: false, showSearch: false } },
+  list: { w: 420, h: 500, name: 'Lista', props: { listTitle: 'Menu', bgColor: 'rgba(0,0,0,0.4)', borderRadius: 16, titleSize: 18, titleColor: '#ffffff', priceColor: '#6366f1', showIcon: true, showPrice: true, showDivider: true, items: [{ id: '1', title: 'Item 1', subtitle: 'Descrição do item', price: 'R$ 29,90', icon: '🍔' }, { id: '2', title: 'Item 2', subtitle: 'Descrição do item', price: 'R$ 19,90', icon: '🍟' }, { id: '3', title: 'Item 3', subtitle: 'Descrição do item', price: 'R$ 14,90', icon: '🥤' }] } },
+  gallery: { w: 420, h: 420, name: 'Galeria', props: { images: [], columns: 2, gap: 8, borderRadius: 12, aspectRatio: '1/1' } },
+  'animated-number': { w: 320, h: 160, name: 'Número Animado', props: { value: 1234, prefix: '', suffix: '', label: 'Visitantes hoje', color: '#ffffff', labelColor: 'rgba(255,255,255,0.6)', fontSize: 64, labelSize: 18, duration: 2000, useGrouping: true } },
 };
 
 export function createElement(type: ElementType, x = 100, y = 100, viewId?: string): CanvasElement {

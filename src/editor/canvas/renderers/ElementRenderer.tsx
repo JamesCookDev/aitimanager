@@ -15,6 +15,9 @@ import { IframePlaceholder } from './IframeRenderer';
 import { CarouselRenderer } from './CarouselRenderer';
 import { AvatarRenderer } from './AvatarRenderer';
 import { StoreRenderer } from './StoreRenderer';
+import { ListRenderer } from './ListRenderer';
+import { GalleryRenderer } from './GalleryRenderer';
+import { AnimatedNumberRenderer } from './AnimatedNumberRenderer';
 
 interface Props {
   element: CanvasElement;
@@ -56,6 +59,12 @@ export function ElementRenderer({ element }: Props) {
       return <AvatarRenderer {...element.props} />;
     case 'store':
       return <StoreRenderer {...element.props} />;
+    case 'list':
+      return <ListRenderer {...element.props} />;
+    case 'gallery':
+      return <GalleryRenderer {...element.props} />;
+    case 'animated-number':
+      return <AnimatedNumberRenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
