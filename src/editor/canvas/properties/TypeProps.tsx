@@ -10,6 +10,64 @@ import { CarouselPropsPanel } from './CarouselPropsPanel';
 import { SocialPropsPanel } from './SocialPropsPanel';
 import { StorePropsPanel } from './StorePropsPanel';
 
+/* Reusable navigation action panel for any element */
+function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
+  if (!views || views.length === 0) return null;
+  const set = (key: string) => (val: any) => onChange({ [key]: val });
+  return (
+    <div className="pt-2 border-t border-border space-y-2">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase">Ação ao toque</p>
+      <div>
+        <Label className="text-[11px]">Tipo de ação</Label>
+        <Select value={props.actionType || 'none'} onValueChange={set('actionType')}>
+          <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            <SelectItem value="navigate">📄 Navegar para Página</SelectItem>
+            <SelectItem value="url">🔗 Abrir URL</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {props.actionType === 'url' && (
+        <PropInput label="URL" value={props.action || ''} onChange={set('action')} />
+      )}
+      {props.actionType === 'navigate' && (
+        <>
+          <div>
+            <Label className="text-[11px]">Página de destino</Label>
+            <Select value={props.navigateTarget || ''} onValueChange={set('navigateTarget')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {views.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    <span className="flex items-center gap-1.5">
+                      <Navigation className="w-3 h-3" /> {v.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[11px]">Transição</Label>
+            <Select value={props.navigateTransition || 'fade'} onValueChange={set('navigateTransition')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem transição</SelectItem>
+                <SelectItem value="fade">✨ Fade</SelectItem>
+                <SelectItem value="slide-left">⬅ Slide Esquerda</SelectItem>
+                <SelectItem value="slide-right">➡ Slide Direita</SelectItem>
+                <SelectItem value="slide-up">⬆ Slide Cima</SelectItem>
+                <SelectItem value="zoom">🔍 Zoom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TypeProps({ type, props, onChange, views }: { type: string; props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
@@ -42,7 +100,8 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
                 <SelectItem value="right">Direita</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+           </div>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'image':
@@ -61,6 +120,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             </Select>
           </div>
           <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'button':
@@ -142,6 +202,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
           </div>
           <PropInput label="Cor" value={props.fill} onChange={set('fill')} type="color" />
           <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'icon':
@@ -150,6 +211,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
           <PropInput label="Emoji / Ícone" value={props.icon} onChange={set('icon')} />
           <PropInput label="Tamanho" value={props.size} onChange={set('size')} type="number" />
           <PropInput label="Cor" value={props.color} onChange={set('color')} type="color" />
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'qrcode':
