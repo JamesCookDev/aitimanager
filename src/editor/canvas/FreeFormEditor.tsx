@@ -64,7 +64,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [history.state]);
 
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.35);
+  const [scale, setScale] = useState(0.45);
   const [viewportSize, setViewportSize] = useState({ w: 600, h: 800 });
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -79,8 +79,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       const rect = viewportRef.current.getBoundingClientRect();
       const sw = (rect.width - 40) / CANVAS_WIDTH;
       const sh = (rect.height - 40) / CANVAS_HEIGHT;
-      const s = Math.min(sw, sh, 0.6);
-      setScale(Math.max(0.15, s));
+      const s = Math.min(sw, sh, 0.85);
+      setScale(Math.max(0.2, s));
       setViewportSize({ w: rect.width, h: rect.height });
     }
     fitScale();
@@ -199,7 +199,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   return (
     <TooltipProvider delayDuration={400}>
-      <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-xl border border-border overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background rounded-xl border border-border overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
           <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           </div>
 
           <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-0.5">
-            <Tb tip="Diminuir zoom" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
+            <Tb tip="Diminuir zoom" onClick={() => setScale(s => Math.max(0.2, s - 0.05))} icon={ZoomOut} />
             <button
               className="text-[10px] font-mono text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
               onClick={() => {
@@ -226,7 +226,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   const rect = viewportRef.current.getBoundingClientRect();
                   const sw = (rect.width - 40) / CANVAS_WIDTH;
                   const sh = (rect.height - 40) / CANVAS_HEIGHT;
-                  setScale(Math.max(0.15, Math.min(sw, sh, 0.6)));
+                  setScale(Math.max(0.2, Math.min(sw, sh, 0.85)));
                 }
               }}
               title="Ajustar ao viewport"
