@@ -80,7 +80,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
                 <SelectContent>
                   <SelectItem value="prompt">💬 Prompt IA</SelectItem>
                   <SelectItem value="url">🔗 Abrir URL</SelectItem>
-                  <SelectItem value="navigate">📄 Navegar para View</SelectItem>
+                  <SelectItem value="navigate">📄 Navegar para Página</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -92,7 +92,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             )}
             {props.actionType === 'navigate' && views && views.length > 0 && (
               <div>
-                <Label className="text-[11px]">View de destino</Label>
+                <Label className="text-[11px]">Página de destino</Label>
                 <Select value={props.navigateTarget || ''} onValueChange={set('navigateTarget')}>
                   <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
@@ -105,7 +105,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[9px] text-muted-foreground mt-1">Ao tocar, muda para esta view no totem</p>
+                <p className="text-[9px] text-muted-foreground mt-1">Ao tocar, navega para esta página no totem</p>
               </div>
             )}
           </div>
