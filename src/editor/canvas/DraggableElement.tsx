@@ -13,9 +13,10 @@ interface Props {
   onMove: (x: number, y: number) => void;
   onResize: (x: number, y: number, w: number, h: number) => void;
   onNavigate?: (targetViewId: string, transition?: PageTransition) => void;
+  previewMode?: boolean;
 }
 
-export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate }: Props) {
+export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, previewMode }: Props) {
   const handleDragStop = useCallback((_e: any, d: { x: number; y: number }) => {
     onMove(Math.round(d.x), Math.round(d.y));
   }, [onMove]);
@@ -40,6 +41,34 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
   if (!element.visible) return null;
 
   const isNavigateButton = element.type === 'button' && element.props.actionType === 'navigate' && element.props.navigateTarget;
+
+  // Preview mode: render static element with single-click navigation
+  if (previewMode) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          left: element.x,
+          top: element.y,
+          width: element.width,
+          height: element.height,
+          zIndex: element.zIndex,
+          opacity: element.opacity,
+          cursor: isNavigateButton ? 'pointer' : 'default',
+          borderRadius: element.props.borderRadius || 0,
+          overflow: 'hidden',
+        }}
+        onClick={(e) => {
+          if (isNavigateButton && onNavigate) {
+            e.stopPropagation();
+            onNavigate(element.props.navigateTarget, element.props.navigateTransition || 'fade');
+          }
+        }}
+      >
+        <ElementRenderer element={element} />
+      </div>
+    );
+  }
 
   return (
     <Rnd
