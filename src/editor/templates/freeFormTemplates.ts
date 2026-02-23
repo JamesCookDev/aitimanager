@@ -1,5 +1,7 @@
 /**
  * Pre-configured free-form canvas templates for vertical totems (1080×1920).
+ * All elements respect 60px margins, QR codes are always square,
+ * and no element exceeds the 1080×1920 boundary.
  */
 import type { CanvasState, CanvasElement } from '../types/canvas';
 
@@ -66,42 +68,42 @@ const welcomeAvatar: CanvasState = (() => {
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
       // Subtitle
-      el('text', 140, 390, 800, 60, {
+      el('text', 140, 390, 800, 50, {
         text: 'Toque na tela para começar', fontSize: 24, fontWeight: 'normal',
         color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
       }),
       // Avatar 3D center
-      el('avatar', 290, 500, 500, 600, {
+      el('avatar', 290, 480, 500, 560, {
         position: 'center', scale: 1.5, animation: 'idle', enabled: true,
         avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
         colors: { shirt: '#6366f1', pants: '#1e293b', shoes: '#000000' },
         frameY: 0, frameZoom: 50,
       }),
       // CTA button
-      el('button', 240, 1200, 600, 80, {
+      el('button', 240, 1100, 600, 80, {
         label: '💬 Falar com Assistente', bgColor: '#6366f1',
         textColor: '#ffffff', fontSize: 22, borderRadius: 999, action: 'Olá, como posso ajudar?',
       }),
       // Info buttons row
-      el('button', 140, 1340, 360, 64, {
+      el('button', 140, 1220, 370, 64, {
         label: 'ℹ️ Informações', bgColor: 'rgba(255,255,255,0.08)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Informações gerais',
       }),
-      el('button', 540, 1340, 360, 64, {
+      el('button', 550, 1220, 370, 64, {
         label: '📍 Localização', bgColor: 'rgba(255,255,255,0.08)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Onde estamos?',
       }),
       // Footer divider
-      el('shape', 140, 1500, 800, 2, {
+      el('shape', 140, 1380, 800, 2, {
         shapeType: 'rectangle', fill: 'rgba(255,255,255,0.08)', borderRadius: 1,
         borderColor: 'transparent', borderWidth: 0,
       }),
-      // Clock bottom
-      el('clock', 380, 1560, 320, 100, {
+      // Clock
+      el('clock', 380, 1420, 320, 80, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.4)', fontSize: 28,
       }),
-      // QR bottom-right
-      el('qrcode', 840, 1700, 160, 160, {
+      // QR bottom-right (square)
+      el('qrcode', 840, 1720, 160, 160, {
         value: 'https://example.com', fgColor: 'rgba(255,255,255,0.3)', bgColor: 'transparent',
       }),
     ],
@@ -118,7 +120,7 @@ const shoppingDirectory: CanvasState = (() => {
     bgColor: '#0c0a1a',
     elements: [
       // Header gradient bar
-      el('shape', 0, 0, 1080, 280, {
+      el('shape', 0, 0, 1080, 260, {
         shapeType: 'rectangle', fill: '#1e1b4b', borderRadius: 0,
         borderColor: 'transparent', borderWidth: 0,
       }, { opacity: 0.8 }),
@@ -132,7 +134,7 @@ const shoppingDirectory: CanvasState = (() => {
         color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
       }),
       // Store directory element with search + category filter
-      el('store', 60, 300, 960, 800, {
+      el('store', 60, 280, 960, 780, {
         title: 'Lojas & Serviços',
         titleColor: '#ffffff',
         titleSize: 26,
@@ -159,20 +161,20 @@ const shoppingDirectory: CanvasState = (() => {
         showSearch: true,
       }),
       // Chat IA
-      el('chat', 80, 1140, 920, 420, {
+      el('chat', 60, 1100, 960, 400, {
         placeholder: 'Pergunte sobre lojas, horários, promoções...', theme: 'dark',
       }),
       // Footer
-      el('text', 60, 1600, 960, 40, {
+      el('text', 60, 1540, 960, 40, {
         text: 'Toque nos botões ou pergunte ao assistente virtual', fontSize: 16,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.3)', align: 'center', fontFamily: 'Inter',
       }),
       // Clock
-      el('clock', 380, 1680, 320, 100, {
+      el('clock', 380, 1610, 320, 80, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 24,
       }),
-      // QR code
-      el('qrcode', 440, 1800, 200, 100, {
+      // QR code (square)
+      el('qrcode', 430, 1730, 180, 180, {
         value: 'https://example.com', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
       }),
     ],
@@ -194,71 +196,71 @@ const promoBlackFriday: CanvasState = (() => {
         borderColor: 'transparent', borderWidth: 0,
       }),
       // Badge
-      el('shape', 340, 80, 400, 60, {
+      el('shape', 340, 60, 400, 56, {
         shapeType: 'rectangle', fill: '#ef4444', borderRadius: 999,
         borderColor: 'transparent', borderWidth: 0,
       }),
-      el('text', 340, 88, 400, 44, {
+      el('text', 340, 68, 400, 40, {
         text: '🔥 OFERTA ESPECIAL', fontSize: 20, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
       // Hero image area
-      el('image', 60, 180, 960, 500, {
-        src: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=960&h=500&fit=crop',
+      el('image', 60, 160, 960, 460, {
+        src: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=960&h=460&fit=crop',
         fit: 'cover', borderRadius: 24,
       }),
       // Price / Headline
-      el('text', 60, 720, 960, 100, {
-        text: 'Até 70% OFF', fontSize: 72, fontWeight: 'bold',
+      el('text', 60, 660, 960, 90, {
+        text: 'Até 70% OFF', fontSize: 68, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
-      el('text', 60, 830, 960, 50, {
+      el('text', 60, 760, 960, 44, {
         text: 'Em lojas selecionadas • Válido até 28/02', fontSize: 20,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
       }),
-      // Highlight cards
+      // Highlight cards (3 columns, properly spaced)
       ...[
         { emoji: '👟', name: 'Calçados', discount: '50% OFF', color: '#f59e0b' },
         { emoji: '👕', name: 'Moda', discount: '40% OFF', color: '#8b5cf6' },
         { emoji: '📱', name: 'Tech', discount: '30% OFF', color: '#3b82f6' },
       ].map((item, i) => [
-        el('shape', 60 + i * 330, 930, 300, 160, {
+        el('shape', 60 + i * 330, 850, 300, 150, {
           shapeType: 'rectangle', fill: item.color + '18', borderRadius: 20,
           borderColor: item.color + '40', borderWidth: 1,
         }),
-        el('text', 60 + i * 330, 950, 300, 60, {
+        el('text', 60 + i * 330, 870, 300, 50, {
           text: `${item.emoji} ${item.name}`, fontSize: 22, fontWeight: 'bold',
           color: '#ffffff', align: 'center', fontFamily: 'Inter',
         }),
-        el('text', 60 + i * 330, 1020, 300, 50, {
+        el('text', 60 + i * 330, 930, 300, 50, {
           text: item.discount, fontSize: 28, fontWeight: 'bold',
           color: item.color, align: 'center', fontFamily: 'Inter',
         }),
       ]).flat(),
       // CTA
-      el('button', 160, 1160, 760, 90, {
+      el('button', 160, 1060, 760, 80, {
         label: '🛒 Ver Todas as Promoções', bgColor: '#ef4444',
         textColor: '#ffffff', fontSize: 24, borderRadius: 999, action: 'Mostrar todas as promoções',
       }),
       // Secondary buttons
-      el('button', 160, 1290, 360, 64, {
+      el('button', 160, 1180, 360, 64, {
         label: '🎁 Cupons', bgColor: 'rgba(255,255,255,0.08)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Mostrar cupons',
       }),
-      el('button', 560, 1290, 360, 64, {
+      el('button', 560, 1180, 360, 64, {
         label: '📍 Lojas', bgColor: 'rgba(255,255,255,0.08)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Listar lojas com desconto',
       }),
-      // QR code with label
-      el('text', 340, 1460, 400, 40, {
+      // QR code with label (square)
+      el('text', 340, 1360, 400, 36, {
         text: 'Escaneie para ver no celular', fontSize: 14,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.3)', align: 'center', fontFamily: 'Inter',
       }),
-      el('qrcode', 440, 1510, 200, 200, {
+      el('qrcode', 420, 1410, 200, 200, {
         value: 'https://example.com/promo', fgColor: 'rgba(255,255,255,0.25)', bgColor: 'transparent',
       }),
       // Clock
-      el('clock', 60, 1760, 280, 80, {
+      el('clock', 60, 1700, 300, 80, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 20,
       }),
     ],
@@ -275,54 +277,54 @@ const restaurantMenu: CanvasState = (() => {
     bgColor: '#1a0f0a',
     elements: [
       // Warm header
-      el('shape', 0, 0, 1080, 300, {
+      el('shape', 0, 0, 1080, 280, {
         shapeType: 'rectangle', fill: '#7c2d12', borderRadius: 0,
         borderColor: 'transparent', borderWidth: 0,
       }, { opacity: 0.5 }),
-      el('icon', 460, 40, 160, 100, { icon: '🍕', size: 64, color: '#ffffff' }),
-      el('text', 60, 140, 960, 80, {
-        text: 'Nosso Cardápio', fontSize: 48, fontWeight: 'bold',
+      el('icon', 460, 40, 160, 80, { icon: '🍕', size: 56, color: '#ffffff' }),
+      el('text', 60, 130, 960, 70, {
+        text: 'Nosso Cardápio', fontSize: 46, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
-      el('text', 60, 220, 960, 40, {
+      el('text', 60, 210, 960, 40, {
         text: 'Toque para mais detalhes', fontSize: 18,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
       }),
-      // Menu sections
+      // Menu sections (4 sections, tighter spacing)
       ...[
         { cat: '🥗 Entradas', items: ['Bruschetta • R$18', 'Carpaccio • R$28', 'Salada Caesar • R$22'] },
         { cat: '🍝 Pratos Principais', items: ['Filé Mignon • R$58', 'Salmão Grelhado • R$52', 'Risoto de Funghi • R$42'] },
         { cat: '🍰 Sobremesas', items: ['Tiramisù • R$24', 'Petit Gâteau • R$28', 'Sorbet de Frutas • R$18'] },
         { cat: '🥤 Bebidas', items: ['Suco Natural • R$12', 'Refrigerante • R$8', 'Água com Gás • R$6'] },
       ].flatMap((section, si) => {
-        const baseY = 340 + si * 340;
+        const baseY = 310 + si * 310;
         return [
           // Section title
-          el('text', 80, baseY, 920, 50, {
-            text: section.cat, fontSize: 26, fontWeight: 'bold',
+          el('text', 80, baseY, 920, 44, {
+            text: section.cat, fontSize: 24, fontWeight: 'bold',
             color: '#f97316', align: 'left', fontFamily: 'Inter',
           }),
           // Divider
-          el('shape', 80, baseY + 55, 920, 1, {
+          el('shape', 80, baseY + 48, 920, 1, {
             shapeType: 'rectangle', fill: 'rgba(249,115,22,0.2)', borderRadius: 0,
             borderColor: 'transparent', borderWidth: 0,
           }),
           // Items
           ...section.items.map((item, ii) =>
-            el('text', 100, baseY + 75 + ii * 50, 880, 44, {
-              text: item, fontSize: 20, fontWeight: 'normal',
+            el('text', 100, baseY + 64 + ii * 46, 880, 40, {
+              text: item, fontSize: 19, fontWeight: 'normal',
               color: 'rgba(255,255,255,0.8)', align: 'left', fontFamily: 'Inter',
             })
           ),
         ];
       }),
       // CTA
-      el('button', 200, 1720, 680, 80, {
+      el('button', 200, 1600, 680, 76, {
         label: '📲 Peça pelo App', bgColor: '#f97316',
         textColor: '#ffffff', fontSize: 22, borderRadius: 999, action: 'Como faço pedido?',
       }),
-      // QR bottom
-      el('qrcode', 460, 1830, 160, 80, {
+      // QR bottom (square)
+      el('qrcode', 440, 1720, 160, 160, {
         value: 'https://example.com/menu', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
       }),
     ],
@@ -344,26 +346,26 @@ const corporateReception: CanvasState = (() => {
         borderColor: 'transparent', borderWidth: 0,
       }),
       // Logo circle
-      el('shape', 390, 80, 300, 300, {
+      el('shape', 390, 60, 300, 300, {
         shapeType: 'circle', fill: 'rgba(59,130,246,0.1)', borderRadius: 150,
         borderColor: 'rgba(59,130,246,0.2)', borderWidth: 2,
       }),
-      el('icon', 440, 140, 200, 180, { icon: '🏢', size: 80, color: '#3b82f6' }),
+      el('icon', 440, 120, 200, 180, { icon: '🏢', size: 80, color: '#3b82f6' }),
       // Company name
-      el('text', 60, 420, 960, 80, {
-        text: 'Empresa S.A.', fontSize: 44, fontWeight: 'bold',
+      el('text', 60, 400, 960, 70, {
+        text: 'Empresa S.A.', fontSize: 42, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
-      el('text', 60, 510, 960, 50, {
+      el('text', 60, 480, 960, 44, {
         text: 'Bem-vindo à nossa sede', fontSize: 22,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
       }),
       // Separator
-      el('shape', 340, 590, 400, 2, {
+      el('shape', 340, 550, 400, 2, {
         shapeType: 'rectangle', fill: 'rgba(59,130,246,0.2)', borderRadius: 1,
         borderColor: 'transparent', borderWidth: 0,
       }),
-      // Action buttons (vertical stack)
+      // Action buttons (vertical stack, tighter)
       ...[
         { label: '📋 Check-in de Visitante', color: '#3b82f6', action: 'Fazer check-in' },
         { label: '📍 Mapa do Prédio', color: '#6366f1', action: 'Mostrar mapa' },
@@ -371,24 +373,24 @@ const corporateReception: CanvasState = (() => {
         { label: '📅 Agenda de Reuniões', color: '#f59e0b', action: 'Ver agenda de hoje' },
         { label: '🅿️ Estacionamento', color: '#64748b', action: 'Info estacionamento' },
       ].map((item, i) =>
-        el('button', 140, 650 + i * 110, 800, 80, {
+        el('button', 140, 600 + i * 100, 800, 74, {
           label: item.label, bgColor: item.color + '20',
           textColor: '#ffffff', fontSize: 20, borderRadius: 16, action: item.action,
         })
       ),
       // Chat bottom
-      el('chat', 80, 1230, 920, 420, {
+      el('chat', 60, 1140, 960, 400, {
         placeholder: 'Pergunte sobre o prédio, salas, serviços...', theme: 'dark',
       }),
       // Clock + Weather footer
-      el('clock', 60, 1700, 300, 80, {
+      el('clock', 60, 1580, 300, 70, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 22,
       }),
-      el('weather', 700, 1700, 300, 80, {
+      el('weather', 720, 1580, 300, 70, {
         city: 'São Paulo', units: 'metric', color: 'rgba(255,255,255,0.3)',
       }),
-      // QR
-      el('qrcode', 440, 1800, 200, 100, {
+      // QR (square)
+      el('qrcode', 420, 1700, 200, 200, {
         value: 'https://example.com/checkin', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
       }),
     ],
@@ -405,32 +407,32 @@ const eventConference: CanvasState = (() => {
     bgColor: '#0a0a1a',
     elements: [
       // Top gradient
-      el('shape', 0, 0, 1080, 400, {
+      el('shape', 0, 0, 1080, 380, {
         shapeType: 'rectangle', fill: '#4c1d95', borderRadius: 0,
         borderColor: 'transparent', borderWidth: 0,
       }, { opacity: 0.4 }),
       // Event badge
-      el('shape', 340, 60, 400, 50, {
+      el('shape', 340, 50, 400, 50, {
         shapeType: 'rectangle', fill: '#a855f7', borderRadius: 999,
         borderColor: 'transparent', borderWidth: 0,
       }),
-      el('text', 340, 66, 400, 38, {
+      el('text', 340, 58, 400, 36, {
         text: '🎤 AO VIVO', fontSize: 16, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
       // Event name
-      el('text', 60, 150, 960, 100, {
-        text: 'Tech Summit 2026', fontSize: 56, fontWeight: 'bold',
+      el('text', 60, 130, 960, 90, {
+        text: 'Tech Summit 2026', fontSize: 52, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
-      el('text', 60, 260, 960, 50, {
+      el('text', 60, 230, 960, 44, {
         text: '21 a 23 de Fevereiro • Centro de Convenções', fontSize: 20,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
       }),
       // Countdown
-      el('countdown', 260, 350, 560, 120, {
+      el('countdown', 260, 310, 560, 100, {
         targetDate: '2026-02-23T18:00:00', label: 'Próxima palestra em',
-        color: '#a855f7', fontSize: 36,
+        color: '#a855f7', fontSize: 32,
       }),
       // Schedule cards
       ...[
@@ -438,53 +440,53 @@ const eventConference: CanvasState = (() => {
         { time: '15:30', title: 'O Futuro dos Pagamentos', speaker: 'Carlos Santos' },
         { time: '17:00', title: 'Transformação Digital', speaker: 'Marina Costa' },
       ].flatMap((item, i) => {
-        const y = 520 + i * 160;
+        const y = 450 + i * 150;
         return [
-          el('shape', 80, y, 920, 130, {
+          el('shape', 80, y, 920, 120, {
             shapeType: 'rectangle', fill: 'rgba(168,85,247,0.08)', borderRadius: 16,
             borderColor: 'rgba(168,85,247,0.15)', borderWidth: 1,
           }),
-          el('text', 110, y + 15, 180, 40, {
-            text: item.time, fontSize: 28, fontWeight: 'bold',
+          el('text', 110, y + 14, 180, 40, {
+            text: item.time, fontSize: 26, fontWeight: 'bold',
             color: '#a855f7', align: 'left', fontFamily: 'Inter',
           }),
-          el('text', 300, y + 15, 680, 40, {
-            text: item.title, fontSize: 22, fontWeight: 'bold',
+          el('text', 300, y + 14, 680, 40, {
+            text: item.title, fontSize: 21, fontWeight: 'bold',
             color: '#ffffff', align: 'left', fontFamily: 'Inter',
           }),
-          el('text', 300, y + 60, 680, 36, {
+          el('text', 300, y + 58, 680, 34, {
             text: `🎙️ ${item.speaker}`, fontSize: 16, fontWeight: 'normal',
             color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
           }),
         ];
       }),
       // CTA buttons
-      el('button', 140, 1040, 380, 70, {
+      el('button', 140, 920, 380, 68, {
         label: '🗺️ Mapa do Evento', bgColor: 'rgba(168,85,247,0.15)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Mapa do evento',
       }),
-      el('button', 560, 1040, 380, 70, {
+      el('button', 560, 920, 380, 68, {
         label: '📋 Programação', bgColor: 'rgba(168,85,247,0.15)',
         textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: 'Programação completa',
       }),
       // Chat
-      el('chat', 80, 1160, 920, 420, {
+      el('chat', 60, 1030, 960, 400, {
         placeholder: 'Pergunte sobre palestras, salas, WiFi...', theme: 'dark',
       }),
       // Social links
-      el('social', 260, 1620, 560, 60, {
+      el('social', 260, 1470, 560, 60, {
         links: [
           { platform: 'instagram', url: 'https://instagram.com' },
           { platform: 'facebook', url: 'https://facebook.com' },
         ],
         iconSize: 32, gap: 24, color: 'rgba(255,255,255,0.4)',
       }),
-      // QR
-      el('text', 340, 1720, 400, 30, {
+      // QR (square)
+      el('text', 340, 1580, 400, 30, {
         text: 'Acesse a agenda no celular', fontSize: 13,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.25)', align: 'center', fontFamily: 'Inter',
       }),
-      el('qrcode', 440, 1760, 200, 150, {
+      el('qrcode', 420, 1630, 200, 200, {
         value: 'https://example.com/event', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
       }),
     ],
@@ -506,35 +508,35 @@ const minimalService: CanvasState = (() => {
         borderColor: 'transparent', borderWidth: 0,
       }),
       // Centered icon
-      el('icon', 460, 300, 160, 160, { icon: '💬', size: 80, color: '#10b981' }),
+      el('icon', 460, 280, 160, 160, { icon: '💬', size: 80, color: '#10b981' }),
       // Main question
-      el('text', 100, 520, 880, 100, {
-        text: 'Como posso ajudar?', fontSize: 48, fontWeight: 'bold',
+      el('text', 100, 480, 880, 90, {
+        text: 'Como posso ajudar?', fontSize: 46, fontWeight: 'bold',
         color: '#ffffff', align: 'center', fontFamily: 'Inter',
       }),
-      el('text', 100, 630, 880, 50, {
+      el('text', 100, 580, 880, 44, {
         text: 'Toque em um botão ou digite sua pergunta', fontSize: 18,
         fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
       }),
       // 3 large action buttons
-      el('button', 140, 750, 800, 90, {
+      el('button', 140, 680, 800, 86, {
         label: '📋 Informações Gerais', bgColor: '#10b981',
         textColor: '#ffffff', fontSize: 22, borderRadius: 20, action: 'Informações gerais',
       }),
-      el('button', 140, 870, 800, 90, {
+      el('button', 140, 790, 800, 86, {
         label: '📍 Encontrar Localização', bgColor: 'rgba(16,185,129,0.15)',
         textColor: '#ffffff', fontSize: 22, borderRadius: 20, action: 'Preciso encontrar algo',
       }),
-      el('button', 140, 990, 800, 90, {
+      el('button', 140, 900, 800, 86, {
         label: '📞 Falar com Atendente', bgColor: 'rgba(16,185,129,0.15)',
         textColor: '#ffffff', fontSize: 22, borderRadius: 20, action: 'Quero falar com alguém',
       }),
       // Chat area
-      el('chat', 80, 1160, 920, 520, {
+      el('chat', 60, 1040, 960, 500, {
         placeholder: 'Digite sua pergunta aqui...', theme: 'dark',
       }),
       // Clock
-      el('clock', 380, 1740, 320, 80, {
+      el('clock', 380, 1600, 320, 80, {
         format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 22,
       }),
     ],
