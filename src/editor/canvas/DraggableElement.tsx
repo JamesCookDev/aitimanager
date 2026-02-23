@@ -1,9 +1,66 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Rnd } from 'react-rnd';
 import type { CanvasElement } from '../types/canvas';
 import type { PageTransition } from '../types/canvas';
 import { ElementRenderer } from './renderers/ElementRenderer';
 import { Lock } from 'lucide-react';
+
+/* ── Build advanced visual styles from element props ─── */
+function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
+  const style: React.CSSProperties = {};
+
+  // Gradient background
+  if (props.gradientDirection && props.gradientDirection !== 'none' && props.gradientFrom && props.gradientTo) {
+    if (props.gradientDirection === 'circle') {
+      style.background = `radial-gradient(circle, ${props.gradientFrom}, ${props.gradientTo})`;
+    } else {
+      style.background = `linear-gradient(${props.gradientDirection}, ${props.gradientFrom}, ${props.gradientTo})`;
+    }
+  }
+
+  // Shadow
+  const shadowMap: Record<string, string> = {
+    sm: '0 2px 8px rgba(0,0,0,0.15)',
+    md: '0 4px 16px rgba(0,0,0,0.25)',
+    lg: '0 8px 32px rgba(0,0,0,0.35)',
+    glow: `0 0 20px 4px ${props.shadowColor || '#6366f1'}80`,
+    neon: `0 0 10px ${props.shadowColor || '#6366f1'}, 0 0 30px ${props.shadowColor || '#6366f1'}80, 0 0 60px ${props.shadowColor || '#6366f1'}40`,
+  };
+  if (props.shadowPreset && props.shadowPreset !== 'none') {
+    style.boxShadow = shadowMap[props.shadowPreset] || 'none';
+  }
+
+  // Border
+  if (props.borderWidth && props.borderWidth > 0) {
+    style.border = `${props.borderWidth}px solid ${props.borderColor || '#ffffff'}`;
+  }
+
+  // Filters
+  const filters: string[] = [];
+  if (props.filterBlur) filters.push(`blur(${props.filterBlur}px)`);
+  if (props.filterBrightness != null && props.filterBrightness !== 100) filters.push(`brightness(${props.filterBrightness}%)`);
+  if (props.filterSaturation != null && props.filterSaturation !== 100) filters.push(`saturate(${props.filterSaturation}%)`);
+  if (props.filterGrayscale) filters.push(`grayscale(${props.filterGrayscale}%)`);
+  if (filters.length > 0) style.filter = filters.join(' ');
+
+  // Entrance animation
+  if (props.entranceAnimation && props.entranceAnimation !== 'none') {
+    const delay = props.entranceDelay || 0;
+    const animMap: Record<string, string> = {
+      fadeIn: 'fadeIn 0.6s ease-out both',
+      slideUp: 'slideUp 0.6s ease-out both',
+      slideLeft: 'slideLeft 0.6s ease-out both',
+      slideRight: 'slideRight 0.6s ease-out both',
+      scaleUp: 'scaleUp 0.5s ease-out both',
+      bounce: 'bounce 0.8s ease-out both',
+      pulse: 'pulse 2s ease-in-out infinite',
+    };
+    style.animation = animMap[props.entranceAnimation] || 'none';
+    if (delay > 0) style.animationDelay = `${delay}ms`;
+  }
+
+  return style;
+}
 
 interface Props {
   element: CanvasElement;
@@ -37,9 +94,10 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
     }
   }, [element, onNavigate]);
 
-  if (!element.visible) return null;
-
   const hasNavigateAction = element.props.actionType === 'navigate' && element.props.navigateTarget;
+  const visualStyles = useMemo(() => buildVisualStyles(element.props), [element.props]);
+
+  if (!element.visible) return null;
 
   // Preview mode: render static element with single-click navigation
   if (previewMode) {
@@ -56,6 +114,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           cursor: hasNavigateAction ? 'pointer' : 'default',
           borderRadius: element.props.borderRadius || 0,
           overflow: 'hidden',
+          ...visualStyles,
         }}
         onClick={(e) => {
           if (hasNavigateAction && onNavigate) {
@@ -107,7 +166,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
         onClick={(e) => { e.stopPropagation(); onSelect(); }}
         onDoubleClick={handleDoubleClick}
         className="w-full h-full relative"
-        style={{ borderRadius: element.props.borderRadius || 0 }}
+        style={{ borderRadius: element.props.borderRadius || 0, ...visualStyles }}
       >
         {/* Selection outline */}
         {selected && (

@@ -1,6 +1,7 @@
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store,
+  List, LayoutGrid, Hash,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -27,6 +28,7 @@ const CATEGORIES = [
     items: [
       { type: 'video' as ElementType, icon: Play, label: 'Vídeo' },
       { type: 'carousel' as ElementType, icon: GalleryHorizontal, label: 'Carrossel' },
+      { type: 'gallery' as ElementType, icon: LayoutGrid, label: 'Galeria' },
       { type: 'iframe' as ElementType, icon: Globe, label: 'Iframe' },
     ],
   },
@@ -38,6 +40,7 @@ const CATEGORIES = [
       { type: 'social' as ElementType, icon: Share2, label: 'Redes Sociais' },
       { type: 'chat' as ElementType, icon: MessageSquare, label: 'Chat IA' },
       { type: 'store' as ElementType, icon: Store, label: 'Lojas' },
+      { type: 'list' as ElementType, icon: List, label: 'Lista/Menu' },
     ],
   },
   {
@@ -46,6 +49,7 @@ const CATEGORIES = [
       { type: 'clock' as ElementType, icon: Clock, label: 'Relógio' },
       { type: 'weather' as ElementType, icon: CloudSun, label: 'Clima' },
       { type: 'countdown' as ElementType, icon: Timer, label: 'Contagem' },
+      { type: 'animated-number' as ElementType, icon: Hash, label: 'Nº Animado' },
     ],
   },
   {

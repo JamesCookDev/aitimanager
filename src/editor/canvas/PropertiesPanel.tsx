@@ -109,7 +109,8 @@ function LayersPanel({
     text: '📝', image: '🖼️', button: '🔘', shape: '⬜', icon: '⭐',
     video: '🎬', qrcode: '📱', map: '🗺️', social: '🔗', chat: '💬',
     carousel: '🎠', clock: '🕐', weather: '🌤️', countdown: '⏱️',
-    iframe: '🌐', avatar: '🤖', store: '🏪',
+    iframe: '🌐', avatar: '🤖', store: '🏪', list: '📋', gallery: '🖼️',
+    'animated-number': '🔢',
   };
 
   return (
@@ -153,6 +154,126 @@ function LayersPanel({
         })}
       </div>
     </ScrollArea>
+  );
+}
+
+/* ── Advanced Visual Props ──────────────── */
+
+function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  const set = (key: string) => (val: any) => onChange({ [key]: val });
+
+  return (
+    <>
+      <Section title="🎨 Efeitos Visuais">
+        {/* Gradient */}
+        <div className="space-y-1.5">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Gradiente de fundo</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Cor 1</Label>
+              <input type="color" value={props.gradientFrom || ''} onChange={(e) => set('gradientFrom')(e.target.value)} className="w-full h-6 rounded cursor-pointer border-0 bg-transparent" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor 2</Label>
+              <input type="color" value={props.gradientTo || ''} onChange={(e) => set('gradientTo')(e.target.value)} className="w-full h-6 rounded cursor-pointer border-0 bg-transparent" />
+            </div>
+          </div>
+          <Select value={props.gradientDirection || 'none'} onValueChange={set('gradientDirection')}>
+            <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Desativado</SelectItem>
+              <SelectItem value="to right">→ Horizontal</SelectItem>
+              <SelectItem value="to bottom">↓ Vertical</SelectItem>
+              <SelectItem value="135deg">↘ Diagonal</SelectItem>
+              <SelectItem value="to top right">↗ Diagonal inv.</SelectItem>
+              <SelectItem value="circle">◉ Radial</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Shadow */}
+        <div className="space-y-1.5 pt-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Sombra</Label>
+          <Select value={props.shadowPreset || 'none'} onValueChange={set('shadowPreset')}>
+            <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhuma</SelectItem>
+              <SelectItem value="sm">Suave</SelectItem>
+              <SelectItem value="md">Média</SelectItem>
+              <SelectItem value="lg">Grande</SelectItem>
+              <SelectItem value="glow">✨ Glow</SelectItem>
+              <SelectItem value="neon">💡 Neon</SelectItem>
+            </SelectContent>
+          </Select>
+          {(props.shadowPreset === 'glow' || props.shadowPreset === 'neon') && (
+            <div>
+              <Label className="text-[10px]">Cor do glow</Label>
+              <input type="color" value={props.shadowColor || '#6366f1'} onChange={(e) => set('shadowColor')(e.target.value)} className="w-full h-6 rounded cursor-pointer border-0 bg-transparent" />
+            </div>
+          )}
+        </div>
+
+        {/* Border */}
+        <div className="space-y-1.5 pt-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Borda</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Espessura</Label>
+              <Input type="number" value={props.borderWidth || 0} onChange={(e) => set('borderWidth')(Number(e.target.value))} className="h-7 text-[10px]" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor</Label>
+              <input type="color" value={props.borderColor || '#ffffff'} onChange={(e) => set('borderColor')(e.target.value)} className="w-full h-6 rounded cursor-pointer border-0 bg-transparent" />
+            </div>
+          </div>
+        </div>
+
+        {/* Entrance Animation */}
+        <div className="space-y-1.5 pt-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Animação de entrada</Label>
+          <Select value={props.entranceAnimation || 'none'} onValueChange={set('entranceAnimation')}>
+            <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhuma</SelectItem>
+              <SelectItem value="fadeIn">Fade In</SelectItem>
+              <SelectItem value="slideUp">Slide de baixo</SelectItem>
+              <SelectItem value="slideLeft">Slide da esquerda</SelectItem>
+              <SelectItem value="slideRight">Slide da direita</SelectItem>
+              <SelectItem value="scaleUp">Zoom In</SelectItem>
+              <SelectItem value="bounce">Bounce</SelectItem>
+              <SelectItem value="pulse">Pulsar</SelectItem>
+            </SelectContent>
+          </Select>
+          {props.entranceAnimation && props.entranceAnimation !== 'none' && (
+            <div>
+              <Label className="text-[10px]">Atraso (ms)</Label>
+              <Input type="number" value={props.entranceDelay || 0} onChange={(e) => set('entranceDelay')(Number(e.target.value))} className="h-7 text-[10px]" step={100} />
+            </div>
+          )}
+        </div>
+
+        {/* Image filters */}
+        <div className="space-y-1.5 pt-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Filtros</Label>
+          <div>
+            <Label className="text-[10px]">Blur: {props.filterBlur || 0}px</Label>
+            <Slider value={[props.filterBlur || 0]} onValueChange={([v]) => set('filterBlur')(v)} min={0} max={20} step={1} />
+          </div>
+          <div>
+            <Label className="text-[10px]">Brilho: {props.filterBrightness ?? 100}%</Label>
+            <Slider value={[props.filterBrightness ?? 100]} onValueChange={([v]) => set('filterBrightness')(v)} min={0} max={200} step={5} />
+          </div>
+          <div>
+            <Label className="text-[10px]">Saturação: {props.filterSaturation ?? 100}%</Label>
+            <Slider value={[props.filterSaturation ?? 100]} onValueChange={([v]) => set('filterSaturation')(v)} min={0} max={200} step={5} />
+          </div>
+          <div>
+            <Label className="text-[10px]">Escala de cinza: {props.filterGrayscale || 0}%</Label>
+            <Slider value={[props.filterGrayscale || 0]} onValueChange={([v]) => set('filterGrayscale')(v)} min={0} max={100} step={5} />
+          </div>
+        </div>
+      </Section>
+    </>
   );
 }
 
@@ -207,6 +328,9 @@ function PropsContent({
           />
           <span className="text-[10px] text-muted-foreground">{Math.round(element.opacity * 100)}%</span>
         </Section>
+
+        {/* Advanced Visual */}
+        <AdvancedVisualProps props={element.props} onChange={onUpdateProps} />
 
         {/* Type-specific props */}
         <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} views={views} />

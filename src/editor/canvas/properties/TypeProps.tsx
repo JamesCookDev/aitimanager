@@ -9,6 +9,9 @@ import { MapPropsPanel } from './MapPropsPanel';
 import { CarouselPropsPanel } from './CarouselPropsPanel';
 import { SocialPropsPanel } from './SocialPropsPanel';
 import { StorePropsPanel } from './StorePropsPanel';
+import { ListPropsPanel } from './ListPropsPanel';
+import { GalleryPropsPanel } from './GalleryPropsPanel';
+import { AnimatedNumberPropsPanel } from './AnimatedNumberPropsPanel';
 
 /* Reusable navigation action panel for any element */
 function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
@@ -331,6 +334,12 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
       return <SocialPropsPanel props={props} onChange={onChange} />;
     case 'store':
       return <StorePropsPanel props={props} onChange={onChange} />;
+    case 'list':
+      return <ListPropsPanel props={props} onChange={onChange} views={views} />;
+    case 'gallery':
+      return <GalleryPropsPanel props={props} onChange={onChange} />;
+    case 'animated-number':
+      return <AnimatedNumberPropsPanel props={props} onChange={onChange} />;
     default:
       return (
         <Section title="Propriedades">
