@@ -128,7 +128,7 @@ export default function Devices() {
         <MetricCard title="Interagindo" value={speakingCount} subtitle="Avatares ativos" icon={MessageSquare} variant={speakingCount > 0 ? 'success' : 'default'} />
       </div>
 
-      <DeviceTable devices={devices} showOrganization={isSuperAdmin} loading={loading} />
+      <DeviceTable devices={devices} showOrganization={isSuperAdmin} loading={loading} onDeviceDeleted={fetchDevices} />
 
       <NewDeviceDialog
         open={showNewDevice}

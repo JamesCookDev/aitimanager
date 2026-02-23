@@ -13,17 +13,42 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from './StatusBadge';
 import { Device, getDeviceStatus } from '@/types/database';
-import { Eye, RotateCcw, MapPin, Building2, Loader2 } from 'lucide-react';
+import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface DeviceTableProps {
   devices: Device[];
   showOrganization?: boolean;
   loading?: boolean;
+  onDeviceDeleted?: () => void;
 }
 
-export function DeviceTable({ devices, showOrganization = false, loading }: DeviceTableProps) {
+export function DeviceTable({ devices, showOrganization = false, loading, onDeviceDeleted }: DeviceTableProps) {
   const navigate = useNavigate();
+
+  const handleDelete = async (deviceId: string, deviceName: string) => {
+    try {
+      const { error } = await supabase.from('devices').delete().eq('id', deviceId);
+      if (error) throw error;
+      toast.success(`Dispositivo "${deviceName}" removido com sucesso`);
+      onDeviceDeleted?.();
+    } catch (error: any) {
+      toast.error('Erro ao remover dispositivo: ' + error.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -154,17 +179,35 @@ export function DeviceTable({ devices, showOrganization = false, loading }: Devi
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-warning"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // TODO: Implementar reinício
-                      }}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover Dispositivo</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover o dispositivo <strong>"{device.name}"</strong>? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => handleDelete(device.id, device.name)}
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </TableCell>
               </TableRow>
