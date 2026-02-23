@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, Layers3 } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import {
   canvasReducer, createElement, viewUid,
   type CanvasState, type CanvasElement, type ElementType, type CanvasView,
 } from '../types/canvas';
+import { useHistory } from '../hooks/useHistory';
 import { ViewsManager } from './ViewsManager';
 import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
@@ -22,60 +23,33 @@ interface Props {
   deviceName?: string;
 }
 
-/* ── Undo / Redo history ──────────────────── */
-const MAX_HISTORY = 40;
-
-function useHistory(initialState: CanvasState) {
-  const [past, setPast] = useState<CanvasState[]>([]);
-  const [present, setPresent] = useState(initialState);
-  const [future, setFuture] = useState<CanvasState[]>([]);
-
-  const push = useCallback((next: CanvasState) => {
-    setPast(p => [...p.slice(-MAX_HISTORY), present]);
-    setPresent(next);
-    setFuture([]);
-  }, [present]);
-
-  const undo = useCallback(() => {
-    if (past.length === 0) return;
-    setFuture(f => [present, ...f]);
-    const prev = past[past.length - 1];
-    setPast(p => p.slice(0, -1));
-    setPresent(prev);
-  }, [past, present]);
-
-  const redo = useCallback(() => {
-    if (future.length === 0) return;
-    setPast(p => [...p, present]);
-    const next = future[0];
-    setFuture(f => f.slice(1));
-    setPresent(next);
-  }, [future, present]);
-
-  const load = useCallback((s: CanvasState) => {
-    setPast([]);
-    setFuture([]);
-    setPresent(s);
-  }, []);
-
-  return { state: present, push, undo, redo, load, canUndo: past.length > 0, canRedo: future.length > 0 };
+/* ── Toolbar button with tooltip ─────────── */
+function Tb({ tip, onClick, icon: Icon, disabled }: { tip: string; onClick: () => void; icon: any; disabled?: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClick} disabled={disabled}>
+          <Icon className="w-3.5 h-3.5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-[10px]">{tip}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: Props) {
   const history = useHistory(initialState || DEFAULT_CANVAS_STATE);
   const [state, rawDispatch] = useReducer(canvasReducer, initialState || DEFAULT_CANVAS_STATE);
 
-  // Keep reducer and history in sync
   const dispatch = useCallback((action: Parameters<typeof rawDispatch>[0]) => {
     rawDispatch(action);
   }, []);
 
-  // Sync reducer state → history (skip SELECT-only actions)
+  // Sync reducer state → history
   const prevStateRef = useRef(state);
   useEffect(() => {
     const prev = prevStateRef.current;
     prevStateRef.current = state;
-    // Only push meaningful changes (not just selection changes)
     if (prev.elements !== state.elements || prev.bgColor !== state.bgColor) {
       history.push(state);
     }
@@ -96,7 +70,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [dirty, setDirty] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
-  // Auto-fit scale on mount and resize
+  // Auto-fit scale
   useEffect(() => {
     function fitScale() {
       if (!viewportRef.current) return;
@@ -121,21 +95,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     }
   }, [initialState]);
 
-  // Mark dirty on meaningful changes
-  useEffect(() => {
-    setDirty(true);
-  }, [state.elements, state.bgColor]);
+  useEffect(() => { setDirty(true); }, [state.elements, state.bgColor]);
 
   const selectedElement = state.elements.find(e => e.id === state.selectedId) || null;
-
-  // Current active view
   const activeViewId = state.activeViewId || '__default__';
   const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
 
-  // Filter elements visible in current view (global + current view)
   const visibleElements = state.elements.filter(el => {
-    if (!el.viewId || el.viewId === '__global__') return true; // global
-    return el.viewId === activeViewId; // belongs to active view
+    if (!el.viewId || el.viewId === '__global__') return true;
+    return el.viewId === activeViewId;
   });
 
   const handleAdd = useCallback((el: CanvasElement) => {
@@ -184,12 +152,11 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     input.click();
   }, [dispatch]);
 
-  // ── Keyboard shortcuts ─────────────────────
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
       const ctrl = e.ctrlKey || e.metaKey;
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -198,19 +165,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       if (ctrl && e.key === 'd') {
         if (state.selectedId) { dispatch({ type: 'DUPLICATE', id: state.selectedId }); e.preventDefault(); }
       }
-      if (ctrl && e.key === 's') {
-        handleSave(); e.preventDefault();
-      }
-      if (ctrl && e.key === 'z' && !e.shiftKey) {
-        history.undo(); e.preventDefault();
-      }
-      if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        history.redo(); e.preventDefault();
-      }
-      if (e.key === 'Escape') {
-        dispatch({ type: 'SELECT', id: null });
-      }
-      // Arrow keys to nudge element
+      if (ctrl && e.key === 's') { handleSave(); e.preventDefault(); }
+      if (ctrl && e.key === 'z' && !e.shiftKey) { history.undo(); e.preventDefault(); }
+      if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { history.redo(); e.preventDefault(); }
+      if (e.key === 'Escape') { dispatch({ type: 'SELECT', id: null }); }
       if (state.selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         const el = state.elements.find(x => x.id === state.selectedId);
         if (el && !el.locked) {
@@ -228,33 +186,27 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   const canvasX = (viewportSize.w - CANVAS_WIDTH * scale) / 2;
   const canvasY = Math.max(20, (viewportSize.h - CANVAS_HEIGHT * scale) / 2);
-
   const zoomPercent = Math.round(scale * 100);
 
   return (
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-xl border border-border overflow-hidden">
-        {/* ── Toolbar ─────────────────────────── */}
+        {/* Toolbar */}
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
-          {/* Left: info + toggle */}
           <div className="flex items-center gap-2">
             <Tb tip={leftOpen ? "Ocultar paleta (⇐)" : "Mostrar paleta"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
             <div className="h-4 w-px bg-border" />
             <h2 className="text-xs font-semibold text-foreground hidden sm:block">Canvas</h2>
-            {deviceName && (
-              <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full hidden sm:inline">{deviceName}</span>
-            )}
+            {deviceName && <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full hidden sm:inline">{deviceName}</span>}
             <span className="text-[9px] font-mono text-muted-foreground/60">{CANVAS_WIDTH}×{CANVAS_HEIGHT}</span>
             {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Alterações não salvas" />}
           </div>
 
-          {/* Center: zoom */}
           <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-0.5">
             <Tb tip="Diminuir zoom" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
             <button
               className="text-[10px] font-mono text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
               onClick={() => {
-                // Fit to viewport
                 if (viewportRef.current) {
                   const rect = viewportRef.current.getBoundingClientRect();
                   const sw = (rect.width - 40) / CANVAS_WIDTH;
@@ -263,18 +215,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 }
               }}
               title="Ajustar ao viewport"
-            >
-              {zoomPercent}%
-            </button>
+            >{zoomPercent}%</button>
             <Tb tip="Aumentar zoom" onClick={() => setScale(s => Math.min(1, s + 0.05))} icon={ZoomIn} />
           </div>
 
-          {/* Right: actions */}
           <div className="flex items-center gap-1">
             <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
             <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
             <div className="h-4 w-px bg-border mx-0.5" />
-
             <FreeFormTemplatePicker
               onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
               trigger={
@@ -283,14 +231,11 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 </Button>
               }
             />
-
             <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
             <Tb tip="Exportar JSON" onClick={handleExport} icon={Download} />
             <Tb tip="Importar JSON" onClick={handleImport} icon={Upload} />
             <Tb tip="Atalhos de teclado" onClick={() => setShowShortcuts(p => !p)} icon={Keyboard} />
-
             <Tb tip={rightOpen ? "Ocultar propriedades (⇒)" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
-
             <div className="h-4 w-px bg-border mx-0.5" />
             {onPublish && (
               <Button size="sm" className="h-7 text-[11px] gap-1.5 px-3" onClick={handlePublish}>
@@ -300,7 +245,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           </div>
         </div>
 
-        {/* Shortcuts hint bar */}
         {showShortcuts && (
           <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
             <span><kbd className="kbd">Del</kbd> Excluir</span>
@@ -313,16 +257,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           </div>
         )}
 
-        {/* ── Main area ──────────────────────── */}
+        {/* Main area */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar — element palette */}
           {leftOpen && (
             <div className="w-52 border-r border-border bg-card/30 shrink-0 transition-all">
               <ElementPalette onAdd={handleAdd} />
             </div>
           )}
 
-          {/* Canvas viewport */}
           <div
             ref={viewportRef}
             className="flex-1 overflow-auto relative"
@@ -333,7 +275,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
           >
-            {/* Views bar */}
             <ViewsManager
               views={views}
               activeViewId={activeViewId}
@@ -351,7 +292,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               }}
               onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
             />
-            {/* Scaled canvas */}
             <div
               style={{
                 position: 'absolute',
@@ -393,30 +333,17 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           </div>
 
-          {/* Right sidebar — properties + layers */}
           {rightOpen && (
             <div className="w-72 border-l border-border bg-card/30 shrink-0 transition-all">
               <PropertiesPanel
                 element={selectedElement}
                 elements={state.elements}
-                onUpdate={(patch) => {
-                  if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch });
-                }}
-                onUpdateProps={(props) => {
-                  if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props });
-                }}
-                onDelete={() => {
-                  if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId });
-                }}
-                onDuplicate={() => {
-                  if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId });
-                }}
-                onBringForward={() => {
-                  if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId });
-                }}
-                onSendBackward={() => {
-                  if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId });
-                }}
+                onUpdate={(patch) => { if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch }); }}
+                onUpdateProps={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
+                onDelete={() => { if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId }); }}
+                onDuplicate={() => { if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId }); }}
+                onBringForward={() => { if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId }); }}
+                onSendBackward={() => { if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId }); }}
                 onSelectElement={(id) => dispatch({ type: 'SELECT', id })}
                 onToggleVisibility={(id) => {
                   const el = state.elements.find(e => e.id === id);
@@ -437,19 +364,5 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         </div>
       </div>
     </TooltipProvider>
-  );
-}
-
-/* ── Toolbar button with tooltip ─────────── */
-function Tb({ tip, onClick, icon: Icon, disabled }: { tip: string; onClick: () => void; icon: any; disabled?: boolean }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClick} disabled={disabled}>
-          <Icon className="w-3.5 h-3.5" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px]">{tip}</TooltipContent>
-    </Tooltip>
   );
 }
