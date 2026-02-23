@@ -1,7 +1,8 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 import {
@@ -10,7 +11,7 @@ import {
   type CanvasState, type CanvasElement, type ElementType, type CanvasView,
 } from '../types/canvas';
 import { useHistory } from '../hooks/useHistory';
-import { ViewsManager } from './ViewsManager';
+import { PagesPanel } from './PagesPanel';
 import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -69,6 +70,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [rightOpen, setRightOpen] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [leftTab, setLeftTab] = useState<string>('pages');
 
   // Auto-fit scale
   useEffect(() => {
@@ -106,8 +108,12 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     return el.viewId === activeViewId;
   });
 
+  // Get per-page background color
+  const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
+
   const handleAdd = useCallback((el: CanvasElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: el });
+    setLeftTab('elements'); // Switch to elements tab after adding
   }, [dispatch]);
 
   const handleSave = useCallback(() => {
@@ -188,16 +194,25 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const canvasY = Math.max(20, (viewportSize.h - CANVAS_HEIGHT * scale) / 2);
   const zoomPercent = Math.round(scale * 100);
 
+  // Active page name for toolbar display
+  const activePage = views.find(v => v.id === activeViewId);
+
   return (
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-xl border border-border overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
           <div className="flex items-center gap-2">
-            <Tb tip={leftOpen ? "Ocultar paleta (⇐)" : "Mostrar paleta"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
+            <Tb tip={leftOpen ? "Ocultar painel (⇐)" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
             <div className="h-4 w-px bg-border" />
             <h2 className="text-xs font-semibold text-foreground hidden sm:block">Canvas</h2>
             {deviceName && <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full hidden sm:inline">{deviceName}</span>}
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            {/* Current page indicator */}
+            <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <FileText className="w-3 h-3" />
+              {activePage?.name || 'Home'}
+            </span>
             <span className="text-[9px] font-mono text-muted-foreground/60">{CANVAS_WIDTH}×{CANVAS_HEIGHT}</span>
             {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Alterações não salvas" />}
           </div>
@@ -260,8 +275,48 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         {/* Main area */}
         <div className="flex flex-1 overflow-hidden">
           {leftOpen && (
-            <div className="w-52 border-r border-border bg-card/30 shrink-0 transition-all">
-              <ElementPalette onAdd={handleAdd} />
+            <div className="w-56 border-r border-border bg-card/30 shrink-0 flex flex-col transition-all">
+              <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
+                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-9 px-2">
+                  <TabsTrigger value="pages" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
+                    <FileText className="w-3 h-3" /> Páginas
+                    <span className="text-[9px] text-muted-foreground ml-0.5">({views.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="elements" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
+                    <Blocks className="w-3 h-3" /> Elementos
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
+                  <PagesPanel
+                    views={views}
+                    activeViewId={activeViewId}
+                    viewIdleTimeout={state.viewIdleTimeout ?? 30}
+                    elementCounts={views.reduce((acc, v) => {
+                      acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
+                      return acc;
+                    }, { '__global__': state.elements.filter(e => !e.viewId || e.viewId === '__global__').length } as Record<string, number>)}
+                    pageBgColors={state.pageBgColors || {}}
+                    globalBgColor={state.bgColor}
+                    onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
+                    onAddView={(name) => {
+                      const id = viewUid();
+                      dispatch({ type: 'ADD_VIEW', view: { id, name } });
+                      dispatch({ type: 'SET_ACTIVE_VIEW', id });
+                    }}
+                    onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
+                    onDeleteView={(id) => dispatch({ type: 'DELETE_VIEW', id })}
+                    onDuplicateView={(id) => dispatch({ type: 'DUPLICATE_VIEW', id })}
+                    onSetDefault={(id) => {
+                      views.forEach(v => dispatch({ type: 'UPDATE_VIEW', id: v.id, patch: { isDefault: v.id === id } }));
+                    }}
+                    onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
+                    onSetPageBgColor={(viewId, color) => dispatch({ type: 'SET_PAGE_BG_COLOR', viewId, color })}
+                  />
+                </TabsContent>
+                <TabsContent value="elements" className="flex-1 overflow-hidden mt-0">
+                  <ElementPalette onAdd={handleAdd} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 
@@ -275,23 +330,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
           >
-            <ViewsManager
-              views={views}
-              activeViewId={activeViewId}
-              viewIdleTimeout={state.viewIdleTimeout ?? 30}
-              elementCounts={views.reduce((acc, v) => {
-                acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
-                return acc;
-              }, { '__global__': state.elements.filter(e => !e.viewId || e.viewId === '__global__').length } as Record<string, number>)}
-              onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
-              onAddView={(name) => dispatch({ type: 'ADD_VIEW', view: { id: viewUid(), name } })}
-              onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
-              onDeleteView={(id) => dispatch({ type: 'DELETE_VIEW', id })}
-              onSetDefault={(id) => {
-                views.forEach(v => dispatch({ type: 'UPDATE_VIEW', id: v.id, patch: { isDefault: v.id === id } }));
-              }}
-              onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
-            />
             <div
               style={{
                 position: 'absolute',
@@ -307,7 +345,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 style={{
                   width: CANVAS_WIDTH,
                   height: CANVAS_HEIGHT,
-                  backgroundColor: state.bgColor,
+                  backgroundColor: currentBgColor,
                   borderRadius: 16,
                   boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.5)',
                   position: 'relative',
@@ -353,8 +391,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   const el = state.elements.find(e => e.id === id);
                   if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { locked: !el.locked } });
                 }}
-                bgColor={state.bgColor}
-                onBgColorChange={(c) => dispatch({ type: 'SET_BG_COLOR', color: c })}
+                bgColor={currentBgColor}
+                onBgColorChange={(c) => {
+                  // If we have per-page colors, update the page color; otherwise update global
+                  if (activeViewId) {
+                    dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: c });
+                  } else {
+                    dispatch({ type: 'SET_BG_COLOR', color: c });
+                  }
+                }}
                 selectedId={state.selectedId}
                 views={views}
                 onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}

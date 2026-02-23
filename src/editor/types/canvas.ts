@@ -59,12 +59,14 @@ export interface CanvasState {
   bgColor: string;
   elements: CanvasElement[];
   selectedId: string | null;
-  /** Available views for internal navigation */
+  /** Available views/pages for internal navigation */
   views?: CanvasView[];
   /** Active view being edited (editor-only, not persisted to hardware) */
   activeViewId?: string;
   /** Idle timeout in seconds — returns to default view after inactivity (0 = disabled) */
   viewIdleTimeout?: number;
+  /** Per-page background colors (viewId → color). Falls back to bgColor if not set */
+  pageBgColors?: Record<string, string>;
 }
 
 export const DEFAULT_CANVAS_STATE: CanvasState = {
@@ -74,6 +76,7 @@ export const DEFAULT_CANVAS_STATE: CanvasState = {
   views: [{ ...DEFAULT_VIEW }],
   activeViewId: '__default__',
   viewIdleTimeout: 30,
+  pageBgColors: {},
 };
 
 /* ── helpers ────────────────────────────────────── */
@@ -138,13 +141,15 @@ export type CanvasAction =
   | { type: 'SET_BG_COLOR'; color: string }
   | { type: 'DUPLICATE'; id: string }
   | { type: 'LOAD'; state: CanvasState }
-  // View actions
+  // View/Page actions
   | { type: 'ADD_VIEW'; view: CanvasView }
   | { type: 'UPDATE_VIEW'; id: string; patch: Partial<CanvasView> }
   | { type: 'DELETE_VIEW'; id: string }
   | { type: 'SET_ACTIVE_VIEW'; id: string }
   | { type: 'SET_VIEW_IDLE_TIMEOUT'; seconds: number }
-  | { type: 'ASSIGN_ELEMENT_VIEW'; elementId: string; viewId: string | null };
+  | { type: 'ASSIGN_ELEMENT_VIEW'; elementId: string; viewId: string | null }
+  | { type: 'SET_PAGE_BG_COLOR'; viewId: string; color: string }
+  | { type: 'DUPLICATE_VIEW'; id: string };
 
 export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasState {
   switch (action.type) {
@@ -254,6 +259,31 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
         ...state,
         elements: state.elements.map(e => e.id === action.elementId ? { ...e, viewId: action.viewId } : e),
       };
+    case 'SET_PAGE_BG_COLOR':
+      return {
+        ...state,
+        pageBgColors: { ...(state.pageBgColors || {}), [action.viewId]: action.color },
+      };
+    case 'DUPLICATE_VIEW': {
+      const srcView = (state.views || []).find(v => v.id === action.id);
+      if (!srcView) return state;
+      const newId = viewUid();
+      const newView: CanvasView = { id: newId, name: `${srcView.name} (cópia)`, isDefault: false };
+      // Duplicate elements belonging to this view
+      const duped = state.elements
+        .filter(e => e.viewId === action.id)
+        .map(e => ({ ...e, id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, viewId: newId }));
+      return {
+        ...state,
+        views: [...(state.views || []), newView],
+        elements: [...state.elements, ...duped],
+        activeViewId: newId,
+        pageBgColors: {
+          ...(state.pageBgColors || {}),
+          [newId]: (state.pageBgColors || {})[action.id] || state.bgColor,
+        },
+      };
+    }
 
     default:
       return state;

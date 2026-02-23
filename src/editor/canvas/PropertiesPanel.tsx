@@ -211,11 +211,11 @@ function PropsContent({
         {/* Type-specific props */}
         <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} views={views} />
 
-        {/* View assignment */}
+        {/* Page assignment */}
         {views && views.length > 0 && onAssignView && (
-          <Section title="View">
+          <Section title="Página">
             <div className="space-y-1.5">
-              <Label className="text-[10px] text-muted-foreground">Visível na view</Label>
+              <Label className="text-[10px] text-muted-foreground">Visível na página</Label>
               <Select
                 value={element.viewId || '__global__'}
                 onValueChange={(v) => onAssignView(element.id, v === '__global__' ? null : v)}
@@ -223,7 +223,7 @@ function PropsContent({
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__global__">
-                    <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> Global (todas as views)</span>
+                    <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> Global (todas as páginas)</span>
                   </SelectItem>
                   {views.map(v => (
                     <SelectItem key={v.id} value={v.id}>
@@ -233,7 +233,7 @@ function PropsContent({
                 </SelectContent>
               </Select>
               <p className="text-[9px] text-muted-foreground">
-                Elementos globais aparecem em todas as views. Elementos vinculados só aparecem na view selecionada.
+                Elementos globais aparecem em todas as páginas. Elementos vinculados só aparecem na página selecionada.
               </p>
             </div>
           </Section>
