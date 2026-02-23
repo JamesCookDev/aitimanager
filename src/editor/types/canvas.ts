@@ -106,7 +106,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   store: { w: 480, h: 600, name: 'Diretório de Lojas', props: { title: 'Lojas', titleColor: '#ffffff', titleSize: 28, bgColor: 'rgba(0,0,0,0.6)', borderRadius: 16, stores: [{ id: '1', name: 'Loja Exemplo', logo: '', coverImage: '', gallery: [], floor: 'Piso 1', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda masculina e feminina', mapX: 50, mapY: 50, zone: '' }], columns: 1, gap: 12, cardBgColor: 'rgba(255,255,255,0.08)', cardBorderRadius: 12, accentColor: '#6366f1', showCategory: true, showHours: true, showPhone: true, showFloor: true, showCategoryFilter: false, showSearch: false } },
 };
 
-export function createElement(type: ElementType, x = 100, y = 100): CanvasElement {
+export function createElement(type: ElementType, x = 100, y = 100, viewId?: string): CanvasElement {
   const def = ELEMENT_DEFAULTS[type];
   return {
     id: uid(),
@@ -121,7 +121,7 @@ export function createElement(type: ElementType, x = 100, y = 100): CanvasElemen
     locked: false,
     visible: true,
     name: def.name,
-    viewId: null, // null = global (visible in all views)
+    viewId: viewId || '__default__',
     props: { ...def.props },
   };
 }
@@ -155,11 +155,10 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
   switch (action.type) {
     case 'ADD_ELEMENT': {
       const maxZ = state.elements.reduce((m, e) => Math.max(m, e.zIndex), 0);
-      // Assign current active view to new elements (unless it's __default__ → keep global)
-      const viewId = state.activeViewId && state.activeViewId !== '__default__' ? state.activeViewId : null;
+      const viewId = action.payload.viewId || state.activeViewId || '__default__';
       return {
         ...state,
-        elements: [...state.elements, { ...action.payload, zIndex: maxZ + 1, viewId: action.payload.viewId ?? viewId }],
+        elements: [...state.elements, { ...action.payload, zIndex: maxZ + 1, viewId }],
         selectedId: action.payload.id,
       };
     }
@@ -226,13 +225,21 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
         payload: { ...el, ...dup, id: dup.id, x: el.x + 30, y: el.y + 30, name: `${el.name} (cópia)`, viewId: el.viewId },
       });
     }
-    case 'LOAD':
+    case 'LOAD': {
+      const views = action.state.views?.length ? action.state.views : [{ ...DEFAULT_VIEW }];
+      const defaultViewId = views.find(v => v.isDefault)?.id || views[0]?.id || '__default__';
+      // Migrate orphaned elements (viewId null/undefined/__global__) to the default page
+      const elements = (action.state.elements || []).map(e =>
+        (!e.viewId || e.viewId === '__global__') ? { ...e, viewId: defaultViewId } : e
+      );
       return {
         ...action.state,
-        views: action.state.views?.length ? action.state.views : [{ ...DEFAULT_VIEW }],
-        activeViewId: action.state.activeViewId || '__default__',
+        elements,
+        views,
+        activeViewId: action.state.activeViewId || defaultViewId,
         viewIdleTimeout: action.state.viewIdleTimeout ?? 30,
       };
+    }
 
     // ── View actions ──
     case 'ADD_VIEW':

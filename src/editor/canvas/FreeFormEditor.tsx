@@ -103,10 +103,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const activeViewId = state.activeViewId || '__default__';
   const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
 
-  const visibleElements = state.elements.filter(el => {
-    if (!el.viewId || el.viewId === '__global__') return true;
-    return el.viewId === activeViewId;
-  });
+  const visibleElements = state.elements.filter(el => el.viewId === activeViewId);
 
   // Get per-page background color
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
@@ -294,7 +291,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                     elementCounts={views.reduce((acc, v) => {
                       acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
                       return acc;
-                    }, { '__global__': state.elements.filter(e => !e.viewId || e.viewId === '__global__').length } as Record<string, number>)}
+                    }, {} as Record<string, number>)}
                     pageBgColors={state.pageBgColors || {}}
                     globalBgColor={state.bgColor}
                     onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
