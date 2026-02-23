@@ -58,7 +58,7 @@ export default function DeviceDetail() {
         filter: `id=eq.${deviceId}`,
       }, (payload) => {
         // Only update non-ui_config fields from realtime to avoid overwriting local builder state
-        const { ui_config, ...rest } = payload.new as any;
+        const { ui_config, ...rest } = payload.new as Record<string, unknown>;
         setDevice(prev => prev ? { ...prev, ...rest } as Device : null);
       })
       .subscribe();
@@ -110,12 +110,12 @@ export default function DeviceDetail() {
     try {
       const { error } = await supabase
         .from('devices')
-        .update({ pending_command: 'restart', command_sent_at: new Date().toISOString() } as any)
+        .update({ pending_command: 'restart', command_sent_at: new Date().toISOString() })
         .eq('id', device.id);
       if (error) throw error;
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('command_logs').insert({ device_id: device.id, command: 'restart', sent_by: user.id } as any);
+        await supabase.from('command_logs').insert({ device_id: device.id, command: 'restart', sent_by: user.id });
       }
       toast.success('Comando de reinicialização enviado!');
     } catch (error) {
@@ -129,16 +129,17 @@ export default function DeviceDetail() {
     if (!device) return;
     setCloning(true);
     try {
-      const { data, error } = await supabase
-        .from('devices')
-        .insert({
+      const insertData: Record<string, unknown> = {
           name: `${device.name} (Cópia)`,
           description: device.description,
           location: device.location,
           org_id: device.org_id,
-          ai_prompt: (device as any).ai_prompt,
-          avatar_config: device.avatar_config as any,
-        } as any)
+          ai_prompt: device.ai_prompt,
+          avatar_config: device.avatar_config,
+        };
+      const { data, error } = await supabase
+        .from('devices')
+        .insert(insertData as any)
         .select()
         .single();
       if (error) throw error;
@@ -230,7 +231,7 @@ export default function DeviceDetail() {
                   </h1>
                 )}
                 <StatusBadge status={status} />
-                <PendingCommandBadge command={(device as any).pending_command} />
+                <PendingCommandBadge command={device.pending_command} />
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 {editingField === 'location' ? (
@@ -278,7 +279,7 @@ export default function DeviceDetail() {
 
         {/* AI PROMPT TAB */}
         <TabsContent value="ai" className="mt-4">
-          <AIPromptEditor deviceId={deviceId!} initialPrompt={(device as any).ai_prompt} />
+          <AIPromptEditor deviceId={deviceId!} initialPrompt={device.ai_prompt} />
         </TabsContent>
 
         {/* DETAILS TAB */}
@@ -390,7 +391,7 @@ export default function DeviceDetail() {
         {/* CODE SYNC TAB */}
         <TabsContent value="code-sync" className="mt-4">
           <CodeSyncPanel
-            statusDetails={(device as any).status_details}
+            statusDetails={device.status_details}
             deviceName={device.name}
             deviceId={device.id}
           />

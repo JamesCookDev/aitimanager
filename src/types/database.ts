@@ -65,6 +65,10 @@ export interface Device {
   is_speaking: boolean;
   last_interaction: string | null;
   status_details: DeviceStatusDetails | null;
+  pending_command: string | null;
+  command_sent_at: string | null;
+  ai_prompt: string | null;
+  ui_config: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   // Computed field
