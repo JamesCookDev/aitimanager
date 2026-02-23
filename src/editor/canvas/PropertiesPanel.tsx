@@ -11,6 +11,35 @@ import { Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock, Eye, EyeOff, Layers, Se
 
 import { Section, Field } from './properties/shared';
 import { TypeProps } from './properties/TypeProps';
+import { ThemePalettesPicker, type ThemePalette } from './ThemePalettes';
+
+/* ── Canvas Props (no element selected) ── */
+function CanvasPropsPanel({ bgColor, onBgColorChange }: { bgColor: string; onBgColorChange: (c: string) => void }) {
+  const handleApplyTheme = (palette: ThemePalette) => {
+    onBgColorChange(palette.bgColor);
+  };
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-4">
+        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Canvas</h3>
+        <div>
+          <Label className="text-[11px]">Cor de fundo</Label>
+          <div className="flex gap-2 mt-1">
+            <input type="color" value={bgColor} onChange={(e) => onBgColorChange(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+            <Input value={bgColor} onChange={(e) => onBgColorChange(e.target.value)} className="h-8 text-xs font-mono" />
+          </div>
+        </div>
+
+        <ThemePalettesPicker currentBgColor={bgColor} onApply={handleApplyTheme} />
+
+        <p className="text-[11px] text-muted-foreground mt-4 text-center">
+          Selecione um elemento no canvas para editar suas propriedades
+        </p>
+      </div>
+    </ScrollArea>
+  );
+}
 
 interface Props {
   element: CanvasElement | null;
@@ -62,19 +91,7 @@ export function PropertiesPanel({
 
       <TabsContent value="props" className="flex-1 overflow-hidden mt-0">
         {!element ? (
-          <div className="p-4 space-y-4">
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Canvas</h3>
-            <div>
-              <Label className="text-[11px]">Cor de fundo</Label>
-              <div className="flex gap-2 mt-1">
-                <input type="color" value={bgColor} onChange={(e) => onBgColorChange(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                <Input value={bgColor} onChange={(e) => onBgColorChange(e.target.value)} className="h-8 text-xs font-mono" />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-8 text-center">
-              Selecione um elemento no canvas para editar suas propriedades
-            </p>
-          </div>
+          <CanvasPropsPanel bgColor={bgColor} onBgColorChange={onBgColorChange} />
         ) : (
           <PropsContent
             element={element}
@@ -110,7 +127,7 @@ function LayersPanel({
     video: '🎬', qrcode: '📱', map: '🗺️', social: '🔗', chat: '💬',
     carousel: '🎠', clock: '🕐', weather: '🌤️', countdown: '⏱️',
     iframe: '🌐', avatar: '🤖', store: '🏪', list: '📋', gallery: '🖼️',
-    'animated-number': '🔢',
+    'animated-number': '🔢', catalog: '🛍️', form: '📝',
   };
 
   return (

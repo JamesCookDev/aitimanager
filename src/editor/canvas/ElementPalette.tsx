@@ -1,7 +1,7 @@
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store,
-  List, LayoutGrid, Hash,
+  List, LayoutGrid, Hash, ShoppingBag, FileText,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -41,6 +41,8 @@ const CATEGORIES = [
       { type: 'chat' as ElementType, icon: MessageSquare, label: 'Chat IA' },
       { type: 'store' as ElementType, icon: Store, label: 'Lojas' },
       { type: 'list' as ElementType, icon: List, label: 'Lista/Menu' },
+      { type: 'catalog' as ElementType, icon: ShoppingBag, label: 'Catálogo' },
+      { type: 'form' as ElementType, icon: FileText, label: 'Formulário' },
     ],
   },
   {

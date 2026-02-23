@@ -12,6 +12,8 @@ import { StorePropsPanel } from './StorePropsPanel';
 import { ListPropsPanel } from './ListPropsPanel';
 import { GalleryPropsPanel } from './GalleryPropsPanel';
 import { AnimatedNumberPropsPanel } from './AnimatedNumberPropsPanel';
+import { CatalogPropsPanel } from './CatalogPropsPanel';
+import { FormPropsPanel } from './FormPropsPanel';
 
 /* Reusable navigation action panel for any element */
 function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
@@ -340,6 +342,10 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
       return <GalleryPropsPanel props={props} onChange={onChange} />;
     case 'animated-number':
       return <AnimatedNumberPropsPanel props={props} onChange={onChange} />;
+    case 'catalog':
+      return <CatalogPropsPanel props={props} onChange={onChange} />;
+    case 'form':
+      return <FormPropsPanel props={props} onChange={onChange} />;
     default:
       return (
         <Section title="Propriedades">
