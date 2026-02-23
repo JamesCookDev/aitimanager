@@ -36,6 +36,7 @@ export interface CanvasView {
 export const DEFAULT_VIEW: CanvasView = { id: '__default__', name: 'Home', isDefault: true };
 
 export type ButtonActionType = 'prompt' | 'url' | 'navigate';
+export type PageTransition = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom';
 
 export interface CanvasElement {
   id: string;
@@ -89,7 +90,7 @@ export const viewUid = () => `view_${Date.now()}_${++_counter}`;
 const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string; props: Record<string, any> }> = {
   text: { w: 400, h: 80, name: 'Texto', props: { text: 'Seu texto aqui', fontSize: 32, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' } },
   image: { w: 400, h: 300, name: 'Imagem', props: { src: '', fit: 'cover', borderRadius: 12 } },
-  button: { w: 360, h: 64, name: 'Botão', props: { label: 'Toque aqui', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 18, borderRadius: 999, actionType: 'prompt' as ButtonActionType, action: '', navigateTarget: '' } },
+  button: { w: 360, h: 64, name: 'Botão', props: { label: 'Toque aqui', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 18, borderRadius: 999, actionType: 'prompt' as ButtonActionType, action: '', navigateTarget: '', navigateTransition: 'fade' as PageTransition } },
   shape: { w: 200, h: 200, name: 'Forma', props: { shapeType: 'rectangle', fill: '#6366f1', borderRadius: 16, borderColor: 'transparent', borderWidth: 0 } },
   icon: { w: 80, h: 80, name: 'Ícone', props: { icon: '⭐', size: 48, color: '#ffffff' } },
   video: { w: 480, h: 320, name: 'Vídeo', props: { url: '', autoplay: true, loop: true, muted: true, borderRadius: 12 } },
