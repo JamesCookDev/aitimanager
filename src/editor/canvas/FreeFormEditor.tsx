@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -103,6 +103,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [leftTab, setLeftTab] = useState<string>('pages');
   const [pageTransition, setPageTransition] = useState<PageTransition>('fade');
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Auto-fit scale
   useEffect(() => {
@@ -294,6 +295,20 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <Tb tip="Atalhos de teclado" onClick={() => setShowShortcuts(p => !p)} icon={Keyboard} />
             <Tb tip={rightOpen ? "Ocultar propriedades (⇒)" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
             <div className="h-4 w-px bg-border mx-0.5" />
+            <Button
+              variant={previewMode ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-[11px] gap-1.5 px-3"
+              onClick={() => {
+                setPreviewMode(p => !p);
+                if (!previewMode) {
+                  dispatch({ type: 'SELECT', id: null });
+                }
+              }}
+            >
+              {previewMode ? <Pencil className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              {previewMode ? 'Editar' : 'Simular'}
+            </Button>
             {onPublish && (
               <Button size="sm" className="h-7 text-[11px] gap-1.5 px-3" onClick={handlePublish}>
                 <Maximize2 className="w-3.5 h-3.5" /> Publicar
@@ -316,7 +331,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
         {/* Main area */}
         <div className="flex flex-1 overflow-hidden">
-          {leftOpen && (
+          {leftOpen && !previewMode && (
             <div className="w-56 border-r border-border bg-card/30 shrink-0 flex flex-col transition-all">
               <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
                 <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-9 px-2">
@@ -412,11 +427,12 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                           key={el.id}
                           element={el}
                           scale={scale}
-                          selected={el.id === state.selectedId}
-                          onSelect={() => dispatch({ type: 'SELECT', id: el.id })}
-                          onMove={(x, y) => dispatch({ type: 'MOVE', id: el.id, x, y })}
-                          onResize={(x, y, w, h) => dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h })}
+                          selected={!previewMode && el.id === state.selectedId}
+                          onSelect={() => { if (!previewMode) dispatch({ type: 'SELECT', id: el.id }); }}
+                          onMove={(x, y) => { if (!previewMode) dispatch({ type: 'MOVE', id: el.id, x, y }); }}
+                          onResize={(x, y, w, h) => { if (!previewMode) dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h }); }}
                           onNavigate={handleNavigateToPage}
+                          previewMode={previewMode}
                         />
                       ))}
                   </motion.div>
@@ -425,7 +441,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           </div>
 
-          {rightOpen && (
+          {rightOpen && !previewMode && (
             <div className="w-72 border-l border-border bg-card/30 shrink-0 transition-all">
               <PropertiesPanel
                 element={selectedElement}
