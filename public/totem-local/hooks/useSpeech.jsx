@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 
 const SpeechContext = createContext();
 
@@ -127,7 +127,7 @@ export const SpeechProvider = ({ children }) => {
 
   // Fala direta (sem chamar LLM — usado pelo Chat IA)
   // Usa Web Speech API para áudio e sinaliza o avatar para animar
-  const speakDirect = useCallback((text) => {
+  const speakDirect = (text) => {
     if (!text || isPlayingRef.current) return;
 
     // Sinaliza que o avatar está "falando"
@@ -159,7 +159,7 @@ export const SpeechProvider = ({ children }) => {
       // Sem Web Speech API — apenas mostra por 3s
       setTimeout(() => onMessagePlayed(), Math.max(2000, text.length * 60));
     }
-  }, [onMessagePlayed]);
+  };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 3. SISTEMA DE ÁUDIO (VAD + SELEÇÃO DE MIC)
