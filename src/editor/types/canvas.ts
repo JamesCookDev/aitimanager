@@ -26,7 +26,9 @@ export type ElementType =
   | 'store'
   | 'list'
   | 'gallery'
-  | 'animated-number';
+  | 'animated-number'
+  | 'catalog'
+  | 'form';
 
 /* ── Views ──────────────────────────────────── */
 
@@ -111,6 +113,8 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   list: { w: 420, h: 500, name: 'Lista', props: { listTitle: 'Menu', bgColor: 'rgba(0,0,0,0.4)', borderRadius: 16, titleSize: 18, titleColor: '#ffffff', priceColor: '#6366f1', showIcon: true, showPrice: true, showDivider: true, items: [{ id: '1', title: 'Item 1', subtitle: 'Descrição do item', price: 'R$ 29,90', icon: '🍔' }, { id: '2', title: 'Item 2', subtitle: 'Descrição do item', price: 'R$ 19,90', icon: '🍟' }, { id: '3', title: 'Item 3', subtitle: 'Descrição do item', price: 'R$ 14,90', icon: '🥤' }] } },
   gallery: { w: 420, h: 420, name: 'Galeria', props: { images: [], columns: 2, gap: 8, borderRadius: 12, aspectRatio: '1/1' } },
   'animated-number': { w: 320, h: 160, name: 'Número Animado', props: { value: 1234, prefix: '', suffix: '', label: 'Visitantes hoje', color: '#ffffff', labelColor: 'rgba(255,255,255,0.6)', fontSize: 64, labelSize: 18, duration: 2000, useGrouping: true } },
+  catalog: { w: 480, h: 600, name: 'Catálogo', props: { title: 'Catálogo', titleColor: '#ffffff', titleSize: 24, bgColor: 'rgba(0,0,0,0.5)', borderRadius: 16, items: [{ id: '1', name: 'Produto 1', description: 'Descrição do produto', price: 'R$ 49,90', image: '', category: 'Geral', badge: '', badgeColor: '#6366f1' }], columns: 2, gap: 12, cardBgColor: 'rgba(255,255,255,0.08)', cardBorderRadius: 12, accentColor: '#6366f1', showPrice: true, showCategory: true, showSearch: false, showCategoryFilter: false, imageAspect: '4/3', priceColor: '#22c55e', nameSize: 14, priceSize: 16 } },
+  form: { w: 420, h: 500, name: 'Formulário', props: { title: 'Check-in', titleColor: '#ffffff', titleSize: 22, bgColor: 'rgba(0,0,0,0.5)', borderRadius: 16, fields: [{ id: '1', type: 'text', label: 'Nome completo', placeholder: 'Digite seu nome', required: true }, { id: '2', type: 'email', label: 'E-mail', placeholder: 'seu@email.com', required: true }, { id: '3', type: 'select', label: 'Assunto', placeholder: 'Selecione...', options: 'Informações, Reserva, Reclamação', required: false }], submitLabel: 'Enviar', submitBgColor: '#6366f1', submitTextColor: '#ffffff', accentColor: '#6366f1', fieldBgColor: 'rgba(255,255,255,0.1)', fieldTextColor: '#ffffff', successMessage: 'Enviado com sucesso! ✅' } },
 };
 
 export function createElement(type: ElementType, x = 100, y = 100, viewId?: string): CanvasElement {

@@ -18,6 +18,8 @@ import { StoreRenderer } from './StoreRenderer';
 import { ListRenderer } from './ListRenderer';
 import { GalleryRenderer } from './GalleryRenderer';
 import { AnimatedNumberRenderer } from './AnimatedNumberRenderer';
+import { CatalogRenderer } from './CatalogRenderer';
+import { FormRenderer } from './FormRenderer';
 
 interface Props {
   element: CanvasElement;
@@ -65,6 +67,10 @@ export function ElementRenderer({ element }: Props) {
       return <GalleryRenderer {...element.props} />;
     case 'animated-number':
       return <AnimatedNumberRenderer {...element.props} />;
+    case 'catalog':
+      return <CatalogRenderer {...element.props} />;
+    case 'form':
+      return <FormRenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
