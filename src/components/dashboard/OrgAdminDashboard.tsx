@@ -166,6 +166,7 @@ export function OrgAdminDashboard() {
           devices={devices}
           showOrganization={false}
           loading={loading}
+          onDeviceDeleted={fetchDevices}
         />
       </div>
     </div>
