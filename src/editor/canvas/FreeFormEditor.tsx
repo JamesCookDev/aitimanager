@@ -109,9 +109,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
 
   const handleAdd = useCallback((el: CanvasElement) => {
-    dispatch({ type: 'ADD_ELEMENT', payload: el });
+    dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } });
     setLeftTab('elements'); // Switch to elements tab after adding
-  }, [dispatch]);
+  }, [dispatch, activeViewId]);
 
   const handleSave = useCallback(() => {
     onSave?.(state);
