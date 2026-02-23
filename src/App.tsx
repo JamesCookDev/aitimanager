@@ -8,6 +8,12 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { DevicesSkeleton } from "@/components/skeletons/DevicesSkeleton";
+import { DeviceDetailSkeleton } from "@/components/skeletons/DeviceDetailSkeleton";
+import { TablePageSkeleton } from "@/components/skeletons/TablePageSkeleton";
+import { EditorSkeleton } from "@/components/skeletons/EditorSkeleton";
+
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Devices = lazy(() => import("./pages/Devices"));
@@ -35,23 +41,21 @@ const App = () => (
         <Sonner position="top-right" theme="dark" />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/auth" replace />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<DashboardLayout />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="devices" element={<Devices />} />
-                  <Route path="devices/:deviceId" element={<DeviceDetail />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="organizations" element={<Organizations />} />
-                  <Route path="users" element={<Users />} />
-                  <Route path="ai-configs" element={<AIConfigs />} />
-                  <Route path="page-editor" element={<PageEditorPage />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              <Route path="/auth" element={<Suspense fallback={<PageLoader />}><Auth /></Suspense>} />
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>} />
+                <Route path="devices" element={<Suspense fallback={<DevicesSkeleton />}><Devices /></Suspense>} />
+                <Route path="devices/:deviceId" element={<Suspense fallback={<DeviceDetailSkeleton />}><DeviceDetail /></Suspense>} />
+                <Route path="settings" element={<Suspense fallback={<TablePageSkeleton />}><Settings /></Suspense>} />
+                <Route path="organizations" element={<Suspense fallback={<TablePageSkeleton />}><Organizations /></Suspense>} />
+                <Route path="users" element={<Suspense fallback={<TablePageSkeleton />}><Users /></Suspense>} />
+                <Route path="ai-configs" element={<Suspense fallback={<TablePageSkeleton />}><AIConfigs /></Suspense>} />
+                <Route path="page-editor" element={<Suspense fallback={<EditorSkeleton />}><PageEditorPage /></Suspense>} />
+              </Route>
+              <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+            </Routes>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
