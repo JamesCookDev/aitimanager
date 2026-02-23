@@ -293,6 +293,26 @@ export function StorePropsPanel({ props, onChange }: { props: Record<string, any
 
       {stores.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">Clique "Adicionar" para criar lojas</p>}
 
+      {/* Map settings */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase">🗺️ Mapa Interativo</p>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Ativar mapa</Label>
+          <Switch checked={!!props.enableMap} onCheckedChange={set('enableMap')} />
+        </div>
+        {!!props.enableMap && (
+          <div className="space-y-2">
+            <ImageUpload value={props.floorPlanImage || ''} onChange={set('floorPlanImage')} label="Planta do local" storagePath="store-floorplan" />
+            <PropInput label="Cor do pin" value={props.pinColor || '#ef4444'} onChange={set('pinColor')} type="color" />
+            <div>
+              <Label className="text-[11px]">Tamanho pin: {props.pinSize || 24}px</Label>
+              <Slider value={[props.pinSize || 24]} onValueChange={([v]) => onChange({ pinSize: v })} min={16} max={48} step={2} />
+            </div>
+            <p className="text-[9px] text-muted-foreground">Posicione cada loja ajustando os campos X% e Y% na configuração individual da loja.</p>
+          </div>
+        )}
+      </div>
+
       {/* Appearance */}
       <div className="space-y-2 pt-2 border-t border-border">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase">Aparência</p>
