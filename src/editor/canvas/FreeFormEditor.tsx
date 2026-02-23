@@ -3,12 +3,13 @@ import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Und
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, DEFAULT_CANVAS_STATE,
   canvasReducer, createElement, viewUid,
-  type CanvasState, type CanvasElement, type ElementType, type CanvasView,
+  type CanvasState, type CanvasElement, type ElementType, type CanvasView, type PageTransition,
 } from '../types/canvas';
 import { useHistory } from '../hooks/useHistory';
 import { PagesPanel } from './PagesPanel';
@@ -16,6 +17,36 @@ import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { FreeFormTemplatePicker } from './FreeFormTemplatePicker';
+
+/* ── Page transition variants ─────────── */
+const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
+  none: { initial: {}, animate: {}, exit: {} },
+  fade: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  },
+  'slide-left': {
+    initial: { x: '100%', opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '-100%', opacity: 0 },
+  },
+  'slide-right': {
+    initial: { x: '-100%', opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '100%', opacity: 0 },
+  },
+  'slide-up': {
+    initial: { y: '100%', opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '-100%', opacity: 0 },
+  },
+  zoom: {
+    initial: { scale: 0.8, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 1.2, opacity: 0 },
+  },
+};
 
 interface Props {
   initialState?: CanvasState | null;
@@ -71,6 +102,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [dirty, setDirty] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [leftTab, setLeftTab] = useState<string>('pages');
+  const [pageTransition, setPageTransition] = useState<PageTransition>('fade');
 
   // Auto-fit scale
   useEffect(() => {
@@ -107,6 +139,19 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   // Get per-page background color
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
+
+  // Navigate to page (with transition)
+  const handleNavigateToPage = useCallback((targetViewId: string, transition: PageTransition = 'fade') => {
+    if (!targetViewId || targetViewId === activeViewId) return;
+    const targetExists = views.some(v => v.id === targetViewId);
+    if (!targetExists) {
+      toast.error('Página de destino não encontrada');
+      return;
+    }
+    setPageTransition(transition);
+    dispatch({ type: 'SET_ACTIVE_VIEW', id: targetViewId });
+    toast.info(`Navegou para "${views.find(v => v.id === targetViewId)?.name || targetViewId}"`);
+  }, [activeViewId, views, dispatch]);
 
   const handleAdd = useCallback((el: CanvasElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } });
@@ -350,20 +395,32 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 }}
                 onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
               >
-                {visibleElements
-                  .slice()
-                  .sort((a, b) => a.zIndex - b.zIndex)
-                  .map((el) => (
-                    <DraggableElement
-                      key={el.id}
-                      element={el}
-                      scale={scale}
-                      selected={el.id === state.selectedId}
-                      onSelect={() => dispatch({ type: 'SELECT', id: el.id })}
-                      onMove={(x, y) => dispatch({ type: 'MOVE', id: el.id, x, y })}
-                      onResize={(x, y, w, h) => dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h })}
-                    />
-                  ))}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeViewId}
+                    initial={transitionVariants[pageTransition].initial}
+                    animate={transitionVariants[pageTransition].animate}
+                    exit={transitionVariants[pageTransition].exit}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+                  >
+                    {visibleElements
+                      .slice()
+                      .sort((a, b) => a.zIndex - b.zIndex)
+                      .map((el) => (
+                        <DraggableElement
+                          key={el.id}
+                          element={el}
+                          scale={scale}
+                          selected={el.id === state.selectedId}
+                          onSelect={() => dispatch({ type: 'SELECT', id: el.id })}
+                          onMove={(x, y) => dispatch({ type: 'MOVE', id: el.id, x, y })}
+                          onResize={(x, y, w, h) => dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h })}
+                          onNavigate={handleNavigateToPage}
+                        />
+                      ))}
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>

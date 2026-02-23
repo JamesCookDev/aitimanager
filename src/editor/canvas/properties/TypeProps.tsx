@@ -91,22 +91,38 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
               <PropInput label="URL" value={props.action || ''} onChange={set('action')} />
             )}
             {props.actionType === 'navigate' && views && views.length > 0 && (
-              <div>
-                <Label className="text-[11px]">Página de destino</Label>
-                <Select value={props.navigateTarget || ''} onValueChange={set('navigateTarget')}>
-                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {views.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        <span className="flex items-center gap-1.5">
-                          <Navigation className="w-3 h-3" /> {v.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[9px] text-muted-foreground mt-1">Ao tocar, navega para esta página no totem</p>
-              </div>
+              <>
+                <div>
+                  <Label className="text-[11px]">Página de destino</Label>
+                  <Select value={props.navigateTarget || ''} onValueChange={set('navigateTarget')}>
+                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {views.map(v => (
+                        <SelectItem key={v.id} value={v.id}>
+                          <span className="flex items-center gap-1.5">
+                            <Navigation className="w-3 h-3" /> {v.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[9px] text-muted-foreground mt-1">Ao tocar, navega para esta página no totem</p>
+                </div>
+                <div>
+                  <Label className="text-[11px]">Transição</Label>
+                  <Select value={props.navigateTransition || 'fade'} onValueChange={set('navigateTransition')}>
+                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem transição</SelectItem>
+                      <SelectItem value="fade">✨ Fade</SelectItem>
+                      <SelectItem value="slide-left">⬅ Slide Esquerda</SelectItem>
+                      <SelectItem value="slide-right">➡ Slide Direita</SelectItem>
+                      <SelectItem value="slide-up">⬆ Slide Cima</SelectItem>
+                      <SelectItem value="zoom">🔍 Zoom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
           </div>
         </Section>

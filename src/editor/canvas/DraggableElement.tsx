@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { Rnd } from 'react-rnd';
 import type { CanvasElement } from '../types/canvas';
+import type { PageTransition } from '../types/canvas';
 import { ElementRenderer } from './renderers/ElementRenderer';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 interface Props {
   element: CanvasElement;
@@ -11,9 +12,10 @@ interface Props {
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
   onResize: (x: number, y: number, w: number, h: number) => void;
+  onNavigate?: (targetViewId: string, transition?: PageTransition) => void;
 }
 
-export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize }: Props) {
+export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate }: Props) {
   const handleDragStop = useCallback((_e: any, d: { x: number; y: number }) => {
     onMove(Math.round(d.x), Math.round(d.y));
   }, [onMove]);
@@ -27,7 +29,17 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
     );
   }, [onResize]);
 
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    // Double-click on a button with navigate action triggers navigation
+    if (element.type === 'button' && element.props.actionType === 'navigate' && element.props.navigateTarget && onNavigate) {
+      e.stopPropagation();
+      onNavigate(element.props.navigateTarget, element.props.navigateTransition || 'fade');
+    }
+  }, [element, onNavigate]);
+
   if (!element.visible) return null;
+
+  const isNavigateButton = element.type === 'button' && element.props.actionType === 'navigate' && element.props.navigateTarget;
 
   return (
     <Rnd
@@ -65,6 +77,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
     >
       <div
         onClick={(e) => { e.stopPropagation(); onSelect(); }}
+        onDoubleClick={handleDoubleClick}
         className="w-full h-full relative"
         style={{ borderRadius: element.props.borderRadius || 0 }}
       >
@@ -80,6 +93,13 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
         <div className="w-full h-full overflow-hidden" style={{ borderRadius: element.props.borderRadius || 0 }}>
           <ElementRenderer element={element} />
         </div>
+
+        {/* Navigate indicator */}
+        {isNavigateButton && selected && (
+          <div className="absolute -top-6 right-0 bg-primary/90 text-primary-foreground text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 pointer-events-none whitespace-nowrap">
+            🔗 Dê duplo-clique para navegar
+          </div>
+        )}
 
         {/* Lock indicator */}
         {element.locked && selected && (
