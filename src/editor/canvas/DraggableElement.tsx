@@ -31,8 +31,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
   }, [onResize]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    // Double-click on a button with navigate action triggers navigation
-    if (element.type === 'button' && element.props.actionType === 'navigate' && element.props.navigateTarget && onNavigate) {
+    if (element.props.actionType === 'navigate' && element.props.navigateTarget && onNavigate) {
       e.stopPropagation();
       onNavigate(element.props.navigateTarget, element.props.navigateTransition || 'fade');
     }
@@ -40,7 +39,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
   if (!element.visible) return null;
 
-  const isNavigateButton = element.type === 'button' && element.props.actionType === 'navigate' && element.props.navigateTarget;
+  const hasNavigateAction = element.props.actionType === 'navigate' && element.props.navigateTarget;
 
   // Preview mode: render static element with single-click navigation
   if (previewMode) {
@@ -54,12 +53,12 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           height: element.height,
           zIndex: element.zIndex,
           opacity: element.opacity,
-          cursor: isNavigateButton ? 'pointer' : 'default',
+          cursor: hasNavigateAction ? 'pointer' : 'default',
           borderRadius: element.props.borderRadius || 0,
           overflow: 'hidden',
         }}
         onClick={(e) => {
-          if (isNavigateButton && onNavigate) {
+          if (hasNavigateAction && onNavigate) {
             e.stopPropagation();
             onNavigate(element.props.navigateTarget, element.props.navigateTransition || 'fade');
           }
@@ -124,7 +123,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
         </div>
 
         {/* Navigate indicator */}
-        {isNavigateButton && selected && (
+        {hasNavigateAction && selected && (
           <div className="absolute -top-6 right-0 bg-primary/90 text-primary-foreground text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 pointer-events-none whitespace-nowrap">
             🔗 Dê duplo-clique para navegar
           </div>
