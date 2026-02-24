@@ -141,10 +141,10 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
             <p className="text-[9px] text-muted-foreground mb-1">Os valores preenchidos são salvos como variáveis globais, acessíveis via {'{{variavel}}'} em textos de outras páginas.</p>
             <div>
               <Label className="text-[11px]">Navegar para página</Label>
-              <Select value={props.navigateOnSubmit || ''} onValueChange={set('navigateOnSubmit')}>
+              <Select value={props.navigateOnSubmit || '__none__'} onValueChange={(v) => set('navigateOnSubmit')(v === '__none__' ? '' : v)}>
                 <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Mostrar sucesso (padrão)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tela de sucesso</SelectItem>
+                  <SelectItem value="__none__">Tela de sucesso</SelectItem>
                   {views.map(v => (
                     <SelectItem key={v.id} value={v.id}>
                       <span className="flex items-center gap-1.5">📄 {v.name}</span>
