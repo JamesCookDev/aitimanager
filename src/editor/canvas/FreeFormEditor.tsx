@@ -113,7 +113,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       const rect = viewportRef.current.getBoundingClientRect();
       const sw = (rect.width - 40) / CANVAS_WIDTH;
       const sh = (rect.height - 40) / CANVAS_HEIGHT;
-      const s = Math.min(sw, sh, 0.85);
+      const s = Math.min(sw, sh, 1);
       setScale(Math.max(0.2, s));
       setViewportSize({ w: rect.width, h: rect.height });
     }
@@ -271,7 +271,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   const rect = viewportRef.current.getBoundingClientRect();
                   const sw = (rect.width - 40) / CANVAS_WIDTH;
                   const sh = (rect.height - 40) / CANVAS_HEIGHT;
-                  setScale(Math.max(0.2, Math.min(sw, sh, 0.85)));
+                  setScale(Math.max(0.2, Math.min(sw, sh, 1)));
                 }
               }}
               title="Ajustar ao viewport"
