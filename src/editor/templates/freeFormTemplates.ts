@@ -742,88 +742,523 @@ const retailStore: CanvasState = (() => {
   };
 })();
 
+// ═══════════════════════════════════════════════════════════════
+// MULTI-PAGE TEMPLATES (with views + navigation)
+// ═══════════════════════════════════════════════════════════════
+
+// Helper for multi-page elements
+function elv(
+  viewId: string,
+  type: CanvasElement['type'],
+  x: number, y: number, w: number, h: number,
+  props: Record<string, any>,
+  extra?: Partial<CanvasElement>,
+): CanvasElement {
+  return el(type, x, y, w, h, props, { viewId, ...extra });
+}
+
+// ═══════════════════════════════════════════════════
+// MP1. Restaurante Completo (4 páginas)
+// ═══════════════════════════════════════════════════
+const mpRestaurant: CanvasState = (() => {
+  _id = 0;
+  const V = { home: 'v_rest_home', menu: 'v_rest_menu', order: 'v_rest_order', pay: 'v_rest_pay' };
+  return {
+    bgColor: '#0d0806',
+    views: [
+      { id: V.home, name: '🏠 Início', isDefault: true },
+      { id: V.menu, name: '📋 Cardápio' },
+      { id: V.order, name: '🛒 Pedido' },
+      { id: V.pay, name: '💳 Pagamento' },
+    ],
+    pageBgColors: { [V.home]: '#0d0806', [V.menu]: '#1a0f0a', [V.order]: '#0f1419', [V.pay]: '#0a1628' },
+    elements: [
+      // ── HOME ──
+      elv(V.home, 'shape', 0, 0, 1080, 1920, { shapeType: 'rectangle', fill: '#7c2d12', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }, { opacity: 0.15 }),
+      elv(V.home, 'icon', 420, 120, 240, 180, { icon: '🍽️', size: 96, color: '#f97316' }),
+      elv(V.home, 'text', 60, 350, 960, 80, { text: 'Ristorante Bella', fontSize: 52, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 450, 960, 50, { text: 'Cucina Italiana Autentica', fontSize: 22, fontWeight: 'normal', color: 'rgba(249,115,22,0.7)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'shape', 360, 530, 360, 2, { shapeType: 'rectangle', fill: 'rgba(249,115,22,0.3)', borderRadius: 1, borderColor: 'transparent', borderWidth: 0 }),
+      elv(V.home, 'image', 60, 580, 960, 500, { src: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=960&h=500&fit=crop', fit: 'cover', borderRadius: 24 }),
+      elv(V.home, 'bigcta', 140, 1140, 800, 160, {
+        label: '📋 Ver Cardápio', sublabel: 'Toque para explorar nossos pratos', icon: '', bgColor: '#f97316', textColor: '#ffffff', fontSize: 28, borderRadius: 24, pulse: true,
+        actionType: 'navigate', navigateTarget: V.menu, navigateTransition: 'slide-left',
+      }),
+      elv(V.home, 'button', 140, 1350, 460, 72, { label: '⭐ Reservar Mesa', bgColor: 'rgba(249,115,22,0.12)', textColor: '#ffffff', fontSize: 19, borderRadius: 16, actionType: 'navigate', navigateTarget: V.order, navigateTransition: 'slide-left' }),
+      elv(V.home, 'button', 640, 1350, 300, 72, { label: '📍 Como Chegar', bgColor: 'rgba(255,255,255,0.06)', textColor: '#ffffff', fontSize: 19, borderRadius: 16, action: 'Onde fica o restaurante?' }),
+      elv(V.home, 'clock', 380, 1500, 320, 60, { format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 20 }),
+      elv(V.home, 'text', 60, 1600, 960, 30, { text: 'Seg-Sáb 11h–23h | Dom 11h–16h', fontSize: 14, fontWeight: 'normal', color: 'rgba(255,255,255,0.25)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'social', 260, 1680, 560, 60, { links: [{ id: '1', platform: 'instagram', label: '@bella', url: '', color: '#E1306C' }, { id: '2', platform: 'whatsapp', label: 'WhatsApp', url: '', color: '#25D366' }], iconSize: 28, gap: 20, showLabels: true, layout: 'horizontal' }),
+      elv(V.home, 'qrcode', 440, 1760, 180, 140, { value: 'https://example.com/restaurant', fgColor: 'rgba(255,255,255,0.15)', bgColor: 'transparent' }),
+
+      // ── CARDÁPIO ──
+      elv(V.menu, 'shape', 0, 0, 1080, 200, { shapeType: 'rectangle', fill: '#7c2d12', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }, { opacity: 0.4 }),
+      elv(V.menu, 'text', 60, 50, 800, 60, { text: '📋 Cardápio', fontSize: 38, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.menu, 'button', 870, 55, 160, 50, { label: '← Voltar', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.menu, 'text', 60, 120, 960, 36, { text: 'Peça pelo totem — sem espera!', fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+      elv(V.menu, 'list', 60, 230, 960, 800, {
+        listTitle: '🥗 Entradas & Saladas', bgColor: 'rgba(249,115,22,0.05)', borderRadius: 20, titleSize: 20, titleColor: '#f97316', priceColor: '#f97316', showIcon: true, showPrice: true, showDivider: true,
+        items: [
+          { id: '1', title: 'Bruschetta Clássica', subtitle: 'Pão italiano, tomate, manjericão', price: 'R$ 24,90', icon: '🍞' },
+          { id: '2', title: 'Carpaccio di Manzo', subtitle: 'Carne fatiada, rúcula, parmesão', price: 'R$ 38,90', icon: '🥩' },
+          { id: '3', title: 'Insalata Caprese', subtitle: 'Tomate, mozzarella de búfala', price: 'R$ 29,90', icon: '🥗' },
+          { id: '4', title: 'Antipasto Misto', subtitle: 'Embutidos e queijos italianos', price: 'R$ 54,90', icon: '🧀' },
+        ],
+      }),
+      elv(V.menu, 'list', 60, 1060, 960, 580, {
+        listTitle: '🍝 Pratos Principais', bgColor: 'rgba(249,115,22,0.05)', borderRadius: 20, titleSize: 20, titleColor: '#f97316', priceColor: '#f97316', showIcon: true, showPrice: true, showDivider: true,
+        items: [
+          { id: '1', title: 'Spaghetti Carbonara', subtitle: 'Guanciale e pecorino', price: 'R$ 48,90', icon: '🍝' },
+          { id: '2', title: 'Risotto ai Funghi', subtitle: 'Arroz arbório, cogumelos', price: 'R$ 52,90', icon: '🍚' },
+          { id: '3', title: 'Filetto di Salmone', subtitle: 'Salmão grelhado com ervas', price: 'R$ 64,90', icon: '🐟' },
+        ],
+      }),
+      elv(V.menu, 'button', 140, 1700, 800, 80, { label: '🛒 Fazer Pedido', bgColor: '#f97316', textColor: '#ffffff', fontSize: 22, borderRadius: 999, actionType: 'navigate', navigateTarget: V.order, navigateTransition: 'slide-left' }),
+
+      // ── PEDIDO ──
+      elv(V.order, 'text', 60, 50, 800, 60, { text: '🛒 Seu Pedido', fontSize: 38, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.order, 'button', 870, 55, 160, 50, { label: '← Cardápio', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.menu, navigateTransition: 'slide-right' }),
+      elv(V.order, 'numpad', 200, 180, 680, 600, { label: 'Número da mesa', placeholder: '00', bgColor: 'rgba(99,102,241,0.06)', textColor: '#ffffff', accentColor: '#6366f1', borderRadius: 24, maxLength: 3, mask: 'none', buttonLabel: 'Confirmar mesa' }),
+      elv(V.order, 'form', 140, 830, 800, 440, {
+        title: 'Observações', titleColor: '#ffffff', titleSize: 20, bgColor: 'rgba(99,102,241,0.05)', borderRadius: 20,
+        fields: [
+          { id: '1', type: 'text', label: 'Seu nome', placeholder: 'Para chamar quando pronto', required: true },
+          { id: '2', type: 'textarea', label: 'Observações', placeholder: 'Alergias, sem cebola...', required: false },
+        ],
+        submitLabel: '💳 Ir para Pagamento', submitBgColor: '#6366f1', submitTextColor: '#ffffff', accentColor: '#6366f1', fieldBgColor: 'rgba(255,255,255,0.06)', fieldTextColor: '#ffffff', successMessage: 'Pedido registrado! ✅',
+      }),
+      elv(V.order, 'button', 140, 1330, 800, 76, { label: '💳 Pagar Agora', bgColor: '#22c55e', textColor: '#ffffff', fontSize: 22, borderRadius: 999, actionType: 'navigate', navigateTarget: V.pay, navigateTransition: 'slide-left' }),
+      elv(V.order, 'animated-number', 340, 1470, 400, 120, { value: 127, prefix: 'R$ ', suffix: ',90', label: 'Total do pedido', color: '#22c55e', labelColor: 'rgba(255,255,255,0.4)', fontSize: 56, labelSize: 16, duration: 1500, useGrouping: true }),
+
+      // ── PAGAMENTO ──
+      elv(V.pay, 'text', 60, 50, 800, 60, { text: '💳 Pagamento', fontSize: 38, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.pay, 'button', 870, 55, 160, 50, { label: '← Voltar', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.order, navigateTransition: 'slide-right' }),
+      elv(V.pay, 'animated-number', 240, 160, 600, 140, { value: 127, prefix: 'R$ ', suffix: ',90', label: 'Valor total', color: '#ffffff', labelColor: 'rgba(255,255,255,0.5)', fontSize: 64, labelSize: 18, duration: 1000, useGrouping: true }),
+      elv(V.pay, 'qrpix', 200, 360, 680, 520, { pixKey: '12345678901', amount: 'R$ 127,90', recipientName: 'Ristorante Bella LTDA', bgColor: 'rgba(50,188,173,0.06)', textColor: '#ffffff', accentColor: '#32bcad', borderRadius: 24, showAmount: true, label: 'Pague com Pix' }),
+      elv(V.pay, 'text', 60, 920, 960, 40, { text: 'ou pague no caixa', fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.3)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.pay, 'ticket', 300, 1000, 480, 340, { prefix: 'P', currentNumber: 42, bgColor: 'rgba(99,102,241,0.06)', textColor: '#ffffff', accentColor: '#6366f1', fontSize: 64, borderRadius: 20, label: 'Senha do pedido', showPrint: true, printLabel: '🖨️ Imprimir Senha' }),
+      elv(V.pay, 'button', 240, 1400, 600, 76, { label: '🏠 Voltar ao Início', bgColor: 'rgba(255,255,255,0.08)', textColor: '#ffffff', fontSize: 20, borderRadius: 999, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'fade' }),
+      elv(V.pay, 'text', 60, 1520, 960, 30, { text: 'Obrigado pela preferência! ❤️', fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.3)', align: 'center', fontFamily: 'Inter' }),
+    ],
+    selectedId: null,
+    activeViewId: V.home,
+    viewIdleTimeout: 60,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// MP2. Shopping Center (5 páginas)
+// ═══════════════════════════════════════════════════
+const mpShopping: CanvasState = (() => {
+  _id = 0;
+  const V = { home: 'v_shop_home', stores: 'v_shop_stores', promos: 'v_shop_promos', food: 'v_shop_food', help: 'v_shop_help' };
+  return {
+    bgColor: '#08070f',
+    views: [
+      { id: V.home, name: '🏠 Início', isDefault: true },
+      { id: V.stores, name: '🏪 Lojas' },
+      { id: V.promos, name: '🔥 Promoções' },
+      { id: V.food, name: '🍔 Alimentação' },
+      { id: V.help, name: '💬 Ajuda' },
+    ],
+    pageBgColors: { [V.home]: '#08070f', [V.stores]: '#0c0a1a', [V.promos]: '#0a0a0a', [V.food]: '#1a0f0a', [V.help]: '#111827' },
+    elements: [
+      // ── HOME ──
+      elv(V.home, 'shape', 0, 0, 1080, 400, { shapeType: 'rectangle', fill: '#4c1d95', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }, { opacity: 0.25 }),
+      elv(V.home, 'icon', 420, 80, 240, 160, { icon: '🏬', size: 96, color: '#a855f7' }),
+      elv(V.home, 'text', 60, 280, 960, 80, { text: 'Shopping Ville', fontSize: 52, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 380, 960, 40, { text: 'O que você procura hoje?', fontSize: 20, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter' }),
+      ...[
+        { label: '🏪 Lojas', desc: '120+ lojas', color: '#8b5cf6', target: V.stores },
+        { label: '🔥 Promoções', desc: 'Ofertas do dia', color: '#ef4444', target: V.promos },
+        { label: '🍔 Alimentação', desc: 'Restaurantes', color: '#f97316', target: V.food },
+        { label: '💬 Ajuda', desc: 'Chat IA', color: '#10b981', target: V.help },
+      ].flatMap((item, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const x = 60 + col * 500, y = 480 + row * 280;
+        return [
+          elv(V.home, 'shape', x, y, 460, 240, { shapeType: 'rectangle', fill: item.color + '12', borderRadius: 24, borderColor: item.color + '30', borderWidth: 1 }),
+          elv(V.home, 'text', x, y + 50, 460, 60, { text: item.label, fontSize: 28, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+          elv(V.home, 'text', x, y + 120, 460, 36, { text: item.desc, fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter' }),
+          elv(V.home, 'button', x + 80, y + 170, 300, 50, { label: 'Explorar →', bgColor: item.color, textColor: '#ffffff', fontSize: 15, borderRadius: 999, actionType: 'navigate', navigateTarget: item.target, navigateTransition: 'slide-left' }),
+        ];
+      }),
+      elv(V.home, 'clock', 380, 1120, 320, 70, { format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 22 }),
+      elv(V.home, 'weather', 380, 1210, 320, 60, { city: 'São Paulo', units: 'metric', color: 'rgba(255,255,255,0.25)' }),
+      elv(V.home, 'text', 60, 1340, 960, 30, { text: 'Seg-Sáb 10h–22h | Dom 14h–20h', fontSize: 14, fontWeight: 'normal', color: 'rgba(255,255,255,0.2)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'qrcode', 440, 1740, 180, 160, { value: 'https://example.com/shopping', fgColor: 'rgba(255,255,255,0.12)', bgColor: 'transparent' }),
+
+      // ── LOJAS ──
+      elv(V.stores, 'text', 60, 40, 800, 60, { text: '🏪 Lojas & Serviços', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.stores, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.stores, 'store', 60, 120, 960, 1700, {
+        title: '', titleColor: '#ffffff', titleSize: 0, bgColor: 'rgba(139,92,246,0.03)', borderRadius: 20,
+        stores: [
+          { id: '1', name: 'Renner', logo: '', floor: 'Piso 1', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda feminina, masculina e infantil' },
+          { id: '2', name: 'Apple Store', logo: '', floor: 'Piso 2', category: 'Tecnologia', hours: '10h–22h', phone: '', description: 'Produtos Apple e acessórios' },
+          { id: '3', name: 'Farmácia Drogasil', logo: '', floor: 'Piso 1', category: 'Saúde', hours: '8h–22h', phone: '(11) 9999-0000', description: 'Medicamentos e bem-estar' },
+          { id: '4', name: 'McDonald\'s', logo: '', floor: 'Piso 3', category: 'Alimentação', hours: '10h–23h', phone: '', description: 'Fast food e lanches' },
+          { id: '5', name: 'Cinemark', logo: '', floor: 'Piso 3', category: 'Lazer', hours: '12h–00h', phone: '', description: 'Cinema IMAX e salas VIP' },
+          { id: '6', name: 'Nike', logo: '', floor: 'Piso 2', category: 'Esportes', hours: '10h–22h', phone: '', description: 'Artigos esportivos' },
+        ],
+        columns: 1, gap: 10, cardBgColor: 'rgba(255,255,255,0.05)', cardBorderRadius: 14, accentColor: '#8b5cf6',
+        showCategory: true, showHours: true, showPhone: true, showFloor: true, showCategoryFilter: true, showSearch: true,
+      }),
+
+      // ── PROMOÇÕES ──
+      elv(V.promos, 'text', 60, 40, 800, 60, { text: '🔥 Promoções', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.promos, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.promos, 'shape', 340, 130, 400, 50, { shapeType: 'rectangle', fill: '#ef4444', borderRadius: 999, borderColor: 'transparent', borderWidth: 0 }),
+      elv(V.promos, 'text', 340, 138, 400, 36, { text: '⚡ OFERTAS DO DIA', fontSize: 17, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.promos, 'carousel', 60, 220, 960, 500, {
+        images: ['https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=960&h=500&fit=crop', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=960&h=500&fit=crop'],
+        autoplay: true, interval: 4, borderRadius: 20, transition: 'slide',
+      }),
+      elv(V.promos, 'text', 60, 760, 960, 60, { text: 'Até 70% OFF', fontSize: 48, fontWeight: 'bold', color: '#ef4444', align: 'center', fontFamily: 'Inter' }),
+      elv(V.promos, 'text', 60, 830, 960, 36, { text: 'Em mais de 50 lojas participantes', fontSize: 17, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter' }),
+      ...[
+        { emoji: '👟', name: 'Calçados', discount: '50% OFF', color: '#f59e0b' },
+        { emoji: '👕', name: 'Moda', discount: '40% OFF', color: '#8b5cf6' },
+        { emoji: '📱', name: 'Tech', discount: '30% OFF', color: '#3b82f6' },
+      ].flatMap((item, i) => [
+        elv(V.promos, 'shape', 60 + i * 330, 900, 300, 140, { shapeType: 'rectangle', fill: item.color + '12', borderRadius: 20, borderColor: item.color + '30', borderWidth: 1 }),
+        elv(V.promos, 'text', 60 + i * 330, 920, 300, 44, { text: `${item.emoji} ${item.name}`, fontSize: 20, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+        elv(V.promos, 'text', 60 + i * 330, 970, 300, 44, { text: item.discount, fontSize: 26, fontWeight: 'bold', color: item.color, align: 'center', fontFamily: 'Inter' }),
+      ]),
+      elv(V.promos, 'button', 200, 1100, 680, 72, { label: '🏪 Ver Lojas', bgColor: '#ef4444', textColor: '#ffffff', fontSize: 20, borderRadius: 999, actionType: 'navigate', navigateTarget: V.stores, navigateTransition: 'slide-left' }),
+      elv(V.promos, 'qrcode', 420, 1250, 200, 200, { value: 'https://example.com/promos', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent' }),
+
+      // ── ALIMENTAÇÃO ──
+      elv(V.food, 'text', 60, 40, 800, 60, { text: '🍔 Praça de Alimentação', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.food, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.food, 'text', 60, 110, 960, 36, { text: 'Piso 3 • 10h às 22h', fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+      elv(V.food, 'catalog', 60, 170, 960, 1200, {
+        title: '', titleColor: '#ffffff', titleSize: 0, bgColor: 'rgba(249,115,22,0.03)', borderRadius: 20,
+        items: [
+          { id: '1', name: 'Big Mac', description: 'O clássico', price: 'R$ 29,90', image: '', category: 'Fast Food', badge: '🔥', badgeColor: '#ef4444' },
+          { id: '2', name: 'Açaí 500ml', description: 'Com frutas e granola', price: 'R$ 19,90', image: '', category: 'Saudável', badge: 'TOP', badgeColor: '#8b5cf6' },
+          { id: '3', name: 'Pizza Napolitana', description: 'Massa artesanal', price: 'R$ 34,90', image: '', category: 'Italiana', badge: '', badgeColor: '' },
+          { id: '4', name: 'Sushi Combo', description: '15 peças', price: 'R$ 49,90', image: '', category: 'Japonesa', badge: 'NOVO', badgeColor: '#22c55e' },
+        ],
+        columns: 2, gap: 12, cardBgColor: 'rgba(255,255,255,0.05)', cardBorderRadius: 16, accentColor: '#f97316',
+        showPrice: true, showCategory: true, showSearch: true, showCategoryFilter: true, imageAspect: '1/1', priceColor: '#f97316', nameSize: 15, priceSize: 18,
+      }),
+      elv(V.food, 'map', 60, 1400, 960, 400, { lat: -23.5505, lng: -46.6333, zoom: 18, borderRadius: 20, label: 'Praça de Alimentação - Piso 3', labelColor: '#ffffff', labelSize: 14 }),
+
+      // ── AJUDA ──
+      elv(V.help, 'text', 60, 40, 800, 60, { text: '💬 Como podemos ajudar?', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.help, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.help, 'text', 60, 110, 960, 36, { text: 'Digite sua pergunta ou escolha uma opção', fontSize: 16, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+      ...[
+        { label: '📍 Onde fica...?', action: 'Encontrar loja' },
+        { label: '🚗 Estacionamento', action: 'Info estacionamento' },
+        { label: '♿ Acessibilidade', action: 'Recursos acessibilidade' },
+        { label: '📞 SAC', action: 'Falar com atendente' },
+      ].map((item, i) => elv(V.help, 'button', 60, 180 + i * 80, 960, 64, { label: item.label, bgColor: 'rgba(16,185,129,0.08)', textColor: '#ffffff', fontSize: 18, borderRadius: 16, action: item.action })),
+      elv(V.help, 'chat', 60, 520, 960, 800, { placeholder: 'Pergunte sobre lojas, horários...', theme: 'dark' }),
+      elv(V.help, 'clock', 380, 1380, 320, 60, { format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 20 }),
+    ],
+    selectedId: null,
+    activeViewId: V.home,
+    viewIdleTimeout: 45,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// MP3. Clínica Médica (4 páginas)
+// ═══════════════════════════════════════════════════
+const mpClinic: CanvasState = (() => {
+  _id = 0;
+  const V = { home: 'v_clin_home', ticket: 'v_clin_ticket', depts: 'v_clin_depts', chat: 'v_clin_chat' };
+  return {
+    bgColor: '#0a1628',
+    views: [
+      { id: V.home, name: '🏠 Início', isDefault: true },
+      { id: V.ticket, name: '🎫 Senha' },
+      { id: V.depts, name: '🏥 Setores' },
+      { id: V.chat, name: '💬 Assistente' },
+    ],
+    pageBgColors: { [V.home]: '#0a1628', [V.ticket]: '#0d1a2d', [V.depts]: '#0f172a', [V.chat]: '#111827' },
+    elements: [
+      // ── HOME ──
+      elv(V.home, 'shape', 0, 0, 1080, 6, { shapeType: 'rectangle', fill: '#06b6d4', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }),
+      elv(V.home, 'shape', 340, 80, 400, 280, { shapeType: 'circle', fill: 'rgba(6,182,212,0.06)', borderRadius: 200, borderColor: 'rgba(6,182,212,0.15)', borderWidth: 2 }),
+      elv(V.home, 'icon', 420, 130, 240, 180, { icon: '🏥', size: 96, color: '#06b6d4' }),
+      elv(V.home, 'text', 60, 400, 960, 80, { text: 'Clínica São Lucas', fontSize: 46, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 500, 960, 40, { text: 'Cuidando da sua saúde com excelência', fontSize: 18, fontWeight: 'normal', color: 'rgba(6,182,212,0.7)', align: 'center', fontFamily: 'Inter' }),
+      ...[
+        { label: '🎫 Retirar Senha', desc: 'Atendimento e exames', color: '#06b6d4', target: V.ticket },
+        { label: '🏥 Setores', desc: 'Encontre o setor', color: '#8b5cf6', target: V.depts },
+        { label: '💬 Assistente', desc: 'Tire suas dúvidas', color: '#10b981', target: V.chat },
+      ].flatMap((item, i) => {
+        const y = 600 + i * 200;
+        return [
+          elv(V.home, 'shape', 100, y, 880, 170, { shapeType: 'rectangle', fill: item.color + '08', borderRadius: 20, borderColor: item.color + '20', borderWidth: 1 }),
+          elv(V.home, 'text', 140, y + 30, 500, 50, { text: item.label, fontSize: 26, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'text', 140, y + 85, 500, 30, { text: item.desc, fontSize: 15, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'button', 700, y + 55, 240, 50, { label: 'Acessar →', bgColor: item.color, textColor: '#ffffff', fontSize: 14, borderRadius: 999, actionType: 'navigate', navigateTarget: item.target, navigateTransition: 'slide-left' }),
+        ];
+      }),
+      elv(V.home, 'clock', 60, 1280, 300, 60, { format: '24h', showDate: true, color: 'rgba(255,255,255,0.25)', fontSize: 20 }),
+      elv(V.home, 'text', 60, 1400, 960, 30, { text: '📞 Emergência: (11) 3333-0000 | Seg-Sex 7h–19h', fontSize: 13, fontWeight: 'normal', color: 'rgba(255,255,255,0.2)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'qrcode', 440, 1740, 180, 160, { value: 'https://example.com/clinic', fgColor: 'rgba(255,255,255,0.12)', bgColor: 'transparent' }),
+
+      // ── SENHA ──
+      elv(V.ticket, 'text', 60, 40, 800, 60, { text: '🎫 Retirar Senha', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.ticket, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.ticket, 'text', 60, 120, 960, 36, { text: 'Selecione o tipo de atendimento:', fontSize: 17, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+      ...[
+        { label: '🩺 Consulta', prefix: 'C', color: '#06b6d4' },
+        { label: '🔬 Exames', prefix: 'E', color: '#8b5cf6' },
+        { label: '💉 Vacinas', prefix: 'V', color: '#f59e0b' },
+        { label: '💊 Farmácia', prefix: 'F', color: '#10b981' },
+      ].map((item, i) => elv(V.ticket, 'button', 100, 190 + i * 90, 880, 72, { label: item.label, bgColor: item.color + '15', textColor: '#ffffff', fontSize: 20, borderRadius: 16, action: item.label })),
+      elv(V.ticket, 'ticket', 200, 580, 680, 420, { prefix: 'C', currentNumber: 127, bgColor: 'rgba(6,182,212,0.06)', textColor: '#ffffff', accentColor: '#06b6d4', fontSize: 80, borderRadius: 24, label: 'Sua senha', labelSize: 18, showPrint: true, printLabel: '🖨️ Imprimir Senha' }),
+      elv(V.ticket, 'animated-number', 340, 1060, 400, 120, { value: 12, prefix: '', suffix: ' min', label: 'Tempo estimado', color: '#06b6d4', labelColor: 'rgba(255,255,255,0.4)', fontSize: 56, labelSize: 14, duration: 1500, useGrouping: false }),
+
+      // ── SETORES ──
+      elv(V.depts, 'text', 60, 40, 800, 60, { text: '🏥 Setores', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.depts, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.depts, 'store', 60, 120, 960, 1200, {
+        title: '', titleColor: '#ffffff', titleSize: 0, bgColor: 'rgba(6,182,212,0.03)', borderRadius: 20,
+        stores: [
+          { id: '1', name: 'Clínica Geral', logo: '', floor: 'Térreo', category: 'Consulta', hours: '7h–19h', phone: 'Ramal 100', description: 'Consultas gerais' },
+          { id: '2', name: 'Cardiologia', logo: '', floor: '1º Andar', category: 'Especialidade', hours: '8h–18h', phone: 'Ramal 201', description: 'Exames cardiológicos' },
+          { id: '3', name: 'Laboratório', logo: '', floor: 'Térreo', category: 'Exames', hours: '6h–17h', phone: 'Ramal 150', description: 'Coleta e análises' },
+          { id: '4', name: 'Ortopedia', logo: '', floor: '2º Andar', category: 'Especialidade', hours: '8h–18h', phone: 'Ramal 301', description: 'Ossos e articulações' },
+          { id: '5', name: 'Pediatria', logo: '', floor: '1º Andar', category: 'Consulta', hours: '8h–18h', phone: 'Ramal 202', description: 'Atendimento infantil' },
+          { id: '6', name: 'Farmácia', logo: '', floor: 'Térreo', category: 'Serviço', hours: '7h–19h', phone: 'Ramal 120', description: 'Medicamentos' },
+        ],
+        columns: 1, gap: 10, cardBgColor: 'rgba(255,255,255,0.04)', cardBorderRadius: 14, accentColor: '#06b6d4',
+        showCategory: true, showHours: true, showPhone: true, showFloor: true, showCategoryFilter: true, showSearch: true,
+      }),
+      elv(V.depts, 'map', 60, 1360, 960, 460, { lat: -23.5505, lng: -46.6333, zoom: 17, borderRadius: 20, label: 'Clínica São Lucas', labelColor: '#ffffff', labelSize: 14 }),
+
+      // ── ASSISTENTE ──
+      elv(V.chat, 'text', 60, 40, 800, 60, { text: '💬 Assistente Virtual', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.chat, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      ...[
+        { label: '🕐 Horários', action: 'Horários' },
+        { label: '💳 Convênios', action: 'Convênios' },
+        { label: '🔬 Preparo exames', action: 'Preparo exame' },
+      ].map((item, i) => elv(V.chat, 'button', 60, 130 + i * 70, 960, 56, { label: item.label, bgColor: 'rgba(16,185,129,0.08)', textColor: '#ffffff', fontSize: 16, borderRadius: 14, action: item.action })),
+      elv(V.chat, 'chat', 60, 360, 960, 900, { placeholder: 'Pergunte sobre a clínica...', theme: 'dark' }),
+    ],
+    selectedId: null,
+    activeViewId: V.home,
+    viewIdleTimeout: 45,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// MP4. Hotel Completo (4 páginas)
+// ═══════════════════════════════════════════════════
+const mpHotel: CanvasState = (() => {
+  _id = 0;
+  const V = { home: 'v_htl_home', checkin: 'v_htl_checkin', services: 'v_htl_services', tourism: 'v_htl_tourism' };
+  return {
+    bgColor: '#1a1007',
+    views: [
+      { id: V.home, name: '🏠 Lobby', isDefault: true },
+      { id: V.checkin, name: '🔑 Check-in' },
+      { id: V.services, name: '🛎️ Serviços' },
+      { id: V.tourism, name: '🗺️ Turismo' },
+    ],
+    pageBgColors: { [V.home]: '#1a1007', [V.checkin]: '#0f1419', [V.services]: '#0d0806', [V.tourism]: '#0a1628' },
+    elements: [
+      // ── LOBBY ──
+      elv(V.home, 'shape', 0, 0, 1080, 480, { shapeType: 'rectangle', fill: '#78350f', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }, { opacity: 0.2 }),
+      elv(V.home, 'icon', 420, 80, 240, 180, { icon: '🏨', size: 96, color: '#f59e0b' }),
+      elv(V.home, 'text', 60, 300, 960, 80, { text: 'Grand Palace', fontSize: 52, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 400, 960, 40, { text: 'Luxury Resort & Spa ⭐⭐⭐⭐⭐', fontSize: 20, fontWeight: 'normal', color: 'rgba(245,158,11,0.6)', align: 'center', fontFamily: 'Inter' }),
+      ...[
+        { label: '🔑 Check-in Digital', desc: 'Rápido e sem fila', color: '#f59e0b', target: V.checkin },
+        { label: '🛎️ Serviços', desc: 'Room service, spa', color: '#8b5cf6', target: V.services },
+        { label: '🗺️ Turismo', desc: 'Pontos turísticos', color: '#3b82f6', target: V.tourism },
+      ].flatMap((item, i) => {
+        const y = 520 + i * 180;
+        return [
+          elv(V.home, 'shape', 100, y, 880, 150, { shapeType: 'rectangle', fill: item.color + '08', borderRadius: 20, borderColor: item.color + '20', borderWidth: 1 }),
+          elv(V.home, 'text', 140, y + 25, 500, 46, { text: item.label, fontSize: 24, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'text', 140, y + 75, 500, 30, { text: item.desc, fontSize: 14, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'button', 700, y + 45, 240, 50, { label: 'Acessar →', bgColor: item.color, textColor: '#ffffff', fontSize: 14, borderRadius: 999, actionType: 'navigate', navigateTarget: item.target, navigateTransition: 'slide-left' }),
+        ];
+      }),
+      elv(V.home, 'weather', 60, 1100, 480, 80, { city: 'Rio de Janeiro', units: 'metric', color: 'rgba(255,255,255,0.35)' }),
+      elv(V.home, 'clock', 600, 1100, 420, 80, { format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 24 }),
+      elv(V.home, 'text', 60, 1240, 960, 30, { text: 'WiFi: GrandPalace_Guest | Senha: welcome2026', fontSize: 14, fontWeight: 'normal', color: 'rgba(255,255,255,0.25)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'qrcode', 440, 1740, 180, 160, { value: 'https://example.com/hotel', fgColor: 'rgba(255,255,255,0.12)', bgColor: 'transparent' }),
+
+      // ── CHECK-IN ──
+      elv(V.checkin, 'text', 60, 40, 800, 60, { text: '🔑 Check-in Digital', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.checkin, 'button', 870, 45, 160, 50, { label: '← Lobby', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.checkin, 'form', 100, 140, 880, 620, {
+        title: 'Dados do Hóspede', titleColor: '#ffffff', titleSize: 22, bgColor: 'rgba(245,158,11,0.04)', borderRadius: 24,
+        fields: [
+          { id: '1', type: 'text', label: 'Nome completo', placeholder: 'Seu nome', required: true },
+          { id: '2', type: 'text', label: 'Nº da Reserva', placeholder: 'Ex: HTL-12345', required: true },
+          { id: '3', type: 'email', label: 'E-mail', placeholder: 'seu@email.com', required: true },
+          { id: '4', type: 'select', label: 'Tipo de quarto', placeholder: 'Selecione...', options: 'Standard, Luxo, Suíte, Penthouse', required: false },
+        ],
+        submitLabel: '🔑 Realizar Check-in', submitBgColor: '#f59e0b', submitTextColor: '#ffffff', accentColor: '#f59e0b', fieldBgColor: 'rgba(255,255,255,0.06)', fieldTextColor: '#ffffff', successMessage: 'Check-in realizado! 🎉',
+      }),
+      elv(V.checkin, 'numpad', 200, 810, 680, 560, { label: 'Ou digite o CPF', placeholder: '000.000.000-00', bgColor: 'rgba(245,158,11,0.04)', textColor: '#ffffff', accentColor: '#f59e0b', borderRadius: 24, maxLength: 11, mask: 'cpf', buttonLabel: 'Buscar reserva' }),
+
+      // ── SERVIÇOS ──
+      elv(V.services, 'text', 60, 40, 800, 60, { text: '🛎️ Serviços', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.services, 'button', 870, 45, 160, 50, { label: '← Lobby', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.services, 'list', 60, 130, 960, 800, {
+        listTitle: '🛎️ Serviços Disponíveis', bgColor: 'rgba(139,92,246,0.04)', borderRadius: 20,
+        titleSize: 20, titleColor: '#8b5cf6', priceColor: '#8b5cf6', showIcon: true, showPrice: true, showDivider: true,
+        items: [
+          { id: '1', title: 'Room Service', subtitle: 'Cardápio 24h', price: '', icon: '🍽️' },
+          { id: '2', title: 'Spa & Massagem', subtitle: '8h às 20h', price: 'R$ 180+', icon: '🧖' },
+          { id: '3', title: 'Piscina & Fitness', subtitle: '6h às 22h', price: 'Incluso', icon: '🏊' },
+          { id: '4', title: 'Lavanderia Express', subtitle: 'Entrega em 4h', price: 'R$ 50+', icon: '👔' },
+          { id: '5', title: 'Transfer', subtitle: 'Reservar 24h antes', price: 'R$ 120', icon: '🚗' },
+          { id: '6', title: 'Concierge', subtitle: 'Reservas e tours', price: 'Incluso', icon: '🎩' },
+        ],
+      }),
+      elv(V.services, 'chat', 60, 970, 960, 500, { placeholder: 'Peça algo ou tire dúvidas...', theme: 'dark' }),
+
+      // ── TURISMO ──
+      elv(V.tourism, 'text', 60, 40, 800, 60, { text: '🗺️ Pontos Turísticos', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.tourism, 'button', 870, 45, 160, 50, { label: '← Lobby', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.tourism, 'catalog', 60, 130, 960, 900, {
+        title: '', titleColor: '#ffffff', titleSize: 0, bgColor: 'rgba(59,130,246,0.03)', borderRadius: 20,
+        items: [
+          { id: '1', name: 'Cristo Redentor', description: '7 Maravilhas do Mundo', price: '~30 min', image: '', category: 'Histórico', badge: '⭐', badgeColor: '#f59e0b' },
+          { id: '2', name: 'Pão de Açúcar', description: 'Vista panorâmica', price: '~25 min', image: '', category: 'Natureza', badge: 'TOP', badgeColor: '#22c55e' },
+          { id: '3', name: 'Copacabana', description: 'Praia mais famosa', price: '~10 min', image: '', category: 'Praia', badge: '', badgeColor: '' },
+          { id: '4', name: 'Jardim Botânico', description: 'Flora tropical', price: '~20 min', image: '', category: 'Natureza', badge: '', badgeColor: '' },
+          { id: '5', name: 'Escadaria Selarón', description: 'Mosaico colorido', price: '~15 min', image: '', category: 'Cultural', badge: '📸', badgeColor: '#ec4899' },
+        ],
+        columns: 2, gap: 12, cardBgColor: 'rgba(255,255,255,0.05)', cardBorderRadius: 16, accentColor: '#3b82f6',
+        showPrice: true, showCategory: true, showSearch: true, showCategoryFilter: true, imageAspect: '4/3', priceColor: '#3b82f6', nameSize: 15, priceSize: 14,
+      }),
+      elv(V.tourism, 'map', 60, 1070, 960, 500, { lat: -22.9068, lng: -43.1729, zoom: 13, borderRadius: 20, label: 'Rio de Janeiro', labelColor: '#ffffff', labelSize: 14 }),
+    ],
+    selectedId: null,
+    activeViewId: V.home,
+    viewIdleTimeout: 60,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// MP5. Evento / Conferência (3 páginas)
+// ═══════════════════════════════════════════════════
+const mpEvent: CanvasState = (() => {
+  _id = 0;
+  const V = { home: 'v_evt_home', schedule: 'v_evt_schedule', info: 'v_evt_info' };
+  return {
+    bgColor: '#0a0a1a',
+    views: [
+      { id: V.home, name: '🏠 Evento', isDefault: true },
+      { id: V.schedule, name: '📋 Programação' },
+      { id: V.info, name: 'ℹ️ Informações' },
+    ],
+    pageBgColors: { [V.home]: '#0a0a1a', [V.schedule]: '#0f0a1e', [V.info]: '#111827' },
+    elements: [
+      // ── EVENTO HOME ──
+      elv(V.home, 'shape', 0, 0, 1080, 500, { shapeType: 'rectangle', fill: '#4c1d95', borderRadius: 0, borderColor: 'transparent', borderWidth: 0 }, { opacity: 0.3 }),
+      elv(V.home, 'shape', 300, 60, 480, 60, { shapeType: 'rectangle', fill: '#a855f7', borderRadius: 999, borderColor: 'transparent', borderWidth: 0 }),
+      elv(V.home, 'text', 300, 68, 480, 44, { text: '🎤 AO VIVO • 2026', fontSize: 18, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 160, 960, 100, { text: 'Tech Summit', fontSize: 64, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'text', 60, 280, 960, 50, { text: 'São Paulo • 21 a 23 de Fevereiro', fontSize: 22, fontWeight: 'normal', color: 'rgba(168,85,247,0.8)', align: 'center', fontFamily: 'Inter' }),
+      elv(V.home, 'countdown', 200, 380, 680, 100, { targetDate: '2026-02-23T18:00:00', label: 'Próxima palestra em', color: '#a855f7', fontSize: 32 }),
+      ...[
+        { label: '📋 Programação', desc: 'Palestras e workshops', color: '#a855f7', target: V.schedule },
+        { label: 'ℹ️ Informações', desc: 'WiFi, mapa, alimentação', color: '#3b82f6', target: V.info },
+      ].flatMap((item, i) => {
+        const y = 540 + i * 180;
+        return [
+          elv(V.home, 'shape', 100, y, 880, 150, { shapeType: 'rectangle', fill: item.color + '08', borderRadius: 20, borderColor: item.color + '20', borderWidth: 1 }),
+          elv(V.home, 'text', 140, y + 25, 500, 46, { text: item.label, fontSize: 22, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'text', 140, y + 75, 500, 30, { text: item.desc, fontSize: 14, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+          elv(V.home, 'button', 700, y + 45, 240, 50, { label: 'Ver →', bgColor: item.color, textColor: '#ffffff', fontSize: 14, borderRadius: 999, actionType: 'navigate', navigateTarget: item.target, navigateTransition: 'slide-left' }),
+        ];
+      }),
+      // Speakers
+      elv(V.home, 'text', 60, 940, 960, 50, { text: '🎙️ Speakers', fontSize: 22, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+      ...[
+        { name: 'Ana Silva', role: 'CEO TechCorp', color: '#ec4899' },
+        { name: 'Carlos Santos', role: 'CTO FinBank', color: '#3b82f6' },
+        { name: 'Marina Costa', role: 'VP Google BR', color: '#10b981' },
+      ].flatMap((s, i) => [
+        elv(V.home, 'shape', 60 + i * 340, 1020, 310, 110, { shapeType: 'rectangle', fill: s.color + '10', borderRadius: 16, borderColor: s.color + '25', borderWidth: 1 }),
+        elv(V.home, 'text', 60 + i * 340, 1040, 310, 36, { text: s.name, fontSize: 17, fontWeight: 'bold', color: '#ffffff', align: 'center', fontFamily: 'Inter' }),
+        elv(V.home, 'text', 60 + i * 340, 1080, 310, 30, { text: s.role, fontSize: 12, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter' }),
+      ]),
+      elv(V.home, 'social', 260, 1200, 560, 60, { links: [{ id: '1', platform: 'instagram', label: '@techsummit', url: '', color: '#E1306C' }], iconSize: 28, gap: 20, showLabels: true, layout: 'horizontal' }),
+      elv(V.home, 'qrcode', 400, 1320, 240, 240, { value: 'https://example.com/event', fgColor: 'rgba(168,85,247,0.4)', bgColor: 'transparent' }),
+      elv(V.home, 'text', 300, 1580, 480, 26, { text: 'Escaneie para o app do evento', fontSize: 13, fontWeight: 'normal', color: 'rgba(255,255,255,0.2)', align: 'center', fontFamily: 'Inter' }),
+
+      // ── PROGRAMAÇÃO ──
+      elv(V.schedule, 'text', 60, 40, 800, 60, { text: '📋 Programação', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.schedule, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.schedule, 'text', 60, 110, 960, 36, { text: 'Dia 1 — 21 de Fevereiro', fontSize: 18, fontWeight: 'bold', color: '#a855f7', align: 'left', fontFamily: 'Inter' }),
+      ...[
+        { time: '09:00', title: 'Abertura e Keynote', speaker: 'Ana Silva', room: 'Auditório Principal' },
+        { time: '10:30', title: 'IA Generativa no Varejo', speaker: 'Carlos Santos', room: 'Sala A' },
+        { time: '14:00', title: 'O Futuro dos Pagamentos', speaker: 'Marina Costa', room: 'Sala B' },
+        { time: '15:30', title: 'Workshop: Prompt Engineering', speaker: 'Pedro Lima', room: 'Lab 1' },
+        { time: '17:00', title: 'Painel: Transformação Digital', speaker: 'Diversos', room: 'Auditório' },
+        { time: '18:30', title: 'Happy Hour & Networking', speaker: '', room: 'Lounge' },
+      ].flatMap((item, i) => {
+        const y = 170 + i * 130;
+        return [
+          elv(V.schedule, 'shape', 80, y, 920, 110, { shapeType: 'rectangle', fill: 'rgba(168,85,247,0.05)', borderRadius: 16, borderColor: 'rgba(168,85,247,0.1)', borderWidth: 1 }),
+          elv(V.schedule, 'text', 110, y + 10, 160, 36, { text: item.time, fontSize: 22, fontWeight: 'bold', color: '#a855f7', align: 'left', fontFamily: 'Inter' }),
+          elv(V.schedule, 'text', 280, y + 10, 700, 36, { text: item.title, fontSize: 18, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+          elv(V.schedule, 'text', 280, y + 48, 700, 26, { text: item.speaker ? `🎙️ ${item.speaker}` : '', fontSize: 13, fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter' }),
+          elv(V.schedule, 'text', 280, y + 76, 700, 22, { text: `📍 ${item.room}`, fontSize: 11, fontWeight: 'normal', color: 'rgba(168,85,247,0.5)', align: 'left', fontFamily: 'Inter' }),
+        ];
+      }),
+      elv(V.schedule, 'button', 140, 970, 800, 72, { label: 'ℹ️ Informações do Evento', bgColor: 'rgba(168,85,247,0.12)', textColor: '#ffffff', fontSize: 18, borderRadius: 16, actionType: 'navigate', navigateTarget: V.info, navigateTransition: 'slide-left' }),
+
+      // ── INFORMAÇÕES ──
+      elv(V.info, 'text', 60, 40, 800, 60, { text: 'ℹ️ Informações', fontSize: 34, fontWeight: 'bold', color: '#ffffff', align: 'left', fontFamily: 'Inter' }),
+      elv(V.info, 'button', 870, 45, 160, 50, { label: '← Início', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', fontSize: 13, borderRadius: 12, actionType: 'navigate', navigateTarget: V.home, navigateTransition: 'slide-right' }),
+      elv(V.info, 'list', 60, 130, 960, 600, {
+        listTitle: '📌 Informações Úteis', bgColor: 'rgba(59,130,246,0.04)', borderRadius: 20,
+        titleSize: 18, titleColor: '#3b82f6', priceColor: '#3b82f6', showIcon: true, showPrice: false, showDivider: true,
+        items: [
+          { id: '1', title: 'WiFi', subtitle: 'Rede: TechSummit2026 | Senha: connect2026', price: '', icon: '📶' },
+          { id: '2', title: 'Alimentação', subtitle: 'Praça de alimentação no Piso 2', price: '', icon: '🍔' },
+          { id: '3', title: 'Estacionamento', subtitle: 'Subsolo -1 e -2 | Validar no balcão', price: '', icon: '🚗' },
+          { id: '4', title: 'Credenciamento', subtitle: 'Hall de entrada, 8h–17h', price: '', icon: '🎫' },
+          { id: '5', title: 'Primeiros Socorros', subtitle: 'Sala 15, Piso 1', price: '', icon: '🏥' },
+        ],
+      }),
+      elv(V.info, 'map', 60, 760, 960, 500, { lat: -23.5636, lng: -46.6544, zoom: 16, borderRadius: 20, label: 'Centro de Convenções', labelColor: '#ffffff', labelSize: 14 }),
+      elv(V.info, 'chat', 60, 1300, 960, 500, { placeholder: 'Pergunte sobre o evento...', theme: 'dark' }),
+    ],
+    selectedId: null,
+    activeViewId: V.home,
+    viewIdleTimeout: 60,
+  };
+})();
+
+
 // ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
-  {
-    id: 'welcome-avatar',
-    name: 'Boas-vindas + Avatar',
-    description: 'Avatar 3D centralizado com botões de ação e relógio',
-    icon: '🧑‍💼',
-    category: 'welcome',
-    state: welcomeAvatar,
-  },
-  {
-    id: 'shopping-directory',
-    name: 'Diretório de Lojas',
-    description: 'Diretório com busca, filtro por categoria e chat IA',
-    icon: '🏪',
-    category: 'menu',
-    state: shoppingDirectory,
-  },
-  {
-    id: 'promo-blackfriday',
-    name: 'Promoções & Ofertas',
-    description: 'Layout promocional com imagem hero e cards de desconto',
-    icon: '🔥',
-    category: 'promo',
-    state: promoBlackFriday,
-  },
-  {
-    id: 'restaurant-menu',
-    name: 'Cardápio Digital',
-    description: 'Menu de restaurante com seções e preços',
-    icon: '🍕',
-    category: 'menu',
-    state: restaurantMenu,
-  },
-  {
-    id: 'corporate-reception',
-    name: 'Recepção Corporativa',
-    description: 'Check-in de visitantes com mapa e agenda',
-    icon: '🏢',
-    category: 'corporate',
-    state: corporateReception,
-  },
-  {
-    id: 'event-conference',
-    name: 'Evento / Conferência',
-    description: 'Programação com countdown e social links',
-    icon: '🎤',
-    category: 'info',
-    state: eventConference,
-  },
-  {
-    id: 'minimal-service',
-    name: 'Atendimento Minimalista',
-    description: 'Layout limpo focado em chat IA e ações rápidas',
-    icon: '💬',
-    category: 'welcome',
-    state: minimalService,
-  },
-  {
-    id: 'hospital-clinic',
-    name: 'Hospital / Clínica',
-    description: 'Sistema de senhas, departamentos e chat para pacientes',
-    icon: '🏥',
-    category: 'health',
-    state: hospitalClinic,
-  },
-  {
-    id: 'hotel-tourism',
-    name: 'Hotel / Turismo',
-    description: 'Check-in digital com formulário e serviços do hotel',
-    icon: '🏨',
-    category: 'hotel',
-    state: hotelTourism,
-  },
-  {
-    id: 'retail-store',
-    name: 'Loja / Varejo',
-    description: 'Catálogo de produtos com QR Pix e CTA de compra',
-    icon: '🛍️',
-    category: 'retail',
-    state: retailStore,
-  },
+  // ── Single-page ──
+  { id: 'welcome-avatar', name: 'Boas-vindas + Avatar', description: 'Avatar 3D com botões de ação e relógio', icon: '🧑‍💼', category: 'welcome', state: welcomeAvatar },
+  { id: 'shopping-directory', name: 'Diretório de Lojas', description: 'Diretório com busca, filtro e chat IA', icon: '🏪', category: 'menu', state: shoppingDirectory },
+  { id: 'promo-blackfriday', name: 'Promoções & Ofertas', description: 'Layout promocional com hero e descontos', icon: '🔥', category: 'promo', state: promoBlackFriday },
+  { id: 'restaurant-menu', name: 'Cardápio Digital', description: 'Menu com seções e preços', icon: '🍕', category: 'menu', state: restaurantMenu },
+  { id: 'corporate-reception', name: 'Recepção Corporativa', description: 'Check-in de visitantes e agenda', icon: '🏢', category: 'corporate', state: corporateReception },
+  { id: 'event-conference', name: 'Evento / Conferência', description: 'Programação com countdown', icon: '🎤', category: 'info', state: eventConference },
+  { id: 'minimal-service', name: 'Atendimento Minimalista', description: 'Chat IA e ações rápidas', icon: '💬', category: 'welcome', state: minimalService },
+  { id: 'hospital-clinic', name: 'Hospital / Clínica', description: 'Senhas, departamentos e chat', icon: '🏥', category: 'health', state: hospitalClinic },
+  { id: 'hotel-tourism', name: 'Hotel / Turismo', description: 'Check-in digital e serviços', icon: '🏨', category: 'hotel', state: hotelTourism },
+  { id: 'retail-store', name: 'Loja / Varejo', description: 'Catálogo com QR Pix e CTA', icon: '🛍️', category: 'retail', state: retailStore },
+  // ── Multi-page (com navegação entre páginas) ──
+  { id: 'mp-restaurant', name: '🍽️ Restaurante Completo', description: '4 páginas: Início → Cardápio → Pedido → Pagamento', icon: '🍽️', category: 'menu', state: mpRestaurant },
+  { id: 'mp-shopping', name: '🏬 Shopping Center', description: '5 páginas: Início → Lojas → Promos → Food → Ajuda', icon: '🏬', category: 'menu', state: mpShopping },
+  { id: 'mp-clinic', name: '🏥 Clínica Médica', description: '4 páginas: Início → Senhas → Setores → Assistente', icon: '🏥', category: 'health', state: mpClinic },
+  { id: 'mp-hotel', name: '🏨 Hotel Completo', description: '4 páginas: Lobby → Check-in → Serviços → Turismo', icon: '🏨', category: 'hotel', state: mpHotel },
+  { id: 'mp-event', name: '🎤 Evento Multi-página', description: '3 páginas: Início → Programação → Informações', icon: '🎤', category: 'info', state: mpEvent },
 ];
