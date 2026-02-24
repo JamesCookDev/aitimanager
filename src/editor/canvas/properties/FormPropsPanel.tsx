@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { CanvasView } from '../../types/canvas';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 import { Section, PropInput } from './shared';
@@ -14,11 +15,13 @@ interface FormField {
   placeholder?: string;
   required?: boolean;
   options?: string;
+  variableName?: string;
 }
 
 interface Props {
   props: Record<string, any>;
   onChange: (p: Record<string, any>) => void;
+  views?: CanvasView[];
 }
 
 const FIELD_TYPES = [
@@ -30,7 +33,7 @@ const FIELD_TYPES = [
   { value: 'textarea', label: '📄 Área de texto' },
 ];
 
-export function FormPropsPanel({ props, onChange }: Props) {
+export function FormPropsPanel({ props, onChange, views }: Props) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
   const fields: FormField[] = props.fields || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -132,6 +135,33 @@ export function FormPropsPanel({ props, onChange }: Props) {
           <PropInput label="Texto do botão" value={props.submitLabel || 'Enviar'} onChange={set('submitLabel')} />
           <PropInput label="Mensagem de sucesso" value={props.successMessage || 'Enviado com sucesso! ✅'} onChange={set('successMessage')} />
         </Section>
+
+        {views && views.length > 0 && (
+          <Section title="🔗 Após enviar">
+            <p className="text-[9px] text-muted-foreground mb-1">Os valores preenchidos são salvos como variáveis globais, acessíveis via {'{{variavel}}'} em textos de outras páginas.</p>
+            <div>
+              <Label className="text-[11px]">Navegar para página</Label>
+              <Select value={props.navigateOnSubmit || ''} onValueChange={set('navigateOnSubmit')}>
+                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Mostrar sucesso (padrão)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tela de sucesso</SelectItem>
+                  {views.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="flex items-center gap-1.5">📄 {v.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis dos campos:</p>
+              {fields.map(f => {
+                const varName = f.variableName || f.label.toLowerCase().replace(/\s+/g, '_');
+                return <code key={f.id} className="text-[9px] text-primary block">{`{{${varName}}}`} ← {f.label}</code>;
+              })}
+            </div>
+          </Section>
+        )}
       </TabsContent>
 
       <TabsContent value="style" className="space-y-2 mt-2">

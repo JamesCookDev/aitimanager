@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Tag } from 'lucide-react';
+import { usePageVariables } from '../PageVariablesContext';
 
 interface CatalogItem {
   id: string;
@@ -32,6 +33,9 @@ interface Props {
   priceColor?: string;
   nameSize?: number;
   priceSize?: number;
+  /** Navigate to this page when clicking an item */
+  itemNavigateTarget?: string;
+  itemNavigateTransition?: string;
 }
 
 export function CatalogRenderer(props: Props) {
@@ -55,8 +59,11 @@ export function CatalogRenderer(props: Props) {
     priceColor = '#22c55e',
     nameSize = 14,
     priceSize = 16,
+    itemNavigateTarget,
+    itemNavigateTransition = 'fade',
   } = props;
 
+  const { navigateToPage } = usePageVariables();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -77,12 +84,25 @@ export function CatalogRenderer(props: Props) {
     return result;
   }, [items, search, activeCategory]);
 
+  const handleItemClick = (item: CatalogItem) => {
+    if (itemNavigateTarget && navigateToPage) {
+      // Write item data as global variables
+      const vars: Record<string, string> = {
+        item_name: item.name,
+        item_description: item.description,
+        item_price: item.price,
+        item_image: item.image,
+        item_category: item.category,
+        item_badge: item.badge || '',
+      };
+      navigateToPage(itemNavigateTarget, itemNavigateTransition as any, vars);
+    }
+  };
+
   return (
     <div className="w-full h-full overflow-auto flex flex-col" style={{ background: bgColor, borderRadius, padding: 16 }}>
-      {/* Title */}
       <h2 className="font-bold mb-3 shrink-0" style={{ color: titleColor, fontSize: titleSize }}>{title}</h2>
 
-      {/* Search */}
       {showSearch && (
         <div className="relative mb-3 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -96,16 +116,12 @@ export function CatalogRenderer(props: Props) {
         </div>
       )}
 
-      {/* Category filter */}
       {showCategoryFilter && categories.length > 0 && (
         <div className="flex gap-2 mb-3 shrink-0 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveCategory(null)}
             className="px-3 py-1 rounded-full text-[11px] font-medium shrink-0 transition-colors"
-            style={{
-              background: !activeCategory ? accentColor : 'rgba(255,255,255,0.1)',
-              color: '#fff',
-            }}
+            style={{ background: !activeCategory ? accentColor : 'rgba(255,255,255,0.1)', color: '#fff' }}
           >
             Todos
           </button>
@@ -114,10 +130,7 @@ export function CatalogRenderer(props: Props) {
               key={cat}
               onClick={() => setActiveCategory(cat === activeCategory ? null : cat)}
               className="px-3 py-1 rounded-full text-[11px] font-medium shrink-0 transition-colors"
-              style={{
-                background: activeCategory === cat ? accentColor : 'rgba(255,255,255,0.1)',
-                color: '#fff',
-              }}
+              style={{ background: activeCategory === cat ? accentColor : 'rgba(255,255,255,0.1)', color: '#fff' }}
             >
               {cat}
             </button>
@@ -125,26 +138,21 @@ export function CatalogRenderer(props: Props) {
         </div>
       )}
 
-      {/* Products grid */}
       <div
         className="flex-1 overflow-auto"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${columns}, 1fr)`,
-          gap,
-        }}
+        style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}
       >
         {filtered.map((item, i) => (
           <div
             key={item.id}
-            className="overflow-hidden flex flex-col relative group"
+            className={`overflow-hidden flex flex-col relative group ${itemNavigateTarget ? 'cursor-pointer hover:ring-2 hover:ring-white/20 transition-all' : ''}`}
             style={{
               background: cardBgColor,
               borderRadius: cardBorderRadius,
               animation: `fadeIn 0.3s ease-out ${i * 60}ms both`,
             }}
+            onClick={() => handleItemClick(item)}
           >
-            {/* Badge */}
             {item.badge && (
               <div
                 className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
@@ -154,38 +162,31 @@ export function CatalogRenderer(props: Props) {
               </div>
             )}
 
-            {/* Image */}
             {item.image ? (
               <div style={{ aspectRatio: imageAspect }} className="w-full overflow-hidden">
                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div
-                style={{ aspectRatio: imageAspect }}
-                className="w-full flex items-center justify-center bg-white/5"
-              >
+              <div style={{ aspectRatio: imageAspect }} className="w-full flex items-center justify-center bg-white/5">
                 <Tag className="w-8 h-8 text-white/20" />
               </div>
             )}
 
-            {/* Info */}
             <div className="p-3 flex flex-col flex-1">
-              <h3 className="font-semibold text-white leading-tight" style={{ fontSize: nameSize }}>
-                {item.name}
-              </h3>
-              {item.description && (
-                <p className="text-white/50 text-[11px] mt-1 line-clamp-2">{item.description}</p>
-              )}
-              {showCategory && item.category && (
-                <span className="text-[10px] mt-1 text-white/40">{item.category}</span>
-              )}
+              <h3 className="font-semibold text-white leading-tight" style={{ fontSize: nameSize }}>{item.name}</h3>
+              {item.description && <p className="text-white/50 text-[11px] mt-1 line-clamp-2">{item.description}</p>}
+              {showCategory && item.category && <span className="text-[10px] mt-1 text-white/40">{item.category}</span>}
               <div className="flex-1" />
               {showPrice && item.price && (
-                <p className="font-bold mt-2" style={{ color: priceColor, fontSize: priceSize }}>
-                  {item.price}
-                </p>
+                <p className="font-bold mt-2" style={{ color: priceColor, fontSize: priceSize }}>{item.price}</p>
               )}
             </div>
+
+            {itemNavigateTarget && (
+              <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[9px] text-white/40">→ Ver detalhes</span>
+              </div>
+            )}
           </div>
         ))}
       </div>

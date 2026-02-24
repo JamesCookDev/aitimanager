@@ -1,4 +1,10 @@
+import { usePageVariables, interpolateVariables } from '../PageVariablesContext';
+
 export function TextRenderer(props: any) {
+  const { variables } = usePageVariables();
+  const rawText = props.text || 'Texto';
+  const displayText = interpolateVariables(rawText, variables);
+
   return (
     <div
       className="w-full h-full flex items-center p-2 select-none"
@@ -12,7 +18,7 @@ export function TextRenderer(props: any) {
         lineHeight: 1.2,
       }}
     >
-      {props.text || 'Texto'}
+      {displayText}
     </div>
   );
 }
