@@ -664,6 +664,223 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "store":
       return <PremiumStoreDirectory props={p} />;
 
+    // ── LIST: Premium item list (cardápio/serviços) ──
+    case "list": {
+      const items = p.items || [
+        { id: "1", title: "Item 1", subtitle: "Descrição", price: "R$ 29,90", icon: "🍔" },
+        { id: "2", title: "Item 2", subtitle: "Descrição", price: "R$ 19,90", icon: "🍟" },
+        { id: "3", title: "Item 3", subtitle: "Descrição", price: "R$ 14,90", icon: "🥤" },
+      ];
+      const titleColor = p.titleColor || "#ffffff";
+      const subtitleColor = p.subtitleColor || "rgba(255,255,255,0.6)";
+      const priceColor = p.priceColor || "#6366f1";
+      const dividerColor = p.dividerColor || "rgba(255,255,255,0.06)";
+      const listBg = p.bgColor || "rgba(0,0,0,0.4)";
+      const showDivider = p.showDivider !== false;
+      const showIcon = p.showIcon !== false;
+      const showPrice = p.showPrice !== false;
+      const tSize = p.titleSize || 18;
+      return (
+        <div style={{
+          width: "100%", height: "100%", overflow: "auto",
+          background: `linear-gradient(160deg, ${listBg}, rgba(0,0,0,0.55))`,
+          borderRadius: p.borderRadius ?? 16, padding: 16,
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}>
+          {p.listTitle && <p style={{ color: titleColor, fontSize: tSize + 4, fontWeight: 700, marginBottom: 14, letterSpacing: "-0.01em" }}>{p.listTitle}</p>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {items.map((item, i) => (
+              <div key={item.id}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "12px",
+                  borderRadius: 12, background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.04)",
+                }}>
+                  {showIcon && (
+                    item.image
+                      ? <img src={item.image} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)" }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(255,255,255,0.06)", fontSize: 26 }}>{item.icon || "•"}</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: titleColor, fontSize: tSize, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    {item.subtitle && <p style={{ color: subtitleColor, fontSize: tSize - 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.subtitle}</p>}
+                  </div>
+                  {showPrice && item.price && (
+                    <span style={{ color: priceColor, fontSize: tSize, fontWeight: 700, flexShrink: 0, padding: "4px 12px", borderRadius: 8, background: `${priceColor}12`, border: `1px solid ${priceColor}22` }}>{item.price}</span>
+                  )}
+                </div>
+                {showDivider && i < items.length - 1 && <div style={{ height: 1, background: dividerColor, margin: "0 12px" }} />}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── GALLERY: Photo grid ──
+    case "gallery": {
+      const gImages = p.images || [
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=300&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=300&h=300&fit=crop",
+      ];
+      const gCols = p.columns || 2;
+      const gGap = p.gap ?? 8;
+      const gBr = p.borderRadius ?? 12;
+      return (
+        <div style={{ width: "100%", height: "100%", overflow: "hidden", background: p.bgColor || "transparent", borderRadius: gBr, padding: gGap }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${gCols}, 1fr)`, gap: gGap, width: "100%", height: "100%" }}>
+            {gImages.map((src, i) => (
+              <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: gBr / 2, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", aspectRatio: p.aspectRatio || "1/1" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.3) 100%)", pointerEvents: "none" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── ANIMATED NUMBER: Counter with easing ──
+    case "animated-number":
+      return <LiveAnimatedNumber {...p} />;
+
+    // ── CATALOG: Product grid with search/filter ──
+    case "catalog": {
+      const catItems = p.items || [];
+      const catCols = p.columns || 2;
+      const catGap = p.gap || 12;
+      const catCardBg = p.cardBgColor || "rgba(255,255,255,0.08)";
+      const catCardBr = p.cardBorderRadius || 12;
+      const catAccent = p.accentColor || "#6366f1";
+      const catPriceColor = p.priceColor || "#22c55e";
+      return (
+        <div style={{
+          width: "100%", height: "100%", overflow: "auto", display: "flex", flexDirection: "column",
+          background: p.bgColor || "rgba(0,0,0,0.5)", borderRadius: p.borderRadius || 16, padding: 16,
+        }}>
+          {p.title && <h2 style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 24, fontWeight: 700, marginBottom: 12 }}>{p.title}</h2>}
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${catCols}, 1fr)`, gap: catGap, flex: 1, overflow: "auto" }}>
+            {catItems.map((item, i) => (
+              <div key={item.id || i} style={{
+                background: catCardBg, borderRadius: catCardBr, overflow: "hidden",
+                display: "flex", flexDirection: "column", position: "relative",
+                animation: `fadeIn 0.3s ease-out ${i * 60}ms both`,
+              }}
+                onClick={() => {
+                  if (p.itemNavigateTarget && window.__totemNavigatePage) {
+                    window.__totemNavigatePage(p.itemNavigateTarget, p.itemNavigateTransition || "fade", {
+                      item_name: item.name, item_description: item.description,
+                      item_price: item.price, item_image: item.image, item_category: item.category,
+                    });
+                  }
+                }}
+              >
+                {item.badge && <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: "#fff", background: item.badgeColor || catAccent }}>{item.badge}</div>}
+                {item.image
+                  ? <div style={{ aspectRatio: p.imageAspect || "4/3", width: "100%", overflow: "hidden" }}><img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
+                  : <div style={{ aspectRatio: p.imageAspect || "4/3", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)" }}><span style={{ fontSize: 32, opacity: 0.2 }}>📦</span></div>
+                }
+                <div style={{ padding: 12, display: "flex", flexDirection: "column", flex: 1 }}>
+                  <h3 style={{ color: "#fff", fontSize: p.nameSize || 14, fontWeight: 600, lineHeight: 1.3 }}>{item.name}</h3>
+                  {item.description && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4 }}>{item.description}</p>}
+                  {p.showCategory !== false && item.category && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 4 }}>{item.category}</span>}
+                  <div style={{ flex: 1 }} />
+                  {p.showPrice !== false && item.price && <p style={{ color: catPriceColor, fontSize: p.priceSize || 16, fontWeight: 700, marginTop: 8 }}>{item.price}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {catItems.length === 0 && <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center", padding: 32 }}>Nenhum produto</p>}
+        </div>
+      );
+    }
+
+    // ── FORM: Interactive form with fields ──
+    case "form":
+      return <LiveForm props={p} />;
+
+    // ── TICKET: Queue/senha system ──
+    case "ticket":
+      return <LiveTicket props={p} />;
+
+    // ── QR PIX: Payment QR code ──
+    case "qrpix": {
+      const pixAccent = p.accentColor || "#32bcad";
+      const pixKey = p.pixKey || "12345678901";
+      const pixAmount = p.amount || "R$ 0,00";
+      const pixRecipient = p.recipientName || "Empresa LTDA";
+      const pixLabel = p.label || "Pague com Pix";
+      return (
+        <div style={{
+          width: "100%", height: "100%",
+          background: `linear-gradient(145deg, ${p.bgColor || "rgba(0,0,0,0.5)"}, rgba(0,0,0,0.7))`,
+          borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 14, padding: 20,
+          backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)",
+          position: "relative", overflow: "hidden",
+        }}>
+          <style>{`
+            @keyframes pix-glow { 0%, 100% { box-shadow: 0 0 20px ${pixAccent}30; } 50% { box-shadow: 0 0 30px ${pixAccent}50; } }
+          `}</style>
+          <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${pixAccent}20 0%, transparent 70%)`, borderRadius: "50%", pointerEvents: "none" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", background: `${pixAccent}18`, borderRadius: 999, border: `1px solid ${pixAccent}33` }}>
+            <span style={{ fontSize: 20 }}>💠</span>
+            <span style={{ color: pixAccent, fontSize: 16, fontWeight: 700 }}>{pixLabel}</span>
+          </div>
+          <div style={{ position: "relative", width: "55%", aspectRatio: "1/1", maxWidth: 200, animation: "pix-glow 3s ease-in-out infinite", borderRadius: 16, padding: 3, background: `conic-gradient(from 0deg, ${pixAccent}, ${pixAccent}44, ${pixAccent})` }}>
+            <div style={{ width: "100%", height: "100%", backgroundColor: "#fff", borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", padding: 10 }}>
+              <div style={{ width: "100%", height: "100%", background: "repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 10px 10px", borderRadius: 4, opacity: 0.35 }} />
+            </div>
+          </div>
+          <span style={{ color: `${p.textColor || "#fff"}88`, fontSize: 13, textAlign: "center", fontWeight: 500 }}>{pixRecipient}</span>
+          {p.showAmount !== false && <div style={{ padding: "8px 24px", background: `linear-gradient(135deg, ${pixAccent}22, ${pixAccent}11)`, borderRadius: 12, border: `1px solid ${pixAccent}33` }}>
+            <span style={{ color: pixAccent, fontSize: 30, fontWeight: 800 }}>{pixAmount}</span>
+          </div>}
+          <span style={{ color: `${p.textColor || "#fff"}40`, fontSize: 10, fontFamily: "monospace", padding: "3px 10px", background: "rgba(255,255,255,0.04)", borderRadius: 6 }}>Chave: {pixKey}</span>
+        </div>
+      );
+    }
+
+    // ── NUMPAD: Virtual numeric input ──
+    case "numpad":
+      return <LiveNumpad props={p} />;
+
+    // ── BIG CTA: Large call-to-action ──
+    case "bigcta": {
+      const ctaBg = p.bgColor || "#6366f1";
+      const ctaText = p.textColor || "#ffffff";
+      const ctaFontSize = p.fontSize || 28;
+      const ctaPulse = p.pulse !== false;
+      return (
+        <div style={{
+          width: "100%", height: "100%",
+          background: `linear-gradient(135deg, ${ctaBg}, ${ctaBg}cc, ${ctaBg}ee)`,
+          borderRadius: p.borderRadius || 24, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer",
+          boxShadow: `0 8px 40px ${ctaBg}50, inset 0 1px 0 rgba(255,255,255,0.2)`,
+          animation: ctaPulse ? "kiosk-breathe 2.5s ease-in-out infinite" : "none",
+          position: "relative", overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.12)",
+        }}
+          onClick={() => {
+            if (p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
+              window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade");
+            }
+          }}
+        >
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)", borderRadius: `${p.borderRadius || 24}px ${p.borderRadius || 24}px 0 0`, pointerEvents: "none" }} />
+          <style>{`@keyframes cta-shimmer { 0% { transform: translateX(-100%) skewX(-15deg); } 100% { transform: translateX(300%) skewX(-15deg); } }`}</style>
+          <div style={{ position: "absolute", top: 0, left: 0, width: "30%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", animation: "cta-shimmer 4s ease-in-out infinite", pointerEvents: "none" }} />
+          {p.icon && <span style={{ fontSize: ctaFontSize * 1.3, position: "relative", zIndex: 1, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>{p.icon}</span>}
+          <span style={{ color: ctaText, fontSize: ctaFontSize, fontWeight: 800, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 1, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{p.label || "Toque para começar"}</span>
+          {p.sublabel && <span style={{ color: `${ctaText}88`, fontSize: p.sublabelSize || 14, fontWeight: 400, textAlign: "center", position: "relative", zIndex: 1 }}>{p.sublabel}</span>}
+        </div>
+      );
+    }
+
     default:
       return <PremiumPlaceholder emoji="❓" label={type} />;
   }
@@ -1651,9 +1868,262 @@ function PremiumCarousel({ images = [], autoplay = true, interval = 5, transitio
 }
 
 
+// ─────────────────────────────────────────────
+// 🔢 ANIMATED NUMBER
+// ─────────────────────────────────────────────
+function LiveAnimatedNumber(p) {
+  const targetValue = p.value ?? 1234;
+  const prefix = p.prefix || "";
+  const suffix = p.suffix || "";
+  const label = p.label || "";
+  const c = p.color || "#ffffff";
+  const labelColor = p.labelColor || "rgba(255,255,255,0.6)";
+  const fSize = p.fontSize || 64;
+  const labelSize = p.labelSize || 18;
+  const duration = p.duration || 2000;
+  const fontWeight = p.fontWeight || "800";
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const animRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const start = performance.now();
+    const to = typeof targetValue === "number" ? targetValue : parseInt(targetValue) || 0;
+    function animate(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(to * eased));
+      if (progress < 1) animRef.current = requestAnimationFrame(animate);
+    }
+    animRef.current = requestAnimationFrame(animate);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [targetValue, duration]);
+
+  const formatted = p.useGrouping !== false ? displayValue.toLocaleString("pt-BR") : displayValue.toString();
+
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 16px", position: "relative" }}>
+      <div style={{ position: "absolute", width: "60%", height: "40%", background: `radial-gradient(ellipse, ${c}15 0%, transparent 70%)`, pointerEvents: "none" }} />
+      <p style={{ color: c, fontSize: fSize, fontWeight, lineHeight: 1.1, letterSpacing: "-0.03em", textShadow: `0 0 40px ${c}25, 0 2px 4px rgba(0,0,0,0.3)`, position: "relative" }}>
+        {prefix}{formatted}{suffix}
+      </p>
+      {label && <p style={{ color: labelColor, fontSize: labelSize, fontWeight: 500, marginTop: 10, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</p>}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
-// 🎨 CSS GLOBAL
+// 📝 FORM
+// ─────────────────────────────────────────────
+function LiveForm({ props: p }) {
+  const title = p.title || "Check-in";
+  const fields = p.fields || [];
+  const submitLabel = p.submitLabel || "Enviar";
+  const submitBg = p.submitBgColor || "#6366f1";
+  const submitText = p.submitTextColor || "#ffffff";
+  const fieldBg = p.fieldBgColor || "rgba(255,255,255,0.08)";
+  const fieldText = p.fieldTextColor || "#ffffff";
+  const bg = p.bgColor || "rgba(0,0,0,0.5)";
+  const [submitted, setSubmitted] = React.useState(false);
+  const formRef = React.useRef(null);
+
+  const handleSubmit = () => {
+    if (p.navigateOnSubmit && window.__totemNavigatePage) {
+      const vars = {};
+      if (formRef.current) {
+        formRef.current.querySelectorAll("[data-var]").forEach(input => {
+          const v = input.getAttribute("data-var");
+          if (v) vars[v] = input.type === "checkbox" ? (input.checked ? "sim" : "não") : input.value;
+        });
+      }
+      window.__totemNavigatePage(p.navigateOnSubmit, p.navigateTransition || "fade", vars);
+    } else {
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`, borderRadius: p.borderRadius || 16, backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ textAlign: "center" }}>
+          <span style={{ fontSize: 48 }}>✅</span>
+          <p style={{ color: p.titleColor || "#fff", fontSize: 18, fontWeight: 600, marginTop: 12 }}>{p.successMessage || "Enviado com sucesso!"}</p>
+          <button onClick={() => setSubmitted(false)} className="totem-btn-3d" style={{ marginTop: 16, padding: "8px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: `${submitBg}20`, color: submitBg, border: `1px solid ${submitBg}33`, cursor: "pointer" }}>Enviar outro</button>
+        </div>
+      </div>
+    );
+  }
+
+  const fieldStyle = { background: `linear-gradient(135deg, ${fieldBg}, rgba(255,255,255,0.04))`, color: fieldText, border: "1px solid rgba(255,255,255,0.08)", width: "100%", height: 44, padding: "0 16px", borderRadius: 12, fontSize: 14, outline: "none" };
+
+  return (
+    <div ref={formRef} style={{ width: "100%", height: "100%", overflow: "auto", display: "flex", flexDirection: "column", background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`, borderRadius: p.borderRadius || 16, padding: 20, backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <h2 style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 22, fontWeight: 700, marginBottom: 20 }}>{title}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+        {fields.map(field => {
+          const varName = field.variableName || field.label?.toLowerCase().replace(/\s+/g, "_");
+          return (
+            <div key={field.id} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ color: `${fieldText}88`, fontSize: 11, fontWeight: 600, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                {field.label}{field.required && <span style={{ color: "#ef4444" }}> *</span>}
+              </label>
+              {(field.type === "text" || field.type === "email" || field.type === "phone") && <input type={field.type === "phone" ? "tel" : field.type} placeholder={field.placeholder || ""} data-var={varName} style={fieldStyle} />}
+              {field.type === "textarea" && <textarea placeholder={field.placeholder || ""} rows={3} data-var={varName} style={{ ...fieldStyle, height: "auto", padding: "12px 16px", resize: "none" }} />}
+              {field.type === "select" && <select data-var={varName} style={fieldStyle}><option value="">{field.placeholder || "Selecione..."}</option>{(field.options || "").split(",").filter(Boolean).map(o => <option key={o.trim()} value={o.trim()}>{o.trim()}</option>)}</select>}
+              {field.type === "checkbox" && <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", cursor: "pointer" }}><input type="checkbox" data-var={varName} style={{ width: 20, height: 20, accentColor: submitBg }} /><span style={{ color: fieldText, fontSize: 14 }}>{field.placeholder || field.label}</span></label>}
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={handleSubmit} className="totem-btn-3d" style={{
+        width: "100%", padding: "14px 24px", borderRadius: 16, fontWeight: 700, fontSize: 16, marginTop: 20,
+        background: `linear-gradient(135deg, ${submitBg}, ${submitBg}dd)`, color: submitText,
+        border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer",
+        boxShadow: `0 4px 24px ${submitBg}40`,
+      }}>{submitLabel}</button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🎫 TICKET
+// ─────────────────────────────────────────────
+function LiveTicket({ props: p }) {
+  const prefix = p.prefix || "A";
+  const accent = p.accentColor || "#6366f1";
+  const textColor = p.textColor || "#ffffff";
+  const fSize = p.fontSize || 72;
+  const bg = p.bgColor || "rgba(0,0,0,0.5)";
+  const [number, setNumber] = React.useState(p.currentNumber || 42);
+  const [animating, setAnimating] = React.useState(false);
+  const formatted = `${prefix}${String(number).padStart(3, "0")}`;
+
+  const handleClick = () => {
+    setAnimating(true);
+    setNumber(n => n + 1);
+    setTimeout(() => setAnimating(false), 600);
+  };
+
+  return (
+    <div style={{
+      width: "100%", height: "100%",
+      background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+      borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 14, padding: 24,
+      backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)",
+      position: "relative", overflow: "hidden",
+    }}>
+      <style>{`
+        @keyframes ticket-pop { 0% { transform: scale(1); } 30% { transform: scale(1.15); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+        @keyframes ticket-glow { 0%, 100% { text-shadow: 0 0 20px ${accent}40; } 50% { text-shadow: 0 0 40px ${accent}60; } }
+      `}</style>
+      <div style={{ position: "absolute", top: 12, left: 12, right: 12, bottom: 12, border: `2px dashed ${textColor}12`, borderRadius: (p.borderRadius || 20) - 8, pointerEvents: "none" }} />
+      <span style={{ color: `${textColor}88`, fontSize: p.labelSize || 16, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>{p.label || "Sua senha"}</span>
+      <div style={{ padding: "12px 28px", background: `linear-gradient(135deg, ${accent}15, ${accent}08)`, borderRadius: 16, border: `1px solid ${accent}30` }}>
+        <span style={{ color: accent, fontSize: fSize, fontWeight: 800, fontFamily: "monospace", letterSpacing: "0.08em", animation: animating ? "ticket-pop 0.6s ease-out" : "ticket-glow 3s ease-in-out infinite", display: "block" }}>{formatted}</span>
+      </div>
+      {p.showPrint !== false && (
+        <button onClick={handleClick} className="totem-btn-3d" style={{
+          marginTop: 4, padding: "14px 36px",
+          background: `linear-gradient(135deg, ${accent}, ${accent}dd)`, color: "#fff",
+          border: "none", borderRadius: 999, fontSize: 17, fontWeight: 700, cursor: "pointer",
+          boxShadow: `0 4px 24px ${accent}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
+          position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)", borderRadius: "999px 999px 0 0", pointerEvents: "none" }} />
+          <span style={{ position: "relative" }}>{p.printLabel || "🖨️ Retirar Senha"}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🔢 NUMPAD
+// ─────────────────────────────────────────────
+function LiveNumpad({ props: p }) {
+  const accent = p.accentColor || "#6366f1";
+  const textColor = p.textColor || "#ffffff";
+  const bg = p.bgColor || "rgba(0,0,0,0.5)";
+  const maxLen = p.maxLength || 11;
+  const mask = p.mask || "cpf";
+  const [value, setValue] = React.useState("");
+  const [pressedKey, setPressedKey] = React.useState(null);
+  const digits = value.replace(/\D/g, "");
+
+  function applyMask(val, m) {
+    const d = val.replace(/\D/g, "");
+    if (m === "cpf") return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    if (m === "phone") return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+    return d;
+  }
+  const display = mask !== "none" ? applyMask(digits, mask) : digits;
+
+  const handleKey = (key) => {
+    setPressedKey(key);
+    setTimeout(() => setPressedKey(null), 150);
+    if (key === "C") setValue("");
+    else if (key === "⌫") setValue(v => v.slice(0, -1));
+    else if (digits.length < maxLen) setValue(v => v + key);
+  };
+
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "⌫"];
+
+  return (
+    <div style={{
+      width: "100%", height: "100%",
+      background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+      borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
+      padding: 20, gap: 12, backdropFilter: "blur(12px)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}>
+      <span style={{ color: `${textColor}99`, fontSize: 14, fontWeight: 600, textAlign: "center", letterSpacing: "0.02em" }}>{p.label || "Digite seu CPF"}</span>
+      <div style={{
+        padding: "14px 16px",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+        borderRadius: 14, textAlign: "center", fontSize: 28, fontFamily: "monospace",
+        fontWeight: 700, color: digits.length > 0 ? textColor : `${textColor}30`,
+        letterSpacing: "0.06em", minHeight: 54, display: "flex", alignItems: "center", justifyContent: "center",
+        border: `1.5px solid ${digits.length > 0 ? accent + "44" : "rgba(255,255,255,0.06)"}`,
+        boxShadow: digits.length > 0 ? `0 0 20px ${accent}15` : "none",
+        transition: "border-color 0.3s, box-shadow 0.3s",
+      }}>{display || p.placeholder || "000.000.000-00"}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, flex: 1 }}>
+        {keys.map(key => {
+          const isPressed = pressedKey === key;
+          return (
+            <button key={key} onClick={() => handleKey(key)} className="totem-btn-3d" style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: (key === "C" || key === "⌫") ? 18 : 26, fontWeight: 700,
+              color: key === "C" ? "#ef4444" : key === "⌫" ? "#f59e0b" : textColor,
+              background: isPressed ? `${accent}30` : "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+              border: `1px solid ${isPressed ? accent + "44" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 14, cursor: "pointer", transition: "all 0.15s ease",
+              boxShadow: isPressed ? `0 0 16px ${accent}20` : "0 2px 8px rgba(0,0,0,0.2)",
+              transform: isPressed ? "scale(0.95)" : "scale(1)",
+            }}>{key}</button>
+          );
+        })}
+      </div>
+      <button onClick={() => {
+        if (digits.length >= 3 && p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
+          window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade", { numpad_value: display });
+        }
+      }} className="totem-btn-3d" style={{
+        padding: "14px 24px",
+        background: digits.length >= 3 ? `linear-gradient(135deg, ${accent}, ${accent}dd)` : "rgba(255,255,255,0.05)",
+        color: digits.length >= 3 ? "#ffffff" : `${textColor}40`,
+        border: digits.length >= 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 999, fontSize: 18, fontWeight: 700,
+        cursor: digits.length >= 3 ? "pointer" : "default",
+        boxShadow: digits.length >= 3 ? `0 4px 24px ${accent}40` : "none",
+        transition: "all 0.3s ease",
+      }}>{p.buttonLabel || "Confirmar"}</button>
+    </div>
+  );
+}
+
+
 // ─────────────────────────────────────────────
 const GlobalStyles = () => (
   <style>{`
