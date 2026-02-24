@@ -284,48 +284,63 @@ function SocialSVGIcon({ platform, size = 24, color = "#fff" }) {
 // 🧱 ELEMENT RENDERER — renderiza cada tipo de elemento
 // ─────────────────────────────────────────────
 function ElementRenderer({ type, props: p, onNavigate }) {
+  const fs = (base) => `clamp(12px, ${(base || 18) / CANVAS_W * 100}vw, ${(base || 18) * 1.5}px)`;
+
   switch (type) {
-    case "text":
+    // ── TEXT: Premium glow + letter-spacing ──
+    case "text": {
+      const color = p.color || "#fff";
       return (
         <div style={{
           width: "100%", height: "100%",
           display: "flex", alignItems: "center",
           padding: "2%",
-          color: p.color || "#fff",
-          fontSize: `clamp(12px, ${(p.fontSize || 24) / CANVAS_W * 100}vw, ${(p.fontSize || 24) * 1.5}px)`,
+          color,
+          fontSize: fs(p.fontSize || 24),
           fontWeight: p.fontWeight || "normal",
           textAlign: p.align || "left",
-          fontFamily: p.fontFamily || "Inter, sans-serif",
+          fontFamily: p.fontFamily || "'Inter', sans-serif",
           justifyContent: p.align === "center" ? "center" : p.align === "right" ? "flex-end" : "flex-start",
-          lineHeight: 1.2,
+          lineHeight: 1.25,
           wordBreak: "break-word",
+          textShadow: `0 2px 8px ${color}30, 0 1px 2px rgba(0,0,0,0.4)`,
+          letterSpacing: "-0.01em",
         }}>
           {p.text || "Texto"}
         </div>
       );
+    }
 
-    case "image":
+    // ── IMAGE: Subtle vignette + smooth loading ──
+    case "image": {
       if (!p.src) {
-        return (
-          <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 32, opacity: 0.3 }}>🖼️</span>
-          </div>
-        );
+        return <PremiumPlaceholder emoji="🖼️" label="Imagem" />;
       }
       return (
-        <img
-          src={p.src}
-          alt=""
-          style={{
-            width: "100%", height: "100%",
-            objectFit: p.fit || "cover",
-            borderRadius: p.borderRadius || 0,
-            pointerEvents: "none",
-          }}
-        />
+        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+          <img
+            src={p.src} alt=""
+            style={{
+              width: "100%", height: "100%",
+              objectFit: p.fit || "cover",
+              pointerEvents: "none",
+              transition: "transform 0.6s ease",
+            }}
+          />
+          {/* Subtle vignette overlay */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.25) 100%)",
+          }} />
+        </div>
       );
+    }
 
-    case "button":
+    // ── BUTTON: Gradient + shimmer + shine ──
+    case "button": {
+      const bgColor = p.bgColor || "#6366f1";
+      const textColor = p.textColor || "#fff";
+      const borderRadius = p.borderRadius ?? 999;
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "2%" }}>
           <button
@@ -346,49 +361,89 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             style={{
               width: "100%", height: "100%",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: p.bgColor || "#6366f1",
-              color: p.textColor || "#fff",
-              fontSize: `clamp(12px, ${(p.fontSize || 18) / CANVAS_W * 100}vw, ${(p.fontSize || 18) * 1.5}px)`,
-              fontWeight: "600",
-              borderRadius: p.borderRadius ?? 999,
-              border: "none",
+              background: `linear-gradient(135deg, ${bgColor}, ${bgColor}dd, ${bgColor})`,
+              color: textColor,
+              fontSize: fs(p.fontSize || 18),
+              fontWeight: "700",
+              borderRadius,
+              border: `1px solid rgba(255,255,255,0.15)`,
               cursor: "pointer",
               letterSpacing: "-0.01em",
-              transition: "transform 0.15s",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: `0 4px 20px ${bgColor}50, inset 0 1px 0 rgba(255,255,255,0.2)`,
+              textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              transition: "transform 0.2s, box-shadow 0.2s",
             }}
           >
-            {p.label || "Botão"}
+            {/* Top shine */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, height: "45%",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%)",
+              borderRadius: `${borderRadius}px ${borderRadius}px 0 0`,
+              pointerEvents: "none",
+            }} />
+            {/* Shimmer sweep */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, width: "40%", height: "100%",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)",
+              animation: "totem-btn-shimmer 3s ease-in-out infinite",
+              pointerEvents: "none",
+            }} />
+            <span style={{ position: "relative", zIndex: 1 }}>
+              {p.label || "Botão"}
+            </span>
           </button>
         </div>
       );
+    }
 
-    case "shape":
+    // ── SHAPE: Gradient + subtle breathe + glass border ──
+    case "shape": {
+      const fill = p.fill || "#6366f1";
+      const isCircle = p.shapeType === "circle";
       return (
         <div style={{
           width: "100%", height: "100%",
-          background: p.fill || "#6366f1",
-          borderRadius: p.shapeType === "circle" ? "50%" : (p.borderRadius || 0),
-          border: p.borderWidth ? `${p.borderWidth}px solid ${p.borderColor || "transparent"}` : undefined,
-        }} />
+          position: "relative",
+          background: `linear-gradient(135deg, ${fill}, ${fill}cc)`,
+          borderRadius: isCircle ? "50%" : (p.borderRadius || 0),
+          border: p.borderWidth
+            ? `${p.borderWidth}px solid ${p.borderColor || "rgba(255,255,255,0.15)"}`
+            : "1px solid rgba(255,255,255,0.08)",
+          boxShadow: `0 8px 32px ${fill}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
+          animation: "totem-shape-breathe 4s ease-in-out infinite",
+          overflow: "hidden",
+        }}>
+          {/* Inner glow */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)",
+          }} />
+        </div>
       );
+    }
 
-    case "icon":
+    // ── ICON: Glow + subtle animation ──
+    case "icon": {
+      const iconColor = p.color || "#fff";
       return (
         <div style={{
           width: "100%", height: "100%",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: p.color || "#fff",
-          fontSize: `clamp(16px, ${(p.size || 48) / CANVAS_W * 100}vw, ${(p.size || 48) * 1.5}px)`,
+          color: iconColor,
+          fontSize: fs(p.size || 48),
+          filter: `drop-shadow(0 0 8px ${iconColor}40)`,
+          animation: "totem-icon-glow 3s ease-in-out infinite",
         }}>
           {p.icon || "⭐"}
         </div>
       );
+    }
 
     case "video": {
       const vidSrc = p.url || "";
-      if (!vidSrc) {
-        return <PlaceholderBox emoji="🎬" label="Vídeo" />;
-      }
+      if (!vidSrc) return <PremiumPlaceholder emoji="🎬" label="Vídeo" />;
       const isYt = vidSrc.includes("youtube.com") || vidSrc.includes("youtu.be");
       const isMp4 = vidSrc.endsWith(".mp4") || vidSrc.endsWith(".webm");
       let finalSrc = vidSrc;
@@ -397,21 +452,59 @@ function ElementRenderer({ type, props: p, onNavigate }) {
         if (videoId) finalSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&mute=${p.muted ? 1 : 0}&loop=${p.loop ? 1 : 0}`;
       }
       if (isMp4) {
-        return <video src={finalSrc} autoPlay={!!p.autoplay} loop={!!p.loop} muted={!!p.muted || !!p.autoplay} style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+        return (
+          <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+            <video src={finalSrc} autoPlay={!!p.autoplay} loop={!!p.loop} muted={!!p.muted || !!p.autoplay} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(180deg, transparent 70%, rgba(0,0,0,0.4) 100%)" }} />
+          </div>
+        );
       }
       return (
-        <iframe src={finalSrc} style={{ width: "100%", height: "100%", border: "none" }} allow="autoplay; fullscreen; encrypted-media" allowFullScreen />
+        <div style={{ width: "100%", height: "100%", borderRadius: p.borderRadius || 0, overflow: "hidden" }}>
+          <iframe src={finalSrc} style={{ width: "100%", height: "100%", border: "none" }} allow="autoplay; fullscreen; encrypted-media" allowFullScreen />
+        </div>
       );
     }
 
+    // ── QR CODE: Glass frame + animated ring ──
     case "qrcode": {
       const qrContent = p.value || "https://example.com";
       const cleanFg = (p.fgColor || "#ffffff").replace("#", "");
       const cleanBg = !p.bgColor || p.bgColor === "transparent" ? "000000" : p.bgColor.replace("#", "");
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrContent)}&color=${cleanFg}&bgcolor=${cleanBg}`;
+      const accentColor = p.fgColor || "#6366f1";
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "4%" }}>
-          <img src={qrUrl} alt="QR Code" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }} />
+        <div style={{
+          width: "100%", height: "100%",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "4%", position: "relative",
+        }}>
+          {/* Animated glow ring */}
+          <div style={{
+            position: "absolute",
+            width: "75%", height: "75%",
+            borderRadius: 20,
+            background: `conic-gradient(from 0deg, ${accentColor}, ${accentColor}44, ${accentColor})`,
+            animation: "totem-qr-ring 4s linear infinite",
+            opacity: 0.3,
+            filter: "blur(8px)",
+          }} />
+          {/* Glass card */}
+          <div style={{
+            position: "relative",
+            padding: 16,
+            borderRadius: 16,
+            background: "rgba(255,255,255,0.06)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 20px ${accentColor}15`,
+          }}>
+            <img src={qrUrl} alt="QR Code" style={{
+              maxWidth: "100%", maxHeight: "100%",
+              objectFit: "contain", imageRendering: "pixelated",
+              borderRadius: 8,
+            }} />
+          </div>
         </div>
       );
     }
@@ -420,28 +513,34 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const mLat = p.lat ?? -23.5505;
       const mLng = p.lng ?? -46.6333;
       const mZoom = p.zoom ?? 15;
-      const mRadius = p.borderRadius ?? 12;
+      const mRadius = p.borderRadius ?? 16;
       const mLabel = p.label || "";
       const mLabelColor = p.labelColor || "#ffffff";
       const mLabelSize = p.labelSize || 14;
       const span = 0.01 / (mZoom / 15);
       const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${mLng - span},${mLat - span * 0.6},${mLng + span},${mLat + span * 0.6}&layer=mapnik&marker=${mLat},${mLng}`;
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: mRadius }}>
-          <iframe
-            src={mapSrc}
-            title="Mapa"
-            style={{ flex: 1, width: "100%", border: "none", pointerEvents: "auto" }}
-          />
+        <div style={{
+          width: "100%", height: "100%", display: "flex", flexDirection: "column",
+          overflow: "hidden", borderRadius: mRadius,
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+        }}>
+          <iframe src={mapSrc} title="Mapa" style={{ flex: 1, width: "100%", border: "none", pointerEvents: "auto" }} />
           {mLabel && (
-            <div style={{ flexShrink: 0, padding: "4px 8px", textAlign: "center", background: "rgba(0,0,0,0.6)" }}>
-              <span style={{ color: mLabelColor, fontSize: `clamp(10px, ${mLabelSize / CANVAS_W * 100}vw, ${mLabelSize * 1.5}px)`, fontWeight: 500 }}>{mLabel}</span>
+            <div style={{
+              flexShrink: 0, padding: "6px 12px", textAlign: "center",
+              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+            }}>
+              <span style={{ color: mLabelColor, fontSize: fs(mLabelSize), fontWeight: 600, letterSpacing: "0.02em" }}>{mLabel}</span>
             </div>
           )}
         </div>
       );
     }
 
+    // ── SOCIAL: Glass buttons with glow ──
     case "social": {
       const links = p.links || [];
       const layout = p.layout || "horizontal";
@@ -454,26 +553,20 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const padding = p.padding || 12;
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 4 }}>
-          <style>{`
-            @keyframes social-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-            .social-btn:hover .social-circle { animation: social-pulse 0.6s ease-in-out; box-shadow: 0 0 16px var(--glow); }
-            .social-btn:hover { transform: scale(1.12); }
-            .social-btn:active { transform: scale(0.95); }
-            .social-btn { transition: transform 0.2s ease; }
-          `}</style>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap",
             flexDirection: layout === "vertical" ? "column" : "row",
             gap, padding,
             backgroundColor: bgEnabled ? bgColor : "transparent",
             borderRadius: bgEnabled ? borderRadius : 0,
-            backdropFilter: bgEnabled ? "blur(8px)" : undefined,
-            border: bgEnabled ? "1px solid rgba(255,255,255,0.08)" : undefined,
+            backdropFilter: bgEnabled ? "blur(12px)" : undefined,
+            border: bgEnabled ? "1px solid rgba(255,255,255,0.1)" : undefined,
+            boxShadow: bgEnabled ? "0 8px 32px rgba(0,0,0,0.2)" : undefined,
           }}>
             {links.map((l, i) => {
               const color = l.color || "#6366f1";
               return (
-                <button key={l.id || i} className="social-btn" type="button"
+                <button key={l.id || i} type="button"
                   onClick={() => {
                     const url = l.url || "";
                     if (url && url !== "#") {
@@ -485,17 +578,26 @@ function ElementRenderer({ type, props: p, onNavigate }) {
                     background: "none", border: "none", cursor: "pointer", padding: 0,
                     display: "flex", alignItems: "center",
                     flexDirection: layout === "vertical" ? "row" : "column",
-                    gap: showLabels ? 4 : 0, "--glow": color + "66",
+                    gap: showLabels ? 6 : 0,
+                    transition: "transform 0.2s ease",
                   }}>
-                  <div className="social-circle" style={{
+                  <div style={{
                     width: iconSize, height: iconSize,
-                    backgroundColor: color + "22", border: `1.5px solid ${color}44`,
-                    borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.2s",
+                    backgroundColor: color + "18", border: `1.5px solid ${color}44`,
+                    borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.25s ease",
+                    boxShadow: `0 4px 16px ${color}25`,
+                    backdropFilter: "blur(4px)",
                   }}>
                     <SocialSVGIcon platform={l.platform || l.label?.toLowerCase() || ""} size={iconSize * 0.55} color={color} />
                   </div>
-                  {showLabels && <span style={{ fontSize: Math.max(9, iconSize * 0.28), color: "rgba(255,255,255,0.65)", fontWeight: 500, textAlign: "center" }}>{l.label || l.platform}</span>}
+                  {showLabels && (
+                    <span style={{
+                      fontSize: Math.max(9, iconSize * 0.28),
+                      color: "rgba(255,255,255,0.65)", fontWeight: 600,
+                      textAlign: "center", letterSpacing: "0.02em",
+                    }}>{l.label || l.platform}</span>
+                  )}
                 </button>
               );
             })}
@@ -511,69 +613,89 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "avatar":
       return <AvatarCanvasElement props={p} />;
 
+    // ── CLOCK: Premium with seconds + glow ──
     case "clock":
-      return <LiveClock color={p.color} fontSize={p.fontSize} />;
+      return <PremiumClock color={p.color} fontSize={p.fontSize} />;
 
+    // ── WEATHER: Glass card ──
     case "weather":
-      return <PlaceholderBox emoji="🌤️" label={`Clima: ${p.city || "São Paulo"}`} />;
+      return <PremiumWeather city={p.city} color={p.color} />;
 
+    // ── COUNTDOWN: Glass segments ──
     case "countdown":
-      return <LiveCountdown targetDate={p.targetDate} label={p.label} color={p.color} fontSize={p.fontSize} />;
+      return <PremiumCountdown targetDate={p.targetDate} label={p.label} color={p.color} fontSize={p.fontSize} accentColor={p.accentColor} />;
 
     case "iframe": {
       const url = p.url || "";
-      if (!url) return <PlaceholderBox emoji="🌐" label="Iframe — configure a URL" />;
+      if (!url) return <PremiumPlaceholder emoji="🌐" label="Iframe — configure a URL" />;
       return <ScaledIframe url={url} scrolling={p.scrolling} borderRadius={p.borderRadius} />;
     }
 
+    // ── CAROUSEL: Premium with vignette + ken burns ──
     case "carousel":
-      return <LiveCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} objectFit={p.objectFit} />;
+      return <PremiumCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} objectFit={p.objectFit} />;
 
     case "store":
-      return <StoreDirectory props={p} />;
+      return <PremiumStoreDirectory props={p} />;
 
     default:
-      return <PlaceholderBox emoji="❓" label={type} />;
+      return <PremiumPlaceholder emoji="❓" label={type} />;
   }
 }
 
 // ─────────────────────────────────────────────
-// 🔲 PLACEHOLDER BOX
+// 🔲 PREMIUM PLACEHOLDER
 // ─────────────────────────────────────────────
-function PlaceholderBox({ emoji, label }) {
+function PremiumPlaceholder({ emoji, label }) {
   return (
     <div style={{
       width: "100%", height: "100%",
       display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 8,
-      background: "rgba(255,255,255,0.04)",
-      borderRadius: 12,
+      alignItems: "center", justifyContent: "center", gap: 10,
+      background: "rgba(255,255,255,0.03)",
+      borderRadius: 16,
       border: "1px solid rgba(255,255,255,0.08)",
+      backdropFilter: "blur(8px)",
+      position: "relative",
+      overflow: "hidden",
     }}>
-      <span style={{ fontSize: 28 }}>{emoji}</span>
-      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
+      {/* Subtle gradient orb */}
+      <div style={{
+        position: "absolute", width: "60%", height: "60%",
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <span style={{ fontSize: 32, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>{emoji}</span>
+      <span style={{
+        fontSize: 11, color: "rgba(255,255,255,0.4)",
+        fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
+      }}>{label}</span>
     </div>
   );
 }
 
+// Keep backward compat
+function PlaceholderBox({ emoji, label }) {
+  return <PremiumPlaceholder emoji={emoji} label={label} />;
+}
+
 // ─────────────────────────────────────────────
-// 🏬 STORE DIRECTORY — Diretório de lojas (shopping)
+// 🏬 PREMIUM STORE DIRECTORY
 // ─────────────────────────────────────────────
-function StoreDirectory({ props: p }) {
+function PremiumStoreDirectory({ props: p }) {
   const stores = p.stores || [];
   const title = p.title || "Lojas";
   const titleColor = p.titleColor || "#ffffff";
   const titleSize = p.titleSize || 28;
   const bgColor = p.bgColor || "rgba(0,0,0,0.6)";
-  const borderRadius = p.borderRadius || 16;
+  const borderRadius = p.borderRadius || 20;
   const columns = p.columns || 1;
   const gap = p.gap || 12;
-  const cardBgColor = p.cardBgColor || "rgba(255,255,255,0.08)";
-  const cardBorderRadius = p.cardBorderRadius || 12;
+  const cardBgColor = p.cardBgColor || "rgba(255,255,255,0.06)";
+  const cardBorderRadius = p.cardBorderRadius || 16;
   const accentColor = p.accentColor || "#6366f1";
   const showCategory = p.showCategory !== false;
-  const showHours = p.showHours !== false;
-  const showPhone = p.showPhone !== false;
   const showFloor = p.showFloor !== false;
   const showFilter = p.showCategoryFilter !== false;
   const showSearch = p.showSearch !== false;
@@ -582,7 +704,6 @@ function StoreDirectory({ props: p }) {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
-  // Extract unique categories
   const categories = useMemo(() => {
     const cats = stores.map(s => s.category).filter(Boolean);
     return [...new Set(cats)];
@@ -593,17 +714,12 @@ function StoreDirectory({ props: p }) {
     if (activeCategory) result = result.filter(s => s.category === activeCategory);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      result = result.filter(s =>
-        (s.name || "").toLowerCase().includes(q) ||
-        (s.description || "").toLowerCase().includes(q)
-      );
+      result = result.filter(s => (s.name || "").toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
     }
     return result;
   }, [stores, activeCategory, search]);
 
-  if (stores.length === 0) {
-    return <PlaceholderBox emoji="🏬" label="Diretório de Lojas" />;
-  }
+  if (stores.length === 0) return <PremiumPlaceholder emoji="🏬" label="Diretório de Lojas" />;
 
   return (
     <div style={{
@@ -611,40 +727,49 @@ function StoreDirectory({ props: p }) {
       display: "flex", flexDirection: "column",
       overflow: "hidden",
       background: bgColor,
+      backdropFilter: "blur(16px)",
       borderRadius,
       padding: 16,
+      border: "1px solid rgba(255,255,255,0.08)",
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
     }}>
-      {/* Title */}
-      <div style={{ flexShrink: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 4, height: 24, borderRadius: 2, background: accentColor }} />
+      {/* Title with accent bar */}
+      <div style={{ flexShrink: 0, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{
+          width: 4, height: 28, borderRadius: 2,
+          background: `linear-gradient(180deg, ${accentColor}, ${accentColor}66)`,
+          boxShadow: `0 0 12px ${accentColor}40`,
+        }} />
         <span style={{
           color: titleColor,
           fontSize: `clamp(16px, ${titleSize / CANVAS_W * 100}vw, ${titleSize * 1.5}px)`,
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
+          fontWeight: 800, letterSpacing: "-0.02em",
+          textShadow: "0 2px 8px rgba(0,0,0,0.4)",
         }}>{title}</span>
       </div>
 
-      {/* Search bar */}
+      {/* Search bar — glass style */}
       {showSearch && stores.length > 2 && (
-        <div style={{ flexShrink: 0, marginBottom: 8, position: "relative" }}>
+        <div style={{ flexShrink: 0, marginBottom: 10, position: "relative" }}>
           <input
-            type="text"
-            value={search}
+            type="text" value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="🔍 Buscar loja..."
             style={{
-              width: "100%", height: 36, borderRadius: 10,
-              border: "none", outline: "none",
-              padding: "0 32px 0 12px",
-              background: "rgba(255,255,255,0.08)",
-              color: "#fff",
-              fontSize: `clamp(10px, ${12 / CANVAS_W * 100}vw, 15px)`,
+              width: "100%", height: 40, borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.1)", outline: "none",
+              padding: "0 36px 0 14px",
+              background: "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(8px)",
+              color: "#fff", fontSize: 13,
+              transition: "border-color 0.2s",
             }}
+            onFocus={(e) => e.target.style.borderColor = `${accentColor}66`}
+            onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
           />
           {search && (
             <button type="button" onClick={() => setSearch("")} style={{
-              position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
               background: "none", border: "none", cursor: "pointer",
               color: "rgba(255,255,255,0.4)", fontSize: 16,
             }}>✕</button>
@@ -652,138 +777,126 @@ function StoreDirectory({ props: p }) {
         </div>
       )}
 
-      {/* Category filter pills */}
+      {/* Category pills — glass chips */}
       {showFilter && categories.length > 1 && (
         <div style={{
-          flexShrink: 0, display: "flex", gap: 6, marginBottom: 8,
+          flexShrink: 0, display: "flex", gap: 8, marginBottom: 10,
           overflowX: "auto", paddingBottom: 4,
           scrollbarWidth: "none", msOverflowStyle: "none",
         }}>
           <button type="button" onClick={() => setActiveCategory(null)} style={{
-            flexShrink: 0, padding: "5px 12px", borderRadius: 999,
-            fontSize: `clamp(9px, ${11 / CANVAS_W * 100}vw, 14px)`, fontWeight: 600,
-            background: !activeCategory ? accentColor : "rgba(255,255,255,0.08)",
+            flexShrink: 0, padding: "6px 14px", borderRadius: 999,
+            fontSize: 12, fontWeight: 700,
+            background: !activeCategory ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : "rgba(255,255,255,0.06)",
             color: !activeCategory ? "#fff" : "rgba(255,255,255,0.6)",
             border: `1px solid ${!activeCategory ? accentColor : "rgba(255,255,255,0.1)"}`,
-            cursor: "pointer", transition: "all 0.2s",
+            cursor: "pointer", transition: "all 0.25s",
+            boxShadow: !activeCategory ? `0 4px 16px ${accentColor}40` : "none",
           }}>Todas</button>
           {categories.map(cat => (
             <button key={cat} type="button" onClick={() => setActiveCategory(activeCategory === cat ? null : cat)} style={{
-              flexShrink: 0, padding: "5px 12px", borderRadius: 999,
-              fontSize: `clamp(9px, ${11 / CANVAS_W * 100}vw, 14px)`, fontWeight: 600,
-              background: activeCategory === cat ? accentColor : "rgba(255,255,255,0.08)",
+              flexShrink: 0, padding: "6px 14px", borderRadius: 999,
+              fontSize: 12, fontWeight: 700,
+              background: activeCategory === cat ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : "rgba(255,255,255,0.06)",
               color: activeCategory === cat ? "#fff" : "rgba(255,255,255,0.6)",
               border: `1px solid ${activeCategory === cat ? accentColor : "rgba(255,255,255,0.1)"}`,
-              cursor: "pointer", transition: "all 0.2s",
+              cursor: "pointer", transition: "all 0.25s",
+              boxShadow: activeCategory === cat ? `0 4px 16px ${accentColor}40` : "none",
             }}>{cat}</button>
           ))}
         </div>
       )}
 
-      {/* Store cards — scrollable */}
-      <div style={{
-        flex: 1,
-        overflowY: "auto",
+      {/* Store cards — glass cards */}
+      <div className="totem-smooth-scroll" style={{
+        flex: 1, overflowY: "auto",
         display: "grid",
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap,
-        alignContent: "start",
+        gap, alignContent: "start",
       }}>
         {filtered.map((store, sIdx) => (
           <div key={store.id || sIdx} style={{
             display: "flex", flexDirection: "column",
             background: cardBgColor,
+            backdropFilter: "blur(8px)",
             borderRadius: cardBorderRadius,
-            border: "1px solid rgba(255,255,255,0.06)",
-            transition: "background 0.2s",
-            animation: `storeCardIn 0.3s ease-out ${sIdx * 50}ms both`,
+            border: "1px solid rgba(255,255,255,0.08)",
+            transition: "all 0.25s ease",
+            animation: `totem-store-card-in 0.3s ease-out ${sIdx * 50}ms both`,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
           }}>
-            <div style={{ display: "flex", gap: 12, padding: 12 }}>
-              {/* Logo */}
+            <div style={{ display: "flex", gap: 12, padding: 14 }}>
+              {/* Logo with glass background */}
               <div style={{
-                flexShrink: 0, width: 48, height: 48,
-                borderRadius: 10, display: "flex",
+                flexShrink: 0, width: 52, height: 52,
+                borderRadius: 14, display: "flex",
                 alignItems: "center", justifyContent: "center",
                 overflow: "hidden",
-                background: accentColor + "22",
-                border: `1px solid ${accentColor}33`,
+                background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}08)`,
+                border: `1px solid ${accentColor}30`,
+                boxShadow: `0 4px 12px ${accentColor}15`,
               }}>
                 {store.logo ? (
                   <img src={store.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
-                  <span style={{ fontSize: 20 }}>🏪</span>
+                  <span style={{ fontSize: 22 }}>🏪</span>
                 )}
               </div>
 
-              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  color: "#fff", fontWeight: 600,
-                  fontSize: `clamp(11px, ${14 / CANVAS_W * 100}vw, 18px)`,
-                  lineHeight: 1.2,
+                  color: "#fff", fontWeight: 700,
+                  fontSize: 15, lineHeight: 1.2,
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.3)",
                 }}>{store.name || "Loja"}</div>
 
                 {store.description && expandedId !== store.id && (
                   <div style={{
-                    color: "rgba(255,255,255,0.5)",
-                    fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
-                    marginTop: 2,
+                    color: "rgba(255,255,255,0.5)", fontSize: 12,
+                    marginTop: 3,
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   }}>{store.description}</div>
                 )}
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 6 }}>
                   {showFloor && store.floor && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>📍 {store.floor}</span>
                   )}
                   {showCategory && store.category && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ {store.category}</span>
+                    <span style={{ fontSize: 11, color: accentColor, fontWeight: 600 }}>🏷️ {store.category}</span>
                   )}
                 </div>
               </div>
 
-              {/* Details button */}
               <button type="button" onClick={() => setExpandedId(expandedId === store.id ? null : store.id)} style={{
                 flexShrink: 0, alignSelf: "flex-start",
-                padding: "4px 10px", borderRadius: 8,
-                fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 12px)`,
-                fontWeight: 600,
-                background: expandedId === store.id ? accentColor : accentColor + "22",
+                padding: "5px 12px", borderRadius: 10,
+                fontSize: 11, fontWeight: 700,
+                background: expandedId === store.id ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : `${accentColor}18`,
                 color: expandedId === store.id ? "#fff" : accentColor,
                 border: `1px solid ${accentColor}44`,
-                cursor: "pointer", transition: "all 0.2s",
+                cursor: "pointer", transition: "all 0.25s",
+                boxShadow: expandedId === store.id ? `0 4px 12px ${accentColor}40` : "none",
               }}>
                 {expandedId === store.id ? "✕" : "Detalhes"}
               </button>
             </div>
 
-            {/* Expanded details */}
             {expandedId === store.id && (
               <div style={{
-                padding: "0 12px 12px", borderTop: "1px solid rgba(255,255,255,0.05)",
-                animation: "storeCardIn 0.2s ease-out both",
+                padding: "0 14px 14px",
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                animation: "totem-store-card-in 0.2s ease-out both",
               }}>
                 {store.description && (
-                  <div style={{
-                    color: "rgba(255,255,255,0.6)",
-                    fontSize: `clamp(9px, ${10 / CANVAS_W * 100}vw, 14px)`,
-                    marginTop: 8, lineHeight: 1.5,
-                  }}>{store.description}</div>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 10, lineHeight: 1.6 }}>{store.description}</div>
                 )}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
-                  {store.hours && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>🕐 Horário: {store.hours}</span>
-                  )}
-                  {store.phone && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📞 Telefone: {store.phone}</span>
-                  )}
-                  {store.floor && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: "rgba(255,255,255,0.6)" }}>📍 Localização: {store.floor}</span>
-                  )}
-                  {store.category && (
-                    <span style={{ fontSize: `clamp(8px, ${10 / CANVAS_W * 100}vw, 13px)`, color: accentColor }}>🏷️ Categoria: {store.category}</span>
-                  )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 10 }}>
+                  {store.hours && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>🕐 {store.hours}</span>}
+                  {store.phone && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📞 {store.phone}</span>}
+                  {store.floor && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>}
+                  {store.category && <span style={{ fontSize: 11, color: accentColor, fontWeight: 600 }}>🏷️ {store.category}</span>}
                 </div>
               </div>
             )}
@@ -798,6 +911,9 @@ function StoreDirectory({ props: p }) {
     </div>
   );
 }
+
+// Backward compat
+function StoreDirectory({ props }) { return <PremiumStoreDirectory props={props} />; }
 
 // ─────────────────────────────────────────────
 // 💬 CHAT IA ELEMENT — dual-mode: backend local (Ollama/Kokoro) ou cloud (Gemini)
@@ -1275,32 +1391,64 @@ function LiveCarousel({ images = [], autoplay = true, interval = 5, transition =
 }
 
 // ─────────────────────────────────────────────
+// 🕐 PREMIUM CLOCK — with seconds, glow, Orbitron font
 // ─────────────────────────────────────────────
-const LiveClock = React.memo(({ color, fontSize }) => {
+const PremiumClock = React.memo(({ color, fontSize }) => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
+  const c = color || "#fff";
+  const fz = fontSize || 48;
+  const hours = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const secs = String(now.getSeconds()).padStart(2, "0");
+
   return (
     <div style={{
       width: "100%", height: "100%",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      color: color || "#fff",
-      fontSize: `clamp(16px, ${(fontSize || 36) / CANVAS_W * 100}vw, ${(fontSize || 36) * 1.5}px)`,
-      fontFamily: "monospace",
-      fontWeight: "bold",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      position: "relative",
     }}>
-      {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+      <div style={{
+        position: "absolute", width: "70%", height: "50%",
+        background: `radial-gradient(ellipse, ${c}12 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+      <div style={{ display: "flex", alignItems: "baseline", gap: 4, position: "relative" }}>
+        <span style={{
+          color: c,
+          fontSize: `clamp(20px, ${fz / CANVAS_W * 100}vw, ${fz * 1.5}px)`,
+          fontFamily: "'Orbitron', monospace",
+          fontWeight: "800",
+          letterSpacing: "0.04em",
+          textShadow: `0 0 30px ${c}35, 0 2px 8px rgba(0,0,0,0.4)`,
+        }}>
+          {hours}
+        </span>
+        <span style={{
+          color: c,
+          fontSize: `clamp(12px, ${(fz * 0.4) / CANVAS_W * 100}vw, ${fz * 0.6}px)`,
+          fontFamily: "'Orbitron', monospace",
+          fontWeight: "600",
+          opacity: 0.5,
+          animation: "totem-colon-blink 1s step-end infinite",
+        }}>
+          {secs}
+        </span>
+      </div>
     </div>
   );
 });
 
+const LiveClock = PremiumClock;
+
 // ─────────────────────────────────────────────
-// ⏱️ LIVE COUNTDOWN
+// ⏱️ PREMIUM COUNTDOWN — Glass segment cards
 // ─────────────────────────────────────────────
-const LiveCountdown = React.memo(({ targetDate, label, color, fontSize }) => {
+const PremiumCountdown = React.memo(({ targetDate, label, color, fontSize, accentColor }) => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -1314,27 +1462,169 @@ const LiveCountdown = React.memo(({ targetDate, label, color, fontSize }) => {
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
 
-  const fs = fontSize || 28;
+  const c = color || "#fff";
+  const accent = accentColor || "#6366f1";
+  const fz = fontSize || 28;
+
+  const Segment = ({ value, unit }) => (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+      padding: "8px 12px",
+      background: "rgba(255,255,255,0.05)",
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,0.08)",
+      backdropFilter: "blur(8px)",
+      minWidth: 48,
+    }}>
+      <span style={{
+        color: c,
+        fontSize: `clamp(16px, ${fz / CANVAS_W * 100}vw, ${fz * 1.5}px)`,
+        fontFamily: "'Orbitron', monospace",
+        fontWeight: "800",
+        textShadow: `0 0 20px ${accent}40`,
+      }}>{String(value).padStart(2, "0")}</span>
+      <span style={{
+        color: "rgba(255,255,255,0.4)",
+        fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.1em",
+      }}>{unit}</span>
+    </div>
+  );
 
   return (
     <div style={{
       width: "100%", height: "100%",
       display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 4,
-      color: color || "#fff",
+      alignItems: "center", justifyContent: "center", gap: 8,
     }}>
-      {label && <span style={{ fontSize: 12, opacity: 0.6, fontWeight: 600, textTransform: "uppercase" }}>{label}</span>}
-      <div style={{
-        display: "flex", gap: 8, alignItems: "center",
-        fontSize: `clamp(14px, ${fs / CANVAS_W * 100}vw, ${fs * 1.5}px)`,
-        fontFamily: "monospace", fontWeight: "bold",
-      }}>
-        {days > 0 && <span>{days}d</span>}
-        <span>{String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</span>
+      {label && <span style={{
+        color: "rgba(255,255,255,0.5)",
+        fontSize: 11, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.08em",
+      }}>{label}</span>}
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {days > 0 && <Segment value={days} unit="dias" />}
+        <Segment value={h} unit="hrs" />
+        <span style={{ color: c, fontSize: fz * 0.6, opacity: 0.3, fontWeight: 300 }}>:</span>
+        <Segment value={m} unit="min" />
+        <span style={{ color: c, fontSize: fz * 0.6, opacity: 0.3, fontWeight: 300 }}>:</span>
+        <Segment value={s} unit="seg" />
       </div>
     </div>
   );
 });
+
+const LiveCountdown = PremiumCountdown;
+
+// ─────────────────────────────────────────────
+// 🌤️ PREMIUM WEATHER
+// ─────────────────────────────────────────────
+function PremiumWeather({ city, color }) {
+  const c = color || "#fff";
+  return (
+    <div style={{
+      width: "100%", height: "100%",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 8,
+      position: "relative",
+    }}>
+      <div style={{
+        position: "absolute", width: "80%", height: "60%",
+        background: "radial-gradient(ellipse, rgba(250,204,21,0.08) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <span style={{
+        fontSize: 40,
+        animation: "totem-weather-float 3s ease-in-out infinite",
+        filter: "drop-shadow(0 4px 12px rgba(250,204,21,0.3))",
+      }}>🌤️</span>
+      <span style={{
+        color: c, fontSize: 13, fontWeight: 600,
+        opacity: 0.6, letterSpacing: "0.02em",
+      }}>{city || "São Paulo"}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 🎠 PREMIUM CAROUSEL — Vignette + ken-burns + glass dots
+// ─────────────────────────────────────────────
+function PremiumCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0, objectFit = "contain" }) {
+  const [current, setCurrent] = useState(0);
+  const filtered = useMemo(() => (images || []).filter(Boolean), [images]);
+  const len = filtered.length;
+
+  useEffect(() => {
+    if (!autoplay || len <= 1) return;
+    const id = setInterval(() => setCurrent((c) => (c + 1) % len), (interval || 5) * 1000);
+    return () => clearInterval(id);
+  }, [autoplay, interval, len]);
+
+  useEffect(() => { if (current >= len) setCurrent(0); }, [len, current]);
+
+  if (len === 0) return <PremiumPlaceholder emoji="🎠" label="Carrossel" />;
+
+  const isFade = transition !== "slide";
+
+  return (
+    <div style={{
+      width: "100%", height: "100%", position: "relative", overflow: "hidden",
+      borderRadius, background: "#000",
+    }}>
+      {filtered.map((src, i) => {
+        const fit = objectFit || "contain";
+        const isContain = fit === "contain";
+        return (
+          <div key={i} style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            opacity: isFade ? (i === current ? 1 : 0) : 1,
+            transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
+            transition: "opacity 0.8s ease, transform 0.6s ease",
+            pointerEvents: "none",
+          }}>
+            <img src={src} alt="" style={isContain ? {
+              maxWidth: "100%", maxHeight: "100%",
+              objectFit: "contain", objectPosition: "center",
+              animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
+            } : {
+              width: "100%", height: "100%",
+              objectFit: "cover", objectPosition: "center",
+              animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
+            }} />
+          </div>
+        );
+      })}
+
+      {/* Vignette */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.35) 100%)",
+      }} />
+
+      {/* Glass dots */}
+      {len > 1 && (
+        <div style={{
+          position: "absolute", bottom: 14, left: 0, right: 0,
+          display: "flex", justifyContent: "center", gap: 8, zIndex: 10,
+        }}>
+          {filtered.map((_, i) => (
+            <div key={i} style={{
+              width: i === current ? 22 : 8,
+              height: 8, borderRadius: 4,
+              background: i === current ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+              boxShadow: i === current ? "0 0 12px rgba(255,255,255,0.4)" : "none",
+              transition: "all 0.4s ease",
+            }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveCarousel(props) { return <PremiumCarousel {...props} />; }
 
 // ─────────────────────────────────────────────
 // 🎨 CSS GLOBAL
