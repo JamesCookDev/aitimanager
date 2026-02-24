@@ -46,6 +46,7 @@ export function ListPropsPanel({ props, onChange, views }: { props: Record<strin
         <PropInput label="Tamanho do texto" value={props.titleSize || 18} onChange={set('titleSize')} type="number" />
         <PropInput label="Cor do título" value={props.titleColor || '#ffffff'} onChange={set('titleColor')} type="color" />
         <PropInput label="Cor do preço" value={props.priceColor || '#6366f1'} onChange={set('priceColor')} type="color" />
+        <PropInput label="Moeda" value={props.currency || 'R$'} onChange={set('currency')} />
         <div className="flex items-center justify-between">
           <Label className="text-[11px]">Mostrar ícone/imagem</Label>
           <Switch checked={props.showIcon !== false} onCheckedChange={set('showIcon')} />
@@ -57,6 +58,10 @@ export function ListPropsPanel({ props, onChange, views }: { props: Record<strin
         <div className="flex items-center justify-between">
           <Label className="text-[11px]">Divisores</Label>
           <Switch checked={props.showDivider !== false} onCheckedChange={set('showDivider')} />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar status de disponibilidade</Label>
+          <Switch checked={props.showAvailability === true} onCheckedChange={set('showAvailability')} />
         </div>
       </Section>
 
@@ -75,12 +80,44 @@ export function ListPropsPanel({ props, onChange, views }: { props: Record<strin
               <PropInput label="Preço" value={item.price || ''} onChange={(v) => updateItem(item.id, { price: v })} />
               <PropInput label="Emoji/Ícone" value={item.icon || ''} onChange={(v) => updateItem(item.id, { icon: v })} />
               <ImageUploadField value={item.image || ''} onChange={(v) => updateItem(item.id, { image: v })} />
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px]">Disponível</Label>
+                <Switch checked={(item as any).available !== false} onCheckedChange={(v) => updateItem(item.id, { available: v } as any)} />
+              </div>
             </div>
           ))}
         </div>
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 mt-2" onClick={addItem}>
           <Plus className="w-3 h-3" /> Adicionar item
         </Button>
+      </Section>
+
+      <Section title="🛒 Ação ao tocar no item">
+        <div>
+          <Label className="text-[11px]">Tipo de ação</Label>
+          <select
+            value={props.itemAction || 'none'}
+            onChange={(e) => set('itemAction')(e.target.value)}
+            className="w-full h-8 rounded border border-input bg-background px-2 text-xs mt-1"
+          >
+            <option value="none">Nenhuma</option>
+            <option value="whatsapp">💬 Pedir via WhatsApp</option>
+            <option value="webhook">🔌 Enviar via Webhook</option>
+            <option value="prompt">💬 Enviar ao Chat IA</option>
+          </select>
+        </div>
+        {props.itemAction === 'whatsapp' && (
+          <>
+            <PropInput label="Número WhatsApp" value={props.whatsappNumber || ''} onChange={set('whatsappNumber')} />
+            <PropInput label="Template da msg" value={props.whatsappTemplate || 'Quero pedir: {{titulo}} ({{preco}})'} onChange={set('whatsappTemplate')} />
+            <p className="text-[9px] text-muted-foreground -mt-1">Variáveis: {'{{titulo}}'}, {'{{preco}}'}, {'{{subtitulo}}'}</p>
+          </>
+        )}
+        {props.itemAction === 'webhook' && (
+          <>
+            <PropInput label="URL do Webhook" value={props.listWebhookUrl || ''} onChange={set('listWebhookUrl')} />
+          </>
+        )}
       </Section>
     </>
   );

@@ -88,6 +88,11 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
                     <ImageUploadField value={item.image} onChange={(v) => updateItem(item.id, { image: v })} />
                     <PropInput label="Badge" value={item.badge || ''} onChange={(v) => updateItem(item.id, { badge: v })} />
                     <PropInput label="Cor do badge" value={item.badgeColor || '#6366f1'} onChange={(v) => updateItem(item.id, { badgeColor: v })} type="color" />
+                    <PropInput label="SKU / Código" value={(item as any).sku || ''} onChange={(v) => updateItem(item.id, { sku: v } as any)} />
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px]">Disponível</Label>
+                      <Switch checked={(item as any).available !== false} onCheckedChange={(v) => updateItem(item.id, { available: v } as any)} />
+                    </div>
                     <Button variant="destructive" size="sm" className="w-full text-[10px] gap-1" onClick={() => removeItem(item.id)}>
                       <Trash2 className="w-3 h-3" /> Remover
                     </Button>
@@ -100,6 +105,40 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
           <Button variant="outline" size="sm" className="w-full text-[10px] gap-1" onClick={addItem}>
             <Plus className="w-3 h-3" /> Adicionar produto
           </Button>
+        </Section>
+
+        <Section title="🛒 Pedidos & Ações">
+          <div>
+            <Label className="text-[11px]">Ação ao tocar no produto</Label>
+            <Select value={props.itemAction || 'none'} onValueChange={set('itemAction')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                <SelectItem value="whatsapp">💬 Pedir via WhatsApp</SelectItem>
+                <SelectItem value="webhook">🔌 Enviar via Webhook</SelectItem>
+                <SelectItem value="navigate">📄 Navegar para detalhes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {props.itemAction === 'whatsapp' && (
+            <>
+              <PropInput label="Número WhatsApp" value={props.whatsappNumber || ''} onChange={set('whatsappNumber')} />
+              <PropInput label="Template da mensagem" value={props.whatsappOrderTemplate || 'Olá! Gostaria de pedir: {{item_name}} ({{item_price}})'} onChange={set('whatsappOrderTemplate')} type="textarea" />
+              <p className="text-[9px] text-muted-foreground -mt-1">Variáveis: {'{{item_name}}'}, {'{{item_price}}'}, {'{{item_category}}'}</p>
+            </>
+          )}
+          {props.itemAction === 'webhook' && (
+            <>
+              <PropInput label="URL do Webhook" value={props.orderWebhookUrl || ''} onChange={set('orderWebhookUrl')} />
+              <PropInput label="Mensagem de sucesso" value={props.orderSuccessMsg || 'Pedido enviado!'} onChange={set('orderSuccessMsg')} />
+            </>
+          )}
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mostrar itens indisponíveis</Label>
+            <Switch checked={props.showUnavailable !== false} onCheckedChange={set('showUnavailable')} />
+          </div>
+          <PropInput label="Moeda" value={props.currency || 'R$'} onChange={set('currency')} />
+          <PropInput label="Texto indisponível" value={props.unavailableText || 'Indisponível'} onChange={set('unavailableText')} />
         </Section>
       </TabsContent>
 
