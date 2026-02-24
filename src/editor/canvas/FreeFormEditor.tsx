@@ -1,9 +1,16 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical, Ruler, Monitor, Layers, Settings2, Eye, ChevronDown } from 'lucide-react';
+import {
+  Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
+  PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
+  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -60,8 +67,10 @@ interface Props {
   deviceName?: string;
 }
 
-/* ── Toolbar button with tooltip ─────────── */
-function Tb({ tip, onClick, icon: Icon, disabled, active }: { tip: string; onClick: () => void; icon: any; disabled?: boolean; active?: boolean }) {
+/* ── Toolbar icon button ─────────── */
+function Tb({ tip, onClick, icon: Icon, disabled, active, className: cls }: {
+  tip: string; onClick: () => void; icon: any; disabled?: boolean; active?: boolean; className?: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -69,13 +78,16 @@ function Tb({ tip, onClick, icon: Icon, disabled, active }: { tip: string; onCli
           variant="ghost"
           size="icon"
           className={cn(
-            "h-8 w-8 rounded-lg transition-all",
-            active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            "h-7 w-7 rounded-md transition-all",
+            active
+              ? "bg-primary/15 text-primary shadow-sm shadow-primary/10"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+            cls,
           )}
           onClick={onClick}
           disabled={disabled}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-3.5 h-3.5" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-[10px] font-medium">{tip}</TooltipContent>
@@ -101,7 +113,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     }
   }, [state]);
 
-  // Apply undo/redo to reducer
   useEffect(() => {
     if (history.state !== state && history.state.elements !== state.elements) {
       rawDispatch({ type: 'LOAD', state: history.state });
@@ -121,7 +132,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
 
-  // Auto-fit scale
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
     const rect = viewportRef.current.getBoundingClientRect();
@@ -139,7 +149,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     return () => window.removeEventListener('resize', fitToViewport);
   }, [fitToViewport, leftOpen, rightOpen]);
 
-  // Load initial state
   useEffect(() => {
     if (initialState) {
       dispatch({ type: 'LOAD', state: initialState });
@@ -153,20 +162,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const selectedElement = state.elements.find(e => e.id === state.selectedId) || null;
   const activeViewId = state.activeViewId || '__default__';
   const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
-
   const visibleElements = state.elements.filter(el => el.viewId === activeViewId);
-
-  // Get per-page background color
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
+  const activePage = views.find(v => v.id === activeViewId);
 
-  // Navigate to page (with transition)
   const handleNavigateToPage = useCallback((targetViewId: string, transition: PageTransition = 'fade') => {
     if (!targetViewId || targetViewId === activeViewId) return;
     const targetExists = views.some(v => v.id === targetViewId);
-    if (!targetExists) {
-      toast.error('Página de destino não encontrada');
-      return;
-    }
+    if (!targetExists) { toast.error('Página de destino não encontrada'); return; }
     setPageTransition(transition);
     dispatch({ type: 'SET_ACTIVE_VIEW', id: targetViewId });
     toast.info(`Navegou para "${views.find(v => v.id === targetViewId)?.name || targetViewId}"`);
@@ -174,18 +177,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   const handleAdd = useCallback((el: CanvasElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } });
-    setLeftTab('elements'); // Switch to elements tab after adding
+    setLeftTab('elements');
   }, [dispatch, activeViewId]);
 
   const handleSave = useCallback(() => {
-    onSave?.(state);
-    setDirty(false);
-    toast.success('Layout salvo!');
+    onSave?.(state); setDirty(false); toast.success('Layout salvo!');
   }, [state, onSave]);
 
   const handlePublish = useCallback(() => {
-    onPublish?.(state);
-    setDirty(false);
+    onPublish?.(state); setDirty(false);
   }, [state, onPublish]);
 
   const handleExport = useCallback(() => {
@@ -193,28 +193,20 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `layout-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('JSON exportado');
+    a.href = url; a.download = `layout-${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url); toast.success('JSON exportado');
   }, [state]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    input.type = 'file'; input.accept = '.json';
     input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+      const file = input.files?.[0]; if (!file) return;
       try {
         const text = await file.text();
-        const parsed = JSON.parse(text) as CanvasState;
-        dispatch({ type: 'LOAD', state: parsed });
+        dispatch({ type: 'LOAD', state: JSON.parse(text) as CanvasState });
         toast.success('Layout importado');
-      } catch {
-        toast.error('Arquivo inválido');
-      }
+      } catch { toast.error('Arquivo inválido'); }
     };
     input.click();
   }, [dispatch]);
@@ -225,13 +217,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
       const ctrl = e.ctrlKey || e.metaKey;
-
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (state.selectedId) { dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId }); e.preventDefault(); }
       }
-      if (ctrl && e.key === 'd') {
-        if (state.selectedId) { dispatch({ type: 'DUPLICATE', id: state.selectedId }); e.preventDefault(); }
-      }
+      if (ctrl && e.key === 'd') { if (state.selectedId) { dispatch({ type: 'DUPLICATE', id: state.selectedId }); e.preventDefault(); } }
       if (ctrl && e.key === 's') { handleSave(); e.preventDefault(); }
       if (ctrl && e.key === 'z' && !e.shiftKey) { history.undo(); e.preventDefault(); }
       if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { history.redo(); e.preventDefault(); }
@@ -257,13 +246,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const canvasY = Math.max(20, (viewportSize.h - totalH) / 2) + (showFrame ? 40 * scale : 0);
   const zoomPercent = Math.round(scale * 100);
 
-  // Active page name for toolbar display
-  const activePage = views.find(v => v.id === activeViewId);
-
-  /* Zoom presets use the same fitToViewport from above */
-
   const ZOOM_PRESETS = [
-    { label: 'Ajustar', action: fitToViewport },
+    { label: 'Fit', action: fitToViewport },
     { label: '50%', action: () => setScale(0.5) },
     { label: '75%', action: () => setScale(0.75) },
     { label: '100%', action: () => setScale(1) },
@@ -271,22 +255,30 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   return (
     <PageVariablesProvider navigateToPage={handleNavigateToPage}>
-    <TooltipProvider delayDuration={300}>
-      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background overflow-hidden">
-        {/* ── Top Toolbar — Canva-inspired ── */}
-        <div className="flex items-center justify-between px-3 h-12 border-b border-border bg-card shrink-0">
-          {/* Left: Page nav + panels */}
-          <div className="flex items-center gap-1">
-            <Tb tip={leftOpen ? "Ocultar painel" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} active={leftOpen} />
-            <div className="h-5 w-px bg-border mx-1" />
+    <TooltipProvider delayDuration={200}>
+      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background overflow-hidden rounded-lg border border-border/50 shadow-sm">
 
-            {/* Current page indicator */}
+        {/* ══════ TOP TOOLBAR ══════ */}
+        <div className="flex items-center gap-1.5 px-2 h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm shrink-0">
+
+          {/* ── Left cluster: Panel toggle + Page selector ── */}
+          <div className="flex items-center gap-1">
+            <Tb
+              tip={leftOpen ? "Ocultar painel (←)" : "Mostrar painel"}
+              onClick={() => setLeftOpen(p => !p)}
+              icon={leftOpen ? PanelLeftClose : PanelLeft}
+              active={leftOpen}
+            />
+
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
+
+            {/* Page pill */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/15 transition-colors">
-                  <FileText className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[11px] font-semibold text-primary max-w-[100px] truncate">{activePage?.name || 'Home'}</span>
-                  <ChevronDown className="w-3 h-3 text-primary/60" />
+                <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-all">
+                  <FileText className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-semibold text-primary max-w-[90px] truncate">{activePage?.name || 'Home'}</span>
+                  <ChevronDown className="w-2.5 h-2.5 text-primary/50" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -304,72 +296,75 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Dirty indicator */}
             {dirty && (
-              <div className="flex items-center gap-1 ml-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-[9px] text-muted-foreground/60">Alterações</span>
+              <div className="flex items-center gap-1 ml-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
               </div>
             )}
           </div>
 
-          {/* Center — Zoom */}
-          <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-1">
-            <Tb tip="Zoom −" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
-            {ZOOM_PRESETS.map(z => (
-              <button
-                key={z.label}
-                onClick={z.action}
-                className={cn(
-                  "text-[10px] px-2.5 py-1 rounded-md transition-all font-medium",
-                  z.label === `${zoomPercent}%`
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-                )}
-              >
-                {z.label}
-              </button>
-            ))}
-            <span className="text-[10px] font-mono text-muted-foreground/60 w-10 text-center tabular-nums">{zoomPercent}%</span>
-            <Tb tip="Zoom +" onClick={() => setScale(s => Math.min(1.5, s + 0.05))} icon={ZoomIn} />
+          {/* ── Center: Zoom controls — floating pill ── */}
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-0.5 bg-muted/30 rounded-full px-1 py-0.5 border border-border/40">
+              <Tb tip="Zoom −" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
+              {ZOOM_PRESETS.map(z => (
+                <button
+                  key={z.label}
+                  onClick={z.action}
+                  className={cn(
+                    "text-[9px] px-2 py-1 rounded-full transition-all font-semibold",
+                    z.label === `${zoomPercent}%`
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                >
+                  {z.label}
+                </button>
+              ))}
+              <span className="text-[9px] font-mono text-muted-foreground/50 w-8 text-center tabular-nums">{zoomPercent}%</span>
+              <Tb tip="Zoom +" onClick={() => setScale(s => Math.min(1.5, s + 0.05))} icon={ZoomIn} />
+            </div>
           </div>
 
-          {/* Right — Actions */}
-          <div className="flex items-center gap-1">
+          {/* ── Right cluster: Actions ── */}
+          <div className="flex items-center gap-0.5">
             <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
             <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
 
-            <div className="h-5 w-px bg-border mx-0.5" />
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
 
             <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
 
-            {/* More options */}
+            {/* More actions */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
-                  <MoreVertical className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">
+                  <MoreVertical className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-xs gap-2.5">
-                  <Monitor className="w-4 h-4" />
+                  <Monitor className="w-3.5 h-3.5" />
                   <span className="flex-1">Moldura do Totem</span>
-                  {showFrame && <span className="text-primary text-[10px]">✓</span>}
+                  {showFrame && <span className="text-[10px] text-primary">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-xs gap-2.5">
-                  <Ruler className="w-4 h-4" />
+                  <Ruler className="w-3.5 h-3.5" />
                   <span className="flex-1">Guias de Zona</span>
-                  {showZones && <span className="text-primary text-[10px]">✓</span>}
+                  {showZones && <span className="text-[10px] text-primary">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExport} className="text-xs gap-2.5">
-                  <Download className="w-4 h-4" /> Exportar JSON
+                  <Download className="w-3.5 h-3.5" /> Exportar JSON
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleImport} className="text-xs gap-2.5">
-                  <Upload className="w-4 h-4" /> Importar JSON
+                  <Upload className="w-3.5 h-3.5" /> Importar JSON
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
-                  <Keyboard className="w-4 h-4" /> Atalhos de teclado
+                  <Keyboard className="w-3.5 h-3.5" /> Atalhos
+                  {showShortcuts && <span className="text-[10px] text-primary">✓</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -380,8 +375,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               trigger={
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
-                      <LayoutTemplate className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">
+                      <LayoutTemplate className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-[10px] font-medium">Templates</TooltipContent>
@@ -389,108 +384,137 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               }
             />
 
-            <Tb tip={rightOpen ? "Ocultar propriedades" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} active={rightOpen} />
+            <Tb
+              tip={rightOpen ? "Ocultar propriedades" : "Mostrar propriedades"}
+              onClick={() => setRightOpen(p => !p)}
+              icon={rightOpen ? PanelRightClose : PanelRight}
+              active={rightOpen}
+            />
 
-            <div className="h-5 w-px bg-border mx-0.5" />
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
 
-            {/* Preview/Edit toggle */}
+            {/* Preview toggle */}
             <Button
-              variant={previewMode ? 'default' : 'outline'}
+              variant={previewMode ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                "h-8 text-xs gap-1.5 px-3 rounded-lg font-semibold",
-                previewMode ? "shadow-md" : "border-border"
+                "h-7 text-[10px] gap-1 px-2.5 rounded-md font-semibold",
+                previewMode && "shadow-md"
               )}
               onClick={() => {
                 setPreviewMode(p => !p);
                 if (!previewMode) dispatch({ type: 'SELECT', id: null });
               }}
             >
-              {previewMode ? <Pencil className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {previewMode ? <Pencil className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               {previewMode ? 'Editar' : 'Preview'}
             </Button>
 
+            {/* Publish — prominent CTA */}
             {onPublish && (
-              <Button size="sm" className="h-8 text-xs gap-1.5 px-4 rounded-lg font-semibold shadow-md" onClick={handlePublish}>
-                <Maximize2 className="w-3.5 h-3.5" /> Publicar
+              <Button
+                size="sm"
+                className="h-7 text-[10px] gap-1 px-3 rounded-md font-bold shadow-md bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                onClick={handlePublish}
+              >
+                <Rocket className="w-3 h-3" /> Publicar
               </Button>
             )}
           </div>
         </div>
 
         {/* Keyboard shortcuts bar */}
-        {showShortcuts && (
-          <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Del</kbd> Excluir</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+D</kbd> Duplicar</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+S</kbd> Salvar</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+Z/Y</kbd> Desfazer/Refazer</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">↑↓←→</kbd> Mover</span>
-          </div>
-        )}
-
-        {/* ── Main workspace ── */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar — sleek dark panel */}
-          {leftOpen && !previewMode && (
-            <div className="w-60 border-r border-border bg-card shrink-0 flex flex-col">
-              <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
-                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-10 px-2 gap-1">
-                  <TabsTrigger
-                    value="pages"
-                    className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium"
-                  >
-                    <Layers className="w-3.5 h-3.5" /> Páginas
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="elements"
-                    className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium"
-                  >
-                    <Blocks className="w-3.5 h-3.5" /> Elementos
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
-                  <PagesPanel
-                    views={views}
-                    activeViewId={activeViewId}
-                    viewIdleTimeout={state.viewIdleTimeout ?? 30}
-                    elementCounts={views.reduce((acc, v) => {
-                      acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
-                      return acc;
-                    }, {} as Record<string, number>)}
-                    pageBgColors={state.pageBgColors || {}}
-                    globalBgColor={state.bgColor}
-                    onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
-                    onAddView={(name) => {
-                      const id = viewUid();
-                      dispatch({ type: 'ADD_VIEW', view: { id, name } });
-                      dispatch({ type: 'SET_ACTIVE_VIEW', id });
-                    }}
-                    onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
-                    onDeleteView={(id) => dispatch({ type: 'DELETE_VIEW', id })}
-                    onDuplicateView={(id) => dispatch({ type: 'DUPLICATE_VIEW', id })}
-                    onSetDefault={(id) => {
-                      views.forEach(v => dispatch({ type: 'UPDATE_VIEW', id: v.id, patch: { isDefault: v.id === id } }));
-                    }}
-                    onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
-                    onSetPageBgColor={(viewId, color) => dispatch({ type: 'SET_PAGE_BG_COLOR', viewId, color })}
-                  />
-                </TabsContent>
-                <TabsContent value="elements" className="flex-1 overflow-hidden mt-0">
-                  <ElementPalette onAdd={handleAdd} />
-                </TabsContent>
-              </Tabs>
-            </div>
+        <AnimatePresence>
+          {showShortcuts && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-b border-border/40"
+            >
+              <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/20 text-[9px] text-muted-foreground flex-wrap">
+                <span><kbd className="kbd">Del</kbd> Excluir</span>
+                <span><kbd className="kbd">Ctrl+D</kbd> Duplicar</span>
+                <span><kbd className="kbd">Ctrl+S</kbd> Salvar</span>
+                <span><kbd className="kbd">Ctrl+Z/Y</kbd> Desfazer</span>
+                <span><kbd className="kbd">↑↓←→</kbd> Mover</span>
+                <span><kbd className="kbd">Shift+↑</kbd> Mover 10px</span>
+              </div>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          {/* Canvas viewport — Canva-style neutral workspace */}
+        {/* ══════ MAIN WORKSPACE ══════ */}
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* ── Left Sidebar ── */}
+          <AnimatePresence>
+            {leftOpen && !previewMode && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 248, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="border-r border-border/50 bg-card/60 backdrop-blur-sm shrink-0 flex flex-col overflow-hidden"
+              >
+                <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
+                  <TabsList className="w-full shrink-0 rounded-none bg-transparent h-9 px-1.5 gap-0.5 border-b border-border/40">
+                    <TabsTrigger
+                      value="pages"
+                      className="text-[10px] gap-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-semibold"
+                    >
+                      <Layers className="w-3 h-3" /> Páginas
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="elements"
+                      className="text-[10px] gap-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-semibold"
+                    >
+                      <Sparkles className="w-3 h-3" /> Elementos
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
+                    <PagesPanel
+                      views={views}
+                      activeViewId={activeViewId}
+                      viewIdleTimeout={state.viewIdleTimeout ?? 30}
+                      elementCounts={views.reduce((acc, v) => {
+                        acc[v.id] = state.elements.filter(e => e.viewId === v.id).length;
+                        return acc;
+                      }, {} as Record<string, number>)}
+                      pageBgColors={state.pageBgColors || {}}
+                      globalBgColor={state.bgColor}
+                      onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
+                      onAddView={(name) => {
+                        const id = viewUid();
+                        dispatch({ type: 'ADD_VIEW', view: { id, name } });
+                        dispatch({ type: 'SET_ACTIVE_VIEW', id });
+                      }}
+                      onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
+                      onDeleteView={(id) => dispatch({ type: 'DELETE_VIEW', id })}
+                      onDuplicateView={(id) => dispatch({ type: 'DUPLICATE_VIEW', id })}
+                      onSetDefault={(id) => {
+                        views.forEach(v => dispatch({ type: 'UPDATE_VIEW', id: v.id, patch: { isDefault: v.id === id } }));
+                      }}
+                      onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
+                      onSetPageBgColor={(viewId, color) => dispatch({ type: 'SET_PAGE_BG_COLOR', viewId, color })}
+                    />
+                  </TabsContent>
+                  <TabsContent value="elements" className="flex-1 overflow-hidden mt-0">
+                    <ElementPalette onAdd={handleAdd} />
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Canvas Viewport ── */}
           <div
             ref={viewportRef}
             className="flex-1 overflow-auto relative"
             style={{
               background: `
-                radial-gradient(circle at 50% 50%, hsl(var(--muted) / 0.08) 0%, transparent 70%),
-                repeating-conic-gradient(hsl(var(--muted) / 0.06) 0% 25%, transparent 0% 50%) 0 0 / 24px 24px
+                radial-gradient(circle at 50% 40%, hsl(var(--primary) / 0.03) 0%, transparent 60%),
+                repeating-conic-gradient(hsl(var(--muted) / 0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px
               `,
               backgroundColor: 'hsl(var(--background))',
             }}
@@ -514,13 +538,12 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                     borderRadius: showFrame ? 8 : 16,
                     boxShadow: showFrame
                       ? 'none'
-                      : '0 0 0 1px rgba(255,255,255,0.06), 0 25px 80px -12px rgba(0,0,0,0.5)',
+                      : '0 0 0 1px rgba(255,255,255,0.05), 0 30px 100px -20px rgba(0,0,0,0.6)',
                     position: 'relative',
                     overflow: 'hidden',
                   }}
                   onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
                 >
-                  {/* Zone guides overlay */}
                   <ZoneGuides show={showZones && !previewMode} />
 
                   <AnimatePresence mode="wait">
@@ -555,57 +578,71 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           </div>
 
-          {/* Right sidebar — Properties */}
-          {rightOpen && !previewMode && (
-            <div className="w-72 border-l border-border bg-card shrink-0">
-              <PropertiesPanel
-                element={selectedElement}
-                elements={state.elements}
-                onUpdate={(patch) => { if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch }); }}
-                onUpdateProps={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
-                onDelete={() => { if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId }); }}
-                onDuplicate={() => { if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId }); }}
-                onBringForward={() => { if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId }); }}
-                onSendBackward={() => { if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId }); }}
-                onSelectElement={(id) => dispatch({ type: 'SELECT', id })}
-                onToggleVisibility={(id) => {
-                  const el = state.elements.find(e => e.id === id);
-                  if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { visible: !el.visible } });
-                }}
-                onToggleLock={(id) => {
-                  const el = state.elements.find(e => e.id === id);
-                  if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { locked: !el.locked } });
-                }}
-                bgColor={currentBgColor}
-                onBgColorChange={(c) => {
-                  if (activeViewId) {
-                    dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: c });
-                  } else {
-                    dispatch({ type: 'SET_BG_COLOR', color: c });
-                  }
-                }}
-                selectedId={state.selectedId}
-                views={views}
-                onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}
-              />
-            </div>
-          )}
+          {/* ── Right Sidebar ── */}
+          <AnimatePresence>
+            {rightOpen && !previewMode && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 280, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="border-l border-border/50 bg-card/60 backdrop-blur-sm shrink-0 overflow-hidden"
+              >
+                <PropertiesPanel
+                  element={selectedElement}
+                  elements={state.elements}
+                  onUpdate={(patch) => { if (state.selectedId) dispatch({ type: 'UPDATE_ELEMENT', id: state.selectedId, patch }); }}
+                  onUpdateProps={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
+                  onDelete={() => { if (state.selectedId) dispatch({ type: 'DELETE_ELEMENT', id: state.selectedId }); }}
+                  onDuplicate={() => { if (state.selectedId) dispatch({ type: 'DUPLICATE', id: state.selectedId }); }}
+                  onBringForward={() => { if (state.selectedId) dispatch({ type: 'BRING_FORWARD', id: state.selectedId }); }}
+                  onSendBackward={() => { if (state.selectedId) dispatch({ type: 'SEND_BACKWARD', id: state.selectedId }); }}
+                  onSelectElement={(id) => dispatch({ type: 'SELECT', id })}
+                  onToggleVisibility={(id) => {
+                    const el = state.elements.find(e => e.id === id);
+                    if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { visible: !el.visible } });
+                  }}
+                  onToggleLock={(id) => {
+                    const el = state.elements.find(e => e.id === id);
+                    if (el) dispatch({ type: 'UPDATE_ELEMENT', id, patch: { locked: !el.locked } });
+                  }}
+                  bgColor={currentBgColor}
+                  onBgColorChange={(c) => {
+                    if (activeViewId) {
+                      dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: c });
+                    } else {
+                      dispatch({ type: 'SET_BG_COLOR', color: c });
+                    }
+                  }}
+                  selectedId={state.selectedId}
+                  views={views}
+                  onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* ── Bottom status bar ── */}
-        <div className="flex items-center justify-between px-4 h-7 border-t border-border bg-card/80 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="text-[9px] font-mono text-muted-foreground/50 tabular-nums">
+        {/* ══════ STATUS BAR ══════ */}
+        <div className="flex items-center justify-between px-3 h-6 border-t border-border/40 bg-card/50 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[8px] font-mono text-muted-foreground/40 tabular-nums">
               {CANVAS_WIDTH}×{CANVAS_HEIGHT}
             </span>
-            <span className="text-[9px] text-muted-foreground/40">•</span>
-            <span className="text-[9px] text-muted-foreground/50">
-              {visibleElements.length} {visibleElements.length === 1 ? 'elemento' : 'elementos'}
+            <span className="text-[8px] text-muted-foreground/30">•</span>
+            <span className="text-[8px] text-muted-foreground/40">
+              {visibleElements.length} elemento{visibleElements.length !== 1 ? 's' : ''}
             </span>
+            {selectedElement && (
+              <>
+                <span className="text-[8px] text-muted-foreground/30">•</span>
+                <span className="text-[8px] text-primary/60 font-medium">{selectedElement.name}</span>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            {deviceName && <span className="text-[9px] text-muted-foreground/40">{deviceName}</span>}
-            <span className="text-[9px] text-muted-foreground/30">Totem Builder</span>
+          <div className="flex items-center gap-2.5">
+            {deviceName && <span className="text-[8px] text-muted-foreground/30 flex items-center gap-1"><Monitor className="w-2.5 h-2.5" />{deviceName}</span>}
+            <span className="text-[8px] text-muted-foreground/20 font-semibold tracking-widest uppercase">Totem Builder</span>
           </div>
         </div>
       </div>
