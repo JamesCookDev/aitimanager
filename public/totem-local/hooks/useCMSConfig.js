@@ -33,11 +33,10 @@ export function useCMSConfig(options = {}) {
   const { pollInterval = POLL_INTERVAL } = options;
 
   const [ui, setUi] = useState({});
-  const [ai, setAi] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(false); // true quando conectado via Realtime
 
   const abortRef = useRef(null);
   const lastHashRef = useRef('');
@@ -70,14 +69,12 @@ export function useCMSConfig(options = {}) {
 
       const data = await res.json();
       const newUi = data?.ui || data?.config?.ui || {};
-      const newAi = data?.config?.ai || null;
 
       const hash = JSON.stringify(newUi);
       if (hash !== lastHashRef.current) {
         lastHashRef.current = hash;
         setUi(newUi);
       }
-      if (newAi) setAi(newAi);
 
       setError(null);
       setIsOffline(false);
@@ -153,11 +150,10 @@ export function useCMSConfig(options = {}) {
 
   return {
     ui,
-    ai,
     loading,
     error,
     isOffline,
-    isLive,
+    isLive,        // ← novo: true quando Realtime está ativo
     isConnected: !isOffline && !error,
     refetch: fetchConfig,
   };
