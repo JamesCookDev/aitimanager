@@ -136,6 +136,74 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
           <PropInput label="Mensagem de sucesso" value={props.successMessage || 'Enviado com sucesso! ✅'} onChange={set('successMessage')} />
         </Section>
 
+        <Section title="🔌 Integração / Dados">
+          <div>
+            <Label className="text-[11px]">Destino dos dados</Label>
+            <Select value={props.dataDestination || 'none'} onValueChange={set('dataDestination')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum (apenas visual)</SelectItem>
+                <SelectItem value="webhook">🔌 Webhook / API</SelectItem>
+                <SelectItem value="email">📧 Enviar por e-mail</SelectItem>
+                <SelectItem value="database">💾 Salvar no banco</SelectItem>
+                <SelectItem value="whatsapp">💬 Enviar via WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {props.dataDestination === 'webhook' && (
+            <>
+              <PropInput label="URL do Webhook" value={props.webhookUrl || ''} onChange={set('webhookUrl')} />
+              <div>
+                <Label className="text-[11px]">Método HTTP</Label>
+                <Select value={props.webhookMethod || 'POST'} onValueChange={set('webhookMethod')}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="POST">POST</SelectItem>
+                    <SelectItem value="PUT">PUT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <PropInput label="Headers (JSON)" value={props.webhookHeaders || ''} onChange={set('webhookHeaders')} type="textarea" />
+              <p className="text-[9px] text-muted-foreground -mt-1">Ex: {'{"Authorization": "Bearer token123"}'}</p>
+            </>
+          )}
+          {props.dataDestination === 'email' && (
+            <>
+              <PropInput label="E-mail destino" value={props.emailTo || ''} onChange={set('emailTo')} />
+              <PropInput label="Assunto do e-mail" value={props.emailSubject || 'Novo formulário recebido'} onChange={set('emailSubject')} />
+              <p className="text-[9px] text-muted-foreground -mt-1">Dados do formulário serão enviados no corpo do e-mail</p>
+            </>
+          )}
+          {props.dataDestination === 'whatsapp' && (
+            <>
+              <PropInput label="Número WhatsApp" value={props.whatsappNumber || ''} onChange={set('whatsappNumber')} />
+              <PropInput label="Template da mensagem" value={props.whatsappTemplate || ''} onChange={set('whatsappTemplate')} type="textarea" />
+              <p className="text-[9px] text-muted-foreground -mt-1">Use {'{{campo}}'} para interpolar valores. Ex: Novo check-in: {'{{nome}}'}</p>
+            </>
+          )}
+          {props.dataDestination === 'database' && (
+            <p className="text-[9px] text-muted-foreground">Os dados serão salvos automaticamente no banco de dados do dispositivo</p>
+          )}
+        </Section>
+
+        <Section title="🔒 LGPD & Privacidade">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mostrar consentimento LGPD</Label>
+            <Switch checked={props.showLgpdConsent === true} onCheckedChange={set('showLgpdConsent')} />
+          </div>
+          {props.showLgpdConsent && (
+            <>
+              <PropInput label="Texto do consentimento" value={props.lgpdText || 'Ao enviar, você concorda com nossa Política de Privacidade e consente com o tratamento dos seus dados.'} onChange={set('lgpdText')} type="textarea" />
+              <PropInput label="Link da política" value={props.lgpdLink || ''} onChange={set('lgpdLink')} />
+            </>
+          )}
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Exigir consentimento</Label>
+            <Switch checked={props.requireConsent === true} onCheckedChange={set('requireConsent')} />
+          </div>
+          <p className="text-[9px] text-muted-foreground -mt-1">Bloqueia o envio até o usuário aceitar os termos</p>
+        </Section>
+
         {views && views.length > 0 && (
           <Section title="🔗 Após enviar">
             <p className="text-[9px] text-muted-foreground mb-1">Os valores preenchidos são salvos como variáveis globais, acessíveis via {'{{variavel}}'} em textos de outras páginas.</p>
