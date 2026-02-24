@@ -65,15 +65,13 @@ const CATEGORIES = [
 export function ElementPalette({ onAdd }: Props) {
   return (
     <ScrollArea className="h-full">
-      <div className="p-3 space-y-4">
-        <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">Elementos</h3>
-
+      <div className="p-2 space-y-3">
         {CATEGORIES.map((cat) => (
           <div key={cat.label}>
-            <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest mb-2 px-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-1.5 px-0.5">
               {cat.label}
             </p>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-1">
               {cat.items.map((item) => (
                 <button
                   key={item.type}
@@ -83,10 +81,10 @@ export function ElementPalette({ onAdd }: Props) {
                     onAdd(el);
                   }}
                   title={`Adicionar ${item.label}`}
-                  className="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-lg border border-transparent bg-transparent hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-90 group cursor-pointer"
+                  className="flex items-center gap-2 py-1.5 px-2 rounded-md border border-transparent hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-95 group cursor-pointer text-left"
                 >
-                  <item.icon className="w-5 h-5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                  <span className="text-[11px] font-medium text-muted-foreground/60 group-hover:text-foreground transition-colors leading-none">
+                  <item.icon className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
+                  <span className="text-[10px] font-medium text-muted-foreground/70 group-hover:text-foreground transition-colors leading-none truncate">
                     {item.label}
                   </span>
                 </button>
