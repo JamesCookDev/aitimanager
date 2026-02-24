@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Store, Globe, Instagram, MapPin, List, Map } from 'lucide-react';
+import { usePageVariables } from '../PageVariablesContext';
 
 /* ── Store Map View ─────────────────────────── */
 function StoreMapView({
@@ -106,7 +107,7 @@ function StoreListView({
   showSearch, showFilter, showCount, categories, accentColor, titleColor, titleSize, title,
   cardBgColor, cardBorderRadius, cardBorderColor, cardShadow, storeNameColor, storeNameSize,
   storeDescColor, highlightColor, showCategory, showFloor, showWebsite, showInstagram,
-  showTags, columns, gap,
+  showTags, columns, gap, onStoreClick,
 }: any) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const cardShadowStyle = cardShadow ? '0 4px 20px rgba(0,0,0,0.3)' : 'none';
@@ -191,14 +192,21 @@ function StoreListView({
                   </div>
                 )}
               </div>
-              <button onClick={() => setExpandedId(expandedId === store.id ? null : store.id)}
+              <button onClick={(e) => {
+                  e.stopPropagation();
+                  if (onStoreClick) {
+                    onStoreClick(store);
+                  } else {
+                    setExpandedId(expandedId === store.id ? null : store.id);
+                  }
+                }}
                 className="flex-shrink-0 self-start px-2 py-1 rounded-md text-[9px] font-semibold transition-all"
                 style={{
                   background: expandedId === store.id ? accentColor : accentColor + '22',
                   color: expandedId === store.id ? '#fff' : accentColor,
                   border: `1px solid ${accentColor}44`,
                 }}>
-                {expandedId === store.id ? '✕' : 'Detalhes'}
+                {onStoreClick ? '→' : (expandedId === store.id ? '✕' : 'Detalhes')}
               </button>
             </div>
 
@@ -261,6 +269,7 @@ function StoreListView({
 
 /* ── Main StoreRenderer ─────────────────────── */
 export function StoreRenderer(props: any) {
+  const { navigateToPage } = usePageVariables();
   const stores = props.stores || [];
   const title = props.title || 'Lojas';
   const titleColor = props.titleColor || '#ffffff';
@@ -336,12 +345,31 @@ export function StoreRenderer(props: any) {
     );
   }
 
+  const handleStoreClick = (store: any) => {
+    if (props.storeNavigateTarget && navigateToPage) {
+      const vars: Record<string, string> = {
+        store_name: store.name || '',
+        store_description: store.description || '',
+        store_category: store.category || '',
+        store_floor: store.floor || '',
+        store_hours: store.hours || '',
+        store_phone: store.phone || '',
+        store_logo: store.logo || '',
+        store_cover: store.coverImage || '',
+        store_website: store.website || '',
+        store_instagram: store.instagram || '',
+      };
+      navigateToPage(props.storeNavigateTarget, props.storeNavigateTransition || 'fade', vars);
+    }
+  };
+
   const sharedProps = {
     stores, sorted, filtered, activeCategory, setActiveCategory, search, setSearch,
     showSearch, showFilter, showCount, categories, accentColor, titleColor, titleSize, title,
     cardBgColor, cardBorderRadius, cardBorderColor, cardShadow, storeNameColor, storeNameSize,
     storeDescColor, highlightColor, showCategory, showFloor, showWebsite, showInstagram,
     showTags, columns, gap, floorPlanImage, pinColor, pinSize,
+    onStoreClick: props.storeNavigateTarget ? handleStoreClick : undefined,
   };
 
   return (

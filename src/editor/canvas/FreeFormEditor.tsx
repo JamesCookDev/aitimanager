@@ -17,6 +17,7 @@ import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { FreeFormTemplatePicker } from './FreeFormTemplatePicker';
+import { PageVariablesProvider } from './PageVariablesContext';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -241,6 +242,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const activePage = views.find(v => v.id === activeViewId);
 
   return (
+    <PageVariablesProvider navigateToPage={handleNavigateToPage}>
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-col h-[calc(100vh-5rem)] bg-background rounded-xl border border-border overflow-hidden">
         {/* Toolbar */}
@@ -479,5 +481,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         </div>
       </div>
     </TooltipProvider>
+    </PageVariablesProvider>
   );
 }

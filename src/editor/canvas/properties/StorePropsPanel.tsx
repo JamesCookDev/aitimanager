@@ -259,7 +259,7 @@ function StoreItemEditor({ store, idx, updateStore, removeStore }: {
 }
 
 /* ── Main Panel ── */
-export function StorePropsPanel({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+export function StorePropsPanel({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: import('../../types/canvas').CanvasView[] }) {
   const stores: any[] = props.stores || [];
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
@@ -459,6 +459,34 @@ export function StorePropsPanel({ props, onChange }: { props: Record<string, any
               </div>
             ))}
           </div>
+
+          {views && views.length > 0 && (
+            <div className="border-t border-border/50 pt-2 mt-2 space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase">🔗 Navegação ao tocar</p>
+              <p className="text-[9px] text-muted-foreground">Ao clicar em uma loja, navega para página de detalhes com dados da loja.</p>
+              <div>
+                <Label className="text-[11px]">Página de destino</Label>
+                <Select value={props.storeNavigateTarget || ''} onValueChange={set('storeNavigateTarget')}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Desativado" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Desativado</SelectItem>
+                    {views.map(v => (
+                      <SelectItem key={v.id} value={v.id}>📄 {v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {props.storeNavigateTarget && (
+                <div className="p-2 rounded-lg bg-muted/30 space-y-0.5">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis na página de destino:</p>
+                  <code className="text-[9px] text-primary block">{'{{store_name}}'} {'{{store_category}}'}</code>
+                  <code className="text-[9px] text-primary block">{'{{store_description}}'} {'{{store_floor}}'}</code>
+                  <code className="text-[9px] text-primary block">{'{{store_hours}}'} {'{{store_phone}}'}</code>
+                  <code className="text-[9px] text-primary block">{'{{store_logo}}'} {'{{store_cover}}'}</code>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </Section>

@@ -335,7 +335,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
     case 'social':
       return <SocialPropsPanel props={props} onChange={onChange} />;
     case 'store':
-      return <StorePropsPanel props={props} onChange={onChange} />;
+      return <StorePropsPanel props={props} onChange={onChange} views={views} />;
     case 'list':
       return <ListPropsPanel props={props} onChange={onChange} views={views} />;
     case 'gallery':
@@ -343,9 +343,9 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
     case 'animated-number':
       return <AnimatedNumberPropsPanel props={props} onChange={onChange} />;
     case 'catalog':
-      return <CatalogPropsPanel props={props} onChange={onChange} />;
+      return <CatalogPropsPanel props={props} onChange={onChange} views={views} />;
     case 'form':
-      return <FormPropsPanel props={props} onChange={onChange} />;
+      return <FormPropsPanel props={props} onChange={onChange} views={views} />;
     default:
       return (
         <Section title="Propriedades">

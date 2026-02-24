@@ -6,8 +6,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import { Section, PropInput, ImageUploadField } from './shared';
+import type { CanvasView } from '../../types/canvas';
 
 interface CatalogItem {
   id: string;
@@ -23,9 +24,10 @@ interface CatalogItem {
 interface Props {
   props: Record<string, any>;
   onChange: (p: Record<string, any>) => void;
+  views?: CanvasView[];
 }
 
-export function CatalogPropsPanel({ props, onChange }: Props) {
+export function CatalogPropsPanel({ props, onChange, views }: Props) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
   const items: CatalogItem[] = props.items || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -158,6 +160,47 @@ export function CatalogPropsPanel({ props, onChange }: Props) {
             <Switch checked={props.showCategoryFilter === true} onCheckedChange={set('showCategoryFilter')} />
           </div>
         </Section>
+
+        {views && views.length > 0 && (
+          <Section title="🔗 Navegação ao tocar">
+            <p className="text-[9px] text-muted-foreground mb-1">Ao tocar em um produto, navega para uma página de detalhes. Os dados do item são salvos como variáveis globais.</p>
+            <div>
+              <Label className="text-[11px]">Página de destino</Label>
+              <Select value={props.itemNavigateTarget || ''} onValueChange={set('itemNavigateTarget')}>
+                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Nenhuma (desativado)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Desativado</SelectItem>
+                  {views.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="flex items-center gap-1.5"><Navigation className="w-3 h-3" /> {v.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {props.itemNavigateTarget && (
+              <>
+                <div>
+                  <Label className="text-[11px]">Transição</Label>
+                  <Select value={props.itemNavigateTransition || 'fade'} onValueChange={set('itemNavigateTransition')}>
+                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fade">✨ Fade</SelectItem>
+                      <SelectItem value="slide-left">⬅ Slide</SelectItem>
+                      <SelectItem value="zoom">🔍 Zoom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis disponíveis na página de destino:</p>
+                  <code className="text-[9px] text-primary block">{'{{item_name}}'} {'{{item_price}}'}</code>
+                  <code className="text-[9px] text-primary block">{'{{item_description}}'} {'{{item_category}}'}</code>
+                  <code className="text-[9px] text-primary block">{'{{item_image}}'} {'{{item_badge}}'}</code>
+                </div>
+              </>
+            )}
+          </Section>
+        )}
       </TabsContent>
     </Tabs>
   );
