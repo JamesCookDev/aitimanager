@@ -4,7 +4,7 @@
   "description": "Manifesto de versões dos arquivos do totem local. Mantido automaticamente pelo Hub.",
   "files": {
     "App.jsx": {
-      "version": "4.13.0",
+      "version": "4.14.0",
       "description": "Aplicação principal — renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge",
       "critical": true
     },

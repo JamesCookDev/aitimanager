@@ -1624,7 +1624,7 @@ function PremiumCarousel({ images = [], autoplay = true, interval = 5, transitio
   );
 }
 
-function LiveCarousel(props) { return <PremiumCarousel {...props} />; }
+
 
 // ─────────────────────────────────────────────
 // 🎨 CSS GLOBAL
