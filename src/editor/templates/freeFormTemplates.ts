@@ -16,7 +16,7 @@ export interface FreeFormTemplate {
   name: string;
   description: string;
   icon: string;
-  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate';
+  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate' | 'health' | 'hotel' | 'retail';
   state: CanvasState;
 }
 
@@ -26,6 +26,9 @@ export const FREEFORM_TEMPLATE_CATEGORIES = [
   { id: 'promo', label: 'Promoção', icon: '🎯' },
   { id: 'menu', label: 'Menu', icon: '📂' },
   { id: 'corporate', label: 'Corporativo', icon: '🏢' },
+  { id: 'health', label: 'Saúde', icon: '🏥' },
+  { id: 'hotel', label: 'Hotel', icon: '🏨' },
+  { id: 'retail', label: 'Varejo', icon: '🛒' },
 ];
 
 let _id = 0;
@@ -558,6 +561,188 @@ const minimalService: CanvasState = (() => {
 })();
 
 // ═══════════════════════════════════════════════════
+// 8. Hospital / Clínica
+// ═══════════════════════════════════════════════════
+const hospitalClinic: CanvasState = (() => {
+  _id = 0;
+  return {
+    bgColor: '#0a1628',
+    elements: [
+      // Top accent
+      el('shape', 0, 0, 1080, 6, {
+        shapeType: 'rectangle', fill: '#06b6d4', borderRadius: 0,
+        borderColor: 'transparent', borderWidth: 0,
+      }),
+      // Header
+      el('icon', 460, 50, 160, 100, { icon: '🏥', size: 64, color: '#06b6d4' }),
+      el('text', 60, 170, 960, 60, {
+        text: 'Clínica São Lucas', fontSize: 38, fontWeight: 'bold',
+        color: '#ffffff', align: 'center', fontFamily: 'Inter',
+      }),
+      el('text', 60, 240, 960, 36, {
+        text: 'Bem-vindo! Retire sua senha abaixo', fontSize: 17,
+        fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+      // Ticket widget
+      el('ticket', 280, 320, 520, 380, {
+        prefix: 'C', currentNumber: 127, bgColor: 'rgba(6,182,212,0.08)',
+        textColor: '#ffffff', accentColor: '#06b6d4', fontSize: 72,
+        borderRadius: 24, label: 'Sua senha de atendimento', showPrint: true,
+        printLabel: '🖨️ Retirar Senha',
+      }),
+      // Department buttons
+      ...[
+        { label: '🩺 Consultas', color: '#06b6d4' },
+        { label: '💉 Vacinas', color: '#8b5cf6' },
+        { label: '🔬 Exames', color: '#f59e0b' },
+        { label: '💊 Farmácia', color: '#10b981' },
+      ].map((item, i) =>
+        el('button', 60 + (i % 2) * 500, 740 + Math.floor(i / 2) * 90, 460, 72, {
+          label: item.label, bgColor: item.color + '18',
+          textColor: '#ffffff', fontSize: 19, borderRadius: 16, action: item.label,
+        })
+      ),
+      // Chat
+      el('chat', 60, 960, 960, 340, {
+        placeholder: 'Pergunte sobre horários, convênios, resultados...', theme: 'dark',
+      }),
+      // Clock
+      el('clock', 380, 1340, 320, 60, {
+        format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 20,
+      }),
+      // QR
+      el('qrcode', 440, 1700, 180, 180, {
+        value: 'https://example.com/clinic', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
+      }),
+    ],
+    selectedId: null,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// 9. Hotel / Turismo
+// ═══════════════════════════════════════════════════
+const hotelTourism: CanvasState = (() => {
+  _id = 0;
+  return {
+    bgColor: '#1a1007',
+    elements: [
+      // Warm header
+      el('shape', 0, 0, 1080, 300, {
+        shapeType: 'rectangle', fill: '#78350f', borderRadius: 0,
+        borderColor: 'transparent', borderWidth: 0,
+      }, { opacity: 0.3 }),
+      el('icon', 460, 40, 160, 100, { icon: '🏨', size: 64, color: '#f59e0b' }),
+      el('text', 60, 160, 960, 60, {
+        text: 'Hotel Grand Palace', fontSize: 38, fontWeight: 'bold',
+        color: '#ffffff', align: 'center', fontFamily: 'Inter',
+      }),
+      el('text', 60, 230, 960, 36, {
+        text: 'Faça seu check-in digital', fontSize: 17,
+        fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+      // Check-in form
+      el('form', 140, 320, 800, 480, {
+        title: 'Check-in', titleColor: '#ffffff', titleSize: 24,
+        bgColor: 'rgba(245,158,11,0.06)', borderRadius: 20,
+        fields: [
+          { id: '1', type: 'text', label: 'Nome completo', placeholder: 'Seu nome', required: true },
+          { id: '2', type: 'text', label: 'Nº da Reserva', placeholder: 'Ex: HTL-12345', required: true },
+          { id: '3', type: 'select', label: 'Tipo de quarto', placeholder: 'Selecione...', options: 'Standard, Luxo, Suíte, Penthouse', required: false },
+        ],
+        submitLabel: '🔑 Fazer Check-in', submitBgColor: '#f59e0b',
+        submitTextColor: '#ffffff', accentColor: '#f59e0b',
+        fieldBgColor: 'rgba(255,255,255,0.06)', fieldTextColor: '#ffffff',
+        successMessage: 'Check-in realizado! Bem-vindo! 🎉',
+      }),
+      // Services buttons
+      ...[
+        { label: '🍽️ Room Service', action: 'Room service' },
+        { label: '🧖 Spa & Lazer', action: 'Spa e lazer' },
+        { label: '📍 Pontos Turísticos', action: 'Pontos turísticos' },
+        { label: '🚗 Transfer', action: 'Transfer aeroporto' },
+      ].map((item, i) =>
+        el('button', 60 + (i % 2) * 500, 840 + Math.floor(i / 2) * 80, 460, 62, {
+          label: item.label, bgColor: 'rgba(245,158,11,0.1)',
+          textColor: '#ffffff', fontSize: 17, borderRadius: 14, action: item.action,
+        })
+      ),
+      // Weather + Clock
+      el('weather', 60, 1060, 300, 60, {
+        city: 'Rio de Janeiro', units: 'metric', color: 'rgba(255,255,255,0.3)',
+      }),
+      el('clock', 720, 1060, 300, 60, {
+        format: '24h', showDate: true, color: 'rgba(255,255,255,0.3)', fontSize: 20,
+      }),
+      // QR
+      el('qrcode', 440, 1700, 180, 180, {
+        value: 'https://example.com/hotel', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
+      }),
+    ],
+    selectedId: null,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// 10. Varejo / Loja
+// ═══════════════════════════════════════════════════
+const retailStore: CanvasState = (() => {
+  _id = 0;
+  return {
+    bgColor: '#0f0f14',
+    elements: [
+      // Top accent
+      el('shape', 0, 0, 1080, 6, {
+        shapeType: 'rectangle', fill: '#ec4899', borderRadius: 0,
+        borderColor: 'transparent', borderWidth: 0,
+      }),
+      // Header
+      el('icon', 460, 40, 160, 100, { icon: '🛍️', size: 64, color: '#ec4899' }),
+      el('text', 60, 160, 960, 60, {
+        text: 'Loja Fashion', fontSize: 42, fontWeight: 'bold',
+        color: '#ffffff', align: 'center', fontFamily: 'Inter',
+      }),
+      el('text', 60, 230, 960, 36, {
+        text: 'Explore nossos produtos e ofertas', fontSize: 17,
+        fontWeight: 'normal', color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+      // Catalog
+      el('catalog', 60, 300, 960, 700, {
+        title: 'Destaques', titleColor: '#ffffff', titleSize: 24,
+        bgColor: 'rgba(236,72,153,0.05)', borderRadius: 20,
+        items: [
+          { id: '1', name: 'Tênis Runner', description: 'Conforto para o dia a dia', price: 'R$ 299,90', image: '', category: 'Calçados', badge: 'NOVO', badgeColor: '#ec4899' },
+          { id: '2', name: 'Camisa Premium', description: 'Algodão egípcio', price: 'R$ 189,90', image: '', category: 'Roupas', badge: '-30%', badgeColor: '#ef4444' },
+          { id: '3', name: 'Bolsa Elegance', description: 'Couro legítimo', price: 'R$ 459,90', image: '', category: 'Acessórios', badge: '', badgeColor: '' },
+          { id: '4', name: 'Óculos Solar', description: 'Proteção UV400', price: 'R$ 149,90', image: '', category: 'Acessórios', badge: 'BEST', badgeColor: '#f59e0b' },
+        ],
+        columns: 2, gap: 12, cardBgColor: 'rgba(255,255,255,0.06)',
+        cardBorderRadius: 16, accentColor: '#ec4899', showPrice: true,
+        showCategory: true, showSearch: true, showCategoryFilter: true,
+        imageAspect: '1/1', priceColor: '#ec4899', nameSize: 15, priceSize: 18,
+      }),
+      // QR Pix payment
+      el('qrpix', 280, 1040, 520, 400, {
+        pixKey: '12345678901', amount: '', recipientName: 'Loja Fashion LTDA',
+        bgColor: 'rgba(236,72,153,0.06)', textColor: '#ffffff', accentColor: '#32bcad',
+        borderRadius: 20, showAmount: false, label: 'Pague com Pix',
+      }),
+      // Big CTA
+      el('bigcta', 140, 1480, 800, 120, {
+        label: '🛒 Peça pelo App', sublabel: 'Escaneie o QR code abaixo',
+        icon: '', bgColor: '#ec4899', textColor: '#ffffff', fontSize: 24,
+        borderRadius: 999, pulse: true,
+      }),
+      // QR
+      el('qrcode', 440, 1700, 180, 180, {
+        value: 'https://example.com/store', fgColor: 'rgba(255,255,255,0.2)', bgColor: 'transparent',
+      }),
+    ],
+    selectedId: null,
+  };
+})();
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -616,5 +801,29 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
     icon: '💬',
     category: 'welcome',
     state: minimalService,
+  },
+  {
+    id: 'hospital-clinic',
+    name: 'Hospital / Clínica',
+    description: 'Sistema de senhas, departamentos e chat para pacientes',
+    icon: '🏥',
+    category: 'health',
+    state: hospitalClinic,
+  },
+  {
+    id: 'hotel-tourism',
+    name: 'Hotel / Turismo',
+    description: 'Check-in digital com formulário e serviços do hotel',
+    icon: '🏨',
+    category: 'hotel',
+    state: hotelTourism,
+  },
+  {
+    id: 'retail-store',
+    name: 'Loja / Varejo',
+    description: 'Catálogo de produtos com QR Pix e CTA de compra',
+    icon: '🛍️',
+    category: 'retail',
+    state: retailStore,
   },
 ];

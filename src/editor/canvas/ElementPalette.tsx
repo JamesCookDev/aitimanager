@@ -1,7 +1,7 @@
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store,
-  List, LayoutGrid, Hash, ShoppingBag, FileText,
+  List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -13,6 +13,15 @@ interface Props {
 }
 
 const CATEGORIES = [
+  {
+    label: '🖥️ Totem',
+    items: [
+      { type: 'bigcta' as ElementType, icon: Pointer, label: 'CTA Grande' },
+      { type: 'ticket' as ElementType, icon: Ticket, label: 'Senha' },
+      { type: 'qrpix' as ElementType, icon: CreditCard, label: 'QR Pix' },
+      { type: 'numpad' as ElementType, icon: Keyboard, label: 'Teclado' },
+    ],
+  },
   {
     label: 'Conteúdo',
     items: [

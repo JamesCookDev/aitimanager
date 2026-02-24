@@ -20,6 +20,10 @@ import { GalleryRenderer } from './GalleryRenderer';
 import { AnimatedNumberRenderer } from './AnimatedNumberRenderer';
 import { CatalogRenderer } from './CatalogRenderer';
 import { FormRenderer } from './FormRenderer';
+import { TicketRenderer } from './TicketRenderer';
+import { QRPixRenderer } from './QRPixRenderer';
+import { NumpadRenderer } from './NumpadRenderer';
+import { BigCTARenderer } from './BigCTARenderer';
 
 interface Props {
   element: CanvasElement;
@@ -71,6 +75,14 @@ export function ElementRenderer({ element }: Props) {
       return <CatalogRenderer {...element.props} />;
     case 'form':
       return <FormRenderer {...element.props} />;
+    case 'ticket':
+      return <TicketRenderer {...element.props} />;
+    case 'qrpix':
+      return <QRPixRenderer {...element.props} />;
+    case 'numpad':
+      return <NumpadRenderer {...element.props} />;
+    case 'bigcta':
+      return <BigCTARenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
