@@ -336,25 +336,11 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       );
     }
 
-    // ── BUTTON: Premium 3D tactile kiosk button ──
+    // ── BUTTON: Clean tactile kiosk button ──
     case "button": {
-      const bgColor = p.bgColor || "#6366f1";
+      const bgColor = p.bgColor || "#3b82f6";
       const textColor = p.textColor || "#fff";
-      const borderRadius = p.borderRadius ?? 16;
-      // Compute a lighter and darker shade for 3D gradient
-      const hexToHSL = (hex) => {
-        let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
-        const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
-        let h = 0, s = 0, l = (max+min)/2;
-        if (d !== 0) { s = l > 0.5 ? d/(2-max-min) : d/(max-min); h = max===r ? ((g-b)/d + (g<b?6:0))*60 : max===g ? ((b-r)/d+2)*60 : ((r-g)/d+4)*60; }
-        return [Math.round(h), Math.round(s*100), Math.round(l*100)];
-      };
-      let lighter = bgColor, darker = bgColor;
-      try {
-        const [h,s,l] = hexToHSL(bgColor.length === 7 ? bgColor : "#6366f1");
-        lighter = `hsl(${h}, ${Math.min(s+10,100)}%, ${Math.min(l+15,92)}%)`;
-        darker = `hsl(${h}, ${s}%, ${Math.max(l-18,8)}%)`;
-      } catch(_){}
+      const borderRadius = p.borderRadius ?? 14;
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "4%" }}>
           <button
@@ -376,45 +362,22 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             style={{
               width: "100%", height: "100%",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              background: `linear-gradient(180deg, ${lighter} 0%, ${bgColor} 50%, ${darker} 100%)`,
+              background: bgColor,
               color: textColor,
-              fontSize: fs(p.fontSize || 20),
-              fontWeight: "800",
+              fontSize: fs(p.fontSize || 18),
+              fontWeight: "700",
               borderRadius,
               border: "none",
-              borderTop: "2px solid rgba(255,255,255,0.35)",
-              borderBottom: "3px solid rgba(0,0,0,0.4)",
               cursor: "pointer",
-              letterSpacing: "0.02em",
+              letterSpacing: "0.01em",
               position: "relative",
               overflow: "hidden",
-              boxShadow: `
-                0 6px 20px ${bgColor}60,
-                0 2px 4px rgba(0,0,0,0.3),
-                inset 0 1px 0 rgba(255,255,255,0.25),
-                inset 0 -2px 4px rgba(0,0,0,0.15)
-              `,
-              textShadow: "0 2px 4px rgba(0,0,0,0.4)",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              padding: "0 16px",
-              minHeight: 48,
+              boxShadow: `0 4px 14px ${bgColor}40, 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)`,
+              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
+              padding: "0 20px",
+              minHeight: 44,
             }}
           >
-            {/* Glossy top highlight */}
-            <div style={{
-              position: "absolute", top: 0, left: "10%", right: "10%", height: "50%",
-              background: "linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.05) 60%, transparent 100%)",
-              borderRadius: `${borderRadius}px ${borderRadius}px ${borderRadius * 2}px ${borderRadius * 2}px`,
-              pointerEvents: "none",
-            }} />
-            {/* Shimmer sweep */}
-            <div style={{
-              position: "absolute", top: 0, left: 0, width: "35%", height: "100%",
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
-              animation: "totem-btn-shimmer 4s ease-in-out infinite",
-              pointerEvents: "none",
-            }} />
-            {/* Icon if present */}
             {p.icon && <span style={{ position: "relative", zIndex: 1, fontSize: "1.1em" }}>{p.icon}</span>}
             <span style={{ position: "relative", zIndex: 1 }}>
               {p.label || "Botão"}
@@ -426,7 +389,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
     // ── SHAPE: Gradient + subtle breathe + glass border ──
     case "shape": {
-      const fill = p.fill || "#6366f1";
+      const fill = p.fill || "#3b82f6";
       const isCircle = p.shapeType === "circle";
       return (
         <div style={{
@@ -498,7 +461,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const cleanFg = (p.fgColor || "#ffffff").replace("#", "");
       const cleanBg = !p.bgColor || p.bgColor === "transparent" ? "000000" : p.bgColor.replace("#", "");
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrContent)}&color=${cleanFg}&bgcolor=${cleanBg}`;
-      const accentColor = p.fgColor || "#6366f1";
+      const accentColor = p.fgColor || "#3b82f6";
       return (
         <div style={{
           width: "100%", height: "100%",
@@ -590,7 +553,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             boxShadow: bgEnabled ? "0 8px 32px rgba(0,0,0,0.2)" : undefined,
           }}>
             {links.map((l, i) => {
-              const color = l.color || "#6366f1";
+              const color = l.color || "#3b82f6";
               return (
                 <button key={l.id || i} type="button"
                   onClick={() => {
@@ -673,7 +636,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       ];
       const titleColor = p.titleColor || "#ffffff";
       const subtitleColor = p.subtitleColor || "rgba(255,255,255,0.6)";
-      const priceColor = p.priceColor || "#6366f1";
+      const priceColor = p.priceColor || "#3b82f6";
       const dividerColor = p.dividerColor || "rgba(255,255,255,0.06)";
       const listBg = p.bgColor || "rgba(0,0,0,0.4)";
       const showDivider = p.showDivider !== false;
@@ -754,7 +717,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const catGap = p.gap || 12;
       const catCardBg = p.cardBgColor || "rgba(255,255,255,0.08)";
       const catCardBr = p.cardBorderRadius || 12;
-      const catAccent = p.accentColor || "#6366f1";
+      const catAccent = p.accentColor || "#3b82f6";
       const catPriceColor = p.priceColor || "#22c55e";
       return (
         <div style={{
@@ -850,20 +813,19 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
     // ── BIG CTA: Large call-to-action ──
     case "bigcta": {
-      const ctaBg = p.bgColor || "#6366f1";
+      const ctaBg = p.bgColor || "#3b82f6";
       const ctaText = p.textColor || "#ffffff";
-      const ctaFontSize = p.fontSize || 28;
+      const ctaFontSize = p.fontSize || 26;
       const ctaPulse = p.pulse !== false;
       return (
         <div style={{
           width: "100%", height: "100%",
-          background: `linear-gradient(135deg, ${ctaBg}, ${ctaBg}cc, ${ctaBg}ee)`,
-          borderRadius: p.borderRadius || 24, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer",
-          boxShadow: `0 8px 40px ${ctaBg}50, inset 0 1px 0 rgba(255,255,255,0.2)`,
+          background: ctaBg,
+          borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
+          boxShadow: `0 6px 28px ${ctaBg}40, inset 0 1px 0 rgba(255,255,255,0.12)`,
           animation: ctaPulse ? "kiosk-breathe 2.5s ease-in-out infinite" : "none",
           position: "relative", overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.12)",
         }}
           onClick={() => {
             if (p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
@@ -871,12 +833,9 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             }
           }}
         >
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)", borderRadius: `${p.borderRadius || 24}px ${p.borderRadius || 24}px 0 0`, pointerEvents: "none" }} />
-          <style>{`@keyframes cta-shimmer { 0% { transform: translateX(-100%) skewX(-15deg); } 100% { transform: translateX(300%) skewX(-15deg); } }`}</style>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "30%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", animation: "cta-shimmer 4s ease-in-out infinite", pointerEvents: "none" }} />
-          {p.icon && <span style={{ fontSize: ctaFontSize * 1.3, position: "relative", zIndex: 1, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>{p.icon}</span>}
-          <span style={{ color: ctaText, fontSize: ctaFontSize, fontWeight: 800, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 1, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{p.label || "Toque para começar"}</span>
-          {p.sublabel && <span style={{ color: `${ctaText}88`, fontSize: p.sublabelSize || 14, fontWeight: 400, textAlign: "center", position: "relative", zIndex: 1 }}>{p.sublabel}</span>}
+          {p.icon && <span style={{ fontSize: ctaFontSize * 1.2, position: "relative", zIndex: 1 }}>{p.icon}</span>}
+          <span style={{ color: ctaText, fontSize: ctaFontSize, fontWeight: 700, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 1 }}>{p.label || "Toque para começar"}</span>
+          {p.sublabel && <span style={{ color: `${ctaText}77`, fontSize: p.sublabelSize || 13, textAlign: "center", position: "relative", zIndex: 1 }}>{p.sublabel}</span>}
         </div>
       );
     }
@@ -894,25 +853,15 @@ function PremiumPlaceholder({ emoji, label }) {
     <div style={{
       width: "100%", height: "100%",
       display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 10,
+      alignItems: "center", justifyContent: "center", gap: 8,
       background: "rgba(255,255,255,0.03)",
-      borderRadius: 16,
-      border: "1px solid rgba(255,255,255,0.08)",
-      backdropFilter: "blur(8px)",
-      position: "relative",
-      overflow: "hidden",
+      borderRadius: 12,
+      border: "1px dashed rgba(255,255,255,0.1)",
     }}>
-      {/* Subtle gradient orb */}
-      <div style={{
-        position: "absolute", width: "60%", height: "60%",
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-      <span style={{ fontSize: 32, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>{emoji}</span>
+      <span style={{ fontSize: 28, opacity: 0.6 }}>{emoji}</span>
       <span style={{
-        fontSize: 11, color: "rgba(255,255,255,0.4)",
-        fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
+        fontSize: 11, color: "rgba(255,255,255,0.3)",
+        fontWeight: 500, letterSpacing: "0.04em",
       }}>{label}</span>
     </div>
   );
@@ -937,7 +886,7 @@ function PremiumStoreDirectory({ props: p }) {
   const gap = p.gap || 12;
   const cardBgColor = p.cardBgColor || "rgba(255,255,255,0.06)";
   const cardBorderRadius = p.cardBorderRadius || 16;
-  const accentColor = p.accentColor || "#6366f1";
+  const accentColor = p.accentColor || "#3b82f6";
   const showCategory = p.showCategory !== false;
   const showFloor = p.showFloor !== false;
   const showFilter = p.showCategoryFilter !== false;
@@ -1167,7 +1116,7 @@ function ChatElement({ props: p, deviceId }) {
   const placeholder = p.placeholder || "Pergunte algo...";
   const theme = p.theme || "dark";
   const isDark = theme === "dark";
-  const accentColor = p.accentColor || "#6366f1";
+  const accentColor = p.accentColor || "#3b82f6";
   const speakResponse = p.speakResponse !== false;
   const borderRadius = p.borderRadius || 16;
   const bgMain = isDark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)";
@@ -1706,7 +1655,7 @@ const PremiumCountdown = React.memo(({ targetDate, label, color, fontSize, accen
   const s = totalSec % 60;
 
   const c = color || "#fff";
-  const accent = accentColor || "#6366f1";
+  const accent = accentColor || "#3b82f6";
   const fz = fontSize || 28;
 
   const Segment = ({ value, unit }) => (
@@ -1919,7 +1868,7 @@ function LiveForm({ props: p }) {
   const title = p.title || "Check-in";
   const fields = p.fields || [];
   const submitLabel = p.submitLabel || "Enviar";
-  const submitBg = p.submitBgColor || "#6366f1";
+  const submitBg = p.submitBgColor || "#3b82f6";
   const submitText = p.submitTextColor || "#ffffff";
   const fieldBg = p.fieldBgColor || "rgba(255,255,255,0.08)";
   const fieldText = p.fieldTextColor || "#ffffff";
@@ -1990,7 +1939,7 @@ function LiveForm({ props: p }) {
 // ─────────────────────────────────────────────
 function LiveTicket({ props: p }) {
   const prefix = p.prefix || "A";
-  const accent = p.accentColor || "#6366f1";
+  const accent = p.accentColor || "#3b82f6";
   const textColor = p.textColor || "#ffffff";
   const fSize = p.fontSize || 72;
   const bg = p.bgColor || "rgba(0,0,0,0.5)";
@@ -2042,7 +1991,7 @@ function LiveTicket({ props: p }) {
 // 🔢 NUMPAD
 // ─────────────────────────────────────────────
 function LiveNumpad({ props: p }) {
-  const accent = p.accentColor || "#6366f1";
+  const accent = p.accentColor || "#3b82f6";
   const textColor = p.textColor || "#ffffff";
   const bg = p.bgColor || "rgba(0,0,0,0.5)";
   const maxLen = p.maxLength || 11;
@@ -2130,50 +2079,35 @@ const GlobalStyles = () => (
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
     @keyframes kiosk-breathe {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.55), 0 8px 40px rgba(0,0,0,0.45); transform: scale(1); }
-      50%        { box-shadow: 0 0 0 18px rgba(99,102,241,0),  0 8px 40px rgba(0,0,0,0.45); transform: scale(1.025); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4), 0 6px 30px rgba(0,0,0,0.3); transform: scale(1); }
+      50%        { box-shadow: 0 0 0 14px rgba(59,130,246,0),  0 6px 30px rgba(0,0,0,0.3); transform: scale(1.02); }
     }
 
-    /* Config update toast */
-    @keyframes toast-in  { from { opacity: 0; transform: translateX(120%); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes toast-out { from { opacity: 1; transform: translateX(0); }   to { opacity: 0; transform: translateX(120%); } }
+    @keyframes toast-in  { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: translateX(0); }   to { opacity: 0; transform: translateX(80px); } }
     @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
-    @keyframes toast-dot-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
 
-    .toast-enter { animation: toast-in  0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .toast-exit  { animation: toast-out 0.4s ease-in forwards; }
+    .toast-enter { animation: toast-in  0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .toast-exit  { animation: toast-out 0.3s ease-in forwards; }
 
-    /* ── Idle Screen ── */
     @keyframes idle-fade-in  { from { opacity: 0; } to { opacity: 1; } }
     @keyframes idle-fade-out { from { opacity: 1; } to { opacity: 0; } }
     @keyframes idle-float {
       0%,100% { transform: translateY(0px); }
-      50%      { transform: translateY(-14px); }
+      50%      { transform: translateY(-10px); }
     }
     @keyframes idle-text-pulse {
-      0%,100% { opacity: 1; text-shadow: 0 0 20px rgba(139,92,246,0.6); }
-      50%      { opacity: 0.55; text-shadow: 0 0 40px rgba(139,92,246,0.9); }
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.6; }
     }
-    @keyframes idle-ring-expand {
-      0%   { transform: scale(0.9); opacity: 0.7; }
-      100% { transform: scale(2.2); opacity: 0; }
-    }
-    @keyframes idle-particle-up {
-      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0.8; }
-      100% { transform: translateY(-120px) translateX(var(--dx, 0px)) scale(0); opacity: 0; }
-    }
-    @keyframes idle-star-twinkle {
-      0%,100% { opacity: 0; transform: scale(0.5); }
-      50%      { opacity: 1; transform: scale(1); }
-    }
-
-    .idle-screen-in  { animation: idle-fade-in  0.8s ease-out forwards; }
-    .idle-screen-out { animation: idle-fade-out 0.6s ease-in  forwards; }
 
     @keyframes live-pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.85); }
     }
+
+    .idle-screen-in  { animation: idle-fade-in  0.6s ease-out forwards; }
+    .idle-screen-out { animation: idle-fade-out 0.5s ease-in  forwards; }
 
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; overflow: hidden; }
@@ -2200,12 +2134,12 @@ function IdleScreen({ visible, onWake }) {
   React.useEffect(() => {
     if (visible) {
       setPhase("in");
-      const t = setTimeout(() => setPhase("visible"), 800);
+      const t = setTimeout(() => setPhase("visible"), 600);
       return () => clearTimeout(t);
     } else {
       if (phase === "hidden") return;
       setPhase("out");
-      const t = setTimeout(() => setPhase("hidden"), 700);
+      const t = setTimeout(() => setPhase("hidden"), 600);
       return () => clearTimeout(t);
     }
   }, [visible]);
@@ -2220,52 +2154,22 @@ function IdleScreen({ visible, onWake }) {
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        background: "radial-gradient(ellipse at 50% 60%, rgba(99,102,241,0.18) 0%, rgba(5,10,24,0.92) 70%)",
-        backdropFilter: "blur(2px)",
+        background: "rgba(17, 24, 39, 0.95)",
         cursor: "pointer",
         userSelect: "none",
       }}
     >
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
-        {IDLE_PARTICLES.map(p => (
-          <div key={p.id} style={{
-            position: "absolute", bottom: "10%", left: p.x,
-            width: p.size, height: p.size, borderRadius: "50%",
-            background: p.color, boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-            '--dx': p.dx,
-            animation: `idle-particle-up ${p.dur} ${p.delay} ease-out infinite`,
-          }} />
-        ))}
-        {Array.from({ length: 14 }, (_, i) => (
-          <div key={`s${i}`} style={{
-            position: "absolute",
-            top: `${5 + (i * 61 % 80)}%`, left: `${(i * 71 % 90) + 5}%`,
-            width: 2 + (i % 2), height: 2 + (i % 2), borderRadius: "50%",
-            background: i % 2 === 0 ? "rgba(255,255,255,0.9)" : "rgba(139,92,246,0.8)",
-            animation: `idle-star-twinkle ${1.5 + (i * 0.3) % 2}s ${(i * 0.4) % 2}s ease-in-out infinite`,
-          }} />
-        ))}
-      </div>
-
-      {[0, 0.7, 1.4].map((delay, i) => (
-        <div key={i} style={{
-          position: "absolute", width: 220, height: 220, borderRadius: "50%",
-          border: "1.5px solid rgba(139,92,246,0.5)",
-          animation: `idle-ring-expand 3s ${delay}s ease-out infinite`,
-        }} />
-      ))}
-
-      <div style={{ fontSize: "clamp(52px, 8vw, 80px)", animation: "idle-float 3.5s ease-in-out infinite", marginBottom: 24, filter: "drop-shadow(0 0 24px rgba(139,92,246,0.8))" }}>
+      <div style={{ fontSize: "clamp(48px, 7vw, 72px)", animation: "idle-float 3s ease-in-out infinite", marginBottom: 24 }}>
         👋
       </div>
-      <div style={{ fontSize: "clamp(28px, 4.5vw, 52px)", fontWeight: 800, color: "#ffffff", textAlign: "center", lineHeight: 1.15, animation: "idle-text-pulse 2.8s ease-in-out infinite", marginBottom: 16, padding: "0 32px" }}>
+      <div style={{ fontSize: "clamp(24px, 4vw, 44px)", fontWeight: 700, color: "#f1f5f9", textAlign: "center", lineHeight: 1.2, animation: "idle-text-pulse 2.5s ease-in-out infinite", marginBottom: 12, padding: "0 32px" }}>
         Toque para começar
       </div>
-      <div style={{ fontSize: "clamp(14px, 1.8vw, 20px)", color: "rgba(255,255,255,0.5)", textAlign: "center", padding: "0 40px", maxWidth: 480 }}>
+      <div style={{ fontSize: "clamp(13px, 1.6vw, 18px)", color: "rgba(255,255,255,0.4)", textAlign: "center", padding: "0 40px", maxWidth: 440 }}>
         Estou aqui para ajudar você
       </div>
-      <div style={{ position: "absolute", bottom: 48, fontSize: "clamp(11px, 1.2vw, 14px)", color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-        Toque em qualquer lugar para continuar
+      <div style={{ position: "absolute", bottom: 40, fontSize: "clamp(10px, 1.1vw, 13px)", color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>
+        Toque em qualquer lugar
       </div>
     </div>
   );
@@ -2317,41 +2221,32 @@ function UpdateToast({ visible }) {
     <div
       className={phase === "exit" ? "toast-exit" : "toast-enter"}
       style={{
-        position: "fixed", bottom: 28, right: 28, zIndex: 9999,
-        display: "flex", alignItems: "center", gap: 12,
-        background: "rgba(8, 14, 30, 0.82)",
-        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(99,102,241,0.35)",
-        borderRadius: 18, padding: "14px 20px",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.07)",
-        minWidth: 260, pointerEvents: "none", userSelect: "none",
+        position: "fixed", bottom: 24, right: 24, zIndex: 9999,
+        display: "flex", alignItems: "center", gap: 10,
+        background: "rgba(17, 24, 39, 0.92)",
+        backdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 14, padding: "12px 16px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        minWidth: 240, pointerEvents: "none", userSelect: "none",
       }}
     >
       <div style={{
-        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-        background: "linear-gradient(135deg, rgba(99,102,241,0.3), rgba(139,92,246,0.3))",
-        border: "1px solid rgba(99,102,241,0.4)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        background: "rgba(59,130,246,0.15)",
+        border: "1px solid rgba(59,130,246,0.2)",
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
       }}>🔄</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1.2 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.2 }}>
           Configuração atualizada
         </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 3, letterSpacing: "0.01em" }}>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
           Interface sincronizada
         </div>
-        <div style={{ height: 2, borderRadius: 999, marginTop: 8, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-          <div style={{ height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #6366f1, #8b5cf6)", animation: "toast-progress 3s linear forwards" }} />
+        <div style={{ height: 2, borderRadius: 999, marginTop: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 999, background: "#3b82f6", animation: "toast-progress 3s linear forwards" }} />
         </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0 }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            width: 4, height: 4, borderRadius: "50%",
-            background: i === 0 ? "#6366f1" : i === 1 ? "#8b5cf6" : "#ec4899",
-            animation: `toast-dot-pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }} />
-        ))}
       </div>
     </div>
   );
