@@ -3,13 +3,13 @@ import { Rnd } from 'react-rnd';
 import type { CanvasElement } from '../types/canvas';
 import type { PageTransition } from '../types/canvas';
 import { ElementRenderer } from './renderers/ElementRenderer';
-import { Lock } from 'lucide-react';
+import { Lock, Navigation } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /* ── Build advanced visual styles from element props ─── */
 function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
   const style: React.CSSProperties = {};
 
-  // Gradient background
   if (props.gradientDirection && props.gradientDirection !== 'none' && props.gradientFrom && props.gradientTo) {
     if (props.gradientDirection === 'circle') {
       style.background = `radial-gradient(circle, ${props.gradientFrom}, ${props.gradientTo})`;
@@ -18,7 +18,6 @@ function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
     }
   }
 
-  // Shadow
   const shadowMap: Record<string, string> = {
     sm: '0 2px 8px rgba(0,0,0,0.15)',
     md: '0 4px 16px rgba(0,0,0,0.25)',
@@ -30,12 +29,10 @@ function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
     style.boxShadow = shadowMap[props.shadowPreset] || 'none';
   }
 
-  // Border
   if (props.borderWidth && props.borderWidth > 0) {
     style.border = `${props.borderWidth}px solid ${props.borderColor || '#ffffff'}`;
   }
 
-  // Filters
   const filters: string[] = [];
   if (props.filterBlur) filters.push(`blur(${props.filterBlur}px)`);
   if (props.filterBrightness != null && props.filterBrightness !== 100) filters.push(`brightness(${props.filterBrightness}%)`);
@@ -43,7 +40,6 @@ function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
   if (props.filterGrayscale) filters.push(`grayscale(${props.filterGrayscale}%)`);
   if (filters.length > 0) style.filter = filters.join(' ');
 
-  // Entrance animation
   if (props.entranceAnimation && props.entranceAnimation !== 'none') {
     const delay = props.entranceDelay || 0;
     const animMap: Record<string, string> = {
@@ -145,14 +141,14 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
         cursor: element.locked ? 'default' : 'move',
       }}
       resizeHandleStyles={{
-        topLeft: handleStyle,
-        topRight: handleStyle,
-        bottomLeft: handleStyle,
-        bottomRight: handleStyle,
-        top: edgeStyleH,
-        bottom: edgeStyleH,
-        left: edgeStyleV,
-        right: edgeStyleV,
+        topLeft: cornerHandle,
+        topRight: cornerHandle,
+        bottomLeft: cornerHandle,
+        bottomRight: cornerHandle,
+        top: edgeH,
+        bottom: edgeH,
+        left: edgeV,
+        right: edgeV,
       }}
       resizeHandleClasses={{
         topLeft: 'z-50',
@@ -168,11 +164,30 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
         className="w-full h-full relative"
         style={{ borderRadius: element.props.borderRadius || 0, ...visualStyles }}
       >
-        {/* Selection outline */}
+        {/* Selection outline — Canva-style with rounded corners */}
         {selected && (
           <div
-            className="absolute -inset-[2px] border-2 border-blue-500 rounded pointer-events-none"
-            style={{ zIndex: 999 }}
+            className="absolute pointer-events-none"
+            style={{
+              inset: -2,
+              border: '2px solid hsl(var(--primary))',
+              borderRadius: (element.props.borderRadius || 0) + 2,
+              zIndex: 999,
+              boxShadow: '0 0 0 1px hsl(var(--primary) / 0.2)',
+            }}
+          />
+        )}
+
+        {/* Hover outline */}
+        {!selected && (
+          <div
+            className="absolute pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{
+              inset: -1,
+              border: '1px solid hsl(var(--primary) / 0.4)',
+              borderRadius: (element.props.borderRadius || 0) + 1,
+              zIndex: 998,
+            }}
           />
         )}
 
@@ -181,23 +196,46 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           <ElementRenderer element={element} />
         </div>
 
-        {/* Navigate indicator */}
+        {/* Navigate badge */}
         {hasNavigateAction && selected && (
-          <div className="absolute -top-6 right-0 bg-primary/90 text-primary-foreground text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 pointer-events-none whitespace-nowrap">
-            🔗 Dê duplo-clique para navegar
+          <div
+            className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none"
+            style={{
+              background: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
+              fontSize: 9,
+              fontWeight: 600,
+            }}
+          >
+            <Navigation className="w-2.5 h-2.5" />
+            Duplo-clique para navegar
           </div>
         )}
 
         {/* Lock indicator */}
         {element.locked && selected && (
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 pointer-events-none">
+          <div
+            className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none bg-amber-500/90 text-amber-950"
+            style={{ fontSize: 9, fontWeight: 600 }}
+          >
             <Lock className="w-2.5 h-2.5" /> Bloqueado
           </div>
         )}
 
-        {/* Dimension badge on hover/select */}
+        {/* Dimension badge */}
         {selected && (
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[9px] px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none font-mono">
+          <div
+            className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none font-mono"
+            style={{
+              fontSize: 9,
+              fontWeight: 500,
+              background: 'hsl(var(--popover))',
+              color: 'hsl(var(--popover-foreground))',
+              border: '1px solid hsl(var(--border))',
+              padding: '1px 8px',
+              borderRadius: 6,
+            }}
+          >
             {element.width} × {element.height}
           </div>
         )}
@@ -206,21 +244,23 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
   );
 }
 
-const handleStyle: React.CSSProperties = {
-  width: 10,
-  height: 10,
-  background: '#3b82f6',
-  border: '2px solid #fff',
-  borderRadius: 2,
+/* ── Refined resize handles (Canva-style) ── */
+const cornerHandle: React.CSSProperties = {
+  width: 8,
+  height: 8,
+  background: 'hsl(var(--primary))',
+  border: '2px solid hsl(var(--primary-foreground))',
+  borderRadius: '50%',
   zIndex: 50,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
 };
 
-const edgeStyleH: React.CSSProperties = {
+const edgeH: React.CSSProperties = {
   height: 4,
   background: 'transparent',
 };
 
-const edgeStyleV: React.CSSProperties = {
+const edgeV: React.CSSProperties = {
   width: 4,
   background: 'transparent',
 };
