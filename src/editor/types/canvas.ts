@@ -28,7 +28,11 @@ export type ElementType =
   | 'gallery'
   | 'animated-number'
   | 'catalog'
-  | 'form';
+  | 'form'
+  | 'ticket'
+  | 'qrpix'
+  | 'numpad'
+  | 'bigcta';
 
 /* ── Views ──────────────────────────────────── */
 
@@ -115,6 +119,10 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   'animated-number': { w: 320, h: 160, name: 'Número Animado', props: { value: 1234, prefix: '', suffix: '', label: 'Visitantes hoje', color: '#ffffff', labelColor: 'rgba(255,255,255,0.6)', fontSize: 64, labelSize: 18, duration: 2000, useGrouping: true } },
   catalog: { w: 480, h: 600, name: 'Catálogo', props: { title: 'Catálogo', titleColor: '#ffffff', titleSize: 24, bgColor: 'rgba(0,0,0,0.5)', borderRadius: 16, items: [{ id: '1', name: 'Produto 1', description: 'Descrição do produto', price: 'R$ 49,90', image: '', category: 'Geral', badge: '', badgeColor: '#6366f1' }], columns: 2, gap: 12, cardBgColor: 'rgba(255,255,255,0.08)', cardBorderRadius: 12, accentColor: '#6366f1', showPrice: true, showCategory: true, showSearch: false, showCategoryFilter: false, imageAspect: '4/3', priceColor: '#22c55e', nameSize: 14, priceSize: 16 } },
   form: { w: 420, h: 500, name: 'Formulário', props: { title: 'Check-in', titleColor: '#ffffff', titleSize: 22, bgColor: 'rgba(0,0,0,0.5)', borderRadius: 16, fields: [{ id: '1', type: 'text', label: 'Nome completo', placeholder: 'Digite seu nome', required: true }, { id: '2', type: 'email', label: 'E-mail', placeholder: 'seu@email.com', required: true }, { id: '3', type: 'select', label: 'Assunto', placeholder: 'Selecione...', options: 'Informações, Reserva, Reclamação', required: false }], submitLabel: 'Enviar', submitBgColor: '#6366f1', submitTextColor: '#ffffff', accentColor: '#6366f1', fieldBgColor: 'rgba(255,255,255,0.1)', fieldTextColor: '#ffffff', successMessage: 'Enviado com sucesso! ✅' } },
+  ticket: { w: 360, h: 400, name: 'Senha', props: { prefix: 'A', currentNumber: 42, bgColor: 'rgba(0,0,0,0.5)', textColor: '#ffffff', accentColor: '#6366f1', fontSize: 72, borderRadius: 20, label: 'Sua senha', labelSize: 16, showPrint: true, printLabel: '🖨️ Retirar Senha' } },
+  qrpix: { w: 360, h: 480, name: 'QR Pix', props: { pixKey: '12345678901', amount: 'R$ 0,00', recipientName: 'Empresa LTDA', bgColor: 'rgba(0,0,0,0.5)', textColor: '#ffffff', accentColor: '#32bcad', borderRadius: 20, showAmount: true, label: 'Pague com Pix' } },
+  numpad: { w: 400, h: 600, name: 'Teclado Numérico', props: { label: 'Digite seu CPF', placeholder: '000.000.000-00', bgColor: 'rgba(0,0,0,0.5)', textColor: '#ffffff', accentColor: '#6366f1', borderRadius: 20, maxLength: 11, mask: 'cpf', buttonLabel: 'Confirmar' } },
+  bigcta: { w: 600, h: 180, name: 'CTA Grande', props: { label: 'Toque para começar', sublabel: '', icon: '👆', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 28, sublabelSize: 14, borderRadius: 24, pulse: true } },
 };
 
 export function createElement(type: ElementType, x = 100, y = 100, viewId?: string): CanvasElement {

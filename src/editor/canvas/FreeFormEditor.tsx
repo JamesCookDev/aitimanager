@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical, Ruler, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,8 @@ import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { FreeFormTemplatePicker } from './FreeFormTemplatePicker';
 import { PageVariablesProvider } from './PageVariablesContext';
+import { TotemFrame } from './TotemFrame';
+import { ZoneGuides } from './ZoneGuides';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -103,9 +105,11 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [rightOpen, setRightOpen] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [leftTab, setLeftTab] = useState<string>('pages');
+  const [leftTab, setLeftTab] = useState<string>('elements');
   const [pageTransition, setPageTransition] = useState<PageTransition>('fade');
   const [previewMode, setPreviewMode] = useState(false);
+  const [showFrame, setShowFrame] = useState(true);
+  const [showZones, setShowZones] = useState(false);
 
   // Auto-fit scale
   useEffect(() => {
@@ -309,7 +313,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <MoreVertical className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-xs gap-2">
+                  <Monitor className="w-3.5 h-3.5" /> {showFrame ? '✓ ' : ''}Moldura do Totem
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-xs gap-2">
+                  <Ruler className="w-3.5 h-3.5" /> {showZones ? '✓ ' : ''}Guias de Zona
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExport} className="text-xs gap-2">
                   <Download className="w-3.5 h-3.5" /> Exportar JSON
                 </DropdownMenuItem>
@@ -426,54 +437,57 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <div
               style={{
                 position: 'absolute',
-                left: canvasX,
-                top: canvasY,
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
+                left: showFrame ? canvasX - 24 : canvasX,
+                top: showFrame ? canvasY - 40 : canvasY,
                 transform: `scale(${scale})`,
                 transformOrigin: 'top left',
               }}
             >
-              <div
-                style={{
-                  width: CANVAS_WIDTH,
-                  height: CANVAS_HEIGHT,
-                  backgroundColor: currentBgColor,
-                  borderRadius: 12,
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 16px 64px rgba(0,0,0,0.4)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeViewId}
-                    initial={transitionVariants[pageTransition].initial}
-                    animate={transitionVariants[pageTransition].animate}
-                    exit={transitionVariants[pageTransition].exit}
-                    transition={{ duration: 0.35, ease: 'easeInOut' }}
-                    style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-                  >
-                    {visibleElements
-                      .slice()
-                      .sort((a, b) => a.zIndex - b.zIndex)
-                      .map((el) => (
-                        <DraggableElement
-                          key={el.id}
-                          element={el}
-                          scale={scale}
-                          selected={!previewMode && el.id === state.selectedId}
-                          onSelect={() => { if (!previewMode) dispatch({ type: 'SELECT', id: el.id }); }}
-                          onMove={(x, y) => { if (!previewMode) dispatch({ type: 'MOVE', id: el.id, x, y }); }}
-                          onResize={(x, y, w, h) => { if (!previewMode) dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h }); }}
-                          onNavigate={handleNavigateToPage}
-                          previewMode={previewMode}
-                        />
-                      ))}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+              <TotemFrame showFrame={showFrame} canvasWidth={CANVAS_WIDTH} canvasHeight={CANVAS_HEIGHT} scale={scale}>
+                <div
+                  style={{
+                    width: CANVAS_WIDTH,
+                    height: CANVAS_HEIGHT,
+                    backgroundColor: currentBgColor,
+                    borderRadius: showFrame ? 8 : 12,
+                    boxShadow: showFrame ? 'none' : '0 0 0 1px rgba(255,255,255,0.04), 0 16px 64px rgba(0,0,0,0.4)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT', id: null }); }}
+                >
+                  {/* Zone guides overlay */}
+                  <ZoneGuides show={showZones && !previewMode} />
+
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeViewId}
+                      initial={transitionVariants[pageTransition].initial}
+                      animate={transitionVariants[pageTransition].animate}
+                      exit={transitionVariants[pageTransition].exit}
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                      style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+                    >
+                      {visibleElements
+                        .slice()
+                        .sort((a, b) => a.zIndex - b.zIndex)
+                        .map((el) => (
+                          <DraggableElement
+                            key={el.id}
+                            element={el}
+                            scale={scale}
+                            selected={!previewMode && el.id === state.selectedId}
+                            onSelect={() => { if (!previewMode) dispatch({ type: 'SELECT', id: el.id }); }}
+                            onMove={(x, y) => { if (!previewMode) dispatch({ type: 'MOVE', id: el.id, x, y }); }}
+                            onResize={(x, y, w, h) => { if (!previewMode) dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h }); }}
+                            onNavigate={handleNavigateToPage}
+                            previewMode={previewMode}
+                          />
+                        ))}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </TotemFrame>
             </div>
           </div>
 

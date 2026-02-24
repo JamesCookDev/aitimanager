@@ -346,6 +346,79 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
       return <CatalogPropsPanel props={props} onChange={onChange} views={views} />;
     case 'form':
       return <FormPropsPanel props={props} onChange={onChange} views={views} />;
+    case 'ticket':
+      return (
+        <Section title="Senha / Ticket">
+          <PropInput label="Prefixo" value={props.prefix || 'A'} onChange={set('prefix')} />
+          <PropInput label="Número atual" value={props.currentNumber || 42} onChange={set('currentNumber')} type="number" />
+          <PropInput label="Rótulo" value={props.label || 'Sua senha'} onChange={set('label')} />
+          <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
+          <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.5)'} onChange={set('bgColor')} type="color" />
+          <PropInput label="Cor do texto" value={props.textColor || '#ffffff'} onChange={set('textColor')} type="color" />
+          <PropInput label="Tamanho da fonte" value={props.fontSize || 72} onChange={set('fontSize')} type="number" />
+          <PropInput label="Border Radius" value={props.borderRadius || 20} onChange={set('borderRadius')} type="number" />
+          <PropInput label="Texto do botão" value={props.printLabel || '🖨️ Retirar Senha'} onChange={set('printLabel')} />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mostrar botão</Label>
+            <Switch checked={props.showPrint !== false} onCheckedChange={set('showPrint')} />
+          </div>
+        </Section>
+      );
+    case 'qrpix':
+      return (
+        <Section title="QR Pix">
+          <PropInput label="Chave Pix" value={props.pixKey || ''} onChange={set('pixKey')} />
+          <PropInput label="Nome do destinatário" value={props.recipientName || ''} onChange={set('recipientName')} />
+          <PropInput label="Valor" value={props.amount || 'R$ 0,00'} onChange={set('amount')} />
+          <PropInput label="Rótulo" value={props.label || 'Pague com Pix'} onChange={set('label')} />
+          <PropInput label="Cor de destaque" value={props.accentColor || '#32bcad'} onChange={set('accentColor')} type="color" />
+          <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.5)'} onChange={set('bgColor')} type="color" />
+          <PropInput label="Border Radius" value={props.borderRadius || 20} onChange={set('borderRadius')} type="number" />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mostrar valor</Label>
+            <Switch checked={props.showAmount !== false} onCheckedChange={set('showAmount')} />
+          </div>
+        </Section>
+      );
+    case 'numpad':
+      return (
+        <Section title="Teclado Numérico">
+          <PropInput label="Rótulo" value={props.label || 'Digite seu CPF'} onChange={set('label')} />
+          <PropInput label="Placeholder" value={props.placeholder || '000.000.000-00'} onChange={set('placeholder')} />
+          <div>
+            <Label className="text-[11px]">Máscara</Label>
+            <Select value={props.mask || 'cpf'} onValueChange={set('mask')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem máscara</SelectItem>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="phone">Telefone</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PropInput label="Máx. dígitos" value={props.maxLength || 11} onChange={set('maxLength')} type="number" />
+          <PropInput label="Texto do botão" value={props.buttonLabel || 'Confirmar'} onChange={set('buttonLabel')} />
+          <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
+          <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.5)'} onChange={set('bgColor')} type="color" />
+          <PropInput label="Border Radius" value={props.borderRadius || 20} onChange={set('borderRadius')} type="number" />
+        </Section>
+      );
+    case 'bigcta':
+      return (
+        <Section title="CTA Grande">
+          <PropInput label="Texto principal" value={props.label || 'Toque para começar'} onChange={set('label')} />
+          <PropInput label="Subtítulo" value={props.sublabel || ''} onChange={set('sublabel')} />
+          <PropInput label="Ícone (emoji)" value={props.icon || '👆'} onChange={set('icon')} />
+          <PropInput label="Tamanho da fonte" value={props.fontSize || 28} onChange={set('fontSize')} type="number" />
+          <PropInput label="Cor de fundo" value={props.bgColor || '#6366f1'} onChange={set('bgColor')} type="color" />
+          <PropInput label="Cor do texto" value={props.textColor || '#ffffff'} onChange={set('textColor')} type="color" />
+          <PropInput label="Border Radius" value={props.borderRadius || 24} onChange={set('borderRadius')} type="number" />
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Animação de pulso</Label>
+            <Switch checked={props.pulse !== false} onCheckedChange={set('pulse')} />
+          </div>
+        </Section>
+      );
     default:
       return (
         <Section title="Propriedades">
