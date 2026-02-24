@@ -1,8 +1,9 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -241,71 +242,106 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   // Active page name for toolbar display
   const activePage = views.find(v => v.id === activeViewId);
 
+  /* Zoom presets */
+  const fitToViewport = useCallback(() => {
+    if (viewportRef.current) {
+      const rect = viewportRef.current.getBoundingClientRect();
+      const sw = (rect.width - 40) / CANVAS_WIDTH;
+      const sh = (rect.height - 40) / CANVAS_HEIGHT;
+      setScale(Math.max(0.15, Math.min(sw, sh, 1)));
+    }
+  }, []);
+
+  const ZOOM_PRESETS = [
+    { label: 'Ajustar', action: fitToViewport },
+    { label: '50%', action: () => setScale(0.5) },
+    { label: '75%', action: () => setScale(0.75) },
+    { label: '100%', action: () => setScale(1) },
+  ];
+
   return (
     <PageVariablesProvider navigateToPage={handleNavigateToPage}>
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-col h-[calc(100vh-5rem)] bg-background rounded-xl border border-border overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
-          <div className="flex items-center gap-2">
-            <Tb tip={leftOpen ? "Ocultar painel (⇐)" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
-            <div className="h-4 w-px bg-border" />
-            <h2 className="text-xs font-semibold text-foreground hidden sm:block">Canvas</h2>
-            {deviceName && <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full hidden sm:inline">{deviceName}</span>}
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            {/* Current page indicator */}
-            <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+        {/* ── Toolbar ── clean, minimal */}
+        <div className="flex items-center justify-between px-2 h-10 border-b border-border bg-card/80 shrink-0">
+          {/* Left group */}
+          <div className="flex items-center gap-1.5">
+            <Tb tip={leftOpen ? "Ocultar painel" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
+            <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded flex items-center gap-1">
               <FileText className="w-3 h-3" />
               {activePage?.name || 'Home'}
             </span>
-            <span className="text-[9px] font-mono text-muted-foreground/60">{CANVAS_WIDTH}×{CANVAS_HEIGHT}</span>
-            {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Alterações não salvas" />}
+            {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" title="Alterações não salvas" />}
           </div>
 
-          <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-0.5">
-            <Tb tip="Diminuir zoom" onClick={() => setScale(s => Math.max(0.2, s - 0.05))} icon={ZoomOut} />
-            <button
-              className="text-[10px] font-mono text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
-              onClick={() => {
-                if (viewportRef.current) {
-                  const rect = viewportRef.current.getBoundingClientRect();
-                  const sw = (rect.width - 40) / CANVAS_WIDTH;
-                  const sh = (rect.height - 40) / CANVAS_HEIGHT;
-                  setScale(Math.max(0.2, Math.min(sw, sh, 1)));
-                }
-              }}
-              title="Ajustar ao viewport"
-            >{zoomPercent}%</button>
-            <Tb tip="Aumentar zoom" onClick={() => setScale(s => Math.min(1, s + 0.05))} icon={ZoomIn} />
+          {/* Center — Zoom controls */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md px-0.5 py-0.5">
+            <Tb tip="Zoom −" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
+            {ZOOM_PRESETS.map(z => (
+              <button
+                key={z.label}
+                onClick={z.action}
+                className={`text-[10px] px-2 py-0.5 rounded transition-colors font-medium ${
+                  z.label === `${zoomPercent}%`
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                {z.label}
+              </button>
+            ))}
+            <span className="text-[10px] font-mono text-muted-foreground/70 w-9 text-center">{zoomPercent}%</span>
+            <Tb tip="Zoom +" onClick={() => setScale(s => Math.min(1.5, s + 0.05))} icon={ZoomIn} />
           </div>
 
+          {/* Right group */}
           <div className="flex items-center gap-1">
-            <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
-            <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
+            <Tb tip="Desfazer" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
+            <Tb tip="Refazer" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
             <div className="h-4 w-px bg-border mx-0.5" />
+            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
+
+            {/* Overflow menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={handleExport} className="text-xs gap-2">
+                  <Download className="w-3.5 h-3.5" /> Exportar JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleImport} className="text-xs gap-2">
+                  <Upload className="w-3.5 h-3.5" /> Importar JSON
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2">
+                  <Keyboard className="w-3.5 h-3.5" /> Atalhos de teclado
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <FreeFormTemplatePicker
               onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
               trigger={
-                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1.5 px-2">
-                  <LayoutTemplate className="w-3.5 h-3.5" /> <span className="hidden md:inline">Templates</span>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <LayoutTemplate className="w-3.5 h-3.5" />
                 </Button>
               }
             />
-            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
-            <Tb tip="Exportar JSON" onClick={handleExport} icon={Download} />
-            <Tb tip="Importar JSON" onClick={handleImport} icon={Upload} />
-            <Tb tip="Atalhos de teclado" onClick={() => setShowShortcuts(p => !p)} icon={Keyboard} />
-            <Tb tip={rightOpen ? "Ocultar propriedades (⇒)" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
+
+            <Tb tip={rightOpen ? "Ocultar propriedades" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
             <div className="h-4 w-px bg-border mx-0.5" />
+
             <Button
               variant={previewMode ? 'default' : 'outline'}
               size="sm"
               className="h-7 text-[11px] gap-1.5 px-3"
               onClick={() => {
                 setPreviewMode(p => !p);
-                if (!previewMode) {
-                  dispatch({ type: 'SELECT', id: null });
-                }
+                if (!previewMode) dispatch({ type: 'SELECT', id: null });
               }}
             >
               {previewMode ? <Pencil className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -320,29 +356,27 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         </div>
 
         {showShortcuts && (
-          <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
+          <div className="flex items-center gap-4 px-4 py-1 bg-muted/20 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
             <span><kbd className="kbd">Del</kbd> Excluir</span>
             <span><kbd className="kbd">Ctrl+D</kbd> Duplicar</span>
             <span><kbd className="kbd">Ctrl+S</kbd> Salvar</span>
-            <span><kbd className="kbd">Ctrl+Z</kbd> Desfazer</span>
-            <span><kbd className="kbd">Ctrl+Y</kbd> Refazer</span>
-            <span><kbd className="kbd">Esc</kbd> Desselecionar</span>
-            <span><kbd className="kbd">↑↓←→</kbd> Mover (Shift=10px)</span>
+            <span><kbd className="kbd">Ctrl+Z/Y</kbd> Desfazer/Refazer</span>
+            <span><kbd className="kbd">↑↓←→</kbd> Mover</span>
           </div>
         )}
 
-        {/* Main area */}
+        {/* ── Main area ── */}
         <div className="flex flex-1 overflow-hidden">
+          {/* Left sidebar */}
           {leftOpen && !previewMode && (
-            <div className="w-56 border-r border-border bg-card/30 shrink-0 flex flex-col transition-all">
+            <div className="w-52 border-r border-border bg-card/40 shrink-0 flex flex-col">
               <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
-                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-9 px-2">
-                  <TabsTrigger value="pages" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
-                    <FileText className="w-3 h-3" /> Páginas
-                    <span className="text-[9px] text-muted-foreground ml-0.5">({views.length})</span>
+                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-8 px-1">
+                  <TabsTrigger value="pages" className="text-[10px] gap-1 data-[state=active]:bg-muted/60 flex-1 h-6">
+                    <FileText className="w-3 h-3" /> Páginas ({views.length})
                   </TabsTrigger>
-                  <TabsTrigger value="elements" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
-                    <Blocks className="w-3 h-3" /> Elementos
+                  <TabsTrigger value="elements" className="text-[10px] gap-1 data-[state=active]:bg-muted/60 flex-1 h-6">
+                    <Blocks className="w-3 h-3" /> Adicionar
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
@@ -379,13 +413,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           )}
 
+          {/* Canvas viewport */}
           <div
             ref={viewportRef}
             className="flex-1 overflow-auto relative"
             style={{
-              background: 'radial-gradient(circle at center, hsl(var(--muted)/0.3) 1px, transparent 1px)',
-              backgroundSize: `${20 * scale}px ${20 * scale}px`,
-              backgroundColor: 'hsl(var(--muted)/0.08)',
+              background: 'repeating-conic-gradient(hsl(var(--muted)/0.15) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px',
+              backgroundColor: 'hsl(var(--muted)/0.05)',
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
           >
@@ -405,8 +439,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   width: CANVAS_WIDTH,
                   height: CANVAS_HEIGHT,
                   backgroundColor: currentBgColor,
-                  borderRadius: 16,
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.5)',
+                  borderRadius: 12,
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 16px 64px rgba(0,0,0,0.4)',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
@@ -443,8 +477,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           </div>
 
+          {/* Right sidebar — properties */}
           {rightOpen && !previewMode && (
-            <div className="w-72 border-l border-border bg-card/30 shrink-0 transition-all">
+            <div className="w-64 border-l border-border bg-card/40 shrink-0">
               <PropertiesPanel
                 element={selectedElement}
                 elements={state.elements}
@@ -465,7 +500,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 }}
                 bgColor={currentBgColor}
                 onBgColorChange={(c) => {
-                  // If we have per-page colors, update the page color; otherwise update global
                   if (activeViewId) {
                     dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: c });
                   } else {
@@ -478,6 +512,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               />
             </div>
           )}
+        </div>
+
+        {/* Bottom status bar */}
+        <div className="flex items-center justify-between px-3 h-6 border-t border-border bg-card/60 shrink-0">
+          <span className="text-[9px] font-mono text-muted-foreground/50">
+            {CANVAS_WIDTH}×{CANVAS_HEIGHT} • {visibleElements.length} elementos
+          </span>
+          {deviceName && <span className="text-[9px] text-muted-foreground/50">{deviceName}</span>}
         </div>
       </div>
     </TooltipProvider>
