@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import type { CanvasElement, CanvasView } from '../types/canvas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,13 +70,13 @@ export function PropertiesPanel({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-      <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-9 px-2">
-        <TabsTrigger value="props" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
-          <Settings2 className="w-3 h-3" /> Propriedades
+      <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-10 px-2 gap-1">
+        <TabsTrigger value="props" className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium">
+          <Settings2 className="w-3.5 h-3.5" /> Propriedades
         </TabsTrigger>
-        <TabsTrigger value="layers" className="text-[11px] gap-1.5 data-[state=active]:bg-muted/50 flex-1 h-7">
-          <Layers className="w-3 h-3" /> Camadas
-          <span className="text-[9px] text-muted-foreground ml-0.5">({elements.length})</span>
+        <TabsTrigger value="layers" className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium">
+          <Layers className="w-3.5 h-3.5" /> Camadas
+          <span className="text-[9px] text-muted-foreground/60 ml-0.5 bg-muted/50 px-1.5 rounded-full">{elements.length}</span>
         </TabsTrigger>
       </TabsList>
 
@@ -134,7 +135,10 @@ function LayersPanel({
     <ScrollArea className="h-full">
       <div className="p-2 space-y-0.5">
         {sorted.length === 0 && (
-          <p className="text-[11px] text-muted-foreground text-center py-8">Nenhum elemento no canvas</p>
+          <div className="flex flex-col items-center gap-2 py-12">
+            <Layers className="w-6 h-6 text-muted-foreground/20" />
+            <p className="text-[11px] text-muted-foreground/50">Nenhum elemento no canvas</p>
+          </div>
         )}
         {sorted.map((el) => {
           const isSelected = el.id === selectedId;
@@ -142,28 +146,38 @@ function LayersPanel({
             <div
               key={el.id}
               onClick={() => onSelect?.(el.id)}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                isSelected ? 'bg-primary/15 border border-primary/30' : 'hover:bg-muted/50 border border-transparent'
-              }`}
+              className={cn(
+                "flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all",
+                isSelected
+                  ? 'bg-primary/10 border border-primary/25'
+                  : 'hover:bg-muted/40 border border-transparent'
+              )}
             >
-              <span className="text-xs shrink-0">{typeEmoji[el.type] || '❓'}</span>
-              <span className={`text-[11px] flex-1 truncate ${isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+              <span className="text-xs shrink-0 w-5 text-center">{typeEmoji[el.type] || '❓'}</span>
+              <span className={cn(
+                "text-[11px] flex-1 truncate",
+                isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'
+              )}>
                 {el.name}
               </span>
-              <div className="flex items-center gap-0.5 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); onToggleVisibility?.(el.id); }}
-                  className="p-0.5 rounded hover:bg-muted/50 transition-colors"
+                  className="p-1 rounded-md hover:bg-muted/60 transition-colors"
                   title={el.visible ? 'Ocultar' : 'Mostrar'}
                 >
-                  {el.visible ? <Eye className="w-3 h-3 text-muted-foreground" /> : <EyeOff className="w-3 h-3 text-muted-foreground/40" />}
+                  {el.visible
+                    ? <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
+                    : <EyeOff className="w-3.5 h-3.5 text-muted-foreground/30" />}
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onToggleLock?.(el.id); }}
-                  className="p-0.5 rounded hover:bg-muted/50 transition-colors"
+                  className="p-1 rounded-md hover:bg-muted/60 transition-colors"
                   title={el.locked ? 'Desbloquear' : 'Bloquear'}
                 >
-                  {el.locked ? <Lock className="w-3 h-3 text-amber-400" /> : <Unlock className="w-3 h-3 text-muted-foreground/40" />}
+                  {el.locked
+                    ? <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    : <Unlock className="w-3.5 h-3.5 text-muted-foreground/30" />}
                 </button>
               </div>
             </div>

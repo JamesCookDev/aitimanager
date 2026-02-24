@@ -1,9 +1,10 @@
 import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
-import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical, Ruler, Monitor } from 'lucide-react';
+import { Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2, PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks, Play, Pencil, MoreVertical, Ruler, Monitor, Layers, Settings2, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -60,15 +61,24 @@ interface Props {
 }
 
 /* ── Toolbar button with tooltip ─────────── */
-function Tb({ tip, onClick, icon: Icon, disabled }: { tip: string; onClick: () => void; icon: any; disabled?: boolean }) {
+function Tb({ tip, onClick, icon: Icon, disabled, active }: { tip: string; onClick: () => void; icon: any; disabled?: boolean; active?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClick} disabled={disabled}>
-          <Icon className="w-3.5 h-3.5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8 rounded-lg transition-all",
+            active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+          )}
+          onClick={onClick}
+          disabled={disabled}
+        >
+          <Icon className="w-4 h-4" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px]">{tip}</TooltipContent>
+      <TooltipContent side="bottom" className="text-[10px] font-medium">{tip}</TooltipContent>
     </Tooltip>
   );
 }
@@ -261,129 +271,182 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   return (
     <PageVariablesProvider navigateToPage={handleNavigateToPage}>
-    <TooltipProvider delayDuration={400}>
-      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background rounded-xl border border-border overflow-hidden">
-        {/* ── Toolbar ── clean, minimal */}
-        <div className="flex items-center justify-between px-2 h-10 border-b border-border bg-card/80 shrink-0">
-          {/* Left group */}
-          <div className="flex items-center gap-1.5">
-            <Tb tip={leftOpen ? "Ocultar painel" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} />
-            <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              {activePage?.name || 'Home'}
-            </span>
-            {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" title="Alterações não salvas" />}
+    <TooltipProvider delayDuration={300}>
+      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background overflow-hidden">
+        {/* ── Top Toolbar — Canva-inspired ── */}
+        <div className="flex items-center justify-between px-3 h-12 border-b border-border bg-card shrink-0">
+          {/* Left: Page nav + panels */}
+          <div className="flex items-center gap-1">
+            <Tb tip={leftOpen ? "Ocultar painel" : "Mostrar painel"} onClick={() => setLeftOpen(p => !p)} icon={leftOpen ? PanelLeftClose : PanelLeft} active={leftOpen} />
+            <div className="h-5 w-px bg-border mx-1" />
+
+            {/* Current page indicator */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/15 transition-colors">
+                  <FileText className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[11px] font-semibold text-primary max-w-[100px] truncate">{activePage?.name || 'Home'}</span>
+                  <ChevronDown className="w-3 h-3 text-primary/60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {views.map(v => (
+                  <DropdownMenuItem
+                    key={v.id}
+                    onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', id: v.id })}
+                    className={cn("text-xs gap-2", v.id === activeViewId && "bg-primary/10 text-primary font-medium")}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {v.name}
+                    {v.isDefault && <span className="text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full ml-auto">Home</span>}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {dirty && (
+              <div className="flex items-center gap-1 ml-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-[9px] text-muted-foreground/60">Alterações</span>
+              </div>
+            )}
           </div>
 
-          {/* Center — Zoom controls */}
-          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md px-0.5 py-0.5">
+          {/* Center — Zoom */}
+          <div className="flex items-center gap-1 bg-muted/40 rounded-lg px-1 py-1">
             <Tb tip="Zoom −" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
             {ZOOM_PRESETS.map(z => (
               <button
                 key={z.label}
                 onClick={z.action}
-                className={`text-[10px] px-2 py-0.5 rounded transition-colors font-medium ${
+                className={cn(
+                  "text-[10px] px-2.5 py-1 rounded-md transition-all font-medium",
                   z.label === `${zoomPercent}%`
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                )}
               >
                 {z.label}
               </button>
             ))}
-            <span className="text-[10px] font-mono text-muted-foreground/70 w-9 text-center">{zoomPercent}%</span>
+            <span className="text-[10px] font-mono text-muted-foreground/60 w-10 text-center tabular-nums">{zoomPercent}%</span>
             <Tb tip="Zoom +" onClick={() => setScale(s => Math.min(1.5, s + 0.05))} icon={ZoomIn} />
           </div>
 
-          {/* Right group */}
+          {/* Right — Actions */}
           <div className="flex items-center gap-1">
-            <Tb tip="Desfazer" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
-            <Tb tip="Refazer" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
-            <div className="h-4 w-px bg-border mx-0.5" />
+            <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
+            <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
+
+            <div className="h-5 w-px bg-border mx-0.5" />
+
             <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
 
-            {/* Overflow menu */}
+            {/* More options */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreVertical className="w-3.5 h-3.5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+                  <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-xs gap-2">
-                  <Monitor className="w-3.5 h-3.5" /> {showFrame ? '✓ ' : ''}Moldura do Totem
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-xs gap-2.5">
+                  <Monitor className="w-4 h-4" />
+                  <span className="flex-1">Moldura do Totem</span>
+                  {showFrame && <span className="text-primary text-[10px]">✓</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-xs gap-2">
-                  <Ruler className="w-3.5 h-3.5" /> {showZones ? '✓ ' : ''}Guias de Zona
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleExport} className="text-xs gap-2">
-                  <Download className="w-3.5 h-3.5" /> Exportar JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleImport} className="text-xs gap-2">
-                  <Upload className="w-3.5 h-3.5" /> Importar JSON
+                <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-xs gap-2.5">
+                  <Ruler className="w-4 h-4" />
+                  <span className="flex-1">Guias de Zona</span>
+                  {showZones && <span className="text-primary text-[10px]">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2">
-                  <Keyboard className="w-3.5 h-3.5" /> Atalhos de teclado
+                <DropdownMenuItem onClick={handleExport} className="text-xs gap-2.5">
+                  <Download className="w-4 h-4" /> Exportar JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleImport} className="text-xs gap-2.5">
+                  <Upload className="w-4 h-4" /> Importar JSON
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
+                  <Keyboard className="w-4 h-4" /> Atalhos de teclado
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Templates */}
             <FreeFormTemplatePicker
               onApply={(tplState) => dispatch({ type: 'LOAD', state: tplState })}
               trigger={
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <LayoutTemplate className="w-3.5 h-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+                      <LayoutTemplate className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px] font-medium">Templates</TooltipContent>
+                </Tooltip>
               }
             />
 
-            <Tb tip={rightOpen ? "Ocultar propriedades" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} />
-            <div className="h-4 w-px bg-border mx-0.5" />
+            <Tb tip={rightOpen ? "Ocultar propriedades" : "Mostrar propriedades"} onClick={() => setRightOpen(p => !p)} icon={rightOpen ? PanelRightClose : PanelRight} active={rightOpen} />
 
+            <div className="h-5 w-px bg-border mx-0.5" />
+
+            {/* Preview/Edit toggle */}
             <Button
               variant={previewMode ? 'default' : 'outline'}
               size="sm"
-              className="h-7 text-[11px] gap-1.5 px-3"
+              className={cn(
+                "h-8 text-xs gap-1.5 px-3 rounded-lg font-semibold",
+                previewMode ? "shadow-md" : "border-border"
+              )}
               onClick={() => {
                 setPreviewMode(p => !p);
                 if (!previewMode) dispatch({ type: 'SELECT', id: null });
               }}
             >
-              {previewMode ? <Pencil className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              {previewMode ? 'Editar' : 'Simular'}
+              {previewMode ? <Pencil className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {previewMode ? 'Editar' : 'Preview'}
             </Button>
+
             {onPublish && (
-              <Button size="sm" className="h-7 text-[11px] gap-1.5 px-3" onClick={handlePublish}>
+              <Button size="sm" className="h-8 text-xs gap-1.5 px-4 rounded-lg font-semibold shadow-md" onClick={handlePublish}>
                 <Maximize2 className="w-3.5 h-3.5" /> Publicar
               </Button>
             )}
           </div>
         </div>
 
+        {/* Keyboard shortcuts bar */}
         {showShortcuts && (
-          <div className="flex items-center gap-4 px-4 py-1 bg-muted/20 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
-            <span><kbd className="kbd">Del</kbd> Excluir</span>
-            <span><kbd className="kbd">Ctrl+D</kbd> Duplicar</span>
-            <span><kbd className="kbd">Ctrl+S</kbd> Salvar</span>
-            <span><kbd className="kbd">Ctrl+Z/Y</kbd> Desfazer/Refazer</span>
-            <span><kbd className="kbd">↑↓←→</kbd> Mover</span>
+          <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border text-[10px] text-muted-foreground shrink-0 flex-wrap">
+            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Del</kbd> Excluir</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+D</kbd> Duplicar</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+S</kbd> Salvar</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl+Z/Y</kbd> Desfazer/Refazer</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">↑↓←→</kbd> Mover</span>
           </div>
         )}
 
-        {/* ── Main area ── */}
+        {/* ── Main workspace ── */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar */}
+          {/* Left sidebar — sleek dark panel */}
           {leftOpen && !previewMode && (
-            <div className="w-52 border-r border-border bg-card/40 shrink-0 flex flex-col">
+            <div className="w-60 border-r border-border bg-card shrink-0 flex flex-col">
               <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
-                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-8 px-1">
-                  <TabsTrigger value="pages" className="text-[10px] gap-1 data-[state=active]:bg-muted/60 flex-1 h-6">
-                    <FileText className="w-3 h-3" /> Páginas ({views.length})
+                <TabsList className="w-full shrink-0 rounded-none border-b border-border bg-transparent h-10 px-2 gap-1">
+                  <TabsTrigger
+                    value="pages"
+                    className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium"
+                  >
+                    <Layers className="w-3.5 h-3.5" /> Páginas
                   </TabsTrigger>
-                  <TabsTrigger value="elements" className="text-[10px] gap-1 data-[state=active]:bg-muted/60 flex-1 h-6">
-                    <Blocks className="w-3 h-3" /> Adicionar
+                  <TabsTrigger
+                    value="elements"
+                    className="text-[11px] gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-medium"
+                  >
+                    <Blocks className="w-3.5 h-3.5" /> Elementos
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
@@ -420,13 +483,16 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           )}
 
-          {/* Canvas viewport */}
+          {/* Canvas viewport — Canva-style neutral workspace */}
           <div
             ref={viewportRef}
             className="flex-1 overflow-auto relative"
             style={{
-              background: 'repeating-conic-gradient(hsl(var(--muted)/0.15) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px',
-              backgroundColor: 'hsl(var(--muted)/0.05)',
+              background: `
+                radial-gradient(circle at 50% 50%, hsl(var(--muted) / 0.08) 0%, transparent 70%),
+                repeating-conic-gradient(hsl(var(--muted) / 0.06) 0% 25%, transparent 0% 50%) 0 0 / 24px 24px
+              `,
+              backgroundColor: 'hsl(var(--background))',
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
           >
@@ -445,8 +511,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                     width: CANVAS_WIDTH,
                     height: CANVAS_HEIGHT,
                     backgroundColor: currentBgColor,
-                    borderRadius: showFrame ? 8 : 12,
-                    boxShadow: showFrame ? 'none' : '0 0 0 1px rgba(255,255,255,0.04), 0 16px 64px rgba(0,0,0,0.4)',
+                    borderRadius: showFrame ? 8 : 16,
+                    boxShadow: showFrame
+                      ? 'none'
+                      : '0 0 0 1px rgba(255,255,255,0.06), 0 25px 80px -12px rgba(0,0,0,0.5)',
                     position: 'relative',
                     overflow: 'hidden',
                   }}
@@ -487,9 +555,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             </div>
           </div>
 
-          {/* Right sidebar — properties */}
+          {/* Right sidebar — Properties */}
           {rightOpen && !previewMode && (
-            <div className="w-64 border-l border-border bg-card/40 shrink-0">
+            <div className="w-72 border-l border-border bg-card shrink-0">
               <PropertiesPanel
                 element={selectedElement}
                 elements={state.elements}
@@ -524,12 +592,21 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           )}
         </div>
 
-        {/* Bottom status bar */}
-        <div className="flex items-center justify-between px-3 h-6 border-t border-border bg-card/60 shrink-0">
-          <span className="text-[9px] font-mono text-muted-foreground/50">
-            {CANVAS_WIDTH}×{CANVAS_HEIGHT} • {visibleElements.length} elementos
-          </span>
-          {deviceName && <span className="text-[9px] text-muted-foreground/50">{deviceName}</span>}
+        {/* ── Bottom status bar ── */}
+        <div className="flex items-center justify-between px-4 h-7 border-t border-border bg-card/80 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] font-mono text-muted-foreground/50 tabular-nums">
+              {CANVAS_WIDTH}×{CANVAS_HEIGHT}
+            </span>
+            <span className="text-[9px] text-muted-foreground/40">•</span>
+            <span className="text-[9px] text-muted-foreground/50">
+              {visibleElements.length} {visibleElements.length === 1 ? 'elemento' : 'elementos'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {deviceName && <span className="text-[9px] text-muted-foreground/40">{deviceName}</span>}
+            <span className="text-[9px] text-muted-foreground/30">Totem Builder</span>
+          </div>
         </div>
       </div>
     </TooltipProvider>
