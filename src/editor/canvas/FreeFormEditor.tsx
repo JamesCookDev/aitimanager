@@ -108,24 +108,26 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [leftTab, setLeftTab] = useState<string>('elements');
   const [pageTransition, setPageTransition] = useState<PageTransition>('fade');
   const [previewMode, setPreviewMode] = useState(false);
-  const [showFrame, setShowFrame] = useState(true);
+  const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
 
   // Auto-fit scale
+  const fitToViewport = useCallback(() => {
+    if (!viewportRef.current) return;
+    const rect = viewportRef.current.getBoundingClientRect();
+    const frameExtra = showFrame ? { w: 48, h: 80 } : { w: 0, h: 0 };
+    const sw = (rect.width - 60) / (CANVAS_WIDTH + frameExtra.w);
+    const sh = (rect.height - 60) / (CANVAS_HEIGHT + frameExtra.h);
+    const s = Math.min(sw, sh);
+    setScale(Math.max(0.15, Math.min(s, 1.5)));
+    setViewportSize({ w: rect.width, h: rect.height });
+  }, [showFrame]);
+
   useEffect(() => {
-    function fitScale() {
-      if (!viewportRef.current) return;
-      const rect = viewportRef.current.getBoundingClientRect();
-      const sw = (rect.width - 40) / CANVAS_WIDTH;
-      const sh = (rect.height - 40) / CANVAS_HEIGHT;
-      const s = Math.min(sw, sh, 1);
-      setScale(Math.max(0.2, s));
-      setViewportSize({ w: rect.width, h: rect.height });
-    }
-    fitScale();
-    window.addEventListener('resize', fitScale);
-    return () => window.removeEventListener('resize', fitScale);
-  }, [leftOpen, rightOpen]);
+    fitToViewport();
+    window.addEventListener('resize', fitToViewport);
+    return () => window.removeEventListener('resize', fitToViewport);
+  }, [fitToViewport, leftOpen, rightOpen]);
 
   // Load initial state
   useEffect(() => {
@@ -239,22 +241,16 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     return () => window.removeEventListener('keydown', handleKey);
   }, [state.selectedId, state.elements, dispatch, handleSave, history]);
 
-  const canvasX = (viewportSize.w - CANVAS_WIDTH * scale) / 2;
-  const canvasY = Math.max(20, (viewportSize.h - CANVAS_HEIGHT * scale) / 2);
+  const totalW = (CANVAS_WIDTH + (showFrame ? 48 : 0)) * scale;
+  const totalH = (CANVAS_HEIGHT + (showFrame ? 80 : 0)) * scale;
+  const canvasX = Math.max(20, (viewportSize.w - totalW) / 2) + (showFrame ? 24 * scale : 0);
+  const canvasY = Math.max(20, (viewportSize.h - totalH) / 2) + (showFrame ? 40 * scale : 0);
   const zoomPercent = Math.round(scale * 100);
 
   // Active page name for toolbar display
   const activePage = views.find(v => v.id === activeViewId);
 
-  /* Zoom presets */
-  const fitToViewport = useCallback(() => {
-    if (viewportRef.current) {
-      const rect = viewportRef.current.getBoundingClientRect();
-      const sw = (rect.width - 40) / CANVAS_WIDTH;
-      const sh = (rect.height - 40) / CANVAS_HEIGHT;
-      setScale(Math.max(0.15, Math.min(sw, sh, 1)));
-    }
-  }, []);
+  /* Zoom presets use the same fitToViewport from above */
 
   const ZOOM_PRESETS = [
     { label: 'Ajustar', action: fitToViewport },
@@ -437,8 +433,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <div
               style={{
                 position: 'absolute',
-                left: showFrame ? canvasX - 24 : canvasX,
-                top: showFrame ? canvasY - 40 : canvasY,
+                left: showFrame ? canvasX - 24 * scale : canvasX,
+                top: showFrame ? canvasY - 40 * scale : canvasY,
                 transform: `scale(${scale})`,
                 transformOrigin: 'top left',
               }}
