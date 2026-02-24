@@ -23,7 +23,6 @@ export function AnimatedNumberRenderer(props: any) {
     function animate(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayValue(Math.round(from + (to - from) * eased));
       if (progress < 1) {
@@ -40,12 +39,27 @@ export function AnimatedNumberRenderer(props: any) {
     : displayValue.toString();
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center text-center px-4">
-      <p style={{ color, fontSize, fontWeight, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+    <div className="w-full h-full flex flex-col items-center justify-center text-center px-4 relative">
+      {/* Glow behind number */}
+      <div style={{
+        position: 'absolute',
+        width: '60%', height: '40%',
+        background: `radial-gradient(ellipse, ${color}15 0%, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+      <p style={{
+        color, fontSize, fontWeight, lineHeight: 1.1,
+        letterSpacing: '-0.03em',
+        textShadow: `0 0 40px ${color}25, 0 2px 4px rgba(0,0,0,0.3)`,
+        position: 'relative',
+      }}>
         {prefix}{formatted}{suffix}
       </p>
       {label && (
-        <p style={{ color: labelColor, fontSize: labelSize, fontWeight: 500, marginTop: 8 }}>
+        <p style={{
+          color: labelColor, fontSize: labelSize, fontWeight: 500, marginTop: 10,
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+        }}>
           {label}
         </p>
       )}
