@@ -15,7 +15,9 @@ export function TextRenderer(props: any) {
         textAlign: props.align || 'left',
         fontFamily: props.fontFamily || 'Inter',
         justifyContent: props.align === 'center' ? 'center' : props.align === 'right' ? 'flex-end' : 'flex-start',
-        lineHeight: 1.2,
+        lineHeight: 1.25,
+        letterSpacing: (props.fontSize || 24) >= 32 ? '-0.02em' : '0',
+        textShadow: '0 1px 3px rgba(0,0,0,0.15)',
       }}
     >
       {displayText}

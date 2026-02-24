@@ -1,5 +1,5 @@
 /**
- * Virtual numpad renderer - numeric input for kiosks (e.g., CPF, phone, room number).
+ * Virtual numpad renderer - premium numeric input for kiosks.
  */
 import { useState } from 'react';
 
@@ -43,10 +43,13 @@ export function NumpadRenderer({
   buttonLabel = 'Confirmar',
 }: Props) {
   const [value, setValue] = useState('');
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
   const digits = value.replace(/\D/g, '');
   const display = mask !== 'none' ? applyMask(digits, mask) : digits;
 
   const handleKey = (key: string) => {
+    setPressedKey(key);
+    setTimeout(() => setPressedKey(null), 150);
     if (key === 'C') {
       setValue('');
     } else if (key === '⌫') {
@@ -63,35 +66,43 @@ export function NumpadRenderer({
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: bgColor,
+        background: `linear-gradient(160deg, ${bgColor}, rgba(0,0,0,0.65))`,
         borderRadius,
         display: 'flex',
         flexDirection: 'column',
         padding: 20,
         gap: 12,
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.08)',
       }}
     >
       {/* Label */}
-      <span style={{ color: `${textColor}99`, fontSize: 14, fontWeight: 500, textAlign: 'center' }}>
+      <span style={{
+        color: `${textColor}99`, fontSize: 14, fontWeight: 600,
+        textAlign: 'center', letterSpacing: '0.02em',
+      }}>
         {label}
       </span>
 
       {/* Display */}
       <div
         style={{
-          padding: '12px 16px',
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          borderRadius: 12,
+          padding: '14px 16px',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))',
+          borderRadius: 14,
           textAlign: 'center',
           fontSize: 28,
           fontFamily: 'monospace',
           fontWeight: 700,
-          color: digits.length > 0 ? textColor : `${textColor}33`,
-          letterSpacing: '0.05em',
-          minHeight: 50,
+          color: digits.length > 0 ? textColor : `${textColor}30`,
+          letterSpacing: '0.06em',
+          minHeight: 54,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          border: `1.5px solid ${digits.length > 0 ? accentColor + '44' : 'rgba(255,255,255,0.06)'}`,
+          boxShadow: digits.length > 0 ? `0 0 20px ${accentColor}15` : 'none',
+          transition: 'border-color 0.3s, box-shadow 0.3s',
         }}
       >
         {display || placeholder}
@@ -106,42 +117,55 @@ export function NumpadRenderer({
           flex: 1,
         }}
       >
-        {keys.map((key) => (
-          <button
-            key={key}
-            onClick={() => handleKey(key)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: key === '⌫' || key === 'C' ? 18 : 24,
-              fontWeight: 600,
-              color: key === 'C' ? '#ef4444' : key === '⌫' ? '#f59e0b' : textColor,
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 12,
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-              minHeight: 0,
-            }}
-          >
-            {key}
-          </button>
-        ))}
+        {keys.map((key) => {
+          const isAction = key === 'C' || key === '⌫';
+          const isPressed = pressedKey === key;
+          return (
+            <button
+              key={key}
+              onClick={() => handleKey(key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isAction ? 18 : 26,
+                fontWeight: 700,
+                color: key === 'C' ? '#ef4444' : key === '⌫' ? '#f59e0b' : textColor,
+                background: isPressed
+                  ? `${accentColor}30`
+                  : 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))',
+                border: `1px solid ${isPressed ? accentColor + '44' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 14,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                minHeight: 0,
+                boxShadow: isPressed ? `0 0 16px ${accentColor}20` : '0 2px 8px rgba(0,0,0,0.2)',
+                transform: isPressed ? 'scale(0.95)' : 'scale(1)',
+              }}
+            >
+              {key}
+            </button>
+          );
+        })}
       </div>
 
       {/* Confirm button */}
       <button
         style={{
           padding: '14px 24px',
-          backgroundColor: accentColor,
-          color: '#ffffff',
-          border: 'none',
+          background: digits.length >= 3
+            ? `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`
+            : 'rgba(255,255,255,0.05)',
+          color: digits.length >= 3 ? '#ffffff' : `${textColor}40`,
+          border: digits.length >= 3
+            ? `1px solid rgba(255,255,255,0.15)`
+            : '1px solid rgba(255,255,255,0.06)',
           borderRadius: 999,
           fontSize: 18,
           fontWeight: 700,
-          cursor: 'pointer',
-          opacity: digits.length >= 3 ? 1 : 0.4,
+          cursor: digits.length >= 3 ? 'pointer' : 'default',
+          boxShadow: digits.length >= 3 ? `0 4px 24px ${accentColor}40` : 'none',
+          transition: 'all 0.3s ease',
         }}
       >
         {buttonLabel}

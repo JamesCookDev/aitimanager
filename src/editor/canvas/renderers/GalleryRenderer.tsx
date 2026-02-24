@@ -17,6 +17,10 @@ export function GalleryRenderer(props: any) {
       className="w-full h-full overflow-hidden"
       style={{ background: bgColor, borderRadius, padding: gap }}
     >
+      <style>{`
+        .gallery-cell { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .gallery-cell:hover { transform: scale(1.03); box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 1; }
+      `}</style>
       <div
         className="w-full h-full"
         style={{
@@ -28,8 +32,8 @@ export function GalleryRenderer(props: any) {
         {placeholders.map((src, i) => (
           <div
             key={i}
-            className="relative overflow-hidden"
-            style={{ borderRadius: borderRadius / 2 }}
+            className="relative overflow-hidden gallery-cell"
+            style={{ borderRadius: borderRadius / 2, border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <img
               src={src}
@@ -37,6 +41,12 @@ export function GalleryRenderer(props: any) {
               className="w-full h-full object-cover"
               style={{ aspectRatio: props.aspectRatio || '1/1' }}
             />
+            {/* Subtle vignette */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.3) 100%)',
+              pointerEvents: 'none',
+            }} />
           </div>
         ))}
       </div>

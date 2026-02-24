@@ -46,31 +46,50 @@ export function CarouselRenderer(props: any) {
             objectFit: props.objectFit || 'contain',
             opacity: transition === 'fade' ? (i === current ? 1 : 0) : 1,
             transform: transition === 'slide' ? `translateX(${(i - current) * 100}%)` : undefined,
-            transition: 'opacity 0.6s ease, transform 0.5s ease',
+            transition: 'opacity 0.7s ease, transform 0.6s ease',
           }}
         />
       ))}
+
+      {/* Subtle vignette overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.15) 100%)',
+        pointerEvents: 'none',
+      }} />
+
       {images.length > 1 && (
         <>
-          <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 rounded-full p-1 transition-colors z-10">
+          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 transition-all z-10"
+            style={{
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
             <ChevronLeft className="w-5 h-5 text-white" />
           </button>
-          <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 rounded-full p-1 transition-colors z-10">
+          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 transition-all z-10"
+            style={{
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
             <ChevronRight className="w-5 h-5 text-white" />
           </button>
         </>
       )}
       {images.length > 1 && (
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
           {images.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
               className="rounded-full transition-all"
               style={{
-                width: i === current ? 16 : 6,
-                height: 6,
-                background: i === current ? 'white' : 'rgba(255,255,255,0.4)',
+                width: i === current ? 20 : 7,
+                height: 7,
+                background: i === current ? 'white' : 'rgba(255,255,255,0.35)',
+                boxShadow: i === current ? '0 0 8px rgba(255,255,255,0.4)' : 'none',
               }}
             />
           ))}
