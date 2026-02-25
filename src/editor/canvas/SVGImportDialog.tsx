@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { FileCode2, Upload, ClipboardPaste, AlertTriangle, Eye } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { FileCode2, Upload, ClipboardPaste, AlertTriangle, Eye, Code2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { parseSVGToCanvas } from '../utils/svgToCanvas';
+import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../types/canvas';
 import type { CanvasState, CanvasElement } from '../types/canvas';
 import { ElementRenderer } from './renderers/ElementRenderer';
@@ -20,7 +21,6 @@ interface SVGImportDialogProps {
 
 /* ── Mini canvas preview of parsed elements ── */
 function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgColor: string }) {
-  // Scale the 1080×1920 canvas to fit inside a small preview box
   const previewW = 200;
   const scale = previewW / CANVAS_WIDTH;
   const previewH = CANVAS_HEIGHT * scale;
@@ -32,11 +32,7 @@ function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgCol
       </div>
       <div
         className="relative rounded-lg overflow-hidden border border-border/60 shadow-md"
-        style={{
-          width: previewW,
-          height: previewH,
-          backgroundColor: bgColor,
-        }}
+        style={{ width: previewW, height: previewH, backgroundColor: bgColor }}
       >
         {elements.map((el) => (
           <div
@@ -62,62 +58,77 @@ function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgCol
   );
 }
 
+type ImportMode = 'svg' | 'html';
+
 export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialogProps) {
-  const [svgCode, setSvgCode] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [mode, setMode] = useState<ImportMode>('html');
   const [parsedResult, setParsedResult] = useState<{ elements: CanvasElement[]; bgColor: string } | null>(null);
 
   const reset = () => {
-    setSvgCode('');
+    setCode('');
     setError('');
     setParsedResult(null);
   };
 
-  const processImport = useCallback((svg: string) => {
+  const processImport = useCallback((input: string, importMode: ImportMode) => {
     setError('');
     setParsedResult(null);
     try {
-      const result = parseSVGToCanvas(svg);
+      let result: { elements: CanvasElement[]; bgColor: string };
+
+      if (importMode === 'svg') {
+        const svgResult = parseSVGToCanvas(input);
+        result = { elements: svgResult.elements, bgColor: svgResult.bgColor };
+      } else {
+        result = parseHTMLToCanvas(input);
+      }
+
       if (result.elements.length === 0) {
-        setError('Nenhum elemento reconhecido no SVG. Tente um SVG com retângulos, textos ou imagens.');
+        setError(
+          importMode === 'svg'
+            ? 'Nenhum elemento reconhecido no SVG. Tente um SVG com retângulos, textos ou imagens.'
+            : 'Nenhum elemento reconhecido no HTML. Verifique se o código contém elementos visíveis.'
+        );
         return;
       }
-      setParsedResult({ elements: result.elements, bgColor: result.bgColor });
-      setSvgCode(svg);
+      setParsedResult(result);
+      setCode(input);
     } catch (err: any) {
-      setError(err.message || 'Erro ao processar SVG');
+      setError(err.message || `Erro ao processar ${importMode.toUpperCase()}`);
     }
   }, []);
 
   const handleFileUpload = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.svg';
+    input.accept = mode === 'svg' ? '.svg' : '.html,.htm';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
       try {
         const text = await file.text();
-        processImport(text);
+        processImport(text, mode);
       } catch {
         setError('Erro ao ler arquivo');
       }
     };
     input.click();
-  }, [processImport]);
+  }, [processImport, mode]);
 
   const handlePaste = useCallback(async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text.includes('<svg')) {
-        processImport(text);
-      } else {
+      if (mode === 'svg' && !text.includes('<svg')) {
         setError('O conteúdo da área de transferência não parece ser um SVG válido');
+        return;
       }
+      processImport(text, mode);
     } catch {
       setError('Não foi possível acessar a área de transferência');
     }
-  }, [processImport]);
+  }, [processImport, mode]);
 
   const handleConfirm = useCallback(() => {
     if (!parsedResult) return;
@@ -131,23 +142,46 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
       pageBgColors: {},
     };
     onImport(state);
-    toast.success(`${parsedResult.elements.length} elementos importados do SVG`);
+    toast.success(`${parsedResult.elements.length} elementos importados`);
     reset();
     onOpenChange(false);
   }, [parsedResult, onImport, onOpenChange]);
+
+  const modeLabel = mode === 'svg' ? 'SVG' : 'HTML';
+  const placeholder = mode === 'svg'
+    ? '<svg viewBox="0 0 1080 1920" ...>\n  ...\n</svg>'
+    : '<div style="background:#0f172a; width:1080px; min-height:1920px">\n  <h1 style="color:white">Título</h1>\n  <img src="..." />\n  <button>Clique aqui</button>\n</div>';
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className={parsedResult ? "sm:max-w-2xl" : "sm:max-w-lg"}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileCode2 className="w-5 h-5 text-primary" />
-            Importar SVG
+            <Code2 className="w-5 h-5 text-primary" />
+            Importar Design
           </DialogTitle>
           <DialogDescription>
-            Cole o código SVG ou faça upload de um arquivo .svg para converter em elementos do canvas.
+            Cole código HTML ou SVG para converter em elementos editáveis do canvas.
           </DialogDescription>
         </DialogHeader>
+
+        {/* ── Mode selector ── */}
+        <div className="flex gap-1 p-0.5 rounded-lg bg-muted/60 w-fit">
+          <button
+            onClick={() => { setMode('html'); reset(); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'html' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
+            HTML
+          </button>
+          <button
+            onClick={() => { setMode('svg'); reset(); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'svg' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <FileCode2 className="w-3.5 h-3.5 inline mr-1.5" />
+            SVG
+          </button>
+        </div>
 
         <div className={parsedResult ? "flex gap-5" : ""}>
           {/* Left: Input area */}
@@ -164,22 +198,22 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
 
               <TabsContent value="paste" className="space-y-3 mt-3">
                 <Textarea
-                  placeholder={'<svg viewBox="0 0 1080 1920" ...>\n  ...\n</svg>'}
-                  value={svgCode}
+                  placeholder={placeholder}
+                  value={code}
                   onChange={(e) => {
-                    setSvgCode(e.target.value);
+                    setCode(e.target.value);
                     setError('');
                     setParsedResult(null);
                   }}
-                  className="font-mono text-xs min-h-[160px] resize-none"
+                  className="font-mono text-xs min-h-[200px] resize-none"
                 />
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={handlePaste} className="text-xs gap-1.5">
                     <ClipboardPaste className="w-3.5 h-3.5" /> Colar
                   </Button>
-                  {svgCode && !parsedResult && (
-                    <Button variant="secondary" size="sm" onClick={() => processImport(svgCode)} className="text-xs">
-                      Analisar SVG
+                  {code && !parsedResult && (
+                    <Button variant="secondary" size="sm" onClick={() => processImport(code, mode)} className="text-xs">
+                      Analisar {modeLabel}
                     </Button>
                   )}
                 </div>
@@ -194,7 +228,7 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
                   <div className="text-sm text-muted-foreground text-center">
                     <span className="font-medium text-foreground">Clique para selecionar</span>
                     <br />
-                    Arquivo .svg
+                    Arquivo {mode === 'svg' ? '.svg' : '.html'}
                   </div>
                 </button>
               </TabsContent>
@@ -217,6 +251,15 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
                 </p>
               </div>
             )}
+
+            {mode === 'html' && !parsedResult && !code && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border/40">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  💡 <strong>Dica:</strong> Cole HTML do Figma (Export → HTML), de um e-mail marketing, ou crie seu layout com divs, imagens e textos. 
+                  Os elementos serão convertidos em widgets editáveis do canvas.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Right: Canvas preview */}
@@ -232,7 +275,7 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
             Cancelar
           </Button>
           <Button size="sm" onClick={handleConfirm} disabled={!parsedResult} className="gap-1.5">
-            <FileCode2 className="w-3.5 h-3.5" /> Importar
+            <Code2 className="w-3.5 h-3.5" /> Importar
           </Button>
         </DialogFooter>
       </DialogContent>
