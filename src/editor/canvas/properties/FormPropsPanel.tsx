@@ -122,6 +122,12 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
             <Button variant="outline" size="sm" className="text-[10px] gap-1" onClick={() => addField('email')}>
               <Plus className="w-3 h-3" /> E-mail
             </Button>
+            <Button variant="outline" size="sm" className="text-[10px] gap-1" onClick={() => addField('phone')}>
+              <Plus className="w-3 h-3" /> Telefone
+            </Button>
+            <Button variant="outline" size="sm" className="text-[10px] gap-1" onClick={() => addField('textarea')}>
+              <Plus className="w-3 h-3" /> Descrição
+            </Button>
             <Button variant="outline" size="sm" className="text-[10px] gap-1" onClick={() => addField('select')}>
               <Plus className="w-3 h-3" /> Seleção
             </Button>
@@ -240,6 +246,7 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
           <PropInput label="Border Radius" value={props.borderRadius || 16} onChange={set('borderRadius')} type="number" />
           <PropInput label="Cor do campo" value={props.fieldBgColor || 'rgba(255,255,255,0.1)'} onChange={set('fieldBgColor')} type="color" />
           <PropInput label="Cor texto campo" value={props.fieldTextColor || '#ffffff'} onChange={set('fieldTextColor')} type="color" />
+          <PropInput label="Cor label campo" value={props.fieldLabelColor || 'rgba(200,200,200,0.8)'} onChange={set('fieldLabelColor')} type="color" />
           <PropInput label="Cor do botão" value={props.submitBgColor || '#6366f1'} onChange={set('submitBgColor')} type="color" />
           <PropInput label="Cor texto botão" value={props.submitTextColor || '#ffffff'} onChange={set('submitTextColor')} type="color" />
           <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />

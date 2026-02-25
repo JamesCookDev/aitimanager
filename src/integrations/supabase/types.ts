@@ -255,6 +255,54 @@ export type Database = {
           },
         ]
       }
+      form_submissions: {
+        Row: {
+          device_id: string | null
+          fields: Json
+          form_title: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          org_id: string | null
+          submitted_at: string
+        }
+        Insert: {
+          device_id?: string | null
+          fields?: Json
+          form_title?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          org_id?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          device_id?: string | null
+          fields?: Json
+          form_title?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          org_id?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layout_templates: {
         Row: {
           created_at: string
