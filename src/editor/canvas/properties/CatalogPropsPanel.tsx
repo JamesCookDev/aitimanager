@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Section, PropInput, ImageUploadField } from './shared';
 import type { CanvasView } from '../../types/canvas';
 
@@ -19,6 +17,10 @@ interface CatalogItem {
   category: string;
   badge?: string;
   badgeColor?: string;
+  available?: boolean;
+  rating?: number;
+  location?: string;
+  sku?: string;
 }
 
 interface Props {
@@ -47,6 +49,7 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
       category: 'Geral',
       badge: '',
       badgeColor: '#6366f1',
+      available: true,
     };
     onChange({ items: [...items, newItem] });
     setExpandedId(newItem.id);
@@ -56,13 +59,17 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
     onChange({ items: items.filter(i => i.id !== id) });
   };
 
+  const prefix = props.variablePrefix || 'produto';
+
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <TabsList className="w-full grid grid-cols-2 h-8">
+      <TabsList className="w-full grid grid-cols-3 h-8">
         <TabsTrigger value="items" className="text-[10px]">Produtos</TabsTrigger>
         <TabsTrigger value="style" className="text-[10px]">Estilo</TabsTrigger>
+        <TabsTrigger value="actions" className="text-[10px]">Ações</TabsTrigger>
       </TabsList>
 
+      {/* ── ITEMS TAB ── */}
       <TabsContent value="items" className="space-y-2 mt-2">
         <Section title="Catálogo">
           <PropInput label="Título" value={props.title || 'Catálogo'} onChange={set('title')} />
@@ -88,10 +95,12 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
                     <ImageUploadField value={item.image} onChange={(v) => updateItem(item.id, { image: v })} />
                     <PropInput label="Badge" value={item.badge || ''} onChange={(v) => updateItem(item.id, { badge: v })} />
                     <PropInput label="Cor do badge" value={item.badgeColor || '#6366f1'} onChange={(v) => updateItem(item.id, { badgeColor: v })} type="color" />
-                    <PropInput label="SKU / Código" value={(item as any).sku || ''} onChange={(v) => updateItem(item.id, { sku: v } as any)} />
+                    <PropInput label="SKU / Código" value={item.sku || ''} onChange={(v) => updateItem(item.id, { sku: v })} />
+                    <PropInput label="Localização" value={item.location || ''} onChange={(v) => updateItem(item.id, { location: v })} />
+                    <PropInput label="Avaliação (1-5)" value={item.rating || 0} onChange={(v) => updateItem(item.id, { rating: parseFloat(v) || 0 })} type="number" />
                     <div className="flex items-center justify-between">
                       <Label className="text-[11px]">Disponível</Label>
-                      <Switch checked={(item as any).available !== false} onCheckedChange={(v) => updateItem(item.id, { available: v } as any)} />
+                      <Switch checked={item.available !== false} onCheckedChange={(v) => updateItem(item.id, { available: v })} />
                     </div>
                     <Button variant="destructive" size="sm" className="w-full text-[10px] gap-1" onClick={() => removeItem(item.id)}>
                       <Trash2 className="w-3 h-3" /> Remover
@@ -106,42 +115,9 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
             <Plus className="w-3 h-3" /> Adicionar produto
           </Button>
         </Section>
-
-        <Section title="🛒 Pedidos & Ações">
-          <div>
-            <Label className="text-[11px]">Ação ao tocar no produto</Label>
-            <Select value={props.itemAction || 'none'} onValueChange={set('itemAction')}>
-              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
-                <SelectItem value="whatsapp">💬 Pedir via WhatsApp</SelectItem>
-                <SelectItem value="webhook">🔌 Enviar via Webhook</SelectItem>
-                <SelectItem value="navigate">📄 Navegar para detalhes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {props.itemAction === 'whatsapp' && (
-            <>
-              <PropInput label="Número WhatsApp" value={props.whatsappNumber || ''} onChange={set('whatsappNumber')} />
-              <PropInput label="Template da mensagem" value={props.whatsappOrderTemplate || 'Olá! Gostaria de pedir: {{item_name}} ({{item_price}})'} onChange={set('whatsappOrderTemplate')} type="textarea" />
-              <p className="text-[9px] text-muted-foreground -mt-1">Variáveis: {'{{item_name}}'}, {'{{item_price}}'}, {'{{item_category}}'}</p>
-            </>
-          )}
-          {props.itemAction === 'webhook' && (
-            <>
-              <PropInput label="URL do Webhook" value={props.orderWebhookUrl || ''} onChange={set('orderWebhookUrl')} />
-              <PropInput label="Mensagem de sucesso" value={props.orderSuccessMsg || 'Pedido enviado!'} onChange={set('orderSuccessMsg')} />
-            </>
-          )}
-          <div className="flex items-center justify-between">
-            <Label className="text-[11px]">Mostrar itens indisponíveis</Label>
-            <Switch checked={props.showUnavailable !== false} onCheckedChange={set('showUnavailable')} />
-          </div>
-          <PropInput label="Moeda" value={props.currency || 'R$'} onChange={set('currency')} />
-          <PropInput label="Texto indisponível" value={props.unavailableText || 'Indisponível'} onChange={set('unavailableText')} />
-        </Section>
       </TabsContent>
 
+      {/* ── STYLE TAB ── */}
       <TabsContent value="style" className="space-y-2 mt-2">
         <Section title="Aparência">
           <PropInput label="Cor do título" value={props.titleColor || '#ffffff'} onChange={set('titleColor')} type="color" />
@@ -191,6 +167,10 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
             <Switch checked={props.showCategory !== false} onCheckedChange={set('showCategory')} />
           </div>
           <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Avaliação</Label>
+            <Switch checked={props.showRating === true} onCheckedChange={set('showRating')} />
+          </div>
+          <div className="flex items-center justify-between">
             <Label className="text-[11px]">Campo de busca</Label>
             <Switch checked={props.showSearch === true} onCheckedChange={set('showSearch')} />
           </div>
@@ -198,48 +178,97 @@ export function CatalogPropsPanel({ props, onChange, views }: Props) {
             <Label className="text-[11px]">Filtro por categoria</Label>
             <Switch checked={props.showCategoryFilter === true} onCheckedChange={set('showCategoryFilter')} />
           </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px]">Mostrar indisponíveis</Label>
+            <Switch checked={props.showUnavailable !== false} onCheckedChange={set('showUnavailable')} />
+          </div>
+          <PropInput label="Texto indisponível" value={props.unavailableText || 'Indisponível'} onChange={set('unavailableText')} />
+        </Section>
+      </TabsContent>
+
+      {/* ── ACTIONS TAB ── */}
+      <TabsContent value="actions" className="space-y-2 mt-2">
+        <Section title="🔗 Ao tocar no produto">
+          <div>
+            <Label className="text-[11px]">Tipo de ação</Label>
+            <Select value={props.itemAction || 'none'} onValueChange={set('itemAction')}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                <SelectItem value="navigate">📄 Navegar para página</SelectItem>
+                <SelectItem value="whatsapp">💬 Pedir via WhatsApp</SelectItem>
+                <SelectItem value="webhook">🔌 Enviar via Webhook</SelectItem>
+                <SelectItem value="prompt">🤖 Enviar ao Chat IA</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {props.itemAction === 'navigate' && views && views.length > 0 && (
+            <>
+              <div>
+                <Label className="text-[11px]">Navegar para</Label>
+                <Select value={props.itemNavigateTarget || '__none__'} onValueChange={(v) => set('itemNavigateTarget')(v === '__none__' ? '' : v)}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Selecione uma página" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {views.map(v => (
+                      <SelectItem key={v.id} value={v.id}>📄 {v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Transição</Label>
+                <Select value={props.itemNavigateTransition || 'fade'} onValueChange={set('itemNavigateTransition')}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fade">Fade</SelectItem>
+                    <SelectItem value="slide-left">Slide ←</SelectItem>
+                    <SelectItem value="slide-right">Slide →</SelectItem>
+                    <SelectItem value="slide-up">Slide ↑</SelectItem>
+                    <SelectItem value="zoom">Zoom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {props.itemAction === 'whatsapp' && (
+            <>
+              <PropInput label="Número WhatsApp" value={props.whatsappNumber || ''} onChange={set('whatsappNumber')} />
+              <PropInput label="Template da mensagem" value={props.whatsappOrderTemplate || 'Olá! Gostaria de pedir: {{item_name}} ({{item_price}})'} onChange={set('whatsappOrderTemplate')} type="textarea" />
+              <p className="text-[9px] text-muted-foreground -mt-1">Variáveis: {'{{item_name}}'}, {'{{item_price}}'}, {'{{item_category}}'}, {'{{item_description}}'}</p>
+            </>
+          )}
+
+          {props.itemAction === 'webhook' && (
+            <>
+              <PropInput label="URL do Webhook" value={props.orderWebhookUrl || ''} onChange={set('orderWebhookUrl')} />
+              <PropInput label="Mensagem de sucesso" value={props.orderSuccessMsg || 'Pedido enviado!'} onChange={set('orderSuccessMsg')} />
+            </>
+          )}
         </Section>
 
-        {views && views.length > 0 && (
-          <Section title="🔗 Navegação ao tocar">
-            <p className="text-[9px] text-muted-foreground mb-1">Ao tocar em um produto, navega para uma página de detalhes. Os dados do item são salvos como variáveis globais.</p>
-            <div>
-              <Label className="text-[11px]">Página de destino</Label>
-              <Select value={props.itemNavigateTarget || ''} onValueChange={set('itemNavigateTarget')}>
-                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Nenhuma (desativado)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Desativado</SelectItem>
-                  {views.map(v => (
-                    <SelectItem key={v.id} value={v.id}>
-                      <span className="flex items-center gap-1.5"><Navigation className="w-3 h-3" /> {v.name}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {props.itemNavigateTarget && (
-              <>
-                <div>
-                  <Label className="text-[11px]">Transição</Label>
-                  <Select value={props.itemNavigateTransition || 'fade'} onValueChange={set('itemNavigateTransition')}>
-                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fade">✨ Fade</SelectItem>
-                      <SelectItem value="slide-left">⬅ Slide</SelectItem>
-                      <SelectItem value="zoom">🔍 Zoom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis disponíveis na página de destino:</p>
-                  <code className="text-[9px] text-primary block">{'{{item_name}}'} {'{{item_price}}'}</code>
-                  <code className="text-[9px] text-primary block">{'{{item_description}}'} {'{{item_category}}'}</code>
-                  <code className="text-[9px] text-primary block">{'{{item_image}}'} {'{{item_badge}}'}</code>
-                </div>
-              </>
+        <Section title="📦 Variáveis (dados do produto selecionado)">
+          <PropInput label="Prefixo das variáveis" value={props.variablePrefix || 'produto'} onChange={set('variablePrefix')} />
+          <PropInput label="Variável alvo (link direto)" value={props.targetVariable || ''} onChange={set('targetVariable')} />
+          <p className="text-[9px] text-muted-foreground -mt-1">
+            Preenche automaticamente um campo de outro elemento (ex: campo de formulário ou texto).
+          </p>
+
+          <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis disponíveis:</p>
+            {['nome', 'descricao', 'preco', 'imagem', 'categoria', 'badge', 'id', 'sku'].map(v => (
+              <code key={v} className="text-[9px] text-primary block">{`{{${prefix}_${v}}}`}</code>
+            ))}
+            {props.targetVariable && (
+              <code className="text-[9px] text-green-400 block mt-1">{`{{${props.targetVariable}}} ← nome do produto`}</code>
             )}
-          </Section>
-        )}
+          </div>
+          <p className="text-[9px] text-muted-foreground">
+            Use estas variáveis em textos de outras páginas para exibir os dados do produto selecionado.
+          </p>
+        </Section>
       </TabsContent>
     </Tabs>
   );
