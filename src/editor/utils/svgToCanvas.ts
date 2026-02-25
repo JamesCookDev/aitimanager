@@ -312,23 +312,26 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     const imgEl = pattern.querySelector('image');
     
     let href = '';
+    let w = 0;
+    let h = 0;
+
     if (imgEl) {
       href = imgEl.getAttribute('href') || imgEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+      w = parseFloat(imgEl.getAttribute('width') || '0');
+      h = parseFloat(imgEl.getAttribute('height') || '0');
     } else if (useEl) {
       const refId = (useEl.getAttribute('href') || useEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '');
       if (refId) {
         const refImg = svg.querySelector(`#${refId}`);
         if (refImg) {
           href = refImg.getAttribute('href') || refImg.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+          w = parseFloat(refImg.getAttribute('width') || '0');
+          h = parseFloat(refImg.getAttribute('height') || '0');
         }
       }
     }
     
     if (href) {
-      const w = parseFloat(pattern.querySelector('image')?.getAttribute('width') || 
-                           svg.querySelector(`#${(useEl?.getAttribute('href') || useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '')}`)?.getAttribute('width') || '0');
-      const h = parseFloat(pattern.querySelector('image')?.getAttribute('height') || 
-                           svg.querySelector(`#${(useEl?.getAttribute('href') || useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '')}`)?.getAttribute('height') || '0');
       patternImageMap.set(id, { href, w, h });
     }
   });
