@@ -648,7 +648,19 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "iframe": {
       const url = p.url || "";
       if (!url) return <PremiumPlaceholder emoji="🌐" label="Iframe — configure a URL" />;
-      return <ScaledIframe url={url} scrolling={p.scrolling} borderRadius={p.borderRadius} />;
+      // FreeCanvasElement already handles scaling, so render iframe at 100%
+      return (
+        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0, background: "#fff" }}>
+          <iframe
+            src={url}
+            style={{ width: "100%", height: "100%", border: "none", pointerEvents: "auto" }}
+            scrolling={p.scrolling === false ? "no" : "yes"}
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            loading="lazy"
+            title="Iframe embed"
+          />
+        </div>
+      );
     }
 
     // ── CAROUSEL: Premium with vignette + ken burns ──
@@ -724,11 +736,11 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const gGap = p.gap ?? 8;
       const gBr = p.borderRadius ?? 12;
       return (
-        <div style={{ width: "100%", height: "100%", overflow: "hidden", background: p.bgColor || "transparent", borderRadius: gBr, padding: gGap }}>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${gCols}, 1fr)`, gap: gGap, width: "100%", height: "100%" }}>
+        <div style={{ width: "100%", height: "100%", overflow: "hidden", background: p.bgColor || "transparent", borderRadius: gBr, padding: gGap, boxSizing: "border-box" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${gCols}, 1fr)`, gap: gGap, width: "100%", height: "100%", gridAutoRows: "1fr" }}>
             {gImages.map((src, i) => (
-              <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: gBr / 2, border: "1px solid rgba(255,255,255,0.06)" }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", aspectRatio: p.aspectRatio || "1/1" }} />
+              <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: gBr / 2, border: "1px solid rgba(255,255,255,0.06)", minHeight: 0 }}>
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.3) 100%)", pointerEvents: "none" }} />
               </div>
             ))}
