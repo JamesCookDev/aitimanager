@@ -3,7 +3,7 @@ import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Megaphone,
   List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
-  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3,
+  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3, Rss,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -63,6 +63,7 @@ const CATEGORIES: {
       { type: 'video', icon: Play, label: 'Vídeo', desc: 'Player de vídeo', color: '#ef4444' },
       { type: 'carousel', icon: GalleryHorizontal, label: 'Carrossel', desc: 'Slides de imagens', color: '#8b5cf6' },
       { type: 'gallery', icon: LayoutGrid, label: 'Galeria', desc: 'Grid de imagens', color: '#06b6d4' },
+      { type: 'feed' as ElementType, icon: Rss, label: 'Feed', desc: 'Feed estilo Instagram', color: '#f97316' },
       { type: 'iframe', icon: Globe, label: 'Iframe', desc: 'Conteúdo externo', color: '#64748b' },
     ],
   },

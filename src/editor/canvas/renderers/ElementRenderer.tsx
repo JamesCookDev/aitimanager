@@ -24,6 +24,7 @@ import { TicketRenderer } from './TicketRenderer';
 import { QRPixRenderer } from './QRPixRenderer';
 import { NumpadRenderer } from './NumpadRenderer';
 import { BigCTARenderer } from './BigCTARenderer';
+import { FeedRenderer } from './FeedRenderer';
 
 interface Props {
   element: CanvasElement;
@@ -83,6 +84,8 @@ export function ElementRenderer({ element }: Props) {
       return <NumpadRenderer {...element.props} />;
     case 'bigcta':
       return <BigCTARenderer {...element.props} />;
+    case 'feed':
+      return <FeedRenderer {...element.props} />;
     default:
       return <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">?</div>;
   }
