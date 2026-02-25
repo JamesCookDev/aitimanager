@@ -14,11 +14,21 @@ interface ParsedSVG {
 }
 
 // ── SVG Path bounding-box parser ─────────────────────────────────────
-function pathBounds(d: string): { x: number; y: number; w: number; h: number } | null {
+interface PathInfo {
+  x: number; y: number; w: number; h: number;
+  cmdCount: number;
+  curveCount: number;
+  subpathCount: number;
+}
+
+function pathBounds(d: string): PathInfo | null {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  let cx = 0, cy = 0; // current point
-  let sx = 0, sy = 0; // start of subpath
+  let cx = 0, cy = 0;
+  let sx = 0, sy = 0;
   let found = false;
+  let cmdCount = 0;
+  let curveCount = 0;
+  let subpathCount = 0;
 
   function track(x: number, y: number) {
     minX = Math.min(minX, x);
@@ -28,7 +38,6 @@ function pathBounds(d: string): { x: number; y: number; w: number; h: number } |
     found = true;
   }
 
-  // Tokenize: split into commands + numbers
   const tokens = d.match(/[a-zA-Z]|[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g);
   if (!tokens) return null;
 
@@ -39,11 +48,12 @@ function pathBounds(d: string): { x: number; y: number; w: number; h: number } |
   let cmd = '';
   while (i < tokens.length) {
     const t = tokens[i];
-    if (/[a-zA-Z]/.test(t)) { cmd = t; i++; } 
+    if (/[a-zA-Z]/.test(t)) { cmd = t; i++; }
+    cmdCount++;
 
     switch (cmd) {
-      case 'M': { const x = num(), y = num(); cx = x; cy = y; sx = x; sy = y; track(cx, cy); cmd = 'L'; break; }
-      case 'm': { const x = num(), y = num(); cx += x; cy += y; sx = cx; sy = cy; track(cx, cy); cmd = 'l'; break; }
+      case 'M': { const x = num(), y = num(); cx = x; cy = y; sx = x; sy = y; track(cx, cy); subpathCount++; cmd = 'L'; break; }
+      case 'm': { const x = num(), y = num(); cx += x; cy += y; sx = cx; sy = cy; track(cx, cy); subpathCount++; cmd = 'l'; break; }
       case 'L': { cx = num(); cy = num(); track(cx, cy); break; }
       case 'l': { cx += num(); cy += num(); track(cx, cy); break; }
       case 'H': { cx = num(); track(cx, cy); break; }
@@ -51,32 +61,48 @@ function pathBounds(d: string): { x: number; y: number; w: number; h: number } |
       case 'V': { cy = num(); track(cx, cy); break; }
       case 'v': { cy += num(); track(cx, cy); break; }
       case 'C': {
+        curveCount++;
         const x1 = num(), y1 = num(), x2 = num(), y2 = num(), x = num(), y = num();
         track(x1, y1); track(x2, y2); track(x, y); cx = x; cy = y; break;
       }
       case 'c': {
+        curveCount++;
         const x1 = cx + num(), y1 = cy + num(), x2 = cx + num(), y2 = cy + num();
         const x = cx + num(), y = cy + num();
         track(x1, y1); track(x2, y2); track(x, y); cx = x; cy = y; break;
       }
-      case 'S': { const x2 = num(), y2 = num(), x = num(), y = num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
-      case 's': { const x2 = cx + num(), y2 = cy + num(), x = cx + num(), y = cy + num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
-      case 'Q': { const x1 = num(), y1 = num(), x = num(), y = num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
-      case 'q': { const x1 = cx + num(), y1 = cy + num(), x = cx + num(), y = cy + num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
+      case 'S': { curveCount++; const x2 = num(), y2 = num(), x = num(), y = num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
+      case 's': { curveCount++; const x2 = cx + num(), y2 = cy + num(), x = cx + num(), y = cy + num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
+      case 'Q': { curveCount++; const x1 = num(), y1 = num(), x = num(), y = num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
+      case 'q': { curveCount++; const x1 = cx + num(), y1 = cy + num(), x = cx + num(), y = cy + num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
       case 'T': { cx = num(); cy = num(); track(cx, cy); break; }
       case 't': { cx += num(); cy += num(); track(cx, cy); break; }
       case 'A': { num(); num(); num(); num(); num(); cx = num(); cy = num(); track(cx, cy); break; }
       case 'a': { num(); num(); num(); num(); num(); cx += num(); cy += num(); track(cx, cy); break; }
       case 'Z': case 'z': { cx = sx; cy = sy; break; }
-      default: { i++; break; } // skip unknown
+      default: { i++; break; }
     }
 
-    // Consume repeated implicit params for the same command
     while (hasMore() && 'MLCSQTAHVmlcsqtahv'.includes(cmd)) break;
   }
 
   if (!found || maxX - minX < 1 || maxY - minY < 1) return null;
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY, cmdCount, curveCount, subpathCount };
+}
+
+/**
+ * Heuristic: detect if a path is likely vectorized text (glyph outlines).
+ * Text paths have many bezier curves packed densely, with many subpaths (one per glyph).
+ */
+function isLikelyTextPath(info: PathInfo): boolean {
+  const area = info.w * info.h;
+  // Text paths: many curves (> 15), many subpaths (> 3), or very high curve density
+  if (info.curveCount > 15 && info.subpathCount > 3) return true;
+  // Very dense curves relative to area
+  if (area > 0 && info.curveCount / Math.sqrt(area) > 0.5 && info.curveCount > 10) return true;
+  // Extremely command-heavy (long glyph sequences)
+  if (info.cmdCount > 100) return true;
+  return false;
 }
 
 // ── Detect content area from Figma-style exports ─────────────────────
@@ -549,6 +575,9 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         // Use proper path parser for bounding box
         const bounds = pathBounds(d);
         if (!bounds) break;
+
+        // Skip vectorized text (glyph outlines from Figma/Illustrator exports)
+        if (isLikelyTextPath(bounds)) break;
 
         const px = bounds.x + ox;
         const py = bounds.y + oy;
