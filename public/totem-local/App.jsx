@@ -127,9 +127,9 @@ function useConfigPoller(onUpdate) {
 // 📦 VERSÕES DOS ARQUIVOS LOCAIS
 // ─────────────────────────────────────────────
 const LOCAL_FILE_VERSIONS = {
-  "App.jsx": "4.13.0",
+  "App.jsx": "4.18.0",
   "main.jsx": "1.0.0",
-  "index.css": "1.1.0",
+  "index.css": "1.2.0",
   "hooks/useSpeech.jsx": "2.3.0",
   "hooks/useCMSConfig.js": "1.2.0",
   "components/Avatar.jsx": "1.5.0",
@@ -223,9 +223,29 @@ const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => 
 
 function FreeCanvasElement({ element, onNavigate }) {
   const { x, y, width, height, rotation, opacity, props, type } = element;
+  const containerRef = useRef(null);
+  const [scaleX, setScaleX] = useState(1);
+  const [scaleY, setScaleY] = useState(1);
 
-  // Convert pixel coords from 1080×1920 canvas to percentages
-  const style = {
+  // Measure actual rendered size vs designed size to compute scale
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setScaleX(rect.width / width);
+      setScaleY(rect.height / height);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [width, height]);
+
+  const isInteractive = ["button","chat","social","qrcode","iframe","store","numpad","form","ticket","bigcta","qrpix","catalog","list","gallery","carousel","map"].includes(type);
+
+  // Outer container: percentage-based positioning
+  const outerStyle = {
     position: "absolute",
     left: `${(x / CANVAS_W) * 100}%`,
     top: `${(y / CANVAS_H) * 100}%`,
@@ -234,14 +254,24 @@ function FreeCanvasElement({ element, onNavigate }) {
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
-    pointerEvents: type === "button" || type === "chat" || type === "social" || type === "qrcode" || type === "iframe" || type === "store" ? "auto" : "none",
+    pointerEvents: isInteractive ? "auto" : "none",
     overflow: type === "social" ? "visible" : "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
   };
 
+  // Inner container: render at original canvas pixel size, then scale down to fit
+  const innerStyle = {
+    width: width,
+    height: height,
+    transformOrigin: "0 0",
+    transform: `scale(${scaleX}, ${scaleY})`,
+  };
+
   return (
-    <div style={style}>
-      <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
+    <div ref={containerRef} style={outerStyle}>
+      <div style={innerStyle}>
+        <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
+      </div>
     </div>
   );
 }
@@ -284,7 +314,8 @@ function SocialSVGIcon({ platform, size = 24, color = "#fff" }) {
 // 🧱 ELEMENT RENDERER — renderiza cada tipo de elemento
 // ─────────────────────────────────────────────
 function ElementRenderer({ type, props: p, onNavigate }) {
-  const fs = (base) => `clamp(12px, ${(base || 18) / CANVAS_W * 100}vw, ${(base || 18) * 1.5}px)`;
+  // Inner content is rendered at canvas resolution (1080px wide), then CSS-scaled to fit
+  const fs = (base) => `${base || 18}px`;
 
   switch (type) {
     // ── TEXT: Premium glow + letter-spacing ──
