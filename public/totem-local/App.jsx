@@ -242,7 +242,16 @@ function FreeCanvasElement({ element, onNavigate }) {
     return () => ro.disconnect();
   }, [width, height]);
 
-  const isInteractive = ["button","chat","social","qrcode","iframe","store","numpad","form","ticket","bigcta","qrpix","catalog","list","gallery","carousel","map"].includes(type);
+  const isInteractive = ["button","chat","social","qrcode","iframe","store","numpad","form","ticket","bigcta","qrpix","catalog","list","gallery","carousel","map","feed"].includes(type);
+  // Any element with a navigation action should be interactive
+  const hasNavAction = props?.actionType === "navigate" && props?.navigateTarget;
+
+  // Handle generic navigation action (for text, image, shape, icon, etc.)
+  const handleGenericClick = hasNavAction ? () => {
+    if (window.__totemNavigatePage) {
+      window.__totemNavigatePage(props.navigateTarget, props.navigateTransition || "fade");
+    }
+  } : undefined;
 
   // Outer container: percentage-based positioning
   const outerStyle = {
@@ -254,9 +263,10 @@ function FreeCanvasElement({ element, onNavigate }) {
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
-    pointerEvents: isInteractive ? "auto" : "none",
+    pointerEvents: (isInteractive || hasNavAction) ? "auto" : "none",
     overflow: type === "social" ? "visible" : "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
+    cursor: hasNavAction ? "pointer" : undefined,
   };
 
   // Inner container: render at original canvas pixel size, then scale down to fit
@@ -291,7 +301,7 @@ function FreeCanvasElement({ element, onNavigate }) {
   }
 
   return (
-    <div ref={containerRef} style={outerStyle}>
+    <div ref={containerRef} style={outerStyle} onClick={handleGenericClick}>
       <div style={innerStyle}>
         <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
       </div>
@@ -401,8 +411,9 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             type="button"
             onClick={() => {
               const actionType = p.actionType || "prompt";
-              if (actionType === "navigate" && p.navigateTarget && onNavigate) {
-                onNavigate(p.navigateTarget);
+              if (actionType === "navigate" && p.navigateTarget) {
+                if (window.__totemNavigatePage) window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade");
+                else if (onNavigate) onNavigate(p.navigateTarget);
               } else if (actionType === "url" && p.action) {
                 if (typeof window.__totemOpenUrl === "function") window.__totemOpenUrl(p.action);
               } else {
@@ -2503,16 +2514,31 @@ export default function App() {
   // Reset to default view when config changes
   useEffect(() => { setActiveViewId(defaultViewId); }, [defaultViewId]);
 
-  const handleNavigate = useCallback((viewId) => {
+  const handleNavigate = useCallback((viewId, transition, variables) => {
+    // Set page variables if provided (from forms, catalogs, etc.)
+    if (variables && typeof variables === "object") {
+      window.__totemPageVariables = { ...(window.__totemPageVariables || {}), ...variables };
+    }
     setActiveViewId(viewId);
     wake?.(); // reset idle screen too
   }, [wake]);
 
-  // Background
+  // ── Register global navigation function for all elements ──
+  useEffect(() => {
+    window.__totemNavigatePage = (viewId, transition, variables) => {
+      handleNavigate(viewId, transition, variables);
+    };
+    return () => { delete window.__totemNavigatePage; };
+  }, [handleNavigate]);
+
+  // Background — supports per-page colors via pageBgColors
   const bgStyle = useMemo(() => {
-    // Free canvas background color
-    if (hasFreeCanvas && freeCanvas.bgColor) {
-      return { backgroundColor: freeCanvas.bgColor };
+    if (hasFreeCanvas) {
+      // Check per-page background first
+      const pageBg = freeCanvas.pageBgColors?.[activeViewId];
+      if (pageBg) return { backgroundColor: pageBg };
+      // Fall back to global canvas bg
+      if (freeCanvas.bgColor) return { backgroundColor: freeCanvas.bgColor };
     }
     const bg = ui?.canvas?.background;
     if (bg?.type === "image" && bg?.image_url) {
@@ -2521,7 +2547,7 @@ export default function App() {
     if (bg?.gradient) return { backgroundImage: bg.gradient };
     if (bg?.color) return { backgroundColor: bg.color };
     return { background: "linear-gradient(160deg, #050a18 0%, #0c1630 60%, #0a0e1f 100%)" };
-  }, [ui, freeCanvas, hasFreeCanvas]);
+  }, [ui, freeCanvas, hasFreeCanvas, activeViewId]);
 
   // Avatar is now rendered as a free canvas element (type: 'avatar')
   // No longer a fixed background layer
