@@ -92,43 +92,28 @@ function pathBounds(d: string): PathInfo | null {
 
 /**
  * Heuristic: detect if a path is likely vectorized text (glyph outlines).
- * Text paths have many bezier curves packed densely, with many subpaths (one per glyph).
  */
 function isLikelyTextPath(info: PathInfo): boolean {
-  const area = info.w * info.h;
-  // Text paths: many curves (> 15), many subpaths (> 3), or very high curve density
   if (info.curveCount > 15 && info.subpathCount > 3) return true;
-  // Very dense curves relative to area
+  const area = info.w * info.h;
   if (area > 0 && info.curveCount / Math.sqrt(area) > 0.5 && info.curveCount > 10) return true;
-  // Extremely command-heavy (long glyph sequences)
   if (info.cmdCount > 100) return true;
   return false;
 }
 
-/**
- * Estimate font size from the height of a text path bounding box.
- * Glyph outlines typically span ~70-80% of the font's em square.
- */
 function estimateFontSize(pathHeight: number, scale: number): number {
-  const raw = Math.round(pathHeight * scale * 1.25); // compensate for descenders/ascenders
+  const raw = Math.round(pathHeight * scale * 1.25);
   return Math.max(12, Math.min(120, raw));
 }
 
-/**
- * Estimate approximate character count from the path's aspect ratio and height.
- * Average character width is ~0.55 of font size for most Latin fonts.
- */
 function estimateCharCount(w: number, h: number): number {
   if (h <= 0) return 5;
-  const fontSize = h;
-  const avgCharW = fontSize * 0.55;
+  const avgCharW = h * 0.55;
   return Math.max(1, Math.round(w / avgCharW));
 }
 
 // ── Detect content area from Figma-style exports ─────────────────────
 function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: number; oy: number; w: number; h: number } | null {
-  // Look for clip-path'd groups containing a large rect — common in Figma exports
-  // Also look for a large rect with transform that defines the actual canvas area
   const rects = svg.querySelectorAll('rect');
   let best: { ox: number; oy: number; w: number; h: number } | null = null;
   let bestArea = 0;
@@ -136,8 +121,8 @@ function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: numb
   for (const rect of Array.from(rects)) {
     const w = parseFloat(rect.getAttribute('width') || '0');
     const h = parseFloat(rect.getAttribute('height') || '0');
-    if (w < svgW * 0.5 || h < svgH * 0.5) continue; // too small
-    if (w >= svgW * 0.98 && h >= svgH * 0.98) continue; // it's the full outer frame
+    if (w < svgW * 0.5 || h < svgH * 0.5) continue;
+    if (w >= svgW * 0.98 && h >= svgH * 0.98) continue;
 
     let x = parseFloat(rect.getAttribute('x') || '0');
     let y = parseFloat(rect.getAttribute('y') || '0');
@@ -148,16 +133,14 @@ function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: numb
     }
 
     const area = w * h;
-    // Prefer rects that are close to common totem sizes (1080x1920)
     const isTotemSize = (Math.abs(w - 1080) < 10 && Math.abs(h - 1920) < 10);
     if (area > bestArea || isTotemSize) {
       best = { ox: x, oy: y, w, h };
       bestArea = area;
-      if (isTotemSize) break; // exact match
+      if (isTotemSize) break;
     }
   }
 
-  // Only use if offset is significant
   if (best && (best.ox > 5 || best.oy > 5)) return best;
   return null;
 }
@@ -166,7 +149,6 @@ function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: numb
  * Parse an SVG string and return CanvasElement[] mapped to our 1080x1920 canvas.
  */
 export function parseSVGToCanvas(svgString: string): ParsedSVG {
-  // Reject HTML documents — only pure SVG is supported
   const trimmed = svgString.trim();
   if (
     trimmed.startsWith('<!DOCTYPE') ||
@@ -179,7 +161,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     );
   }
 
-  // Try to extract an embedded <svg>…</svg> block if wrapped in other markup
   let input = trimmed;
   if (!input.startsWith('<svg') && !input.startsWith('<?xml')) {
     const svgMatch = input.match(/<svg[\s\S]*<\/svg>/i);
@@ -192,17 +173,13 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   const doc = parser.parseFromString(input, 'image/svg+xml');
   const svg = doc.querySelector('svg');
 
-  // Check for XML parse errors
   const parseError = doc.querySelector('parsererror');
   if (parseError) {
-    throw new Error(
-      'Erro de sintaxe no SVG. Verifique se o código é um SVG válido e bem formado.'
-    );
+    throw new Error('Erro de sintaxe no SVG. Verifique se o código é um SVG válido e bem formado.');
   }
 
-  if (!svg) throw new Error('SVG inválido: elemento <svg> não encontrado. Cole apenas código <svg>...</svg>.');
+  if (!svg) throw new Error('SVG inválido: elemento <svg> não encontrado.');
 
-  // Parse viewBox or width/height for coordinate mapping
   const vb = svg.getAttribute('viewBox');
   let svgW = parseFloat(svg.getAttribute('width') || '1080');
   let svgH = parseFloat(svg.getAttribute('height') || '1920');
@@ -256,7 +233,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return color;
   }
 
-  // Parse linearGradient elements
   svg.querySelectorAll('linearGradient').forEach(lg => {
     const id = lg.getAttribute('id');
     if (!id) return;
@@ -268,7 +244,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
     let ax1: number, ay1: number, ax2: number, ay2: number;
     if (units === 'userSpaceOnUse') {
-      // Normalize to percentage of the reference area
       ax1 = ((x1 - originX) / refW) * 100;
       ay1 = ((y1 - originY) / refH) * 100;
       ax2 = ((x2 - originX) / refW) * 100;
@@ -292,7 +267,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     gradientMap.set(id, `linear-gradient(${angle}deg, ${cssStops})`);
   });
 
-  // Parse radialGradient elements
   svg.querySelectorAll('radialGradient').forEach(rg => {
     const id = rg.getAttribute('id');
     if (!id) return;
@@ -327,13 +301,44 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     gradientMap.set(id, `radial-gradient(${pos}, ${cssStops})`);
   });
 
+  // ── Build pattern → image map (Figma embeds base64 images via patterns) ──
+  const patternImageMap = new Map<string, { href: string; w: number; h: number }>();
+
+  svg.querySelectorAll('pattern').forEach(pattern => {
+    const id = pattern.getAttribute('id');
+    if (!id) return;
+    // Pattern may contain a <use xlink:href="#imageId"> pointing to an <image> in <defs>
+    const useEl = pattern.querySelector('use');
+    const imgEl = pattern.querySelector('image');
+    
+    let href = '';
+    if (imgEl) {
+      href = imgEl.getAttribute('href') || imgEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+    } else if (useEl) {
+      const refId = (useEl.getAttribute('href') || useEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '');
+      if (refId) {
+        const refImg = svg.querySelector(`#${refId}`);
+        if (refImg) {
+          href = refImg.getAttribute('href') || refImg.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+        }
+      }
+    }
+    
+    if (href) {
+      const w = parseFloat(pattern.querySelector('image')?.getAttribute('width') || 
+                           svg.querySelector(`#${(useEl?.getAttribute('href') || useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '')}`)?.getAttribute('width') || '0');
+      const h = parseFloat(pattern.querySelector('image')?.getAttribute('height') || 
+                           svg.querySelector(`#${(useEl?.getAttribute('href') || useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '')}`)?.getAttribute('height') || '0');
+      patternImageMap.set(id, { href, w, h });
+    }
+  });
+
   // ── Helpers ─────────────────────────────────────────────────────────
   let bgColor = '#0f172a';
   const elements: CanvasElement[] = [];
   let zIndex = 1;
 
   function mapCoord(x: number, y: number, w: number, h: number) {
-    // Remap from SVG space to content-relative space, then scale to canvas
     const rx = (x - originX) * scaleX;
     const ry = (y - originY) * scaleY;
     const rw = w * scaleX;
@@ -347,7 +352,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   }
 
   function isOutOfBounds(x: number, y: number, w: number, h: number): boolean {
-    // Skip elements that are entirely outside the content area
     const right = x + w;
     const bottom = y + h;
     const cRight = originX + refW;
@@ -387,7 +391,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return raw;
   }
 
-  /** Returns the raw fill attribute value (before resolving gradients/patterns) */
   function getRawFill(node: Element): string {
     return (
       node.getAttribute('fill') ||
@@ -396,11 +399,13 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     ).trim();
   }
 
-  /** Check if raw fill references a pattern (image) rather than a gradient */
-  function isPatternFill(rawFill: string): boolean {
+  /** Get the pattern ID from a fill value, if any */
+  function getPatternId(rawFill: string): string | null {
     const urlMatch = rawFill.match(/url\(\s*#([^)]+)\s*\)/);
-    if (!urlMatch) return false;
-    return !gradientMap.has(urlMatch[1]);
+    if (!urlMatch) return null;
+    const id = urlMatch[1];
+    if (gradientMap.has(id)) return null; // It's a gradient, not a pattern
+    return id;
   }
 
   function parseColor(node: Element): string {
@@ -410,6 +415,15 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   function parseOpacity(node: Element): number {
     const op = node.getAttribute('opacity') || node.getAttribute('fill-opacity');
     return op ? Math.min(1, Math.max(0, parseFloat(op))) : 1;
+  }
+
+  /** Get effective fill-opacity from the fill-opacity attribute or style */
+  function getFillOpacity(node: Element): number {
+    const fo = node.getAttribute('fill-opacity');
+    if (fo) return parseFloat(fo);
+    const style = node.getAttribute('style') || '';
+    const m = style.match(/fill-opacity:\s*([\d.]+)/);
+    return m ? parseFloat(m[1]) : 1;
   }
 
   function getTranslate(node: Element): { tx: number; ty: number } {
@@ -444,20 +458,19 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         if (w <= 0 || h <= 0) break;
 
         const rawFill = getRawFill(node);
+        const patternId = getPatternId(rawFill);
         const fill = resolveColor(rawFill);
         const rx = parseFloat(node.getAttribute('rx') || '0');
         const elOpacity = parseOpacity(node) * nodeOpacity;
+        const fillOp = getFillOpacity(node);
 
-        // Full-content-area rect → treat as background (skip even if not first element)
+        // Full-content-area rect → treat as background
         if (w >= refW * 0.9 && h >= refH * 0.9) {
-          if (fill !== 'none' && !fill.includes('gradient') && !isPatternFill(rawFill)) {
+          if (fill !== 'none' && !fill.includes('gradient') && !patternId) {
             bgColor = fill;
           }
           break;
         }
-
-        // Skip pattern-filled rects (embedded images referenced via url(#pattern...))
-        if (fill === 'none' || isPatternFill(rawFill)) break;
 
         // Skip elements outside content area
         if (isOutOfBounds(x, y, w, h)) break;
@@ -465,18 +478,42 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         // Skip very low opacity decorative elements
         if (elOpacity < 0.05) break;
 
+        // ── Pattern-filled rect → extract as image element ──
+        if (patternId) {
+          const imgData = patternImageMap.get(patternId);
+          if (imgData && imgData.href) {
+            const el = makeElement('image', x, y, w, h, {
+              src: imgData.href,
+              fit: 'cover',
+              borderRadius: Math.round(rx * scaleX),
+            }, 'Imagem');
+            el.opacity = elOpacity;
+            elements.push(el);
+          }
+          break;
+        }
+
+        // Skip fill=none rects (clip/filter helpers)
+        if (fill === 'none') break;
+
+        // Skip decorative rects with very low fill-opacity (border-only elements)
+        if (fillOp < 0.1 && !fill.includes('gradient')) break;
+
         // Skip very small rects (icon parts, decorative dots)
         const mappedW = w * scaleX;
         const mappedH = h * scaleY;
         if (mappedW < 20 && mappedH < 20) break;
 
+        // Gradient-filled rects that cover a large vertical zone → background shapes
+        const isGradient = fill.includes('gradient');
+
         const el = makeElement('shape', x, y, w, h, {
-          shapeType: 'rectangle',
-          fill: fill === 'none' ? 'transparent' : fill,
+          shapeType: rx > Math.min(w, h) * 0.4 ? 'circle' : 'rectangle',
+          fill: fill,
           borderRadius: Math.round(rx * scaleX),
           borderColor: node.getAttribute('stroke') || 'transparent',
           borderWidth: parseFloat(node.getAttribute('stroke-width') || '0') * scaleX,
-        }, 'Retângulo');
+        }, isGradient ? 'Gradiente' : 'Retângulo');
         el.opacity = elOpacity;
         elements.push(el);
         break;
@@ -599,7 +636,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
       case 'g':
       case 'svg': {
-        // Recurse into groups, propagating opacity
         Array.from(node.children).forEach(child => processNode(child, ox, oy, nodeOpacity));
         return;
       }
@@ -610,26 +646,39 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const fill = parseColor(node);
         const stroke = node.getAttribute('stroke');
 
-        // Use proper path parser for bounding box
         const bounds = pathBounds(d);
         if (!bounds) break;
 
+        const px = bounds.x + ox;
+        const py = bounds.y + oy;
+        const pw = bounds.w;
+        const ph = bounds.h;
+
+        if (isOutOfBounds(px, py, pw, ph)) break;
+
+        const elOpacity = parseOpacity(node) * nodeOpacity;
+        if (elOpacity < 0.05) break;
+
         // Convert vectorized text to editable text placeholder
         if (isLikelyTextPath(bounds)) {
-          const px = bounds.x + ox;
-          const py = bounds.y + oy;
-          const pw = bounds.w;
-          const ph = bounds.h;
-
-          if (isOutOfBounds(px, py, pw, ph)) break;
-
-          const elOpacity = parseOpacity(node) * nodeOpacity;
-          if (elOpacity < 0.05) break;
+          const mappedH = ph * scaleY;
+          
+          // Skip very small text paths (tiny labels, icon text)
+          if (mappedH < 15) break;
 
           const fontSize = estimateFontSize(ph, scaleX);
           const charCount = estimateCharCount(pw, ph);
-          // Generate placeholder text with approximate length
-          const placeholder = '█'.repeat(Math.min(charCount, 30));
+          
+          // Generate descriptive placeholder based on size
+          let placeholder: string;
+          if (fontSize >= 40) {
+            placeholder = 'Título aqui';
+          } else if (fontSize >= 24) {
+            placeholder = charCount > 20 ? 'Subtítulo ou descrição do conteúdo' : 'Subtítulo aqui';
+          } else {
+            placeholder = charCount > 30 ? 'Texto do parágrafo ou descrição detalhada' : 'Texto aqui';
+          }
+          
           const fillColor = fill === 'none' ? '#ffffff' : (fill.includes('gradient') ? '#ffffff' : fill);
 
           const el = makeElement('text', px, py, pw, ph, {
@@ -645,20 +694,13 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           break;
         }
 
-        const px = bounds.x + ox;
-        const py = bounds.y + oy;
-        const pw = bounds.w;
-        const ph = bounds.h;
-
-        if (isOutOfBounds(px, py, pw, ph)) break;
-
-        const elOpacity = parseOpacity(node) * nodeOpacity;
-        if (elOpacity < 0.05) break;
-
-        // Skip small paths (icons, decorative elements)
+        // Skip small paths (icons, decorative elements) — use AND not OR for small paths
         const mappedPW = pw * scaleX;
         const mappedPH = ph * scaleY;
-        if (mappedPW < 25 || mappedPH < 25) break;
+        if (mappedPW < 25 && mappedPH < 25) break;
+
+        // Skip stroke-only paths (outlines, borders)
+        if (fill === 'none' && !stroke) break;
 
         const el = makeElement('shape', px, py, pw, ph, {
           shapeType: 'rectangle',
