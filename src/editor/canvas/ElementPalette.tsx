@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
-  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store,
+  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store, Megaphone,
   List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
   Search, ChevronDown, Plus,
 } from 'lucide-react';
@@ -66,7 +66,7 @@ const CATEGORIES = [
       { type: 'form' as ElementType, icon: FileText, label: 'Formulário', desc: 'Coleta de dados' },
       { type: 'list' as ElementType, icon: List, label: 'Lista/Menu', desc: 'Itens com preço' },
       { type: 'catalog' as ElementType, icon: ShoppingBag, label: 'Catálogo', desc: 'Produtos com filtro' },
-      { type: 'store' as ElementType, icon: Store, label: 'Lojas', desc: 'Diretório de lojas' },
+      { type: 'store' as ElementType, icon: Megaphone, label: 'Lojas', desc: 'Diretório de lojas' },
       { type: 'map' as ElementType, icon: MapPin, label: 'Mapa', desc: 'Localização' },
       { type: 'social' as ElementType, icon: Share2, label: 'Redes Sociais', desc: 'Links sociais' },
     ],
