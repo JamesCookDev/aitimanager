@@ -362,6 +362,11 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <span className="text-[9px] text-muted-foreground">Negativo = sobe · Positivo = desce</span>
           </div>
           <div>
+            <Label className="text-[11px]">↔ Horizontal: {props.frameX ?? 0}</Label>
+            <Slider value={[props.frameX ?? 0]} onValueChange={([v]) => onChange({ frameX: v })} min={-100} max={100} step={1} />
+            <span className="text-[9px] text-muted-foreground">Negativo = esquerda · Positivo = direita</span>
+          </div>
+          <div>
             <Label className="text-[11px]">🔍 Zoom: {props.frameZoom ?? 50}</Label>
             <Slider value={[props.frameZoom ?? 50]} onValueChange={([v]) => onChange({ frameZoom: v })} min={10} max={100} step={1} />
             <span className="text-[9px] text-muted-foreground">10 = longe · 100 = perto</span>
