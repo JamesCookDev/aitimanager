@@ -39,7 +39,97 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   const scaleX = CANVAS_WIDTH / svgW;
   const scaleY = CANVAS_HEIGHT / svgH;
 
-  // Detect background from first full-size rect or SVG style
+  // ── Build gradient map from <defs> ──────────────────────────────────
+  const gradientMap = new Map<string, string>();
+
+  function parseStopColor(stop: Element): string {
+    const style = stop.getAttribute('style') || '';
+    const fromStyle = style.match(/stop-color:\s*([^;]+)/)?.[1];
+    return fromStyle || stop.getAttribute('stop-color') || '#000000';
+  }
+
+  function parseStopOpacity(stop: Element): number {
+    const style = stop.getAttribute('style') || '';
+    const fromStyle = style.match(/stop-opacity:\s*([^;]+)/)?.[1];
+    const val = fromStyle || stop.getAttribute('stop-opacity');
+    return val ? parseFloat(val) : 1;
+  }
+
+  function colorWithOpacity(color: string, opacity: number): string {
+    if (opacity >= 1) return color;
+    // Convert hex to rgba
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r},${g},${b},${opacity.toFixed(2)})`;
+    }
+    return color;
+  }
+
+  // Parse linearGradient elements
+  svg.querySelectorAll('linearGradient').forEach(lg => {
+    const id = lg.getAttribute('id');
+    if (!id) return;
+    const x1 = parseFloat(lg.getAttribute('x1') || '0');
+    const y1 = parseFloat(lg.getAttribute('y1') || '0');
+    const x2 = parseFloat(lg.getAttribute('x2') || '1');
+    const y2 = parseFloat(lg.getAttribute('y2') || '0');
+
+    // Calculate angle from coordinates
+    // gradientUnits default is objectBoundingBox (0-1 range)
+    const units = lg.getAttribute('gradientUnits') || 'objectBoundingBox';
+    let ax1 = x1, ay1 = y1, ax2 = x2, ay2 = y2;
+    if (units === 'objectBoundingBox') {
+      ax1 = x1 * 100; ay1 = y1 * 100; ax2 = x2 * 100; ay2 = y2 * 100;
+    }
+    const angle = Math.round(Math.atan2(ay2 - ay1, ax2 - ax1) * (180 / Math.PI) + 90);
+
+    const stops = Array.from(lg.querySelectorAll('stop'));
+    if (stops.length === 0) return;
+
+    const cssStops = stops.map(s => {
+      const color = parseStopColor(s);
+      const opacity = parseStopOpacity(s);
+      const offset = s.getAttribute('offset') || '0';
+      const pct = offset.includes('%') ? offset : `${Math.round(parseFloat(offset) * 100)}%`;
+      return `${colorWithOpacity(color, opacity)} ${pct}`;
+    }).join(', ');
+
+    gradientMap.set(id, `linear-gradient(${angle}deg, ${cssStops})`);
+  });
+
+  // Parse radialGradient elements
+  svg.querySelectorAll('radialGradient').forEach(rg => {
+    const id = rg.getAttribute('id');
+    if (!id) return;
+
+    const stops = Array.from(rg.querySelectorAll('stop'));
+    if (stops.length === 0) return;
+
+    const cssStops = stops.map(s => {
+      const color = parseStopColor(s);
+      const opacity = parseStopOpacity(s);
+      const offset = s.getAttribute('offset') || '0';
+      const pct = offset.includes('%') ? offset : `${Math.round(parseFloat(offset) * 100)}%`;
+      return `${colorWithOpacity(color, opacity)} ${pct}`;
+    }).join(', ');
+
+    // cx/cy for position (default center)
+    const cx = rg.getAttribute('cx');
+    const cy = rg.getAttribute('cy');
+    let pos = 'circle';
+    if (cx && cy) {
+      const pxStr = cx.includes('%') ? cx : `${Math.round(parseFloat(cx) * 100)}%`;
+      const pyStr = cy.includes('%') ? cy : `${Math.round(parseFloat(cy) * 100)}%`;
+      pos = `circle at ${pxStr} ${pyStr}`;
+    }
+
+    gradientMap.set(id, `radial-gradient(${pos}, ${cssStops})`);
+  });
+
+  // ── Helpers ─────────────────────────────────────────────────────────
   let bgColor = '#0f172a';
   const elements: CanvasElement[] = [];
   let zIndex = 1;
@@ -75,12 +165,23 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     };
   }
 
+  function resolveColor(raw: string): string {
+    if (!raw) return '#ffffff';
+    // Handle url(#gradientId) references
+    const urlMatch = raw.match(/url\(\s*#([^)]+)\s*\)/);
+    if (urlMatch) {
+      const id = urlMatch[1];
+      return gradientMap.get(id) || '#ffffff';
+    }
+    return raw;
+  }
+
   function parseColor(node: Element): string {
-    return (
+    const raw =
       node.getAttribute('fill') ||
       node.getAttribute('style')?.match(/fill:\s*([^;]+)/)?.[1] ||
-      '#ffffff'
-    );
+      '#ffffff';
+    return resolveColor(raw.trim());
   }
 
   function parseOpacity(node: Element): number {

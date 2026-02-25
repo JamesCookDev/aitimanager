@@ -2,15 +2,16 @@ export function ShapeRenderer(props: any) {
   const fill = props.fill || '#6366f1';
   const isCircle = props.shapeType === 'circle';
   const borderRadius = isCircle ? '50%' : (props.borderRadius || 0);
+  const isGradient = fill.includes('gradient(');
 
   return (
     <div
       className="w-full h-full relative overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${fill}, ${fill}cc)`,
+        background: isGradient ? fill : `linear-gradient(135deg, ${fill}, ${fill}cc)`,
         borderRadius,
         border: props.borderWidth ? `${props.borderWidth}px solid ${props.borderColor || 'transparent'}` : undefined,
-        boxShadow: `0 4px 20px ${fill}30`,
+        boxShadow: isGradient ? undefined : `0 4px 20px ${fill}30`,
       }}
     >
       {/* Subtle inner shine */}
