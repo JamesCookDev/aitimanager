@@ -1357,6 +1357,148 @@ const storeWelcome: CanvasState = (() => {
 
 
 // ═══════════════════════════════════════════════════
+// Shopping Avatar Directory (matches reference design)
+// Layout: Avatar(0-400) → Handle(410) → Search(440-490) → Filters(510-560) → Store(580-1680) → BottomNav(1740-1860)
+// ═══════════════════════════════════════════════════
+const shoppingAvatarDirectory: CanvasState = (() => {
+  _id = 0;
+  return {
+    bgColor: '#0c1020',
+    elements: [
+      // ── Hero Avatar Area ──
+      // Dark gradient background behind avatar
+      el('shape', 140, 0, 800, 400, {
+        shapeType: 'rectangle', fill: '#111827', borderRadius: 20,
+        borderColor: 'rgba(99,102,241,0.15)', borderWidth: 1,
+      }),
+      // Avatar 3D
+      el('avatar', 240, -30, 600, 400, {
+        position: 'center', scale: 1.8, animation: 'idle', enabled: true,
+        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
+        colors: { shirt: '#5BA4C9', pants: '#1e293b', shoes: '#000000' },
+        frameY: -10, frameZoom: 55,
+      }),
+      // Avatar greeting overlay text
+      el('text', 200, 310, 680, 50, {
+        text: 'Olá! Posso ajudar?', fontSize: 32, fontWeight: 'bold',
+        color: '#ffffff', align: 'center', fontFamily: 'Inter',
+      }),
+      el('text', 200, 360, 680, 30, {
+        text: 'Toque abaixo para encontrar sua loja', fontSize: 16, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.5)', align: 'center', fontFamily: 'Inter',
+      }),
+      // Handle indicator (small pill)
+      el('shape', 470, 410, 140, 6, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.15)', borderRadius: 999,
+        borderColor: 'transparent', borderWidth: 0,
+      }),
+
+      // ── Search Bar ──
+      el('shape', 60, 440, 960, 56, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.06)', borderRadius: 16,
+        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+      }),
+      el('text', 110, 452, 700, 32, {
+        text: '🔍  Buscar loja, categoria ou piso...', fontSize: 16, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.35)', align: 'left', fontFamily: 'Inter',
+      }),
+      el('icon', 940, 455, 40, 30, { icon: '🎤', size: 22, color: 'rgba(255,255,255,0.4)' }),
+
+      // ── Category Filter Pills ──
+      el('button', 60, 516, 120, 42, {
+        label: 'Todas', bgColor: '#6366f1',
+        textColor: '#ffffff', fontSize: 14, borderRadius: 999, actionType: 'prompt', action: '',
+      }),
+      el('button', 200, 516, 120, 42, {
+        label: 'Moda', bgColor: 'rgba(255,255,255,0.06)',
+        textColor: 'rgba(255,255,255,0.7)', fontSize: 14, borderRadius: 999, actionType: 'prompt', action: '',
+      }),
+      el('button', 340, 516, 170, 42, {
+        label: 'Gastronomia', bgColor: 'rgba(255,255,255,0.06)',
+        textColor: 'rgba(255,255,255,0.7)', fontSize: 14, borderRadius: 999, actionType: 'prompt', action: '',
+      }),
+      el('button', 530, 516, 140, 42, {
+        label: 'Serviços', bgColor: 'rgba(255,255,255,0.06)',
+        textColor: 'rgba(255,255,255,0.7)', fontSize: 14, borderRadius: 999, actionType: 'prompt', action: '',
+      }),
+      el('button', 690, 516, 130, 42, {
+        label: 'Cinema', bgColor: 'rgba(255,255,255,0.06)',
+        textColor: 'rgba(255,255,255,0.7)', fontSize: 14, borderRadius: 999, actionType: 'prompt', action: '',
+      }),
+
+      // ── Store Directory ──
+      el('store', 60, 580, 960, 1100, {
+        title: '',
+        titleColor: '#ffffff',
+        titleSize: 0,
+        bgColor: 'transparent',
+        borderRadius: 0,
+        stores: [
+          { id: '1', name: 'Zara Fashion', logo: '', coverImage: '', gallery: [], floor: 'Piso L2', category: 'Moda', hours: '10h–22h', phone: '', description: 'Roupas femininas, masculinas e infantis.', mapX: 50, mapY: 30, zone: '' },
+          { id: '2', name: 'Madero Steakhouse', logo: '', coverImage: '', gallery: [], floor: 'Piso L3', category: 'Gastronomia', hours: '11h–23h', phone: '', description: 'O melhor hambúrguer do mundo.', mapX: 30, mapY: 60, zone: '' },
+          { id: '3', name: 'iPlace', logo: '', coverImage: '', gallery: [], floor: 'Piso L1', category: 'Tecnologia', hours: '10h–22h', phone: '', description: 'Revendedor Autorizado Apple.', mapX: 70, mapY: 40, zone: '' },
+          { id: '4', name: 'Sephora', logo: '', coverImage: '', gallery: [], floor: 'Piso L1', category: 'Beleza', hours: '10h–22h', phone: '', description: 'Maquiagem, perfumes e skincare.', mapX: 40, mapY: 50, zone: '' },
+          { id: '5', name: 'Renner', logo: '', coverImage: '', gallery: [], floor: 'Piso L2', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda para todos os estilos.', mapX: 60, mapY: 70, zone: '' },
+        ],
+        columns: 1,
+        gap: 14,
+        cardBgColor: 'rgba(255,255,255,0.04)',
+        cardBorderRadius: 16,
+        accentColor: '#6366f1',
+        showCategory: true,
+        showHours: false,
+        showPhone: false,
+        showFloor: true,
+        showCategoryFilter: false,
+        showSearch: false,
+      }),
+
+      // ── Bottom Navigation Bar ──
+      // Nav background
+      el('shape', 0, 1740, 1080, 180, {
+        shapeType: 'rectangle', fill: '#0c1020', borderRadius: 0,
+        borderColor: 'rgba(255,255,255,0.06)', borderWidth: 0,
+      }),
+      // Top border line
+      el('shape', 0, 1740, 1080, 1, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.06)', borderRadius: 0,
+        borderColor: 'transparent', borderWidth: 0,
+      }),
+      // Nav items (4 columns: Lojas, Mapa, Cinema, Estacionamento)
+      el('icon', 100, 1770, 60, 40, { icon: '🏪', size: 28, color: '#6366f1' }),
+      el('text', 60, 1815, 140, 28, {
+        text: 'Lojas', fontSize: 13, fontWeight: 'bold',
+        color: '#6366f1', align: 'center', fontFamily: 'Inter',
+      }),
+
+      el('icon', 345, 1770, 60, 40, { icon: '🗺️', size: 28, color: 'rgba(255,255,255,0.4)' }),
+      el('text', 305, 1815, 140, 28, {
+        text: 'Mapa', fontSize: 13, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+
+      el('icon', 590, 1770, 60, 40, { icon: '🎬', size: 28, color: 'rgba(255,255,255,0.4)' }),
+      el('text', 550, 1815, 140, 28, {
+        text: 'Cinema', fontSize: 13, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+
+      el('icon', 840, 1770, 60, 40, { icon: '🅿️', size: 28, color: 'rgba(255,255,255,0.4)' }),
+      el('text', 790, 1815, 160, 28, {
+        text: 'Estacionamento', fontSize: 13, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
+      }),
+    ],
+    selectedId: null,
+    views: [{ id: '__default__', name: 'Home', isDefault: true }],
+    activeViewId: '__default__',
+    viewIdleTimeout: 30,
+    pageBgColors: {},
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -1364,6 +1506,7 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   { id: 'store-welcome', name: 'Loja – Welcome Screen', description: 'Tela de boas-vindas estilo Figma com seletor de idioma e acessibilidade', icon: '🛍️', category: 'retail', state: storeWelcome },
   { id: 'welcome-avatar', name: 'Boas-vindas + Avatar', description: 'Avatar 3D com botões de ação e relógio', icon: '🧑‍💼', category: 'welcome', state: welcomeAvatar },
   { id: 'shopping-directory', name: 'Diretório de Lojas', description: 'Diretório com busca, filtro e chat IA', icon: '🏪', category: 'menu', state: shoppingDirectory },
+  { id: 'shopping-avatar-dir', name: 'Shopping + Avatar', description: 'Avatar IA, busca, filtros, lojas e navegação inferior', icon: '🤖', category: 'retail', state: shoppingAvatarDirectory },
   { id: 'promo-blackfriday', name: 'Promoções & Ofertas', description: 'Layout promocional com hero e descontos', icon: '🔥', category: 'promo', state: promoBlackFriday },
   { id: 'restaurant-menu', name: 'Cardápio Digital', description: 'Menu com seções e preços', icon: '🍕', category: 'menu', state: restaurantMenu },
   { id: 'corporate-reception', name: 'Recepção Corporativa', description: 'Check-in de visitantes e agenda', icon: '🏢', category: 'corporate', state: corporateReception },
