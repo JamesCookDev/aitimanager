@@ -364,7 +364,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <Upload className="w-3.5 h-3.5" /> Importar JSON
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-xs gap-2.5">
-                  <FileCode2 className="w-3.5 h-3.5" /> Importar SVG
+                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (HTML/SVG)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
