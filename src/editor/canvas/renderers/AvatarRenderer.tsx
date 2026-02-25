@@ -52,7 +52,7 @@ export function AvatarRenderer(props: any) {
       <svg
         viewBox="0 0 200 400"
         className="absolute inset-0 w-full h-full"
-        preserveAspectRatio="xMidYMax meet"
+        preserveAspectRatio="xMidYMax slice"
       >
         {/* Ground shadow */}
         <ellipse cx="100" cy="375" rx="40" ry="8" fill="rgba(0,0,0,0.3)" />
