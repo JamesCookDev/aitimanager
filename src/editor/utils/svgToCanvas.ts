@@ -105,6 +105,26 @@ function isLikelyTextPath(info: PathInfo): boolean {
   return false;
 }
 
+/**
+ * Estimate font size from the height of a text path bounding box.
+ * Glyph outlines typically span ~70-80% of the font's em square.
+ */
+function estimateFontSize(pathHeight: number, scale: number): number {
+  const raw = Math.round(pathHeight * scale * 1.25); // compensate for descenders/ascenders
+  return Math.max(12, Math.min(120, raw));
+}
+
+/**
+ * Estimate approximate character count from the path's aspect ratio and height.
+ * Average character width is ~0.55 of font size for most Latin fonts.
+ */
+function estimateCharCount(w: number, h: number): number {
+  if (h <= 0) return 5;
+  const fontSize = h;
+  const avgCharW = fontSize * 0.55;
+  return Math.max(1, Math.round(w / avgCharW));
+}
+
 // ── Detect content area from Figma-style exports ─────────────────────
 function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: number; oy: number; w: number; h: number } | null {
   // Look for clip-path'd groups containing a large rect — common in Figma exports
@@ -576,8 +596,36 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const bounds = pathBounds(d);
         if (!bounds) break;
 
-        // Skip vectorized text (glyph outlines from Figma/Illustrator exports)
-        if (isLikelyTextPath(bounds)) break;
+        // Convert vectorized text to editable text placeholder
+        if (isLikelyTextPath(bounds)) {
+          const px = bounds.x + ox;
+          const py = bounds.y + oy;
+          const pw = bounds.w;
+          const ph = bounds.h;
+
+          if (isOutOfBounds(px, py, pw, ph)) break;
+
+          const elOpacity = parseOpacity(node) * nodeOpacity;
+          if (elOpacity < 0.05) break;
+
+          const fontSize = estimateFontSize(ph, scaleX);
+          const charCount = estimateCharCount(pw, ph);
+          // Generate placeholder text with approximate length
+          const placeholder = '█'.repeat(Math.min(charCount, 30));
+          const fillColor = fill === 'none' ? '#ffffff' : (fill.includes('gradient') ? '#ffffff' : fill);
+
+          const el = makeElement('text', px, py, pw, ph, {
+            text: placeholder,
+            fontSize: Math.max(12, fontSize),
+            fontWeight: fontSize > 24 ? 'bold' : 'normal',
+            color: fillColor,
+            align: 'left',
+            fontFamily: 'Inter',
+          }, `Texto (editar)`);
+          el.opacity = elOpacity;
+          elements.push(el);
+          break;
+        }
 
         const px = bounds.x + ox;
         const py = bounds.y + oy;
