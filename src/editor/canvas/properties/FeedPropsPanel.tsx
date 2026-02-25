@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Loader2, X, Plus, ChevronDown, ChevronUp, GripVertical, Image as ImageIcon } from 'lucide-react';
+import { Loader2, X, Plus, ChevronDown, ChevronUp, GripVertical, Image as ImageIcon, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Section, PropInput, ImageUploadField } from './shared';
@@ -21,6 +21,14 @@ interface FeedPost {
   author?: string;
   likes?: number;
   badge?: string;
+  phone?: string;
+  address?: string;
+  hours?: string;
+  website?: string;
+  category?: string;
+  tags?: string[];
+  rating?: number;
+  detailDescription?: string;
 }
 
 function PostImageUpload({ onAdd }: { onAdd: (url: string) => void }) {
@@ -73,12 +81,17 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
     onChange({ images: next, image: next[0] || '' });
   };
 
+  const tagsStr = (post.tags || []).join(', ');
+  const handleTagsChange = (v: string) => {
+    onChange({ tags: v.split(',').map(t => t.trim()).filter(Boolean) });
+  };
+
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden bg-muted/10">
       <div className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer hover:bg-muted/20" onClick={() => setOpen(!open)}>
         <GripVertical className="w-3 h-3 text-muted-foreground/30 shrink-0" />
         {images[0] && <img src={images[0]} alt="" className="w-6 h-6 rounded object-cover shrink-0" />}
-        <span className="text-[10px] font-medium text-foreground truncate flex-1">{post.title || 'Post sem título'}</span>
+        <span className="text-[10px] font-medium text-foreground truncate flex-1">{post.title || 'Loja sem título'}</span>
         <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
           <X className="w-3 h-3" />
         </Button>
@@ -87,15 +100,52 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
 
       {open && (
         <div className="px-2 pb-2 pt-1 space-y-2 border-t border-border/30">
-          <PropInput label="Autor" value={post.author || ''} onChange={(v) => onChange({ author: v })} />
-          <PropInput label="Título" value={post.title} onChange={(v) => onChange({ title: v })} />
-          <PropInput label="Descrição" value={post.description} onChange={(v) => onChange({ description: v })} type="textarea" />
+          {/* Basic info */}
+          <PropInput label="Nome da loja" value={post.title} onChange={(v) => onChange({ title: v })} />
+          <PropInput label="Autor / Responsável" value={post.author || ''} onChange={(v) => onChange({ author: v })} />
+          <PropInput label="Descrição curta" value={post.description} onChange={(v) => onChange({ description: v })} type="textarea" />
+          <PropInput label="Descrição detalhada" value={post.detailDescription || ''} onChange={(v) => onChange({ detailDescription: v })} type="textarea" />
+          <PropInput label="Categoria" value={post.category || ''} onChange={(v) => onChange({ category: v })} />
           <PropInput label="Badge" value={post.badge || ''} onChange={(v) => onChange({ badge: v })} />
+
+          {/* Rating */}
+          <div>
+            <Label className="text-[10px]">Avaliação</Label>
+            <div className="flex items-center gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  onClick={() => onChange({ rating: post.rating === n ? 0 : n })}
+                  className="transition-transform active:scale-110"
+                >
+                  <Star
+                    className="w-4 h-4"
+                    style={{
+                      color: n <= (post.rating || 0) ? '#facc15' : 'rgba(150,150,150,0.3)',
+                      fill: n <= (post.rating || 0) ? '#facc15' : 'none',
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <PropInput label="Tags (separar com vírgula)" value={tagsStr} onChange={handleTagsChange} />
+
+          {/* Store contact info */}
+          <div className="pt-1 border-t border-border/20">
+            <Label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Informações da loja</Label>
+          </div>
+          <PropInput label="Endereço" value={post.address || ''} onChange={(v) => onChange({ address: v })} />
+          <PropInput label="Telefone" value={post.phone || ''} onChange={(v) => onChange({ phone: v })} />
+          <PropInput label="Horário" value={post.hours || ''} onChange={(v) => onChange({ hours: v })} />
+          <PropInput label="Website" value={post.website || ''} onChange={(v) => onChange({ website: v })} />
           <PropInput label="Curtidas" value={post.likes || 0} onChange={(v) => onChange({ likes: Number(v) })} type="number" />
 
           {/* Images */}
           <div>
-            <Label className="text-[10px]">Imagens do post ({images.length})</Label>
+            <Label className="text-[10px]">Imagens da loja ({images.length})</Label>
             <div className="space-y-1 mt-1 max-h-[120px] overflow-y-auto">
               {images.map((src, i) => (
                 <div key={i} className="flex items-center gap-1.5 group">
@@ -114,7 +164,7 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
 
           {/* Avatar */}
           <div>
-            <Label className="text-[10px]">Avatar do autor</Label>
+            <Label className="text-[10px]">Logo / Avatar</Label>
             <ImageUploadField value={post.avatar || ''} onChange={(v) => onChange({ avatar: v })} />
           </div>
 
@@ -138,8 +188,10 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
       images: [],
       title: '',
       description: '',
-      author: 'Usuário',
+      author: '',
       likes: 0,
+      rating: 0,
+      tags: [],
     };
     onChange({ posts: [...posts, newPost] });
   };
@@ -155,7 +207,7 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
 
   return (
     <>
-      <Section title="Feed">
+      <Section title="Lojas">
         <div>
           <Label className="text-[11px]">Layout</Label>
           <Select value={props.layout || 'vertical'} onValueChange={set('layout')}>
@@ -179,7 +231,7 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
         </div>
 
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={addPost}>
-          <Plus className="w-3 h-3" /> Adicionar post
+          <Plus className="w-3 h-3" /> Adicionar loja
         </Button>
       </Section>
 
