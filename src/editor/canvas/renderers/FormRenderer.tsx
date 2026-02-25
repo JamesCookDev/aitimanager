@@ -25,9 +25,21 @@ interface Props {
   accentColor?: string;
   fieldBgColor?: string;
   fieldTextColor?: string;
+  fieldLabelColor?: string;
   successMessage?: string;
   navigateOnSubmit?: string;
   navigateTransition?: string;
+  dataDestination?: string;
+  webhookUrl?: string;
+  webhookMethod?: string;
+  webhookHeaders?: string;
+  emailTo?: string;
+  emailSubject?: string;
+  whatsappNumber?: string;
+  whatsappTemplate?: string;
+  showLgpdConsent?: boolean;
+  lgpdText?: string;
+  requireConsent?: boolean;
 }
 
 export function FormRenderer(props: Props) {
@@ -44,16 +56,31 @@ export function FormRenderer(props: Props) {
     accentColor = '#6366f1',
     fieldBgColor = 'rgba(255,255,255,0.08)',
     fieldTextColor = '#ffffff',
+    fieldLabelColor,
     successMessage = 'Enviado com sucesso! ✅',
     navigateOnSubmit,
     navigateTransition = 'fade',
+    dataDestination = 'none',
+    webhookUrl,
+    webhookMethod,
+    webhookHeaders,
+    whatsappNumber,
+    whatsappTemplate,
+    showLgpdConsent,
+    lgpdText = 'Ao enviar, você concorda com nossa Política de Privacidade.',
+    requireConsent,
   } = props;
 
   const { setVariables, navigateToPage } = usePageVariables();
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = () => {
+  // Derive label color: use explicit prop, or contrast-safe fallback
+  const labelColor = fieldLabelColor || (fieldTextColor ? `${fieldTextColor}99` : 'rgba(200,200,200,0.8)');
+
+  const collectFormData = (): Record<string, string> => {
     const vars: Record<string, string> = {};
     if (formRef.current) {
       const inputs = formRef.current.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[data-var]');
@@ -68,16 +95,65 @@ export function FormRenderer(props: Props) {
         }
       });
     }
+    return vars;
+  };
+
+  const sendData = async (data: Record<string, string>) => {
+    if (dataDestination === 'none') return;
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    if (dataDestination === 'database' || dataDestination === 'webhook') {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/form-submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+          },
+          body: JSON.stringify({
+            form_title: title,
+            fields: data,
+            webhook_url: dataDestination === 'webhook' ? webhookUrl : undefined,
+            webhook_method: webhookMethod,
+            webhook_headers: webhookHeaders,
+          }),
+        });
+      } catch (e) {
+        console.error('Form submit error:', e);
+      }
+    }
+
+    if (dataDestination === 'whatsapp' && whatsappNumber) {
+      let message = whatsappTemplate || Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n');
+      // Interpolate {{var}} in template
+      Object.entries(data).forEach(([k, v]) => {
+        message = message.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
+      });
+      const phone = whatsappNumber.replace(/\D/g, '');
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (requireConsent && showLgpdConsent && !consentChecked) return;
+
+    setSending(true);
+    const vars = collectFormData();
 
     if (Object.keys(vars).length > 0) {
       setVariables(vars);
     }
+
+    await sendData(vars);
 
     if (navigateOnSubmit && navigateToPage) {
       navigateToPage(navigateOnSubmit, navigateTransition as any, vars);
     } else {
       setSubmitted(true);
     }
+    setSending(false);
   };
 
   if (submitted) {
@@ -115,10 +191,10 @@ export function FormRenderer(props: Props) {
     );
   }
 
-  const fieldStyle = {
+  const fieldStyle: React.CSSProperties = {
     background: `linear-gradient(135deg, ${fieldBgColor}, rgba(255,255,255,0.04))`,
     color: fieldTextColor,
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.12)',
     transition: 'border-color 0.2s, box-shadow 0.2s',
   };
 
@@ -131,12 +207,29 @@ export function FormRenderer(props: Props) {
     }}>
       <h2 className="font-bold mb-5 shrink-0" style={{ color: titleColor, fontSize: titleSize, letterSpacing: '-0.01em' }}>{title}</h2>
 
+      {dataDestination && dataDestination !== 'none' && (
+        <div className="mb-3 px-3 py-1.5 rounded-lg text-[10px] font-medium shrink-0" style={{
+          background: `${accentColor}15`,
+          color: accentColor,
+          border: `1px solid ${accentColor}25`,
+        }}>
+          {dataDestination === 'database' && '💾 Dados salvos no banco'}
+          {dataDestination === 'webhook' && '🔌 Enviando via Webhook'}
+          {dataDestination === 'email' && '📧 Enviando por e-mail'}
+          {dataDestination === 'whatsapp' && '💬 Enviando via WhatsApp'}
+        </div>
+      )}
+
       <div className="space-y-4 flex-1">
         {fields.map((field) => {
           const varName = field.variableName || field.label.toLowerCase().replace(/\s+/g, '_');
           return (
             <div key={field.id} className="space-y-1.5">
-              <label className="text-[11px] font-semibold flex items-center gap-1" style={{ color: `${fieldTextColor}88`, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+              <label className="text-[11px] font-semibold flex items-center gap-1" style={{
+                color: labelColor,
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}>
                 {field.label}
                 {field.required && <span style={{ color: '#ef4444' }}>*</span>}
               </label>
@@ -146,8 +239,8 @@ export function FormRenderer(props: Props) {
                   type={field.type === 'phone' ? 'tel' : field.type}
                   placeholder={field.placeholder || ''}
                   data-var={varName}
-                  className="w-full h-11 px-4 rounded-xl text-sm outline-none focus:ring-1"
-                  style={{ ...fieldStyle, focusRingColor: accentColor } as any}
+                  className="w-full h-11 px-4 rounded-xl text-sm outline-none"
+                  style={fieldStyle}
                 />
               )}
 
@@ -167,9 +260,9 @@ export function FormRenderer(props: Props) {
                   className="w-full h-11 px-4 rounded-xl text-sm outline-none"
                   style={fieldStyle}
                 >
-                  <option value="">{field.placeholder || 'Selecione...'}</option>
+                  <option value="" style={{ background: '#1a1a2e', color: fieldTextColor }}>{field.placeholder || 'Selecione...'}</option>
                   {(field.options || '').split(',').filter(Boolean).map((opt) => (
-                    <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
+                    <option key={opt.trim()} value={opt.trim()} style={{ background: '#1a1a2e', color: fieldTextColor }}>{opt.trim()}</option>
                   ))}
                 </select>
               )}
@@ -191,9 +284,25 @@ export function FormRenderer(props: Props) {
         })}
       </div>
 
+      {showLgpdConsent && (
+        <label className="flex items-start gap-2 mt-4 cursor-pointer shrink-0">
+          <input
+            type="checkbox"
+            checked={consentChecked}
+            onChange={(e) => setConsentChecked(e.target.checked)}
+            className="mt-1 accent-current"
+            style={{ accentColor }}
+          />
+          <span className="text-[11px] leading-tight" style={{ color: `${fieldTextColor}88` }}>
+            {lgpdText}
+          </span>
+        </label>
+      )}
+
       <button
         onClick={handleSubmit}
-        className="w-full h-13 rounded-2xl font-bold text-base mt-5 shrink-0 transition-all active:scale-[0.98] relative overflow-hidden"
+        disabled={sending || (requireConsent && showLgpdConsent && !consentChecked)}
+        className="w-full rounded-2xl font-bold text-base mt-5 shrink-0 transition-all active:scale-[0.98] relative overflow-hidden disabled:opacity-50"
         style={{
           background: `linear-gradient(135deg, ${submitBgColor}, ${submitBgColor}dd)`,
           color: submitTextColor,
@@ -202,14 +311,13 @@ export function FormRenderer(props: Props) {
           padding: '14px 24px',
         }}
       >
-        {/* Button shine */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
           background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)',
           borderRadius: '16px 16px 0 0',
           pointerEvents: 'none',
         }} />
-        <span style={{ position: 'relative' }}>{submitLabel}</span>
+        <span style={{ position: 'relative' }}>{sending ? 'Enviando...' : submitLabel}</span>
       </button>
     </div>
   );
