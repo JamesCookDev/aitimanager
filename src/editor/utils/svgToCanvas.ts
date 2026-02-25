@@ -387,12 +387,24 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return raw;
   }
 
-  function parseColor(node: Element): string {
-    const raw =
+  /** Returns the raw fill attribute value (before resolving gradients/patterns) */
+  function getRawFill(node: Element): string {
+    return (
       node.getAttribute('fill') ||
       node.getAttribute('style')?.match(/fill:\s*([^;]+)/)?.[1] ||
-      '#ffffff';
-    return resolveColor(raw.trim());
+      '#ffffff'
+    ).trim();
+  }
+
+  /** Check if raw fill references a pattern (image) rather than a gradient */
+  function isPatternFill(rawFill: string): boolean {
+    const urlMatch = rawFill.match(/url\(\s*#([^)]+)\s*\)/);
+    if (!urlMatch) return false;
+    return !gradientMap.has(urlMatch[1]);
+  }
+
+  function parseColor(node: Element): string {
+    return resolveColor(getRawFill(node));
   }
 
   function parseOpacity(node: Element): number {
@@ -431,26 +443,32 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const h = parseFloat(node.getAttribute('height') || '0');
         if (w <= 0 || h <= 0) break;
 
-        const fill = parseColor(node);
+        const rawFill = getRawFill(node);
+        const fill = resolveColor(rawFill);
         const rx = parseFloat(node.getAttribute('rx') || '0');
         const elOpacity = parseOpacity(node) * nodeOpacity;
 
-        // Full-content-area rect → treat as background
-        if (w >= refW * 0.95 && h >= refH * 0.95 && elements.length === 0) {
-          if (fill !== 'none' && !fill.includes('url(') && !fill.includes('gradient(') && !fill.includes('pattern')) {
+        // Full-content-area rect → treat as background (skip even if not first element)
+        if (w >= refW * 0.9 && h >= refH * 0.9) {
+          if (fill !== 'none' && !fill.includes('gradient') && !isPatternFill(rawFill)) {
             bgColor = fill;
           }
           break;
         }
 
-        // Skip fill=none rects (clip/filter helpers) and pattern-filled rects
-        if (fill === 'none' || fill.includes('pattern')) break;
+        // Skip pattern-filled rects (embedded images referenced via url(#pattern...))
+        if (fill === 'none' || isPatternFill(rawFill)) break;
 
         // Skip elements outside content area
         if (isOutOfBounds(x, y, w, h)) break;
 
         // Skip very low opacity decorative elements
         if (elOpacity < 0.05) break;
+
+        // Skip very small rects (icon parts, decorative dots)
+        const mappedW = w * scaleX;
+        const mappedH = h * scaleY;
+        if (mappedW < 20 && mappedH < 20) break;
 
         const el = makeElement('shape', x, y, w, h, {
           shapeType: 'rectangle',
@@ -637,8 +655,10 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const elOpacity = parseOpacity(node) * nodeOpacity;
         if (elOpacity < 0.05) break;
 
-        // Skip very tiny paths (decorative dots, etc.)
-        if (pw < 3 && ph < 3) break;
+        // Skip small paths (icons, decorative elements)
+        const mappedPW = pw * scaleX;
+        const mappedPH = ph * scaleY;
+        if (mappedPW < 25 || mappedPH < 25) break;
 
         const el = makeElement('shape', px, py, pw, ph, {
           shapeType: 'rectangle',
