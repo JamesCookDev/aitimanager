@@ -17,11 +17,41 @@ interface ParsedSVG {
  * Parse an SVG string and return CanvasElement[] mapped to our 1080x1920 canvas.
  */
 export function parseSVGToCanvas(svgString: string): ParsedSVG {
+  // Reject HTML documents — only pure SVG is supported
+  const trimmed = svgString.trim();
+  if (
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<html') ||
+    /<html[\s>]/i.test(trimmed)
+  ) {
+    throw new Error(
+      'O conteúdo enviado é HTML, não SVG. Cole apenas o código <svg>...</svg> puro. ' +
+      'Se o SVG está dentro de um HTML, extraia apenas a tag <svg> e tente novamente.'
+    );
+  }
+
+  // Try to extract an embedded <svg>…</svg> block if wrapped in other markup
+  let input = trimmed;
+  if (!input.startsWith('<svg') && !input.startsWith('<?xml')) {
+    const svgMatch = input.match(/<svg[\s\S]*<\/svg>/i);
+    if (svgMatch) {
+      input = svgMatch[0];
+    }
+  }
+
   const parser = new DOMParser();
-  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  const doc = parser.parseFromString(input, 'image/svg+xml');
   const svg = doc.querySelector('svg');
 
-  if (!svg) throw new Error('SVG inválido: elemento <svg> não encontrado');
+  // Check for XML parse errors
+  const parseError = doc.querySelector('parsererror');
+  if (parseError) {
+    throw new Error(
+      'Erro de sintaxe no SVG. Verifique se o código é um SVG válido e bem formado.'
+    );
+  }
+
+  if (!svg) throw new Error('SVG inválido: elemento <svg> não encontrado. Cole apenas código <svg>...</svg>.');
 
   // Parse viewBox or width/height for coordinate mapping
   const vb = svg.getAttribute('viewBox');
