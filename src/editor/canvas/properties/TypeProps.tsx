@@ -344,6 +344,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <Label className="text-[11px]">Mostrar segundos</Label>
             <Switch checked={props.showSeconds !== false} onCheckedChange={set('showSeconds')} />
           </div>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'avatar':
@@ -371,10 +372,11 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <Slider value={[props.frameZoom ?? 50]} onValueChange={([v]) => onChange({ frameZoom: v })} min={10} max={100} step={1} />
             <span className="text-[9px] text-muted-foreground">10 = longe · 100 = perto</span>
           </div>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'carousel':
-      return <CarouselPropsPanel props={props} onChange={onChange} />;
+      return <><CarouselPropsPanel props={props} onChange={onChange} /><NavigationActionSection props={props} onChange={onChange} views={views} /></>;
     case 'video':
       return (
         <Section title="Vídeo">
@@ -393,6 +395,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <Label className="text-[11px]">Loop</Label>
             <Switch checked={props.loop !== false} onCheckedChange={set('loop')} />
           </div>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'iframe':
@@ -405,6 +408,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <Label className="text-[11px]">Scrolling</Label>
             <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
           </div>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
     case 'map':
@@ -477,15 +481,15 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
         </>
       );
     case 'social':
-      return <SocialPropsPanel props={props} onChange={onChange} />;
+      return <><SocialPropsPanel props={props} onChange={onChange} /><NavigationActionSection props={props} onChange={onChange} views={views} /></>;
     case 'store':
       return <StorePropsPanel props={props} onChange={onChange} views={views} />;
     case 'list':
       return <ListPropsPanel props={props} onChange={onChange} views={views} />;
     case 'gallery':
-      return <GalleryPropsPanel props={props} onChange={onChange} />;
+      return <><GalleryPropsPanel props={props} onChange={onChange} /><NavigationActionSection props={props} onChange={onChange} views={views} /></>;
     case 'animated-number':
-      return <AnimatedNumberPropsPanel props={props} onChange={onChange} />;
+      return <><AnimatedNumberPropsPanel props={props} onChange={onChange} /><NavigationActionSection props={props} onChange={onChange} views={views} /></>;
     case 'catalog':
       return <CatalogPropsPanel props={props} onChange={onChange} views={views} />;
     case 'form':
@@ -578,6 +582,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
               <PropInput label="URL do webhook" value={props.notifyWebhookUrl || ''} onChange={set('notifyWebhookUrl')} />
             )}
           </Section>
+          <NavigationActionSection props={props} onChange={onChange} views={views} />
         </>
       );
     case 'qrpix':
