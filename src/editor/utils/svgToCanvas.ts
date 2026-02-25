@@ -496,8 +496,31 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           break;
         }
 
-        // Skip fill=none rects (clip/filter helpers)
-        if (fill === 'none') break;
+        // ── Stroke-only rects → import as separator/border shapes ──
+        if (fill === 'none') {
+          const stroke = node.getAttribute('stroke');
+          const strokeW = parseFloat(node.getAttribute('stroke-width') || '0');
+          if (stroke && stroke !== 'none' && strokeW > 0) {
+            const mappedSW = w * scaleX;
+            const mappedSH = h * scaleY;
+            if (mappedSW >= 20 || mappedSH >= 20) {
+              // Thin rects (aspect ratio > 4:1) → treat as separator line
+              const isSeparator = (w / Math.max(h, 1) > 4) || (h / Math.max(w, 1) > 4);
+              const minH = Math.max(h, strokeW * 2);
+              const el = makeElement('shape', x, y, w, minH, {
+                shapeType: 'rectangle',
+                fill: stroke,
+                borderRadius: Math.round(rx * scaleX),
+                borderColor: 'transparent',
+                borderWidth: 0,
+              }, isSeparator ? 'Separador' : 'Borda');
+              el.opacity = elOpacity;
+              el.height = Math.max(el.height, 4);
+              elements.push(el);
+            }
+          }
+          break;
+        }
 
         // Skip decorative rects with very low fill-opacity (border-only elements)
         if (fillOp < 0.1 && !fill.includes('gradient')) break;
