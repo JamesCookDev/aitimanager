@@ -275,16 +275,16 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
 
       <Section title="Opções">
         <div className="flex items-center justify-between">
-          <Label className="text-[11px]">Mostrar autor</Label>
-          <Switch checked={props.showAuthor !== false} onCheckedChange={set('showAuthor')} />
+          <Label className="text-[11px]">Mostrar tags</Label>
+          <Switch checked={props.showTags !== false} onCheckedChange={set('showTags')} />
         </div>
         <div className="flex items-center justify-between">
-          <Label className="text-[11px]">Mostrar curtidas</Label>
-          <Switch checked={props.showLikes !== false} onCheckedChange={set('showLikes')} />
+          <Label className="text-[11px]">Mostrar endereço no card</Label>
+          <Switch checked={props.showAddress !== false} onCheckedChange={set('showAddress')} />
         </div>
         <div className="flex items-center justify-between">
-          <Label className="text-[11px]">Mostrar comentários</Label>
-          <Switch checked={props.showComments !== false} onCheckedChange={set('showComments')} />
+          <Label className="text-[11px]">Mostrar horário no card</Label>
+          <Switch checked={props.showHours !== false} onCheckedChange={set('showHours')} />
         </div>
       </Section>
     </>
