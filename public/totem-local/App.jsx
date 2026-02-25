@@ -267,10 +267,15 @@ function FreeCanvasElement({ element, onNavigate }) {
     transform: `scale(${scaleX}, ${scaleY})`,
   };
 
-  // Iframes break with CSS transform scaling — render them at 100% container size instead
+  // Iframes break with CSS transform scaling — render at container size, fully interactive
   if (type === "iframe") {
+    const iframeOuterStyle = {
+      ...outerStyle,
+      overflow: "visible",
+      pointerEvents: "auto",
+    };
     return (
-      <div ref={containerRef} style={outerStyle}>
+      <div ref={containerRef} style={iframeOuterStyle}>
         <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
       </div>
     );
@@ -657,15 +662,24 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "iframe": {
       const url = p.url || "";
       if (!url) return <PremiumPlaceholder emoji="🌐" label="Iframe — configure a URL" />;
-      // FreeCanvasElement already handles scaling, so render iframe at 100%
       return (
-        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0, background: "#fff" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
           <iframe
             src={url}
-            style={{ width: "100%", height: "100%", border: "none", pointerEvents: "auto", display: "block" }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+              pointerEvents: "auto",
+              display: "block",
+              zIndex: 10,
+            }}
             scrolling={p.scrolling === false ? "no" : "yes"}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation allow-modals"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             loading="lazy"
             title="Iframe embed"
           />
