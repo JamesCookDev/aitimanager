@@ -4,12 +4,13 @@ export function AvatarRenderer(props: any) {
   const shoes = props.colors?.shoes || props.shoesColor || '#111';
   const skin = props.colors?.skin || props.skinColor || '#d4a088';
   const hair = props.colors?.hair || props.hairColor || '#8B4513';
-  const bg = props.bgColor || '#0f3460';
+  const bg = props.bgColor || 'transparent';
+  const showBackground = bg !== 'transparent' && bg !== '';
 
   return (
     <div className="w-full h-full relative overflow-hidden" style={{ background: bg }}>
-      {/* Ambient particles */}
-      {[...Array(6)].map((_, i) => (
+      {/* Ambient particles — only with background */}
+      {showBackground && [...Array(6)].map((_, i) => (
         <div
           key={i}
           className="absolute rounded-full"
@@ -23,30 +24,36 @@ export function AvatarRenderer(props: any) {
         />
       ))}
 
-      {/* Floor gradient */}
-      <div className="absolute bottom-0 left-0 right-0" style={{
-        height: '30%',
-        background: 'linear-gradient(to top, #4a556880, transparent)',
-      }} />
+      {/* Floor gradient — only with background */}
+      {showBackground && (
+        <div className="absolute bottom-0 left-0 right-0" style={{
+          height: '30%',
+          background: 'linear-gradient(to top, #4a556880, transparent)',
+        }} />
+      )}
 
-      {/* Floor grid */}
-      <div className="absolute bottom-0 left-0 right-0 opacity-[0.06]" style={{
-        height: '28%',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
-        maskImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-      }} />
+      {/* Floor grid — only with background */}
+      {showBackground && (
+        <div className="absolute bottom-0 left-0 right-0 opacity-[0.06]" style={{
+          height: '28%',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          maskImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+        }} />
+      )}
 
-      {/* Glow behind avatar */}
-      <div className="absolute pointer-events-none" style={{
-        width: '50%',
-        height: '40%',
-        left: '25%',
-        bottom: '10%',
-        background: `radial-gradient(circle, ${shirt}44 0%, transparent 70%)`,
-        filter: 'blur(30px)',
-      }} />
+      {/* Glow behind avatar — only with background */}
+      {showBackground && (
+        <div className="absolute pointer-events-none" style={{
+          width: '50%',
+          height: '40%',
+          left: '25%',
+          bottom: '10%',
+          background: `radial-gradient(circle, ${shirt}44 0%, transparent 70%)`,
+          filter: 'blur(30px)',
+        }} />
+      )}
 
       {/* SVG avatar — fills entire container */}
       <svg
@@ -54,8 +61,8 @@ export function AvatarRenderer(props: any) {
         className="absolute inset-0 w-full h-full"
         preserveAspectRatio="xMidYMax slice"
       >
-        {/* Ground shadow */}
-        <ellipse cx="100" cy="375" rx="40" ry="8" fill="rgba(0,0,0,0.3)" />
+        {/* Ground shadow — subtle, always visible */}
+        <ellipse cx="100" cy="375" rx="40" ry="8" fill="rgba(0,0,0,0.2)" />
 
         {/* Head */}
         <circle cx="100" cy="120" r="28" fill={skin} />
@@ -118,7 +125,8 @@ export function AvatarRenderer(props: any) {
           border: '1px solid rgba(239,68,68,0.3)',
           backdropFilter: 'blur(8px)',
         }}>
-          <div className="w-2 h-2 rounded-full bg-red-500" style={{
+          <div className="w-2 h-2 rounded-full" style={{
+            backgroundColor: 'hsl(0, 84%, 60%)',
             boxShadow: '0 0 8px rgba(239,68,68,0.6)',
             animation: 'pulse 1.5s infinite',
           }} />
