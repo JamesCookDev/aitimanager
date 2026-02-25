@@ -1241,10 +1241,127 @@ const mpEvent: CanvasState = (() => {
 
 
 // ═══════════════════════════════════════════════════
+// Store Welcome (Figma-inspired light theme)
+// Layout: Logo+Name(40) | HelpBtn(40) | TouchIcon(380) | Title(620) | Subtitle(740) | CTA(920) | LangBar(1740)
+// ═══════════════════════════════════════════════════
+const storeWelcome: CanvasState = (() => {
+  _id = 0;
+  return {
+    bgColor: '#fdf2f2',
+    elements: [
+      // ── Background gradient shape (full canvas) ──
+      el('shape', 0, 0, 1080, 1920, {
+        shapeType: 'rectangle', fill: 'linear-gradient(180deg, #ffffff 0%, #fef2f2 40%, #fce4e4 70%, #f5f5f5 100%)',
+        borderRadius: 0, borderColor: 'transparent', borderWidth: 0,
+      }, { name: 'BG Gradiente', zIndex: 0 }),
+
+      // ── Top bar: Logo icon ──
+      el('shape', 50, 40, 56, 56, {
+        shapeType: 'rectangle', fill: '#dc2626', borderRadius: 14,
+        borderColor: 'transparent', borderWidth: 0,
+      }, { name: 'Logo BG' }),
+      el('icon', 54, 44, 48, 48, { icon: '🏪', size: 28, color: '#ffffff' }, { name: 'Logo Icon' }),
+
+      // ── Store name text ──
+      el('text', 120, 46, 300, 48, {
+        text: 'StoreName', fontSize: 24, fontWeight: 'bold',
+        color: '#1f2937', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Nome da Loja' }),
+
+      // ── Need Help? button (top-right) ──
+      el('button', 830, 40, 200, 56, {
+        label: '❓ Need Help?', bgColor: '#ffffff', textColor: '#374151',
+        fontSize: 15, borderRadius: 28, actionType: 'prompt',
+        action: 'Preciso de ajuda', borderColor: '#e5e7eb', borderWidth: 1,
+        shadow: 'sm',
+      }, { name: 'Btn Ajuda' }),
+
+      // ── Touch icon circle background ──
+      el('shape', 370, 300, 340, 340, {
+        shapeType: 'circle', fill: 'rgba(254,202,202,0.35)', borderRadius: 170,
+        borderColor: 'transparent', borderWidth: 0,
+      }, { name: 'Circle BG' }),
+      el('shape', 430, 360, 220, 220, {
+        shapeType: 'circle', fill: 'rgba(254,202,202,0.5)', borderRadius: 110,
+        borderColor: 'transparent', borderWidth: 0,
+      }, { name: 'Circle Inner' }),
+      el('icon', 480, 410, 120, 120, { icon: '👆', size: 72, color: '#dc2626' }, { name: 'Touch Icon' }),
+
+      // ── Main title ──
+      el('text', 90, 700, 900, 100, {
+        text: 'Welcome to our Store', fontSize: 56, fontWeight: 'bold',
+        color: '#111827', align: 'center', fontFamily: 'Inter',
+      }, { name: 'Título Principal' }),
+
+      // ── Subtitle ──
+      el('text', 160, 820, 760, 80, {
+        text: "We're glad to see you. Tap the button below to browse our catalog and place your order quickly.",
+        fontSize: 20, fontWeight: 'normal',
+        color: '#6b7280', align: 'center', fontFamily: 'Inter',
+      }, { name: 'Subtítulo' }),
+
+      // ── Big CTA button ──
+      el('bigcta', 240, 960, 600, 120, {
+        label: 'Tap to Start', sublabel: '', icon: '→',
+        bgColor: '#dc2626', textColor: '#ffffff',
+        fontSize: 32, sublabelSize: 14, borderRadius: 60, pulse: true,
+      }, { name: 'CTA Principal' }),
+
+      // ── Language selector section ──
+      el('text', 50, 1760, 200, 40, {
+        text: 'SELECT LANGUAGE:', fontSize: 12, fontWeight: 'bold',
+        color: '#9ca3af', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Label Idioma' }),
+
+      // Language buttons
+      el('button', 260, 1748, 190, 56, {
+        label: '🇺🇸 English', bgColor: '#ffffff', textColor: '#dc2626',
+        fontSize: 15, borderRadius: 28, actionType: 'prompt',
+        action: 'Switch language to English', borderColor: '#dc2626', borderWidth: 2,
+        shadow: 'none',
+      }, { name: 'Btn English' }),
+      el('button', 470, 1748, 200, 56, {
+        label: '🇧🇷 Português', bgColor: '#ffffff', textColor: '#374151',
+        fontSize: 15, borderRadius: 28, actionType: 'prompt',
+        action: 'Switch language to Portuguese', borderColor: '#e5e7eb', borderWidth: 1,
+        shadow: 'none',
+      }, { name: 'Btn Português' }),
+      el('button', 690, 1748, 190, 56, {
+        label: '🇪🇸 Español', bgColor: '#ffffff', textColor: '#374151',
+        fontSize: 15, borderRadius: 28, actionType: 'prompt',
+        action: 'Switch language to Spanish', borderColor: '#e5e7eb', borderWidth: 1,
+        shadow: 'none',
+      }, { name: 'Btn Español' }),
+
+      // ── Accessibility buttons (bottom-right) ──
+      el('button', 920, 1748, 56, 56, {
+        label: '◑', bgColor: '#ffffff', textColor: '#374151',
+        fontSize: 22, borderRadius: 28, actionType: 'prompt',
+        action: 'Toggle high contrast mode', borderColor: '#e5e7eb', borderWidth: 1,
+        shadow: 'none',
+      }, { name: 'Btn Contraste' }),
+      el('button', 990, 1748, 56, 56, {
+        label: 'A+', bgColor: '#ffffff', textColor: '#374151',
+        fontSize: 16, borderRadius: 28, actionType: 'prompt',
+        action: 'Increase font size', borderColor: '#e5e7eb', borderWidth: 1,
+        shadow: 'none', fontWeight: 'bold',
+      }, { name: 'Btn Font Size' }),
+    ],
+    selectedId: null,
+    views: [{ id: '__default__', name: 'Home', isDefault: true }],
+    activeViewId: '__default__',
+    viewIdleTimeout: 30,
+    pageBgColors: {},
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   // ── Single-page ──
+  { id: 'store-welcome', name: 'Loja – Welcome Screen', description: 'Tela de boas-vindas estilo Figma com seletor de idioma e acessibilidade', icon: '🛍️', category: 'retail', state: storeWelcome },
   { id: 'welcome-avatar', name: 'Boas-vindas + Avatar', description: 'Avatar 3D com botões de ação e relógio', icon: '🧑‍💼', category: 'welcome', state: welcomeAvatar },
   { id: 'shopping-directory', name: 'Diretório de Lojas', description: 'Diretório com busca, filtro e chat IA', icon: '🏪', category: 'menu', state: shoppingDirectory },
   { id: 'promo-blackfriday', name: 'Promoções & Ofertas', description: 'Layout promocional com hero e descontos', icon: '🔥', category: 'promo', state: promoBlackFriday },
