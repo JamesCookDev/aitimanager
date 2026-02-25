@@ -281,6 +281,15 @@ function FreeCanvasElement({ element, onNavigate }) {
     );
   }
 
+  // Avatar 3D Canvas breaks with CSS transform scaling — render at container size directly
+  if (type === "avatar") {
+    return (
+      <div ref={containerRef} style={{ ...outerStyle, overflow: "visible" }}>
+        <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} style={outerStyle}>
       <div style={innerStyle}>
@@ -1466,9 +1475,30 @@ function AvatarCanvasElement({ props: p }) {
   const camY = 1.5 + (frameY / 100) * 1.5;
   const targetY = 1.0 + (frameY / 100) * 1.2;
 
+  const bgColor = p.bgColor || 'transparent';
+  const isTransparent = !bgColor || bgColor === 'transparent' || bgColor === '';
+
   return (
-    <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
-      <Canvas shadows camera={{ position: [0, camY, camZ], fov: 30 }} gl={{ preserveDrawingBuffer: true }} style={{ width: "100%", height: "100%" }}>
+    <div style={{
+      width: "100%",
+      height: "100%",
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      background: isTransparent ? "transparent" : bgColor,
+    }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, camY, camZ], fov: 30 }}
+        gl={{ preserveDrawingBuffer: true, alpha: isTransparent }}
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "absolute",
+          inset: 0,
+          background: isTransparent ? "transparent" : bgColor,
+        }}
+      >
         <Scenario uiOverride={{
           components: {
             avatar: {
