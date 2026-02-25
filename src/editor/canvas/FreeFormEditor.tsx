@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
 import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
-  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles,
+  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, Code2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,6 +26,7 @@ import { DraggableElement } from './DraggableElement';
 import { ElementPalette } from './ElementPalette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { FreeFormTemplatePicker } from './FreeFormTemplatePicker';
+import { HtmlImportDialog } from './HtmlImportDialog';
 import { PageVariablesProvider } from './PageVariablesContext';
 import { TotemFrame } from './TotemFrame';
 import { ZoneGuides } from './ZoneGuides';
@@ -131,6 +132,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [previewMode, setPreviewMode] = useState(false);
   const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
+  const [showHtmlImport, setShowHtmlImport] = useState(false);
 
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
@@ -210,6 +212,16 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     };
     input.click();
   }, [dispatch]);
+
+  const handleHtmlImport = useCallback((elements: CanvasElement[], bgColor?: string) => {
+    // Add imported elements to current page
+    elements.forEach(el => {
+      dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } });
+    });
+    if (bgColor) {
+      dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: bgColor });
+    }
+  }, [dispatch, activeViewId]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -360,6 +372,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleImport} className="text-xs gap-2.5">
                   <Upload className="w-3.5 h-3.5" /> Importar JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHtmlImport(true)} className="text-xs gap-2.5">
+                  <Code2 className="w-3.5 h-3.5" /> Importar HTML/Figma
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
@@ -646,6 +661,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           </div>
         </div>
       </div>
+
+      {/* HTML/Figma Import Dialog */}
+      <HtmlImportDialog
+        open={showHtmlImport}
+        onOpenChange={setShowHtmlImport}
+        onImportToCanvas={handleHtmlImport}
+      />
     </TooltipProvider>
     </PageVariablesProvider>
   );
