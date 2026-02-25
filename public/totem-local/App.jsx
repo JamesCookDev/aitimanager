@@ -267,6 +267,15 @@ function FreeCanvasElement({ element, onNavigate }) {
     transform: `scale(${scaleX}, ${scaleY})`,
   };
 
+  // Iframes break with CSS transform scaling — render them at 100% container size instead
+  if (type === "iframe") {
+    return (
+      <div ref={containerRef} style={outerStyle}>
+        <ElementRenderer type={type} props={props || {}} onNavigate={onNavigate} />
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} style={outerStyle}>
       <div style={innerStyle}>
@@ -653,9 +662,10 @@ function ElementRenderer({ type, props: p, onNavigate }) {
         <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0, background: "#fff" }}>
           <iframe
             src={url}
-            style={{ width: "100%", height: "100%", border: "none", pointerEvents: "auto" }}
+            style={{ width: "100%", height: "100%", border: "none", pointerEvents: "auto", display: "block" }}
             scrolling={p.scrolling === false ? "no" : "yes"}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
             loading="lazy"
             title="Iframe embed"
           />
