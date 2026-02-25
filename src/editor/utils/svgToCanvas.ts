@@ -13,6 +13,109 @@ interface ParsedSVG {
   viewBox: { width: number; height: number };
 }
 
+// ── SVG Path bounding-box parser ─────────────────────────────────────
+function pathBounds(d: string): { x: number; y: number; w: number; h: number } | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let cx = 0, cy = 0; // current point
+  let sx = 0, sy = 0; // start of subpath
+  let found = false;
+
+  function track(x: number, y: number) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+    found = true;
+  }
+
+  // Tokenize: split into commands + numbers
+  const tokens = d.match(/[a-zA-Z]|[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g);
+  if (!tokens) return null;
+
+  let i = 0;
+  const num = () => (i < tokens.length ? parseFloat(tokens[i++]) : 0);
+  const hasMore = () => i < tokens.length && !/[a-zA-Z]/.test(tokens[i]);
+
+  let cmd = '';
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (/[a-zA-Z]/.test(t)) { cmd = t; i++; } 
+
+    switch (cmd) {
+      case 'M': { const x = num(), y = num(); cx = x; cy = y; sx = x; sy = y; track(cx, cy); cmd = 'L'; break; }
+      case 'm': { const x = num(), y = num(); cx += x; cy += y; sx = cx; sy = cy; track(cx, cy); cmd = 'l'; break; }
+      case 'L': { cx = num(); cy = num(); track(cx, cy); break; }
+      case 'l': { cx += num(); cy += num(); track(cx, cy); break; }
+      case 'H': { cx = num(); track(cx, cy); break; }
+      case 'h': { cx += num(); track(cx, cy); break; }
+      case 'V': { cy = num(); track(cx, cy); break; }
+      case 'v': { cy += num(); track(cx, cy); break; }
+      case 'C': {
+        const x1 = num(), y1 = num(), x2 = num(), y2 = num(), x = num(), y = num();
+        track(x1, y1); track(x2, y2); track(x, y); cx = x; cy = y; break;
+      }
+      case 'c': {
+        const x1 = cx + num(), y1 = cy + num(), x2 = cx + num(), y2 = cy + num();
+        const x = cx + num(), y = cy + num();
+        track(x1, y1); track(x2, y2); track(x, y); cx = x; cy = y; break;
+      }
+      case 'S': { const x2 = num(), y2 = num(), x = num(), y = num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
+      case 's': { const x2 = cx + num(), y2 = cy + num(), x = cx + num(), y = cy + num(); track(x2, y2); track(x, y); cx = x; cy = y; break; }
+      case 'Q': { const x1 = num(), y1 = num(), x = num(), y = num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
+      case 'q': { const x1 = cx + num(), y1 = cy + num(), x = cx + num(), y = cy + num(); track(x1, y1); track(x, y); cx = x; cy = y; break; }
+      case 'T': { cx = num(); cy = num(); track(cx, cy); break; }
+      case 't': { cx += num(); cy += num(); track(cx, cy); break; }
+      case 'A': { num(); num(); num(); num(); num(); cx = num(); cy = num(); track(cx, cy); break; }
+      case 'a': { num(); num(); num(); num(); num(); cx += num(); cy += num(); track(cx, cy); break; }
+      case 'Z': case 'z': { cx = sx; cy = sy; break; }
+      default: { i++; break; } // skip unknown
+    }
+
+    // Consume repeated implicit params for the same command
+    while (hasMore() && 'MLCSQTAHVmlcsqtahv'.includes(cmd)) break;
+  }
+
+  if (!found || maxX - minX < 1 || maxY - minY < 1) return null;
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+// ── Detect content area from Figma-style exports ─────────────────────
+function detectContentArea(svg: Element, svgW: number, svgH: number): { ox: number; oy: number; w: number; h: number } | null {
+  // Look for clip-path'd groups containing a large rect — common in Figma exports
+  // Also look for a large rect with transform that defines the actual canvas area
+  const rects = svg.querySelectorAll('rect');
+  let best: { ox: number; oy: number; w: number; h: number } | null = null;
+  let bestArea = 0;
+
+  for (const rect of Array.from(rects)) {
+    const w = parseFloat(rect.getAttribute('width') || '0');
+    const h = parseFloat(rect.getAttribute('height') || '0');
+    if (w < svgW * 0.5 || h < svgH * 0.5) continue; // too small
+    if (w >= svgW * 0.98 && h >= svgH * 0.98) continue; // it's the full outer frame
+
+    let x = parseFloat(rect.getAttribute('x') || '0');
+    let y = parseFloat(rect.getAttribute('y') || '0');
+    const t = rect.getAttribute('transform');
+    if (t) {
+      const m = t.match(/translate\(\s*([-\d.]+)[,\s]+([-\d.]+)\s*\)/);
+      if (m) { x += parseFloat(m[1]); y += parseFloat(m[2]); }
+    }
+
+    const area = w * h;
+    // Prefer rects that are close to common totem sizes (1080x1920)
+    const isTotemSize = (Math.abs(w - 1080) < 10 && Math.abs(h - 1920) < 10);
+    if (area > bestArea || isTotemSize) {
+      best = { ox: x, oy: y, w, h };
+      bestArea = area;
+      if (isTotemSize) break; // exact match
+    }
+  }
+
+  // Only use if offset is significant
+  if (best && (best.ox > 5 || best.oy > 5)) return best;
+  return null;
+}
+
 /**
  * Parse an SVG string and return CanvasElement[] mapped to our 1080x1920 canvas.
  */
@@ -66,8 +169,18 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     }
   }
 
-  const scaleX = CANVAS_WIDTH / svgW;
-  const scaleY = CANVAS_HEIGHT / svgH;
+  // ── Detect Figma-style content area offset ──────────────────────────
+  const contentArea = detectContentArea(svg, svgW, svgH);
+  let originX = 0, originY = 0, refW = svgW, refH = svgH;
+  if (contentArea) {
+    originX = contentArea.ox;
+    originY = contentArea.oy;
+    refW = contentArea.w;
+    refH = contentArea.h;
+  }
+
+  const scaleX = CANVAS_WIDTH / refW;
+  const scaleY = CANVAS_HEIGHT / refH;
 
   // ── Build gradient map from <defs> ──────────────────────────────────
   const gradientMap = new Map<string, string>();
@@ -87,7 +200,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
   function colorWithOpacity(color: string, opacity: number): string {
     if (opacity >= 1) return color;
-    // Convert hex to rgba
     if (color.startsWith('#')) {
       const hex = color.replace('#', '');
       const r = parseInt(hex.substring(0, 2), 16);
@@ -102,16 +214,20 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   svg.querySelectorAll('linearGradient').forEach(lg => {
     const id = lg.getAttribute('id');
     if (!id) return;
+    const units = lg.getAttribute('gradientUnits') || 'objectBoundingBox';
     const x1 = parseFloat(lg.getAttribute('x1') || '0');
     const y1 = parseFloat(lg.getAttribute('y1') || '0');
     const x2 = parseFloat(lg.getAttribute('x2') || '1');
     const y2 = parseFloat(lg.getAttribute('y2') || '0');
 
-    // Calculate angle from coordinates
-    // gradientUnits default is objectBoundingBox (0-1 range)
-    const units = lg.getAttribute('gradientUnits') || 'objectBoundingBox';
-    let ax1 = x1, ay1 = y1, ax2 = x2, ay2 = y2;
-    if (units === 'objectBoundingBox') {
+    let ax1: number, ay1: number, ax2: number, ay2: number;
+    if (units === 'userSpaceOnUse') {
+      // Normalize to percentage of the reference area
+      ax1 = ((x1 - originX) / refW) * 100;
+      ay1 = ((y1 - originY) / refH) * 100;
+      ax2 = ((x2 - originX) / refW) * 100;
+      ay2 = ((y2 - originY) / refH) * 100;
+    } else {
       ax1 = x1 * 100; ay1 = y1 * 100; ax2 = x2 * 100; ay2 = y2 * 100;
     }
     const angle = Math.round(Math.atan2(ay2 - ay1, ax2 - ax1) * (180 / Math.PI) + 90);
@@ -146,13 +262,19 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
       return `${colorWithOpacity(color, opacity)} ${pct}`;
     }).join(', ');
 
-    // cx/cy for position (default center)
     const cx = rg.getAttribute('cx');
     const cy = rg.getAttribute('cy');
     let pos = 'circle';
     if (cx && cy) {
-      const pxStr = cx.includes('%') ? cx : `${Math.round(parseFloat(cx) * 100)}%`;
-      const pyStr = cy.includes('%') ? cy : `${Math.round(parseFloat(cy) * 100)}%`;
+      const units = rg.getAttribute('gradientUnits') || 'objectBoundingBox';
+      let pxStr: string, pyStr: string;
+      if (units === 'userSpaceOnUse') {
+        pxStr = `${Math.round(((parseFloat(cx) - originX) / refW) * 100)}%`;
+        pyStr = `${Math.round(((parseFloat(cy) - originY) / refH) * 100)}%`;
+      } else {
+        pxStr = cx.includes('%') ? cx : `${Math.round(parseFloat(cx) * 100)}%`;
+        pyStr = cy.includes('%') ? cy : `${Math.round(parseFloat(cy) * 100)}%`;
+      }
       pos = `circle at ${pxStr} ${pyStr}`;
     }
 
@@ -165,12 +287,26 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   let zIndex = 1;
 
   function mapCoord(x: number, y: number, w: number, h: number) {
+    // Remap from SVG space to content-relative space, then scale to canvas
+    const rx = (x - originX) * scaleX;
+    const ry = (y - originY) * scaleY;
+    const rw = w * scaleX;
+    const rh = h * scaleY;
     return {
-      x: Math.round(x * scaleX),
-      y: Math.round(y * scaleY),
-      width: Math.max(20, Math.round(w * scaleX)),
-      height: Math.max(20, Math.round(h * scaleY)),
+      x: Math.round(rx),
+      y: Math.round(ry),
+      width: Math.max(20, Math.round(rw)),
+      height: Math.max(20, Math.round(rh)),
     };
+  }
+
+  function isOutOfBounds(x: number, y: number, w: number, h: number): boolean {
+    // Skip elements that are entirely outside the content area
+    const right = x + w;
+    const bottom = y + h;
+    const cRight = originX + refW;
+    const cBottom = originY + refH;
+    return right < originX || x > cRight || bottom < originY || y > cBottom;
   }
 
   function makeElement(
@@ -197,7 +333,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
   function resolveColor(raw: string): string {
     if (!raw) return '#ffffff';
-    // Handle url(#gradientId) references
     const urlMatch = raw.match(/url\(\s*#([^)]+)\s*\)/);
     if (urlMatch) {
       const id = urlMatch[1];
@@ -226,12 +361,21 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return m ? { tx: parseFloat(m[1]), ty: parseFloat(m[2]) } : { tx: 0, ty: 0 };
   }
 
-  function processNode(node: Element, parentTx = 0, parentTy = 0) {
+  function getGroupOpacity(node: Element): number {
+    const op = node.getAttribute('opacity');
+    return op ? parseFloat(op) : 1;
+  }
+
+  function processNode(node: Element, parentTx = 0, parentTy = 0, parentOpacity = 1) {
     const { tx, ty } = getTranslate(node);
     const ox = parentTx + tx;
     const oy = parentTy + ty;
+    const nodeOpacity = getGroupOpacity(node) * parentOpacity;
 
     const tag = node.tagName.toLowerCase();
+
+    // Skip defs, metadata, clipPath, filter definitions
+    if (['defs', 'metadata', 'clippath', 'filter', 'pattern', 'lineargradient', 'radialgradient', 'mask', 'style'].includes(tag)) return;
 
     switch (tag) {
       case 'rect': {
@@ -243,13 +387,24 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
         const fill = parseColor(node);
         const rx = parseFloat(node.getAttribute('rx') || '0');
-        const opacity = parseOpacity(node);
+        const elOpacity = parseOpacity(node) * nodeOpacity;
 
-        // Full-canvas rect → treat as background
-        if (w >= svgW * 0.95 && h >= svgH * 0.95 && elements.length === 0) {
-          bgColor = fill === 'none' ? bgColor : fill;
+        // Full-content-area rect → treat as background
+        if (w >= refW * 0.95 && h >= refH * 0.95 && elements.length === 0) {
+          if (fill !== 'none' && !fill.includes('url(') && !fill.includes('gradient(') && !fill.includes('pattern')) {
+            bgColor = fill;
+          }
           break;
         }
+
+        // Skip fill=none rects (clip/filter helpers) and pattern-filled rects
+        if (fill === 'none' || fill.includes('pattern')) break;
+
+        // Skip elements outside content area
+        if (isOutOfBounds(x, y, w, h)) break;
+
+        // Skip very low opacity decorative elements
+        if (elOpacity < 0.05) break;
 
         const el = makeElement('shape', x, y, w, h, {
           shapeType: 'rectangle',
@@ -258,7 +413,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           borderColor: node.getAttribute('stroke') || 'transparent',
           borderWidth: parseFloat(node.getAttribute('stroke-width') || '0') * scaleX,
         }, 'Retângulo');
-        el.opacity = opacity;
+        el.opacity = elOpacity;
         elements.push(el);
         break;
       }
@@ -276,14 +431,22 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         if (rx <= 0 || ry <= 0) break;
 
         const fill = parseColor(node);
-        const el = makeElement('shape', cx - rx, cy - ry, rx * 2, ry * 2, {
+        if (fill === 'none') break;
+
+        const elX = cx - rx, elY = cy - ry;
+        if (isOutOfBounds(elX, elY, rx * 2, ry * 2)) break;
+
+        const elOpacity = parseOpacity(node) * nodeOpacity;
+        if (elOpacity < 0.05) break;
+
+        const el = makeElement('shape', elX, elY, rx * 2, ry * 2, {
           shapeType: 'circle',
-          fill: fill === 'none' ? 'transparent' : fill,
+          fill: fill,
           borderRadius: 0,
           borderColor: node.getAttribute('stroke') || 'transparent',
           borderWidth: parseFloat(node.getAttribute('stroke-width') || '0') * scaleX,
         }, 'Círculo');
-        el.opacity = parseOpacity(node);
+        el.opacity = elOpacity;
         elements.push(el);
         break;
       }
@@ -307,11 +470,12 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const textAnchor = node.getAttribute('text-anchor') || 'start';
         const align = textAnchor === 'middle' ? 'center' : textAnchor === 'end' ? 'right' : 'left';
 
-        // Estimate width based on text length and font size
         const estimatedW = Math.max(100, textContent.length * fontSize * 0.6);
         const estimatedH = Math.max(40, fontSize * 1.5);
 
         const adjX = align === 'center' ? x - estimatedW / (2 * scaleX) : x;
+
+        if (isOutOfBounds(adjX, y - fontSize / scaleX, estimatedW / scaleX, estimatedH / scaleX)) break;
 
         const el = makeElement('text', adjX, y - fontSize / scaleX, estimatedW / scaleX, estimatedH / scaleX, {
           text: textContent,
@@ -321,7 +485,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           align,
           fontFamily: 'Inter',
         }, `Texto: ${textContent.slice(0, 20)}`);
-        el.opacity = parseOpacity(node);
+        el.opacity = parseOpacity(node) * nodeOpacity;
         elements.push(el);
         break;
       }
@@ -333,12 +497,14 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const h = parseFloat(node.getAttribute('height') || '200');
         const href = node.getAttribute('href') || node.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
 
+        if (isOutOfBounds(x, y, w, h)) break;
+
         const el = makeElement('image', x, y, w, h, {
           src: href,
           fit: 'cover',
           borderRadius: parseFloat(node.getAttribute('rx') || '0') * scaleX,
         }, 'Imagem SVG');
-        el.opacity = parseOpacity(node);
+        el.opacity = parseOpacity(node) * nodeOpacity;
         elements.push(el);
         break;
       }
@@ -351,59 +517,60 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const stroke = node.getAttribute('stroke') || '#ffffff';
         const strokeW = parseFloat(node.getAttribute('stroke-width') || '2');
 
-        const el = makeElement('shape',
-          Math.min(x1, x2), Math.min(y1, y2),
-          Math.max(Math.abs(x2 - x1), 4), Math.max(Math.abs(y2 - y1), strokeW * 2),
-          {
-            shapeType: 'rectangle',
-            fill: stroke,
-            borderRadius: 0,
-            borderColor: 'transparent',
-            borderWidth: 0,
-          }, 'Linha');
-        el.opacity = parseOpacity(node);
+        const lx = Math.min(x1, x2), ly = Math.min(y1, y2);
+        const lw = Math.max(Math.abs(x2 - x1), 4), lh = Math.max(Math.abs(y2 - y1), strokeW * 2);
+        if (isOutOfBounds(lx, ly, lw, lh)) break;
+
+        const el = makeElement('shape', lx, ly, lw, lh, {
+          shapeType: 'rectangle',
+          fill: stroke,
+          borderRadius: 0,
+          borderColor: 'transparent',
+          borderWidth: 0,
+        }, 'Linha');
+        el.opacity = parseOpacity(node) * nodeOpacity;
         elements.push(el);
         break;
       }
 
       case 'g':
       case 'svg': {
-        // Recurse into groups
-        Array.from(node.children).forEach(child => processNode(child, ox, oy));
-        return; // Don't fall through to child processing below
+        // Recurse into groups, propagating opacity
+        Array.from(node.children).forEach(child => processNode(child, ox, oy, nodeOpacity));
+        return;
       }
 
       case 'path': {
-        // Paths are complex — render as a shape placeholder with the bounding box
         const d = node.getAttribute('d') || '';
         if (!d) break;
         const fill = parseColor(node);
         const stroke = node.getAttribute('stroke');
 
-        // Try to extract bounding info from path commands
-        const numbers = d.match(/[-+]?\d*\.?\d+/g)?.map(Number) || [];
-        if (numbers.length < 2) break;
+        // Use proper path parser for bounding box
+        const bounds = pathBounds(d);
+        if (!bounds) break;
 
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (let i = 0; i < numbers.length - 1; i += 2) {
-          minX = Math.min(minX, numbers[i]);
-          maxX = Math.max(maxX, numbers[i]);
-          minY = Math.min(minY, numbers[i + 1]);
-          maxY = Math.max(maxY, numbers[i + 1]);
-        }
+        const px = bounds.x + ox;
+        const py = bounds.y + oy;
+        const pw = bounds.w;
+        const ph = bounds.h;
 
-        const pw = maxX - minX;
-        const ph = maxY - minY;
-        if (pw < 1 || ph < 1) break;
+        if (isOutOfBounds(px, py, pw, ph)) break;
 
-        const el = makeElement('shape', minX + ox, minY + oy, pw, ph, {
+        const elOpacity = parseOpacity(node) * nodeOpacity;
+        if (elOpacity < 0.05) break;
+
+        // Skip very tiny paths (decorative dots, etc.)
+        if (pw < 3 && ph < 3) break;
+
+        const el = makeElement('shape', px, py, pw, ph, {
           shapeType: 'rectangle',
           fill: fill === 'none' ? (stroke || 'transparent') : fill,
           borderRadius: 0,
           borderColor: stroke || 'transparent',
           borderWidth: parseFloat(node.getAttribute('stroke-width') || '0') * scaleX,
         }, 'Path');
-        el.opacity = parseOpacity(node);
+        el.opacity = elOpacity;
         elements.push(el);
         break;
       }
@@ -411,7 +578,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
     // Process children for non-group elements that may contain nested elements
     if (tag !== 'g' && tag !== 'svg') {
-      Array.from(node.children).forEach(child => processNode(child, ox, oy));
+      Array.from(node.children).forEach(child => processNode(child, ox, oy, nodeOpacity));
     }
   }
 
@@ -421,6 +588,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
   return {
     elements,
     bgColor,
-    viewBox: { width: svgW, height: svgH },
+    viewBox: { width: refW, height: refH },
   };
 }
