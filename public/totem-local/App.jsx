@@ -927,6 +927,10 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       );
     }
 
+    // ── FEED: Store directory with detail overlay ──
+    case "feed":
+      return <LiveFeed props={p} onNavigate={onNavigate} />;
+
     default:
       return <PremiumPlaceholder emoji="❓" label={type} />;
   }
@@ -2221,6 +2225,11 @@ const GlobalStyles = () => (
     .idle-screen-in  { animation: idle-fade-in  0.6s ease-out forwards; }
     .idle-screen-out { animation: idle-fade-out 0.5s ease-in  forwards; }
 
+    /* Page transition animations */
+    @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pageSlideIn { from { opacity: 0; transform: translateX(8%); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes pageZoomIn { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; overflow: hidden; }
   `}</style>
@@ -2311,6 +2320,295 @@ function useIdleDetection(timeoutMs) {
   }, [reset]);
 
   return { isIdle, wake: reset };
+}
+
+// ─────────────────────────────────────────────
+// 📰 FEED: Store directory with detail overlay
+// ─────────────────────────────────────────────
+function LiveFeed({ props: p, onNavigate }) {
+  const posts = p.posts || [];
+  const layout = p.layout || 'vertical';
+  const showLikes = p.showLikes !== false;
+  const showComments = p.showComments !== false;
+  const showAuthor = p.showAuthor !== false;
+  const showSearch = p.showSearch !== false;
+  const cardBg = p.cardBgColor || 'rgba(0,0,0,0.6)';
+  const textColor = p.textColor || '#ffffff';
+  const accentColor = p.accentColor || '#ef4444';
+  const borderRadius = p.borderRadius ?? 16;
+  const gap = p.gap ?? 16;
+  const cardRadius = p.cardBorderRadius ?? 12;
+
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery.trim()) return posts;
+    const q = searchQuery.toLowerCase();
+    return posts.filter(post =>
+      (post.title || '').toLowerCase().includes(q) ||
+      (post.category || '').toLowerCase().includes(q) ||
+      (post.author || '').toLowerCase().includes(q) ||
+      (post.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+  }, [posts, searchQuery]);
+
+  if (posts.length === 0) {
+    return <PremiumPlaceholder emoji="📰" label="Feed de Lojas" />;
+  }
+
+  return (
+    <div style={{
+      width: "100%", height: "100%", display: "flex", flexDirection: "column",
+      overflow: "hidden", position: "relative", borderRadius,
+      background: p.bgColor || "transparent",
+    }}>
+      {/* Search */}
+      {showSearch && (
+        <div style={{ flexShrink: 0, padding: "12px 12px 4px" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+            borderRadius: 12, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)",
+          }}>
+            <span style={{ color: textColor, opacity: 0.5, fontSize: 14 }}>🔍</span>
+            <input
+              type="text" placeholder="Buscar lojas..." value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                background: "transparent", border: "none", outline: "none",
+                color: textColor, fontSize: 13, width: "100%", fontFamily: "inherit",
+              }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ background: "none", border: "none", color: textColor, opacity: 0.5, cursor: "pointer", fontSize: 14 }}>✕</button>
+            )}
+          </div>
+          {searchQuery && (
+            <p style={{ color: textColor, opacity: 0.4, fontSize: 10, marginTop: 4, paddingLeft: 4 }}>
+              {filteredPosts.length} resultado{filteredPosts.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Cards */}
+      <div style={{
+        flex: 1, overflow: "auto",
+        display: "flex",
+        flexDirection: layout === 'horizontal' ? 'row' : 'column',
+        overflowX: layout === 'horizontal' ? 'auto' : undefined,
+        overflowY: layout === 'horizontal' ? 'hidden' : 'auto',
+        gap, padding: gap / 2,
+      }}>
+        {filteredPosts.map((post) => {
+          const allImages = post.images?.length ? post.images : post.image ? [post.image] : [];
+          return (
+            <div key={post.id}
+              onClick={() => setSelectedPost(post)}
+              style={{
+                flexShrink: layout === 'horizontal' ? 0 : undefined,
+                width: layout === 'horizontal' ? '85%' : '100%',
+                minWidth: layout === 'horizontal' ? '85%' : undefined,
+                background: cardBg, borderRadius: cardRadius, overflow: "hidden",
+                cursor: "pointer", transition: "transform 0.15s",
+                display: "flex", flexDirection: "column",
+              }}
+            >
+              {/* Author header */}
+              {showAuthor && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                    background: `linear-gradient(135deg, ${accentColor}, #ec4899, #8b5cf6)`, padding: 2,
+                  }}>
+                    <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: cardBg }}>
+                      {post.avatar
+                        ? <img src={post.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: textColor, fontSize: 12, fontWeight: 700 }}>{(post.author || 'L')[0].toUpperCase()}</div>
+                      }
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: textColor, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.author || 'Loja'}</p>
+                    {post.category && <p style={{ color: textColor, opacity: 0.6, fontSize: 9 }}>{post.category}</p>}
+                  </div>
+                  {post.rating > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <span style={{ color: '#facc15', fontSize: 12 }}>★</span>
+                      <span style={{ color: textColor, fontSize: 10, fontWeight: 500 }}>{post.rating}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Image */}
+              {allImages.length > 0 && (
+                <div style={{ position: "relative", width: "100%", aspectRatio: "4/3" }}>
+                  <img src={allImages[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 12 }}>
+                <span style={{ fontSize: 20 }}>♡</span>
+                {showComments && <span style={{ fontSize: 20 }}>💬</span>}
+                <span style={{ fontSize: 18 }}>➤</span>
+                <div style={{ flex: 1 }} />
+                <span style={{ fontSize: 20 }}>🔖</span>
+              </div>
+
+              {showLikes && (
+                <p style={{ padding: "0 12px", color: textColor, fontSize: 11, fontWeight: 600 }}>{post.likes || 0} curtidas</p>
+              )}
+
+              <div style={{ padding: "4px 12px 12px" }}>
+                {post.title && <p style={{ color: textColor, fontSize: 12, fontWeight: 700 }}>{post.title}</p>}
+                {post.description && <p style={{ color: textColor, opacity: 0.7, fontSize: 11, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{post.description}</p>}
+                {post.address && <p style={{ color: textColor, opacity: 0.5, fontSize: 10, marginTop: 4 }}>📍 {post.address}</p>}
+              </div>
+            </div>
+          );
+        })}
+        {filteredPosts.length === 0 && searchQuery && (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 48 }}>
+            <p style={{ color: textColor, opacity: 0.4, fontSize: 12 }}>Nenhuma loja encontrada</p>
+          </div>
+        )}
+      </div>
+
+      {/* Detail overlay */}
+      {selectedPost && (
+        <FeedDetailOverlay post={selectedPost} cardBg={cardBg} textColor={textColor} accentColor={accentColor} cardRadius={cardRadius} onClose={() => setSelectedPost(null)} />
+      )}
+    </div>
+  );
+}
+
+function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, onClose }) {
+  const allImages = post.images?.length ? post.images : post.image ? [post.image] : [];
+  const [imgIdx, setImgIdx] = useState(0);
+  const stars = post.rating ?? 0;
+
+  return (
+    <div onClick={onClose} style={{
+      position: "absolute", inset: 0, zIndex: 50, display: "flex", flexDirection: "column",
+      overflow: "hidden", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)",
+      animation: "feedOverlayIn 0.25s ease-out",
+    }}>
+      <style>{`
+        @keyframes feedOverlayIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        position: "absolute", inset: 8, display: "flex", flexDirection: "column",
+        overflow: "hidden", background: cardBg, borderRadius: cardRadius + 4,
+        boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+      }}>
+        {/* Close */}
+        <button onClick={onClose} style={{
+          position: "absolute", top: 12, right: 12, zIndex: 20,
+          width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
+          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)",
+          color: "#fff", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+        }}>✕</button>
+
+        {/* Images */}
+        {allImages.length > 0 && (
+          <div style={{ position: "relative", width: "100%", flexShrink: 0, height: "40%", minHeight: 140 }}>
+            {allImages.map((src, i) => (
+              <img key={i} src={src} alt="" style={{
+                position: "absolute", inset: 0, width: "100%", height: "100%",
+                objectFit: "cover", transition: "opacity 0.3s", opacity: i === imgIdx ? 1 : 0,
+              }} />
+            ))}
+            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${cardBg} 0%, transparent 60%)` }} />
+            {allImages.length > 1 && (
+              <>
+                <button onClick={() => setImgIdx(p => (p - 1 + allImages.length) % allImages.length)}
+                  style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", zIndex: 10, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.4)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                <button onClick={() => setImgIdx(p => (p + 1) % allImages.length)}
+                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 10, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.4)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+                <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                  {allImages.map((_, i) => (
+                    <div key={i} onClick={() => setImgIdx(i)} style={{
+                      width: i === imgIdx ? 16 : 6, height: 6, borderRadius: 999, cursor: "pointer",
+                      background: i === imgIdx ? accentColor : "rgba(255,255,255,0.4)", transition: "all 0.2s",
+                    }} />
+                  ))}
+                </div>
+              </>
+            )}
+            {(post.category || post.badge) && (
+              <div style={{ position: "absolute", top: 12, left: 12, zIndex: 10, display: "flex", gap: 6 }}>
+                {post.category && <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: accentColor, color: "#fff" }}>{post.category}</span>}
+                {post.badge && <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,0.15)", color: textColor, backdropFilter: "blur(4px)" }}>{post.badge}</span>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 16px", marginTop: -8 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            {post.avatar && (
+              <div style={{ width: 48, height: 48, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `2px solid ${accentColor}` }}>
+                <img src={post.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{ color: textColor, fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>{post.title || post.author || 'Loja'}</h3>
+              {post.author && post.title && <p style={{ color: textColor, opacity: 0.6, fontSize: 11, marginTop: 2 }}>{post.author}</p>}
+              {stars > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 4 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} style={{ color: i < stars ? '#facc15' : 'rgba(255,255,255,0.2)', fontSize: 12 }}>{i < stars ? '★' : '☆'}</span>
+                  ))}
+                  <span style={{ color: textColor, opacity: 0.5, fontSize: 10, marginLeft: 4 }}>{stars}/5</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {post.tags && post.tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+              {post.tags.map((tag, i) => (
+                <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 500, background: "rgba(255,255,255,0.08)", color: textColor }}>
+                  🏷️ {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {(post.detailDescription || post.description) && (
+            <p style={{ color: textColor, opacity: 0.8, fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>{post.detailDescription || post.description}</p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            {post.address && <FeedInfoRow icon="📍" text={post.address} textColor={textColor} />}
+            {post.phone && <FeedInfoRow icon="📞" text={post.phone} textColor={textColor} />}
+            {post.hours && <FeedInfoRow icon="🕐" text={post.hours} textColor={textColor} />}
+            {post.website && <FeedInfoRow icon="🌐" text={post.website} textColor={textColor} />}
+          </div>
+
+          {post.ctaLabel && (
+            <button style={{
+              width: "100%", marginTop: 12, padding: "10px 16px", borderRadius: 12,
+              border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+              background: accentColor, color: "#fff",
+            }}>{post.ctaLabel}</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeedInfoRow({ icon, text, textColor }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "6px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>
+      <span style={{ flexShrink: 0, fontSize: 12, marginTop: 1 }}>{icon}</span>
+      <span style={{ color: textColor, fontSize: 11, lineHeight: 1.4 }}>{text}</span>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -2497,7 +2795,9 @@ export default function App() {
   const defaultViewId = views.find(v => v.isDefault)?.id || views[0]?.id || '__default__';
   const viewIdleTimeout = (freeCanvas?.viewIdleTimeout ?? 30) * 1000;
   const [activeViewId, setActiveViewId] = useState(defaultViewId);
+  const [pageTransition, setPageTransition] = useState(null); // { type: 'fade'|'slide'|'zoom', phase: 'out'|'in' }
   const viewTimeoutRef = useRef(null);
+  const transitionTimeoutRef = useRef(null);
 
   // Reset idle timeout on view change
   useEffect(() => {
@@ -2515,12 +2815,29 @@ export default function App() {
   useEffect(() => { setActiveViewId(defaultViewId); }, [defaultViewId]);
 
   const handleNavigate = useCallback((viewId, transition, variables) => {
-    // Set page variables if provided (from forms, catalogs, etc.)
     if (variables && typeof variables === "object") {
       window.__totemPageVariables = { ...(window.__totemPageVariables || {}), ...variables };
     }
-    setActiveViewId(viewId);
-    wake?.(); // reset idle screen too
+
+    const transType = transition || "fade";
+    const duration = 200; // ms per phase
+
+    // Phase 1: animate OUT
+    setPageTransition({ type: transType, phase: "out" });
+
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = setTimeout(() => {
+      // Switch page
+      setActiveViewId(viewId);
+      // Phase 2: animate IN
+      setPageTransition({ type: transType, phase: "in" });
+
+      transitionTimeoutRef.current = setTimeout(() => {
+        setPageTransition(null);
+      }, duration + 50);
+    }, duration);
+
+    wake?.();
   }, [wake]);
 
   // ── Register global navigation function for all elements ──
@@ -2568,7 +2885,22 @@ export default function App() {
 
         {/* 🖼️ Free Canvas — todos os elementos (incluindo avatar 3D) */}
         {hasFreeCanvas && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 30 }}>
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 30,
+            transition: "opacity 0.2s ease, transform 0.2s ease",
+            ...(pageTransition?.phase === "out" ? {
+              opacity: 0,
+              transform: pageTransition.type === "slide" ? "translateX(-8%)" : pageTransition.type === "zoom" ? "scale(0.92)" : "none",
+            } : pageTransition?.phase === "in" ? {
+              opacity: 1,
+              transform: "none",
+              animation: pageTransition.type === "slide"
+                ? "pageSlideIn 0.25s ease-out"
+                : pageTransition.type === "zoom"
+                ? "pageZoomIn 0.25s ease-out"
+                : "pageFadeIn 0.25s ease-out",
+            } : { opacity: 1, transform: "none" }),
+          }}>
             <FreeCanvasRenderer canvas={freeCanvas} activeViewId={activeViewId} onNavigate={handleNavigate} />
           </div>
         )}
