@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
-  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Store, Megaphone,
+  Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Megaphone,
   List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
-  Search, ChevronDown, Plus,
+  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -12,76 +12,85 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import type { LucideIcon } from 'lucide-react';
 
 interface Props {
   onAdd: (element: CanvasElement) => void;
 }
 
-const CATEGORIES = [
+interface PaletteItem {
+  type: ElementType;
+  icon: LucideIcon;
+  label: string;
+  desc: string;
+  color: string; // bg color for the icon square
+}
+
+const CATEGORIES: {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: PaletteItem[];
+}[] = [
   {
     id: 'totem',
     label: 'Totem',
-    icon: '🖥️',
-    color: 'from-primary/20 to-accent/10',
+    icon: Monitor,
     items: [
-      { type: 'bigcta' as ElementType, icon: Pointer, label: 'CTA Grande', desc: 'Botão de chamada principal' },
-      { type: 'ticket' as ElementType, icon: Ticket, label: 'Senha', desc: 'Painel de senhas' },
-      { type: 'qrpix' as ElementType, icon: CreditCard, label: 'QR Pix', desc: 'Pagamento via Pix' },
-      { type: 'numpad' as ElementType, icon: Keyboard, label: 'Teclado', desc: 'Entrada numérica' },
+      { type: 'bigcta', icon: Pointer, label: 'CTA Grande', desc: 'Botão de chamada principal', color: '#6366f1' },
+      { type: 'ticket', icon: Ticket, label: 'Senha', desc: 'Painel de senhas', color: '#f59e0b' },
+      { type: 'qrpix', icon: CreditCard, label: 'QR Pix', desc: 'Pagamento via Pix', color: '#10b981' },
+      { type: 'numpad', icon: Keyboard, label: 'Teclado', desc: 'Entrada numérica', color: '#8b5cf6' },
     ],
   },
   {
     id: 'content',
     label: 'Conteúdo',
-    icon: '📝',
-    color: 'from-blue-500/10 to-blue-400/5',
+    icon: PenLine,
     items: [
-      { type: 'text' as ElementType, icon: Type, label: 'Texto', desc: 'Títulos e parágrafos' },
-      { type: 'image' as ElementType, icon: Image, label: 'Imagem', desc: 'Fotos e ilustrações' },
-      { type: 'button' as ElementType, icon: MousePointer2, label: 'Botão', desc: 'Ação interativa' },
-      { type: 'shape' as ElementType, icon: Square, label: 'Forma', desc: 'Retângulos e círculos' },
-      { type: 'icon' as ElementType, icon: Sparkles, label: 'Ícone', desc: 'Ícones decorativos' },
+      { type: 'text', icon: Type, label: 'Texto', desc: 'Títulos e parágrafos', color: '#3b82f6' },
+      { type: 'image', icon: Image, label: 'Imagem', desc: 'Fotos e ilustrações', color: '#ec4899' },
+      { type: 'button', icon: MousePointer2, label: 'Botão', desc: 'Ação interativa', color: '#ef4444' },
+      { type: 'shape', icon: Square, label: 'Forma', desc: 'Retângulos e círculos', color: '#14b8a6' },
+      { type: 'icon', icon: Sparkles, label: 'Ícone', desc: 'Ícones decorativos', color: '#f97316' },
     ],
   },
   {
     id: 'media',
     label: 'Mídia',
-    icon: '🎬',
-    color: 'from-purple-500/10 to-purple-400/5',
+    icon: Film,
     items: [
-      { type: 'video' as ElementType, icon: Play, label: 'Vídeo', desc: 'Player de vídeo' },
-      { type: 'carousel' as ElementType, icon: GalleryHorizontal, label: 'Carrossel', desc: 'Slides de imagens' },
-      { type: 'gallery' as ElementType, icon: LayoutGrid, label: 'Galeria', desc: 'Grid de imagens' },
-      { type: 'iframe' as ElementType, icon: Globe, label: 'Iframe', desc: 'Conteúdo externo' },
+      { type: 'video', icon: Play, label: 'Vídeo', desc: 'Player de vídeo', color: '#ef4444' },
+      { type: 'carousel', icon: GalleryHorizontal, label: 'Carrossel', desc: 'Slides de imagens', color: '#8b5cf6' },
+      { type: 'gallery', icon: LayoutGrid, label: 'Galeria', desc: 'Grid de imagens', color: '#06b6d4' },
+      { type: 'iframe', icon: Globe, label: 'Iframe', desc: 'Conteúdo externo', color: '#64748b' },
     ],
   },
   {
     id: 'interactive',
     label: 'Interação',
-    icon: '🔗',
-    color: 'from-green-500/10 to-green-400/5',
+    icon: Link2,
     items: [
-      { type: 'qrcode' as ElementType, icon: QrCode, label: 'QR Code', desc: 'Código QR dinâmico' },
-      { type: 'chat' as ElementType, icon: MessageSquare, label: 'Chat IA', desc: 'Assistente virtual' },
-      { type: 'form' as ElementType, icon: FileText, label: 'Formulário', desc: 'Coleta de dados' },
-      { type: 'list' as ElementType, icon: List, label: 'Lista/Menu', desc: 'Itens com preço' },
-      { type: 'catalog' as ElementType, icon: ShoppingBag, label: 'Catálogo', desc: 'Produtos com filtro' },
-      { type: 'store' as ElementType, icon: Megaphone, label: 'Lojas', desc: 'Diretório de lojas' },
-      { type: 'map' as ElementType, icon: MapPin, label: 'Mapa', desc: 'Localização' },
-      { type: 'social' as ElementType, icon: Share2, label: 'Redes Sociais', desc: 'Links sociais' },
+      { type: 'qrcode', icon: QrCode, label: 'QR Code', desc: 'Código QR dinâmico', color: '#1e293b' },
+      { type: 'chat', icon: MessageSquare, label: 'Chat IA', desc: 'Assistente virtual', color: '#6366f1' },
+      { type: 'form', icon: FileText, label: 'Formulário', desc: 'Coleta de dados', color: '#84cc16' },
+      { type: 'list', icon: List, label: 'Lista/Menu', desc: 'Itens com preço', color: '#f59e0b' },
+      { type: 'catalog', icon: ShoppingBag, label: 'Catálogo', desc: 'Produtos com filtro', color: '#ec4899' },
+      { type: 'store', icon: Megaphone, label: 'Lojas', desc: 'Diretório de lojas', color: '#f97316' },
+      { type: 'map', icon: MapPin, label: 'Mapa', desc: 'Localização', color: '#ef4444' },
+      { type: 'social', icon: Share2, label: 'Redes Sociais', desc: 'Links sociais', color: '#3b82f6' },
     ],
   },
   {
     id: 'data',
     label: 'Dados',
-    icon: '📊',
-    color: 'from-amber-500/10 to-amber-400/5',
+    icon: BarChart3,
     items: [
-      { type: 'clock' as ElementType, icon: Clock, label: 'Relógio', desc: 'Data e hora' },
-      { type: 'weather' as ElementType, icon: CloudSun, label: 'Clima', desc: 'Previsão do tempo' },
-      { type: 'countdown' as ElementType, icon: Timer, label: 'Contagem', desc: 'Timer regressivo' },
-      { type: 'animated-number' as ElementType, icon: Hash, label: 'Nº Animado', desc: 'Contador animado' },
-      { type: 'avatar' as ElementType, icon: User, label: 'Avatar 3D', desc: 'Assistente virtual 3D' },
+      { type: 'clock', icon: Clock, label: 'Relógio', desc: 'Data e hora', color: '#0ea5e9' },
+      { type: 'weather', icon: CloudSun, label: 'Clima', desc: 'Previsão do tempo', color: '#f59e0b' },
+      { type: 'countdown', icon: Timer, label: 'Contagem', desc: 'Timer regressivo', color: '#ef4444' },
+      { type: 'animated-number', icon: Hash, label: 'Nº Animado', desc: 'Contador animado', color: '#10b981' },
+      { type: 'avatar', icon: User, label: 'Avatar 3D', desc: 'Assistente virtual 3D', color: '#8b5cf6' },
     ],
   },
 ];
@@ -121,6 +130,7 @@ export function ElementPalette({ onAdd }: Props) {
         <div className="p-2 space-y-1.5">
           {filtered.map((cat) => {
             const isOpen = search ? true : openCats[cat.id] ?? false;
+            const CatIcon = cat.icon;
 
             return (
               <Collapsible key={cat.id} open={isOpen} onOpenChange={() => toggleCat(cat.id)}>
@@ -129,7 +139,7 @@ export function ElementPalette({ onAdd }: Props) {
                     "flex items-center gap-2 px-2 py-1.5 rounded-md transition-all cursor-pointer",
                     isOpen ? "bg-muted/30" : "hover:bg-muted/15"
                   )}>
-                    <span className="text-[11px]">{cat.icon}</span>
+                    <CatIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
                     <span className="text-[10px] font-bold text-foreground/70 uppercase tracking-wider flex-1 text-left">{cat.label}</span>
                     <span className="text-[8px] text-muted-foreground/40 tabular-nums">{cat.items.length}</span>
                     <ChevronDown className={cn(
@@ -140,7 +150,7 @@ export function ElementPalette({ onAdd }: Props) {
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
-                  <div className="grid grid-cols-2 gap-1 pt-1 pb-1">
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 pb-1">
                     {cat.items.map((item) => (
                       <button
                         key={item.type}
@@ -149,15 +159,18 @@ export function ElementPalette({ onAdd }: Props) {
                           const el = createElement(item.type, 80 + Math.random() * 200, 80 + Math.random() * 400);
                           onAdd(el);
                         }}
-                        className={cn(
-                          "flex flex-col items-center gap-1 p-2.5 rounded-lg transition-all group cursor-pointer",
-                          "border border-border/30 bg-card/40",
-                          "hover:bg-primary/8 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5",
-                          "active:scale-95"
-                        )}
+                        className="flex flex-col items-center gap-1.5 group cursor-pointer active:scale-90 transition-transform"
                       >
-                        <div className="w-8 h-8 rounded-md bg-muted/30 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                          <item.icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <div
+                          className="w-full aspect-square rounded-xl flex items-center justify-center shadow-md transition-all group-hover:shadow-lg group-hover:scale-105"
+                          style={{
+                            background: `linear-gradient(145deg, ${item.color}, ${item.color}cc)`,
+                            boxShadow: `0 4px 12px ${item.color}40, inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.15)`,
+                            borderTop: '1px solid rgba(255,255,255,0.3)',
+                            borderBottom: '2px solid rgba(0,0,0,0.2)',
+                          }}
+                        >
+                          <item.icon className="w-5 h-5 text-white drop-shadow-md" strokeWidth={2.5} />
                         </div>
                         <span className="text-[9px] font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-none text-center">
                           {item.label}
