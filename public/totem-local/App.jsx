@@ -1465,14 +1465,18 @@ function ChatElement({ props: p, deviceId }) {
 
 function AvatarCanvasElement({ props: p }) {
   // frameY: -100..100 → vertical pan (neg=up, pos=down)
+  // frameX: -100..100 → horizontal pan (neg=left, pos=right)
   // frameZoom: 10..100 → distance (10=far, 100=close)
   const frameY = p.frameY ?? 0;
+  const frameX = p.frameX ?? 0;
   const frameZoom = p.frameZoom ?? 50;
 
   // Map frameZoom 10..100 → camera Z distance 8..2
   const camZ = 8 - (frameZoom / 100) * 6;
   // Base camera at avatar mid-height (1.5), frameY shifts ±1.5
   const camY = 1.5 + (frameY / 100) * 1.5;
+  // frameX shifts camera horizontally ±3
+  const camX = (frameX / 100) * 3;
   const targetY = 1.0 + (frameY / 100) * 1.2;
 
   const bgColor = p.bgColor || 'transparent';
@@ -1489,7 +1493,7 @@ function AvatarCanvasElement({ props: p }) {
     }}>
       <Canvas
         shadows
-        camera={{ position: [0, camY, camZ], fov: 30 }}
+        camera={{ position: [camX, camY, camZ], fov: 30 }}
         gl={{ preserveDrawingBuffer: true, alpha: isTransparent }}
         style={{
           width: "100%",
@@ -1518,8 +1522,8 @@ function AvatarCanvasElement({ props: p }) {
           canvas: {
             camera: {
               initial_look_at: {
-                position: [0, camY, camZ],
-                target: [0, targetY, 0],
+                position: [camX, camY, camZ],
+                target: [camX, targetY, 0],
                 smooth: false,
               },
               controls: {
