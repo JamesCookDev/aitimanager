@@ -14,6 +14,7 @@ import { GalleryPropsPanel } from './GalleryPropsPanel';
 import { AnimatedNumberPropsPanel } from './AnimatedNumberPropsPanel';
 import { CatalogPropsPanel } from './CatalogPropsPanel';
 import { FormPropsPanel } from './FormPropsPanel';
+import { FeedPropsPanel } from './FeedPropsPanel';
 
 /* Reusable navigation action panel for any element */
 function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
@@ -841,6 +842,8 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
           </Section>
         </>
       );
+    case 'feed':
+      return <><FeedPropsPanel props={props} onChange={onChange} /><NavigationActionSection props={props} onChange={onChange} views={views} /></>;
     default:
       return (
         <Section title="Propriedades">

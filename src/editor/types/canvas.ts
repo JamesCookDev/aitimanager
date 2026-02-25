@@ -32,7 +32,8 @@ export type ElementType =
   | 'ticket'
   | 'qrpix'
   | 'numpad'
-  | 'bigcta';
+  | 'bigcta'
+  | 'feed';
 
 /* ── Views ──────────────────────────────────── */
 
@@ -123,6 +124,7 @@ const ELEMENT_DEFAULTS: Record<ElementType, { w: number; h: number; name: string
   qrpix: { w: 360, h: 480, name: 'QR Pix', props: { pixKey: '12345678901', amount: 'R$ 0,00', recipientName: 'Empresa LTDA', bgColor: 'rgba(0,0,0,0.5)', textColor: '#ffffff', accentColor: '#32bcad', borderRadius: 20, showAmount: true, label: 'Pague com Pix' } },
   numpad: { w: 400, h: 600, name: 'Teclado Numérico', props: { label: 'Digite seu CPF', placeholder: '000.000.000-00', bgColor: 'rgba(0,0,0,0.5)', textColor: '#ffffff', accentColor: '#6366f1', borderRadius: 20, maxLength: 11, mask: 'cpf', buttonLabel: 'Confirmar' } },
   bigcta: { w: 600, h: 180, name: 'CTA Grande', props: { label: 'Toque para começar', sublabel: '', icon: '👆', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 28, sublabelSize: 14, borderRadius: 24, pulse: true } },
+  feed: { w: 480, h: 700, name: 'Feed', props: { posts: [], layout: 'vertical', bgColor: 'transparent', cardBgColor: 'rgba(0,0,0,0.6)', textColor: '#ffffff', accentColor: '#ef4444', borderRadius: 16, cardBorderRadius: 12, gap: 16, showAuthor: true, showLikes: true, showComments: true } },
 };
 
 export function createElement(type: ElementType, x = 100, y = 100, viewId?: string): CanvasElement {
