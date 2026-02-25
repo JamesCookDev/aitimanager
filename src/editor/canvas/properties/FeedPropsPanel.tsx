@@ -8,6 +8,13 @@ import { Loader2, X, Plus, ChevronDown, ChevronUp, GripVertical, Image as ImageI
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Section, PropInput, ImageUploadField } from './shared';
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FeedPost {
   id: string;
@@ -68,7 +75,29 @@ function PostImageUpload({ onAdd }: { onAdd: (url: string) => void }) {
   );
 }
 
-function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p: Partial<FeedPost>) => void; onRemove: () => void }) {
+/* ───── Sortable Post Editor ───── */
+function SortablePostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p: Partial<FeedPost>) => void; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: post.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <PostEditor post={post} onChange={onChange} onRemove={onRemove} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  );
+}
+
+function PostEditor({ post, onChange, onRemove, dragHandleProps }: {
+  post: FeedPost;
+  onChange: (p: Partial<FeedPost>) => void;
+  onRemove: () => void;
+  dragHandleProps?: Record<string, any>;
+}) {
   const [open, setOpen] = useState(false);
   const images = post.images || (post.image ? [post.image] : []);
 
@@ -89,7 +118,9 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden bg-muted/10">
       <div className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer hover:bg-muted/20" onClick={() => setOpen(!open)}>
-        <GripVertical className="w-3 h-3 text-muted-foreground/30 shrink-0" />
+        <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing shrink-0 touch-none" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="w-3 h-3 text-muted-foreground/50" />
+        </div>
         {images[0] && <img src={images[0]} alt="" className="w-6 h-6 rounded object-cover shrink-0" />}
         <span className="text-[10px] font-medium text-foreground truncate flex-1">{post.title || 'Loja sem título'}</span>
         <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
@@ -100,7 +131,6 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
 
       {open && (
         <div className="px-2 pb-2 pt-1 space-y-2 border-t border-border/30">
-          {/* Basic info */}
           <PropInput label="Nome da loja" value={post.title} onChange={(v) => onChange({ title: v })} />
           <PropInput label="Autor / Responsável" value={post.author || ''} onChange={(v) => onChange({ author: v })} />
           <PropInput label="Descrição curta" value={post.description} onChange={(v) => onChange({ description: v })} type="textarea" />
@@ -108,32 +138,19 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
           <PropInput label="Categoria" value={post.category || ''} onChange={(v) => onChange({ category: v })} />
           <PropInput label="Badge" value={post.badge || ''} onChange={(v) => onChange({ badge: v })} />
 
-          {/* Rating */}
           <div>
             <Label className="text-[10px]">Avaliação</Label>
             <div className="flex items-center gap-1 mt-1">
               {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  onClick={() => onChange({ rating: post.rating === n ? 0 : n })}
-                  className="transition-transform active:scale-110"
-                >
-                  <Star
-                    className="w-4 h-4"
-                    style={{
-                      color: n <= (post.rating || 0) ? '#facc15' : 'rgba(150,150,150,0.3)',
-                      fill: n <= (post.rating || 0) ? '#facc15' : 'none',
-                    }}
-                  />
+                <button key={n} onClick={() => onChange({ rating: post.rating === n ? 0 : n })} className="transition-transform active:scale-110">
+                  <Star className="w-4 h-4" style={{ color: n <= (post.rating || 0) ? '#facc15' : 'rgba(150,150,150,0.3)', fill: n <= (post.rating || 0) ? '#facc15' : 'none' }} />
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Tags */}
           <PropInput label="Tags (separar com vírgula)" value={tagsStr} onChange={handleTagsChange} />
 
-          {/* Store contact info */}
           <div className="pt-1 border-t border-border/20">
             <Label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Informações da loja</Label>
           </div>
@@ -143,7 +160,6 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
           <PropInput label="Website" value={post.website || ''} onChange={(v) => onChange({ website: v })} />
           <PropInput label="Curtidas" value={post.likes || 0} onChange={(v) => onChange({ likes: Number(v) })} type="number" />
 
-          {/* Images */}
           <div>
             <Label className="text-[10px]">Imagens da loja ({images.length})</Label>
             <div className="space-y-1 mt-1 max-h-[120px] overflow-y-auto">
@@ -157,18 +173,14 @@ function PostEditor({ post, onChange, onRemove }: { post: FeedPost; onChange: (p
                 </div>
               ))}
             </div>
-            <div className="mt-1">
-              <PostImageUpload onAdd={addImage} />
-            </div>
+            <div className="mt-1"><PostImageUpload onAdd={addImage} /></div>
           </div>
 
-          {/* Avatar */}
           <div>
             <Label className="text-[10px]">Logo / Avatar</Label>
             <ImageUploadField value={post.avatar || ''} onChange={(v) => onChange({ avatar: v })} />
           </div>
 
-          {/* CTA */}
           <PropInput label="Botão CTA (texto)" value={post.ctaLabel || ''} onChange={(v) => onChange({ ctaLabel: v })} />
           <PropInput label="CTA URL" value={post.ctaUrl || ''} onChange={(v) => onChange({ ctaUrl: v })} />
         </div>
@@ -181,17 +193,15 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
   const posts: FeedPost[] = props.posts || [];
   const set = (key: string) => (val: any) => onChange({ [key]: val });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   const addPost = () => {
     const newPost: FeedPost = {
       id: `fp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      image: '',
-      images: [],
-      title: '',
-      description: '',
-      author: '',
-      likes: 0,
-      rating: 0,
-      tags: [],
+      image: '', images: [], title: '', description: '', author: '', likes: 0, rating: 0, tags: [],
     };
     onChange({ posts: [...posts, newPost] });
   };
@@ -203,6 +213,15 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
 
   const removePost = (index: number) => {
     onChange({ posts: posts.filter((_, i) => i !== index) });
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = posts.findIndex(p => p.id === active.id);
+    const newIdx = posts.findIndex(p => p.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    onChange({ posts: arrayMove(posts, oldIdx, newIdx) });
   };
 
   return (
@@ -219,16 +238,25 @@ export function FeedPropsPanel({ props, onChange }: { props: Record<string, any>
           </Select>
         </div>
 
-        <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-          {posts.map((post, i) => (
-            <PostEditor
-              key={post.id}
-              post={post}
-              onChange={(patch) => updatePost(i, patch)}
-              onRemove={() => removePost(i)}
-            />
-          ))}
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Mostrar busca</Label>
+          <Switch checked={props.showSearch !== false} onCheckedChange={set('showSearch')} />
         </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={posts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+              {posts.map((post, i) => (
+                <SortablePostEditor
+                  key={post.id}
+                  post={post}
+                  onChange={(patch) => updatePost(i, patch)}
+                  onRemove={() => removePost(i)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={addPost}>
           <Plus className="w-3 h-3" /> Adicionar loja
