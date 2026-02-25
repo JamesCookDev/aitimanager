@@ -38,6 +38,7 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
   const fields: FormField[] = props.fields || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [tab, setTab] = useState('fields');
+  const prefix = props.variablePrefix || 'form';
 
   const updateField = (id: string, patch: Partial<FormField>) => {
     onChange({ fields: fields.map(f => f.id === id ? { ...f, ...patch } : f) });
@@ -47,8 +48,8 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
     const newField: FormField = {
       id: `field_${Date.now()}`,
       type,
-      label: type === 'checkbox' ? 'Aceito os termos' : `Campo ${fields.length + 1}`,
-      placeholder: '',
+      label: type === 'checkbox' ? 'Aceito os termos' : type === 'textarea' ? 'Descrição' : `Campo ${fields.length + 1}`,
+      placeholder: type === 'textarea' ? 'Descreva aqui...' : '',
       required: false,
       options: type === 'select' ? 'Opção 1, Opção 2, Opção 3' : '',
     };
@@ -62,11 +63,13 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
 
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <TabsList className="w-full grid grid-cols-2 h-8">
+      <TabsList className="w-full grid grid-cols-3 h-8">
         <TabsTrigger value="fields" className="text-[10px]">Campos</TabsTrigger>
         <TabsTrigger value="style" className="text-[10px]">Estilo</TabsTrigger>
+        <TabsTrigger value="actions" className="text-[10px]">Ações</TabsTrigger>
       </TabsList>
 
+      {/* ── FIELDS TAB ── */}
       <TabsContent value="fields" className="space-y-2 mt-2">
         <Section title="Formulário">
           <PropInput label="Título" value={props.title || 'Check-in'} onChange={set('title')} />
@@ -99,6 +102,8 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
                     </div>
                     <PropInput label="Label" value={field.label} onChange={(v) => updateField(field.id, { label: v })} />
                     <PropInput label="Placeholder" value={field.placeholder || ''} onChange={(v) => updateField(field.id, { placeholder: v })} />
+                    <PropInput label="Nome da variável" value={field.variableName || ''} onChange={(v) => updateField(field.id, { variableName: v })} />
+                    <p className="text-[9px] text-muted-foreground -mt-1">Se vazio, usa o label como variável</p>
                     {field.type === 'select' && (
                       <PropInput label="Opções (separadas por vírgula)" value={field.options || ''} onChange={(v) => updateField(field.id, { options: v })} />
                     )}
@@ -141,17 +146,36 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
           <PropInput label="Texto do botão" value={props.submitLabel || 'Enviar'} onChange={set('submitLabel')} />
           <PropInput label="Mensagem de sucesso" value={props.successMessage || 'Enviado com sucesso! ✅'} onChange={set('successMessage')} />
         </Section>
+      </TabsContent>
 
-        <Section title="🔌 Integração / Dados">
+      {/* ── STYLE TAB ── */}
+      <TabsContent value="style" className="space-y-2 mt-2">
+        <Section title="Aparência">
+          <PropInput label="Cor do título" value={props.titleColor || '#ffffff'} onChange={set('titleColor')} type="color" />
+          <PropInput label="Tamanho título" value={props.titleSize || 22} onChange={set('titleSize')} type="number" />
+          <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.5)'} onChange={set('bgColor')} type="color" />
+          <PropInput label="Border Radius" value={props.borderRadius || 16} onChange={set('borderRadius')} type="number" />
+          <PropInput label="Cor do campo" value={props.fieldBgColor || 'rgba(255,255,255,0.1)'} onChange={set('fieldBgColor')} type="color" />
+          <PropInput label="Cor texto campo" value={props.fieldTextColor || '#ffffff'} onChange={set('fieldTextColor')} type="color" />
+          <PropInput label="Cor label campo" value={props.fieldLabelColor || 'rgba(200,200,200,0.8)'} onChange={set('fieldLabelColor')} type="color" />
+          <PropInput label="Cor do botão" value={props.submitBgColor || '#6366f1'} onChange={set('submitBgColor')} type="color" />
+          <PropInput label="Cor texto botão" value={props.submitTextColor || '#ffffff'} onChange={set('submitTextColor')} type="color" />
+          <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
+        </Section>
+      </TabsContent>
+
+      {/* ── ACTIONS TAB ── */}
+      <TabsContent value="actions" className="space-y-2 mt-2">
+        <Section title="🔌 Destino dos dados">
           <div>
-            <Label className="text-[11px]">Destino dos dados</Label>
+            <Label className="text-[11px]">Enviar dados para</Label>
             <Select value={props.dataDestination || 'none'} onValueChange={set('dataDestination')}>
               <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum (apenas visual)</SelectItem>
+                <SelectItem value="database">💾 Salvar no banco</SelectItem>
                 <SelectItem value="webhook">🔌 Webhook / API</SelectItem>
                 <SelectItem value="email">📧 Enviar por e-mail</SelectItem>
-                <SelectItem value="database">💾 Salvar no banco</SelectItem>
                 <SelectItem value="whatsapp">💬 Enviar via WhatsApp</SelectItem>
               </SelectContent>
             </Select>
@@ -177,7 +201,6 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
             <>
               <PropInput label="E-mail destino" value={props.emailTo || ''} onChange={set('emailTo')} />
               <PropInput label="Assunto do e-mail" value={props.emailSubject || 'Novo formulário recebido'} onChange={set('emailSubject')} />
-              <p className="text-[9px] text-muted-foreground -mt-1">Dados do formulário serão enviados no corpo do e-mail</p>
             </>
           )}
           {props.dataDestination === 'whatsapp' && (
@@ -188,8 +211,61 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
             </>
           )}
           {props.dataDestination === 'database' && (
-            <p className="text-[9px] text-muted-foreground">Os dados serão salvos automaticamente no banco de dados do dispositivo</p>
+            <p className="text-[9px] text-muted-foreground">Os dados serão salvos automaticamente no banco de dados</p>
           )}
+        </Section>
+
+        <Section title="🔗 Após enviar">
+          {views && views.length > 0 ? (
+            <>
+              <div>
+                <Label className="text-[11px]">Navegar para página</Label>
+                <Select value={props.navigateOnSubmit || '__none__'} onValueChange={(v) => set('navigateOnSubmit')(v === '__none__' ? '' : v)}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Mostrar sucesso (padrão)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Tela de sucesso</SelectItem>
+                    {views.map(v => (
+                      <SelectItem key={v.id} value={v.id}>📄 {v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Transição</Label>
+                <Select value={props.navigateTransition || 'fade'} onValueChange={set('navigateTransition')}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fade">Fade</SelectItem>
+                    <SelectItem value="slide-left">Slide ←</SelectItem>
+                    <SelectItem value="slide-right">Slide →</SelectItem>
+                    <SelectItem value="slide-up">Slide ↑</SelectItem>
+                    <SelectItem value="zoom">Zoom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <p className="text-[9px] text-muted-foreground">Crie mais páginas para habilitar navegação após envio</p>
+          )}
+        </Section>
+
+        <Section title="📦 Variáveis dos campos">
+          <PropInput label="Prefixo das variáveis" value={props.variablePrefix || 'form'} onChange={set('variablePrefix')} />
+          <PropInput label="Variável alvo (link direto)" value={props.targetVariable || ''} onChange={set('targetVariable')} />
+          <p className="text-[9px] text-muted-foreground -mt-1">
+            Recebe dados de outro elemento (ex: seleção de lista/catálogo) e pré-preenche campos.
+          </p>
+
+          <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis dos campos:</p>
+            {fields.map(f => {
+              const varName = f.variableName || f.label.toLowerCase().replace(/\s+/g, '_');
+              return <code key={f.id} className="text-[9px] text-primary block">{`{{${varName}}}`} ← {f.label}</code>;
+            })}
+            {fields.length === 0 && (
+              <p className="text-[9px] text-muted-foreground italic">Adicione campos para ver as variáveis</p>
+            )}
+          </div>
         </Section>
 
         <Section title="🔒 LGPD & Privacidade">
@@ -199,7 +275,7 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
           </div>
           {props.showLgpdConsent && (
             <>
-              <PropInput label="Texto do consentimento" value={props.lgpdText || 'Ao enviar, você concorda com nossa Política de Privacidade e consente com o tratamento dos seus dados.'} onChange={set('lgpdText')} type="textarea" />
+              <PropInput label="Texto do consentimento" value={props.lgpdText || 'Ao enviar, você concorda com nossa Política de Privacidade.'} onChange={set('lgpdText')} type="textarea" />
               <PropInput label="Link da política" value={props.lgpdLink || ''} onChange={set('lgpdLink')} />
             </>
           )}
@@ -208,48 +284,6 @@ export function FormPropsPanel({ props, onChange, views }: Props) {
             <Switch checked={props.requireConsent === true} onCheckedChange={set('requireConsent')} />
           </div>
           <p className="text-[9px] text-muted-foreground -mt-1">Bloqueia o envio até o usuário aceitar os termos</p>
-        </Section>
-
-        {views && views.length > 0 && (
-          <Section title="🔗 Após enviar">
-            <p className="text-[9px] text-muted-foreground mb-1">Os valores preenchidos são salvos como variáveis globais, acessíveis via {'{{variavel}}'} em textos de outras páginas.</p>
-            <div>
-              <Label className="text-[11px]">Navegar para página</Label>
-              <Select value={props.navigateOnSubmit || '__none__'} onValueChange={(v) => set('navigateOnSubmit')(v === '__none__' ? '' : v)}>
-                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Mostrar sucesso (padrão)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Tela de sucesso</SelectItem>
-                  {views.map(v => (
-                    <SelectItem key={v.id} value={v.id}>
-                      <span className="flex items-center gap-1.5">📄 {v.name}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mt-2 p-2 rounded-lg bg-muted/30 space-y-0.5">
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Variáveis dos campos:</p>
-              {fields.map(f => {
-                const varName = f.variableName || f.label.toLowerCase().replace(/\s+/g, '_');
-                return <code key={f.id} className="text-[9px] text-primary block">{`{{${varName}}}`} ← {f.label}</code>;
-              })}
-            </div>
-          </Section>
-        )}
-      </TabsContent>
-
-      <TabsContent value="style" className="space-y-2 mt-2">
-        <Section title="Aparência">
-          <PropInput label="Cor do título" value={props.titleColor || '#ffffff'} onChange={set('titleColor')} type="color" />
-          <PropInput label="Tamanho título" value={props.titleSize || 22} onChange={set('titleSize')} type="number" />
-          <PropInput label="Cor de fundo" value={props.bgColor || 'rgba(0,0,0,0.5)'} onChange={set('bgColor')} type="color" />
-          <PropInput label="Border Radius" value={props.borderRadius || 16} onChange={set('borderRadius')} type="number" />
-          <PropInput label="Cor do campo" value={props.fieldBgColor || 'rgba(255,255,255,0.1)'} onChange={set('fieldBgColor')} type="color" />
-          <PropInput label="Cor texto campo" value={props.fieldTextColor || '#ffffff'} onChange={set('fieldTextColor')} type="color" />
-          <PropInput label="Cor label campo" value={props.fieldLabelColor || 'rgba(200,200,200,0.8)'} onChange={set('fieldLabelColor')} type="color" />
-          <PropInput label="Cor do botão" value={props.submitBgColor || '#6366f1'} onChange={set('submitBgColor')} type="color" />
-          <PropInput label="Cor texto botão" value={props.submitTextColor || '#ffffff'} onChange={set('submitTextColor')} type="color" />
-          <PropInput label="Cor de destaque" value={props.accentColor || '#6366f1'} onChange={set('accentColor')} type="color" />
         </Section>
       </TabsContent>
     </Tabs>

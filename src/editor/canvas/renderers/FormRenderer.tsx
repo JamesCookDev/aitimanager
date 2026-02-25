@@ -37,9 +37,11 @@ interface Props {
   emailSubject?: string;
   whatsappNumber?: string;
   whatsappTemplate?: string;
-  showLgpdConsent?: boolean;
+   showLgpdConsent?: boolean;
   lgpdText?: string;
   requireConsent?: boolean;
+  variablePrefix?: string;
+  targetVariable?: string;
 }
 
 export function FormRenderer(props: Props) {
@@ -70,6 +72,9 @@ export function FormRenderer(props: Props) {
     lgpdText = 'Ao enviar, você concorda com nossa Política de Privacidade.',
     requireConsent,
   } = props;
+
+  const variablePrefix = props.variablePrefix || 'form';
+  const targetVariable = props.targetVariable;
 
   const { setVariables, navigateToPage } = usePageVariables();
   const [submitted, setSubmitted] = useState(false);
@@ -140,16 +145,27 @@ export function FormRenderer(props: Props) {
     if (requireConsent && showLgpdConsent && !consentChecked) return;
 
     setSending(true);
-    const vars = collectFormData();
+    const rawVars = collectFormData();
 
-    if (Object.keys(vars).length > 0) {
-      setVariables(vars);
+    // Also set prefixed variables for cross-element linking
+    const allVars: Record<string, string> = { ...rawVars };
+    Object.entries(rawVars).forEach(([k, v]) => {
+      allVars[`${variablePrefix}_${k}`] = v;
+    });
+
+    // If a target variable is specified, set the combined form data
+    if (targetVariable) {
+      allVars[targetVariable] = Object.entries(rawVars).map(([k, v]) => `${k}: ${v}`).join(', ');
     }
 
-    await sendData(vars);
+    if (Object.keys(allVars).length > 0) {
+      setVariables(allVars);
+    }
+
+    await sendData(rawVars);
 
     if (navigateOnSubmit && navigateToPage) {
-      navigateToPage(navigateOnSubmit, navigateTransition as any, vars);
+      navigateToPage(navigateOnSubmit, navigateTransition as any, allVars);
     } else {
       setSubmitted(true);
     }
