@@ -28,9 +28,10 @@ import { FeedRenderer } from './FeedRenderer';
 
 interface Props {
   element: CanvasElement;
+  onUpdateProps?: (props: Record<string, any>) => void;
 }
 
-export function ElementRenderer({ element }: Props) {
+export function ElementRenderer({ element, onUpdateProps }: Props) {
   switch (element.type) {
     case 'text':
       return <TextRenderer {...element.props} />;
@@ -59,7 +60,10 @@ export function ElementRenderer({ element }: Props) {
     case 'countdown':
       return <CountdownPlaceholder {...element.props} />;
     case 'iframe':
-      return <IframePlaceholder {...element.props} />;
+      return <IframePlaceholder {...element.props} onInlineEdit={onUpdateProps ? (changes) => {
+        const existing = element.props.fieldOverrides || {};
+        onUpdateProps({ fieldOverrides: { ...existing, ...changes } });
+      } : undefined} />;
     case 'carousel':
       return <CarouselRenderer {...element.props} />;
     case 'avatar':

@@ -1818,6 +1818,223 @@ const mpShoppingAI: CanvasState = (() => {
 
 
 // ═══════════════════════════════════════════════════
+// Multi-page HTML Pure template
+// ═══════════════════════════════════════════════════
+const htmlMultiPageContent = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background:#0a0a1a; color:#fff; width:1080px; height:1920px; overflow:hidden; }
+  [data-page] { display:none; width:100%; height:100%; position:absolute; top:0; left:0; flex-direction:column; }
+  [data-page].active { display:flex; }
+  .header { padding:40px 60px 20px; }
+  .header h1 { font-size:36px; font-weight:800; }
+  .header p { font-size:16px; opacity:0.6; margin-top:8px; }
+  .content { flex:1; padding:20px 60px; overflow:auto; }
+  .nav-bar { display:flex; justify-content:space-around; padding:20px 40px 40px; background:rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.1); }
+  .nav-btn { display:flex; flex-direction:column; align-items:center; gap:6px; background:none; border:none; color:#fff; opacity:0.5; cursor:pointer; font-size:12px; }
+  .nav-btn.active { opacity:1; color:#818cf8; }
+  .nav-btn span.icon { font-size:24px; }
+  .card { background:rgba(255,255,255,0.08); border-radius:16px; padding:24px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.06); }
+  .card h3 { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .card p { font-size:14px; opacity:0.7; line-height:1.5; }
+  .card img { width:100%; height:200px; object-fit:cover; border-radius:12px; margin-bottom:16px; }
+  .hero-img { width:100%; height:320px; object-fit:cover; border-radius:0 0 24px 24px; }
+  .badge { display:inline-block; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:600; margin:4px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .cta-btn { width:100%; padding:18px; border-radius:14px; border:none; font-size:18px; font-weight:700; cursor:pointer; margin-top:16px; }
+</style>
+<script>
+  function goPage(id) {
+    document.querySelectorAll('[data-page]').forEach(p => p.classList.remove('active'));
+    const target = document.querySelector('[data-page="'+id+'"]');
+    if (target) target.classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.target === id);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => goPage('home'));
+</script>
+</head>
+<body>
+
+  <div data-page="home" data-name="Início" class="active">
+    <img class="hero-img" src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1080&h=320&fit=crop" alt="Shopping">
+    <div class="header">
+      <h1>🏬 Shopping Center</h1>
+      <p>Bem-vindo! Explore nossas lojas e promoções.</p>
+    </div>
+    <div class="content">
+      <div class="card">
+        <h3>✨ Promoção do Dia</h3>
+        <p>Até 50% OFF em eletrônicos e moda. Válido somente hoje!</p>
+        <button class="cta-btn" style="background:#818cf8;color:#fff" onclick="goPage('promos')">Ver Promoções →</button>
+      </div>
+      <div class="grid-2">
+        <div class="card" onclick="goPage('lojas')" style="cursor:pointer">
+          <h3>🏪</h3>
+          <p>Diretório de Lojas</p>
+        </div>
+        <div class="card" onclick="goPage('servicos')" style="cursor:pointer">
+          <h3>🍽️</h3>
+          <p>Serviços</p>
+        </div>
+      </div>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-btn active" data-target="home" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+      <button class="nav-btn" data-target="lojas" onclick="goPage('lojas')"><span class="icon">🏪</span>Lojas</button>
+      <button class="nav-btn" data-target="promos" onclick="goPage('promos')"><span class="icon">🔥</span>Promos</button>
+      <button class="nav-btn" data-target="servicos" onclick="goPage('servicos')"><span class="icon">⚙️</span>Serviços</button>
+    </nav>
+  </div>
+
+  <div data-page="lojas" data-name="Lojas">
+    <div class="header">
+      <h1>🏪 Diretório de Lojas</h1>
+      <p>Encontre a loja perfeita para você</p>
+    </div>
+    <div class="content">
+      <div class="card">
+        <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&h=200&fit=crop" alt="Moda">
+        <h3>Fashion Store</h3>
+        <p>Moda feminina e masculina — Piso 1, Loja 102</p>
+        <span class="badge" style="background:rgba(129,140,248,0.2);color:#818cf8">Moda</span>
+      </div>
+      <div class="card">
+        <img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&h=200&fit=crop" alt="Tech">
+        <h3>TechWorld</h3>
+        <p>Eletrônicos e acessórios — Piso 2, Loja 205</p>
+        <span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">Eletrônicos</span>
+      </div>
+      <div class="card">
+        <img src="https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&h=200&fit=crop" alt="Casa">
+        <h3>Casa & Decoração</h3>
+        <p>Móveis e decoração para seu lar — Piso 1, Loja 115</p>
+        <span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">Casa</span>
+      </div>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-btn" data-target="home" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+      <button class="nav-btn active" data-target="lojas" onclick="goPage('lojas')"><span class="icon">🏪</span>Lojas</button>
+      <button class="nav-btn" data-target="promos" onclick="goPage('promos')"><span class="icon">🔥</span>Promos</button>
+      <button class="nav-btn" data-target="servicos" onclick="goPage('servicos')"><span class="icon">⚙️</span>Serviços</button>
+    </nav>
+  </div>
+
+  <div data-page="promos" data-name="Promoções">
+    <div class="header">
+      <h1>🔥 Promoções Imperdíveis</h1>
+      <p>Ofertas exclusivas do dia</p>
+    </div>
+    <div class="content">
+      <div class="card" style="background:linear-gradient(135deg, rgba(129,140,248,0.3), rgba(168,85,247,0.3)); border-color:rgba(129,140,248,0.3)">
+        <h3>⚡ Flash Sale — Eletrônicos</h3>
+        <p>Smartphones, tablets e notebooks com até 40% de desconto. Corra, estoque limitado!</p>
+        <span class="badge" style="background:#818cf8;color:#fff">-40%</span>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg, rgba(248,113,113,0.3), rgba(251,146,60,0.3)); border-color:rgba(248,113,113,0.3)">
+        <h3>👗 Liquidação de Moda</h3>
+        <p>Coleção verão com preços irresistíveis. Compre 2 e leve 3!</p>
+        <span class="badge" style="background:#f87171;color:#fff">Leve 3 Pague 2</span>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg, rgba(52,211,153,0.3), rgba(59,130,246,0.3)); border-color:rgba(52,211,153,0.3)">
+        <h3>🍔 Gastronomia</h3>
+        <p>Praça de alimentação com combos a partir de R$19,90 hoje!</p>
+        <span class="badge" style="background:#34d399;color:#000">R$19,90</span>
+      </div>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-btn" data-target="home" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+      <button class="nav-btn" data-target="lojas" onclick="goPage('lojas')"><span class="icon">🏪</span>Lojas</button>
+      <button class="nav-btn active" data-target="promos" onclick="goPage('promos')"><span class="icon">🔥</span>Promos</button>
+      <button class="nav-btn" data-target="servicos" onclick="goPage('servicos')"><span class="icon">⚙️</span>Serviços</button>
+    </nav>
+  </div>
+
+  <div data-page="servicos" data-name="Serviços">
+    <div class="header">
+      <h1>⚙️ Serviços</h1>
+      <p>Tudo que você precisa em um só lugar</p>
+    </div>
+    <div class="content">
+      <div class="grid-2">
+        <div class="card" style="text-align:center">
+          <h3 style="font-size:36px">🅿️</h3>
+          <p style="font-weight:600;margin-top:8px">Estacionamento</p>
+          <p style="font-size:12px;margin-top:4px">2h grátis</p>
+        </div>
+        <div class="card" style="text-align:center">
+          <h3 style="font-size:36px">🚻</h3>
+          <p style="font-weight:600;margin-top:8px">Banheiros</p>
+          <p style="font-size:12px;margin-top:4px">Todos os pisos</p>
+        </div>
+        <div class="card" style="text-align:center">
+          <h3 style="font-size:36px">📶</h3>
+          <p style="font-weight:600;margin-top:8px">Wi-Fi Grátis</p>
+          <p style="font-size:12px;margin-top:4px">Shopping_Free</p>
+        </div>
+        <div class="card" style="text-align:center">
+          <h3 style="font-size:36px">🛎️</h3>
+          <p style="font-weight:600;margin-top:8px">Concierge</p>
+          <p style="font-size:12px;margin-top:4px">Piso Térreo</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>📞 Central de Atendimento</h3>
+        <p>Precisa de ajuda? Fale conosco pelo telefone (11) 3000-0000 ou visite a Central no Piso Térreo.</p>
+      </div>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-btn" data-target="home" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+      <button class="nav-btn" data-target="lojas" onclick="goPage('lojas')"><span class="icon">🏪</span>Lojas</button>
+      <button class="nav-btn" data-target="promos" onclick="goPage('promos')"><span class="icon">🔥</span>Promos</button>
+      <button class="nav-btn active" data-target="servicos" onclick="goPage('servicos')"><span class="icon">⚙️</span>Serviços</button>
+    </nav>
+  </div>
+
+</body>
+</html>`;
+
+const mpHtmlShopping: CanvasState = {
+  bgColor: '#0a0a1a',
+  elements: [
+    {
+      id: eid(),
+      type: 'iframe',
+      x: 0, y: 0,
+      width: 1080, height: 1920,
+      rotation: 0, zIndex: 1, opacity: 1,
+      locked: false, visible: true,
+      name: 'HTML Multi-Página',
+      props: {
+        htmlContent: htmlMultiPageContent,
+        borderRadius: 0,
+        scrolling: false,
+        htmlPages: [
+          { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+          { id: 'page_1', name: 'Lojas', selector: '[data-page="lojas"]' },
+          { id: 'page_2', name: 'Promoções', selector: '[data-page="promos"]' },
+          { id: 'page_3', name: 'Serviços', selector: '[data-page="servicos"]' },
+        ],
+      },
+    },
+  ],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Lojas', isDefault: false },
+    { id: 'page_2', name: 'Promoções', isDefault: false },
+    { id: 'page_3', name: 'Serviços', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -1841,4 +2058,6 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   { id: 'mp-hotel', name: '🏨 Hotel Completo', description: '4 páginas: Início → Check-in → Serviços → Turismo', icon: '🏨', category: 'hotel', state: mpHotel },
   { id: 'mp-event', name: '🎤 Evento Multi-página', description: '3 páginas: Início → Programação → Informações', icon: '🎤', category: 'info', state: mpEvent },
   { id: 'mp-shopping-ai', name: '🤖 Shopping AI Assistant', description: '4 páginas: Lojas + Avatar → Categorias → Mapa → Eventos', icon: '🤖', category: 'retail', state: mpShoppingAI },
+  // ── HTML Puro (multi-page) ──
+  { id: 'html-shopping', name: '📄 Shopping HTML Puro', description: '4 páginas HTML nativas com navegação, edição inline de textos e imagens', icon: '📄', category: 'retail', state: mpHtmlShopping },
 ];

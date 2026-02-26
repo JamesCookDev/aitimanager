@@ -573,6 +573,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                             onMove={(x, y) => { if (!previewMode) dispatch({ type: 'MOVE', id: el.id, x, y }); }}
                             onResize={(x, y, w, h) => { if (!previewMode) dispatch({ type: 'RESIZE', id: el.id, x, y, width: w, height: h }); }}
                             onNavigate={handleNavigateToPage}
+                            onUpdateProps={(props) => dispatch({ type: 'UPDATE_PROPS', id: el.id, props })}
                             previewMode={previewMode}
                           />
                         ))}
