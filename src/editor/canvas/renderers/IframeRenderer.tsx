@@ -3,6 +3,9 @@ import { Globe } from 'lucide-react';
 import { Placeholder } from './Placeholder';
 import { applyFieldOverrides } from '../../utils/htmlEditableFields';
 
+const DESIGN_W = 1080;
+const DESIGN_H = 1920;
+
 interface IframeProps {
   url?: string;
   htmlContent?: string;
@@ -24,7 +27,20 @@ export function IframePlaceholder(props: IframeProps) {
   const htmlContent = props.htmlContent || '';
   const overrides = props.fieldOverrides;
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+
+  // Observe container size for responsive scaling
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Apply editable field overrides to raw HTML
   const finalHtml = useMemo(() => {
@@ -33,38 +49,9 @@ export function IframePlaceholder(props: IframeProps) {
     if (overrides && Object.keys(overrides).length > 0) {
       html = applyFieldOverrides(html, overrides);
     }
-    // Inject responsive scaling + inline editing support script
     const editScript = `
 <script>
 (function() {
-  // ── Responsive scaling ──
-  function autoScale() {
-    var body = document.body;
-    var bw = body.scrollWidth || body.offsetWidth;
-    var bh = body.scrollHeight || body.offsetHeight;
-    // Try to detect designed size from CSS (e.g. body { width:1080px; height:1920px })
-    var cs = getComputedStyle(body);
-    var designW = parseInt(cs.width) || bw;
-    var designH = parseInt(cs.height) || bh;
-    if (designW <= 0 || designH <= 0) return;
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var scaleX = vw / designW;
-    var scaleY = vh / designH;
-    var s = Math.min(scaleX, scaleY);
-    if (s >= 0.99 && s <= 1.01) return; // no scaling needed
-    body.style.transformOrigin = 'top left';
-    body.style.transform = 'scale(' + s + ')';
-    body.style.width = designW + 'px';
-    body.style.height = designH + 'px';
-    // Prevent scrollbars from unscaled overflow
-    document.documentElement.style.overflow = 'hidden';
-  }
-  // Run on load and resize
-  if (document.readyState === 'complete') autoScale();
-  else window.addEventListener('load', autoScale);
-  window.addEventListener('resize', autoScale);
-
   // ── Page navigation + inline editing ──
   var editing = false;
   window.addEventListener('message', function(e) {
@@ -173,18 +160,32 @@ export function IframePlaceholder(props: IframeProps) {
     iframe.contentWindow.postMessage(newState ? 'enable-edit' : 'disable-edit', '*');
   }, [isEditing]);
 
-  // Raw HTML mode — render via srcdoc
+  // Calculate scale to fit design size into container
+  const iframeScale = containerSize.w > 0
+    ? Math.min(containerSize.w / DESIGN_W, containerSize.h / DESIGN_H)
+    : 1;
+
+  // Raw HTML mode — render via srcdoc with CSS transform scaling
   if (finalHtml) {
     return (
-      <div className="w-full h-full relative overflow-hidden group" style={{ borderRadius: props.borderRadius || 0 }}>
+      <div ref={containerRef} className="w-full h-full relative overflow-hidden group" style={{ borderRadius: props.borderRadius || 0 }}>
         <iframe
           ref={iframeRef}
           srcDoc={finalHtml}
-          className="w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin"
           scrolling={props.scrolling === false ? 'no' : 'auto'}
           title="HTML embed"
-          style={{ pointerEvents: isEditing ? 'auto' : 'none' }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: DESIGN_W,
+            height: DESIGN_H,
+            border: 'none',
+            transformOrigin: 'top left',
+            transform: `scale(${iframeScale})`,
+            pointerEvents: isEditing ? 'auto' : 'none',
+          }}
         />
         {/* Edit mode toggle button */}
         <button

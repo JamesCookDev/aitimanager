@@ -732,9 +732,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
           const head = doc.head.innerHTML;
           const body = doc.body.innerHTML;
           const bodyAttrs = Array.from(doc.body.attributes).map(a => a.name + '="' + a.value + '"').join(" ");
-          // Inject responsive auto-scaling script
-          const scaleScript = `<script>(function(){function s(){var b=document.body,cs=getComputedStyle(b),dw=parseInt(cs.width)||b.scrollWidth,dh=parseInt(cs.height)||b.scrollHeight;if(dw<=0||dh<=0)return;var sx=window.innerWidth/dw,sy=window.innerHeight/dh,sc=Math.min(sx,sy);if(sc>=0.99&&sc<=1.01)return;b.style.transformOrigin='top left';b.style.transform='scale('+sc+')';b.style.width=dw+'px';b.style.height=dh+'px';document.documentElement.style.overflow='hidden';}if(document.readyState==='complete')s();else window.addEventListener('load',s);window.addEventListener('resize',s);})();</script>`;
-          finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + scaleScript + "</body></html>";
+          finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
         }
 
         return (
