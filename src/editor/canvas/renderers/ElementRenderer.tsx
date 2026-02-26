@@ -30,9 +30,10 @@ interface Props {
   element: CanvasElement;
   onUpdateProps?: (props: Record<string, any>) => void;
   activeViewName?: string;
+  onNavigatePage?: (pageName: string) => void;
 }
 
-export function ElementRenderer({ element, onUpdateProps, activeViewName }: Props) {
+export function ElementRenderer({ element, onUpdateProps, activeViewName, onNavigatePage }: Props) {
   switch (element.type) {
     case 'text':
       return <TextRenderer {...element.props} />;
@@ -61,7 +62,7 @@ export function ElementRenderer({ element, onUpdateProps, activeViewName }: Prop
     case 'countdown':
       return <CountdownPlaceholder {...element.props} />;
     case 'iframe':
-      return <IframePlaceholder {...element.props} activeViewName={activeViewName} onInlineEdit={onUpdateProps ? (changes) => {
+      return <IframePlaceholder {...element.props} activeViewName={activeViewName} onNavigatePage={onNavigatePage} onInlineEdit={onUpdateProps ? (changes) => {
         const existing = element.props.fieldOverrides || {};
         onUpdateProps({ fieldOverrides: { ...existing, ...changes } });
       } : undefined} />;

@@ -20,6 +20,8 @@ interface IframeProps {
   activeViewName?: string;
   /** Pages detected in HTML */
   htmlPages?: { id: string; name: string; selector: string }[];
+  /** Callback when a button/link inside the iframe requests page navigation */
+  onNavigatePage?: (pageName: string) => void;
 }
 
 export function IframePlaceholder(props: IframeProps) {
@@ -52,7 +54,36 @@ export function IframePlaceholder(props: IframeProps) {
     const editScript = `
 <script>
 (function() {
-  // ── Page navigation + inline editing ──
+  // ── Page navigation via clicks ──
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    // Walk up to find navigable element
+    while (el && el !== document.body) {
+      var nav = el.getAttribute('data-navigate');
+      if (nav) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.parent.postMessage({ type: 'navigate-page-click', page: nav }, '*');
+        return;
+      }
+      // Check href="#page-name" links
+      if (el.tagName === 'A') {
+        var href = el.getAttribute('href') || '';
+        if (href.startsWith('#')) {
+          var pageName = href.substring(1);
+          if (pageName) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.parent.postMessage({ type: 'navigate-page-click', page: pageName }, '*');
+            return;
+          }
+        }
+      }
+      el = el.parentElement;
+    }
+  }, true);
+
+  // ── Page navigation via postMessage ──
   var editing = false;
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'navigate-page') {
@@ -122,7 +153,7 @@ export function IframePlaceholder(props: IframeProps) {
     return html;
   }, [htmlContent, overrides]);
 
-  // Listen for inline edit messages from iframe
+  // Listen for inline edit and navigation messages from iframe
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === 'inline-edit' && props.onInlineEdit) {
@@ -131,10 +162,13 @@ export function IframePlaceholder(props: IframeProps) {
       if (e.data?.type === 'inline-edit-img' && props.onInlineEdit) {
         props.onInlineEdit({ [`img_${e.data.index + 1}`]: e.data.src });
       }
+      if (e.data?.type === 'navigate-page-click' && props.onNavigatePage) {
+        props.onNavigatePage(e.data.page);
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [props.onInlineEdit]);
+  }, [props.onInlineEdit, props.onNavigatePage]);
 
   // Sync data-page navigation when activeViewName changes
   useEffect(() => {
@@ -184,7 +218,7 @@ export function IframePlaceholder(props: IframeProps) {
             border: 'none',
             transformOrigin: 'top left',
             transform: `scale(${iframeScale})`,
-            pointerEvents: isEditing ? 'auto' : 'none',
+            pointerEvents: (isEditing || props.onNavigatePage) ? 'auto' : 'none',
           }}
         />
         {/* Edit mode toggle button */}
