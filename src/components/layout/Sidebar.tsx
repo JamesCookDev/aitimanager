@@ -9,68 +9,68 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Cpu,
   Brain,
   PanelTop,
+  LayoutDashboard,
+  Shield,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import logoAitinet from '@/assets/logo-aitinet.png';
+
+interface NavGroup {
+  label: string;
+  icon: React.ElementType;
+  defaultOpen?: boolean;
+  items: {
+    title: string;
+    icon: React.ElementType;
+    path: string;
+    showFor: 'all' | 'super_admin';
+  }[];
+}
 
 export function Sidebar() {
   const { profile, role, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   const isSuperAdmin = role === 'super_admin';
 
-  const navItems = [
+  const navGroups: NavGroup[] = [
     {
-      title: 'Monitor ao Vivo',
-      icon: Activity,
-      path: '/dashboard',
-      showFor: 'all' as const,
+      label: 'Principal',
+      icon: LayoutDashboard,
+      defaultOpen: true,
+      items: [
+        { title: 'Monitor ao Vivo', icon: Activity, path: '/dashboard', showFor: 'all' },
+        { title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens', icon: Cpu, path: '/dashboard/devices', showFor: 'all' },
+        { title: 'Page Builder', icon: PanelTop, path: '/dashboard/page-editor', showFor: 'all' },
+        { title: 'Configurações IA', icon: Brain, path: '/dashboard/ai-configs', showFor: 'super_admin' },
+      ],
     },
     {
-      title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens',
-      icon: Cpu,
-      path: '/dashboard/devices',
-      showFor: 'all' as const,
-    },
-    {
-      title: 'Page Builder',
-      icon: PanelTop,
-      path: '/dashboard/page-editor',
-      showFor: 'all' as const,
-    },
-    {
-      title: 'Configurações IA',
-      icon: Brain,
-      path: '/dashboard/ai-configs',
-      showFor: 'super_admin' as const,
-    },
-    {
-      title: 'Organizações',
-      icon: Building2,
-      path: '/dashboard/organizations',
-      showFor: 'super_admin' as const,
-    },
-    {
-      title: 'Usuários',
-      icon: Users,
-      path: '/dashboard/users',
-      showFor: 'super_admin' as const,
-    },
-    {
-      title: 'Configurações',
-      icon: Settings,
-      path: '/dashboard/settings',
-      showFor: 'super_admin' as const,
+      label: 'Administração',
+      icon: Shield,
+      defaultOpen: true,
+      items: [
+        { title: 'Organizações', icon: Building2, path: '/dashboard/organizations', showFor: 'super_admin' },
+        { title: 'Usuários', icon: Users, path: '/dashboard/users', showFor: 'super_admin' },
+        { title: 'Configurações', icon: Settings, path: '/dashboard/settings', showFor: 'super_admin' },
+      ],
     },
   ];
 
-  const filteredItems = navItems.filter(
-    (item) => item.showFor === 'all' || item.showFor === role
-  );
+  // Filter groups by role and remove empty groups
+  const filteredGroups = navGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => item.showFor === 'all' || item.showFor === role),
+    }))
+    .filter(group => group.items.length > 0);
 
   return (
     <aside
@@ -97,23 +97,14 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {filteredItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/dashboard'}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors',
-              collapsed && 'justify-center px-2'
-            )}
-            activeClassName="bg-sidebar-accent text-sidebar-primary"
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && (
-              <span className="text-sm font-medium">{item.title}</span>
-            )}
-          </NavLink>
+      <nav className="flex-1 p-3 space-y-3 overflow-y-auto">
+        {filteredGroups.map((group) => (
+          <SidebarGroup
+            key={group.label}
+            group={group}
+            collapsed={collapsed}
+            currentPath={location.pathname}
+          />
         ))}
       </nav>
 
@@ -143,7 +134,6 @@ export function Sidebar() {
           {!collapsed && <span className="ml-2">Sair</span>}
         </Button>
 
-        {/* Collapse toggle */}
         <Button
           variant="ghost"
           size="sm"
@@ -164,5 +154,71 @@ export function Sidebar() {
         </Button>
       </div>
     </aside>
+  );
+}
+
+/* ── Collapsible Sidebar Group ── */
+function SidebarGroup({ group, collapsed, currentPath }: {
+  group: NavGroup;
+  collapsed: boolean;
+  currentPath: string;
+}) {
+  const hasActiveItem = group.items.some(item =>
+    item.path === '/dashboard' ? currentPath === '/dashboard' : currentPath.startsWith(item.path)
+  );
+  const [open, setOpen] = useState(group.defaultOpen ?? hasActiveItem);
+
+  // When sidebar is collapsed, show only icons without grouping
+  if (collapsed) {
+    return (
+      <div className="space-y-1">
+        {group.items.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/dashboard'}
+            className="flex items-center justify-center px-2 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            activeClassName="bg-sidebar-accent text-sidebar-primary"
+          >
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+          </NavLink>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5">
+      {/* Group header */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest hover:text-muted-foreground transition-colors"
+      >
+        <group.icon className="w-3.5 h-3.5" />
+        <span className="flex-1 text-left">{group.label}</span>
+        <ChevronDown className={cn(
+          'w-3 h-3 transition-transform duration-200',
+          !open && '-rotate-90'
+        )} />
+      </button>
+
+      {/* Group items with tree line */}
+      {open && (
+        <div className="relative ml-[18px] pl-3 border-l border-sidebar-border/40 space-y-0.5">
+          {group.items.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/dashboard'}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors relative before:absolute before:left-[-12px] before:top-1/2 before:w-2.5 before:h-px before:bg-sidebar-border/40"
+              activeClassName="bg-sidebar-accent text-sidebar-primary before:!bg-primary"
+            >
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm font-medium">{item.title}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
