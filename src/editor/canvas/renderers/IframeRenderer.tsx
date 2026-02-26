@@ -33,6 +33,8 @@ export function IframePlaceholder(props: IframeProps) {
   const [activeTool, setActiveTool] = useState<EditTool>('off');
   const prevEditMode = useRef(props.editMode);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  // Freeze the srcDoc while editing so iframe doesn't reload on every change
+  const frozenHtmlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -46,8 +48,12 @@ export function IframePlaceholder(props: IframeProps) {
 
   useEffect(() => {
     if (props.editMode && !prevEditMode.current) {
+      // Entering edit mode: freeze current HTML so future prop changes don't reload iframe
+      frozenHtmlRef.current = null; // Let the next useMemo compute it fresh, then freeze
       setTool('text');
     } else if (!props.editMode && prevEditMode.current) {
+      // Exiting edit mode: unfreeze so the iframe picks up all accumulated changes
+      frozenHtmlRef.current = null;
       setTool('off');
     }
     prevEditMode.current = props.editMode;
@@ -62,6 +68,10 @@ export function IframePlaceholder(props: IframeProps) {
 
   const finalHtml = useMemo(() => {
     if (!htmlContent) return '';
+    // While in edit mode, freeze the srcDoc so edits don't reload the iframe
+    if (props.editMode && frozenHtmlRef.current) {
+      return frozenHtmlRef.current;
+    }
     let html = htmlContent;
     if (overrides && Object.keys(overrides).length > 0) {
       html = applyFieldOverrides(html, overrides);
@@ -618,8 +628,12 @@ export function IframePlaceholder(props: IframeProps) {
     } else {
       html += editScript;
     }
+    // Freeze this result if we're in edit mode
+    if (props.editMode) {
+      frozenHtmlRef.current = html;
+    }
     return html;
-  }, [htmlContent, overrides]);
+  }, [htmlContent, overrides, props.editMode]);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
