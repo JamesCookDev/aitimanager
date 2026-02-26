@@ -336,12 +336,18 @@ export function applyFieldOverrides(
   }
 
   // Apply inline text overrides (__text_SELECTOR = newText)
+  // Only apply to leaf elements (no block-level children) to avoid destroying HTML structure
   for (const [key, value] of Object.entries(overrides)) {
     if (!key.startsWith('__text_')) continue;
     const selector = key.slice('__text_'.length);
     try {
       const el = doc.body.querySelector(selector) as HTMLElement;
-      if (el) el.textContent = value;
+      if (!el) continue;
+      // Safety: only set textContent on leaf elements (no nested block children)
+      const blocks = el.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article');
+      if (blocks.length === 0) {
+        el.textContent = value;
+      }
     } catch {}
   }
 
