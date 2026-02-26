@@ -645,10 +645,10 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
                 {views && views.length > 0 && (
                   <div>
                     <Label className="text-[11px]">Navegar após pagamento</Label>
-                    <Select value={props.paymentNavigateTarget || ''} onValueChange={set('paymentNavigateTarget')}>
+                    <Select value={props.paymentNavigateTarget || '__none__'} onValueChange={(v) => onChange({ paymentNavigateTarget: v === '__none__' ? '' : v })}>
                       <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="__none__">Nenhuma</SelectItem>
                         {views.map(v => (
                           <SelectItem key={v.id} value={v.id}>
                             <span className="flex items-center gap-1.5"><Navigation className="w-3 h-3" /> {v.name}</span>
@@ -928,12 +928,12 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                 </Label>
                 {views && views.length > 0 ? (
                   <Select
-                    value={overrides[`${field.id}__navigate`] ?? ''}
-                    onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v)}
+                    value={overrides[`${field.id}__navigate`] || '__none__'}
+                    onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}
                   >
                     <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma (sem navegação)" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
                       {views.map(v => (
                         <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
                       ))}
@@ -1010,10 +1010,10 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                   <MousePointerClick className="w-2 h-2" /> Navegar para página
                 </Label>
                 {views && views.length > 0 ? (
-                  <Select value={overrides[`${field.id}__navigate`] ?? ''} onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v)}>
+                  <Select value={overrides[`${field.id}__navigate`] || '__none__'} onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}>
                     <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
                       {views.map(v => (<SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>))}
                     </SelectContent>
                   </Select>
