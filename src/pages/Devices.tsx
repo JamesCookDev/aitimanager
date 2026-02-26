@@ -4,6 +4,7 @@ import { DeviceTable } from '@/components/devices/DeviceTable';
 import { MetricCard } from '@/components/devices/MetricCard';
 import { NewDeviceDialog } from '@/components/devices/NewDeviceDialog';
 import { BulkActionsToolbar } from '@/components/devices/BulkActionsToolbar';
+import { GlobalCommandHistory } from '@/components/devices/GlobalCommandHistory';
 import { Device, getDeviceStatus } from '@/types/database';
 import { Cpu, Zap, WifiOff, RefreshCw, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,8 @@ export default function Devices() {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
       />
+
+      <GlobalCommandHistory devices={devices} isSuperAdmin={isSuperAdmin} />
 
       <BulkActionsToolbar
         selectedIds={selectedIds}

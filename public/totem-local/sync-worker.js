@@ -253,6 +253,41 @@ log(`Backups       : ${BACKUP_FILES ? 'ativados' : 'desativados'}`);
 log(`Cmd remoto    : ${API_KEY ? 'ativado (via totem-poll-command — não afeta status online)' : 'desativado (API_KEY não configurado)'}`);
 console.log('');
 
+// ─── Reportar resultado de comando ao Hub ─────────────────────
+async function reportCommandResult(command, status, errorMsg) {
+  if (!API_KEY || !SUPABASE_URL) return;
+
+  try {
+    const url = `${SUPABASE_URL}/functions/v1/totem-command-report`;
+    const payload = JSON.stringify({ command, status, error: errorMsg || undefined });
+
+    await new Promise((resolve, reject) => {
+      const client = url.startsWith('https://') ? https : http;
+      const options = {
+        method: 'POST',
+        headers: {
+          'x-totem-api-key': API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10_000,
+      };
+      const req = client.request(url, options, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => resolve(data));
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout report')); });
+      req.write(payload);
+      req.end();
+    });
+
+    debug(`Resultado reportado: ${command} → ${status}`);
+  } catch (err) {
+    debug(`Falha ao reportar resultado: ${err.message}`);
+  }
+}
+
 // Verificação de comandos remotos a cada 5s (separada do sync de arquivos)
 // Usa endpoint dedicado que NÃO atualiza last_ping
 async function checkLoop() {
@@ -260,33 +295,46 @@ async function checkLoop() {
   if (!command) return;
 
   log(`⚡ Comando "${command}" recebido do Hub`);
+  let success = true;
+  let errorMsg = null;
 
-  switch (command) {
-    case 'sync':
-      log('📥 Sincronizando imediatamente...');
-      await syncFiles();
-      break;
+  try {
+    switch (command) {
+      case 'sync':
+        log('📥 Sincronizando imediatamente...');
+        await syncFiles();
+        break;
 
-    case 'restart':
-      log('🔃 Reiniciando totem por comando remoto...');
-      triggerRestart();
-      break;
+      case 'restart':
+        log('🔃 Reiniciando totem por comando remoto...');
+        triggerRestart();
+        break;
 
-    case 'sync_restart':
-      log('📥 Sync + Restart recebido — sincronizando e depois reiniciando...');
-      await syncFiles();
-      triggerRestart();
-      break;
+      case 'sync_restart':
+        log('📥 Sync + Restart recebido — sincronizando e depois reiniciando...');
+        await syncFiles();
+        triggerRestart();
+        break;
 
-    case 'reload_config':
-      log('🔄 Reload de configuração solicitado — reiniciando aplicação...');
-      triggerRestart();
-      break;
+      case 'reload_config':
+        log('🔄 Reload de configuração solicitado — reiniciando aplicação...');
+        triggerRestart();
+        break;
 
-    default:
-      warn(`Comando desconhecido: "${command}" — ignorando.`);
-      break;
+      default:
+        warn(`Comando desconhecido: "${command}" — ignorando.`);
+        success = false;
+        errorMsg = 'Comando desconhecido';
+        break;
+    }
+  } catch (err) {
+    error(`Falha ao executar comando "${command}": ${err.message}`);
+    success = false;
+    errorMsg = err.message;
   }
+
+  // Report result back to Hub
+  await reportCommandResult(command, success ? 'executed' : 'failed', errorMsg);
 }
 
 // Primeira execução imediata, depois em loop

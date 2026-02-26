@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Device } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -115,6 +116,7 @@ export function BulkActionsToolbar({
   isSuperAdmin,
   onRefresh,
 }: BulkActionsToolbarProps) {
+  const { profile } = useAuth();
   const [scope, setScope] = useState<BulkScope>('selected');
   const [actionDialog, setActionDialog] = useState<BulkAction | null>(null);
   const [confirmCommand, setConfirmCommand] = useState<string | null>(null);
@@ -161,6 +163,18 @@ export function BulkActionsToolbar({
         .in('id', ids);
 
       if (error) throw error;
+
+      // Log each command in command_logs for audit trail
+      if (profile?.id) {
+        const logs = ids.map((deviceId) => ({
+          device_id: deviceId,
+          command,
+          sent_by: profile.id,
+          status: 'pending',
+        }));
+        await supabase.from('command_logs').insert(logs);
+      }
+
       toast.success(`Comando "${command}" enviado para ${ids.length} dispositivo(s)`);
       onClearSelection();
       onRefresh();
