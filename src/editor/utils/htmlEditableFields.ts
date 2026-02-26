@@ -335,10 +335,43 @@ export function applyFieldOverrides(
     }
   }
 
+  // Apply inline text overrides (__text_SELECTOR = newText)
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__text_')) continue;
+    const selector = key.slice('__text_'.length);
+    try {
+      const el = doc.body.querySelector(selector) as HTMLElement;
+      if (el) el.textContent = value;
+    } catch {}
+  }
+
+  // Apply inline image overrides (__img_SELECTOR = newSrc)
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__img_')) continue;
+    const selector = key.slice('__img_'.length);
+    try {
+      const el = doc.body.querySelector(selector) as HTMLElement;
+      if (el && el.tagName === 'IMG') (el as HTMLImageElement).src = value;
+    } catch {}
+  }
+
+  // Apply navigate overrides (__nav_SELECTOR = pageName)
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__nav_')) continue;
+    const selector = key.slice('__nav_'.length);
+    try {
+      const el = doc.body.querySelector(selector) as HTMLElement;
+      if (el) {
+        if (value) el.setAttribute('data-navigate', value);
+        else el.removeAttribute('data-navigate');
+      }
+    } catch {}
+  }
+
   // Apply style overrides from the style tool (__style_selector__prop = value)
   for (const [key, value] of Object.entries(overrides)) {
     if (!key.startsWith('__style_')) continue;
-    const rest = key.slice('__style_'.length); // selector__prop
+    const rest = key.slice('__style_'.length);
     const lastDunder = rest.lastIndexOf('__');
     if (lastDunder < 0) continue;
     const selector = rest.slice(0, lastDunder);

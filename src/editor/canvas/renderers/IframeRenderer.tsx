@@ -119,28 +119,35 @@ export function IframePlaceholder(props: IframeProps) {
     document.body.style.cursor = 'text';
     var textEls = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
     textEls.forEach(function(el) {
-      var hasText = Array.from(el.childNodes).some(function(n) { return n.nodeType === 3 && n.textContent.trim(); });
+      // Check for direct text OR inner text in buttons/spans
+      var hasText = el.textContent && el.textContent.trim().length > 0;
       if (hasText) {
         el.contentEditable = 'true';
         el.style.outline = 'none';
         el.style.cursor = 'text';
-        el.addEventListener('focus', function() { el.setAttribute('data-edit-highlight', ''); });
+        el.setAttribute('data-edit-highlight', '');
+        el.addEventListener('focus', function() { el.style.outline = '2px solid #818cf8'; el.style.outlineOffset = '2px'; });
         el.addEventListener('blur', function() {
-          el.removeAttribute('data-edit-highlight');
-          var changes = {};
-          document.querySelectorAll('[contenteditable=true]').forEach(function(cel, i) {
-            changes['inline_' + cel.tagName.toLowerCase() + '_' + i] = cel.textContent.trim();
-          });
-          window.parent.postMessage({ type: 'inline-edit', changes: changes }, '*');
+          el.style.outline = 'none';
+          var sel = buildSel(el);
+          var newText = el.textContent.trim();
+          window.parent.postMessage({ type: 'inline-edit-text', selector: sel, text: newText }, '*');
         });
       }
     });
-    document.querySelectorAll('img').forEach(function(img, i) {
+    document.querySelectorAll('img').forEach(function(img) {
       img.style.cursor = 'pointer';
-      img.title = 'Duplo clique para trocar imagem';
-      img.addEventListener('dblclick', function() {
+      img.style.outline = '2px dashed #818cf8';
+      img.style.outlineOffset = '2px';
+      img.title = 'Clique para trocar imagem';
+      img.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
         var url = prompt('Nova URL da imagem:', img.src);
-        if (url) { img.src = url; window.parent.postMessage({ type: 'inline-edit-img', index: i, src: url }, '*'); }
+        if (url) {
+          img.src = url;
+          var sel = buildSel(img);
+          window.parent.postMessage({ type: 'inline-edit-img', selector: sel, src: url }, '*');
+        }
       });
     });
   }
@@ -335,11 +342,11 @@ export function IframePlaceholder(props: IframeProps) {
   // Listen for messages from iframe
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'inline-edit' && props.onInlineEdit) {
-        props.onInlineEdit(e.data.changes);
+      if (e.data?.type === 'inline-edit-text' && props.onInlineEdit) {
+        props.onInlineEdit({ [`__text_${e.data.selector}`]: e.data.text });
       }
       if (e.data?.type === 'inline-edit-img' && props.onInlineEdit) {
-        props.onInlineEdit({ [`img_${e.data.index + 1}`]: e.data.src });
+        props.onInlineEdit({ [`__img_${e.data.selector}`]: e.data.src });
       }
       if (e.data?.type === 'navigate-page-click' && props.onNavigatePage) {
         props.onNavigatePage(e.data.page);
@@ -348,7 +355,6 @@ export function IframePlaceholder(props: IframeProps) {
         props.onInlineEdit({ [`__nav_${e.data.selector}`]: e.data.page });
       }
       if (e.data?.type === 'style-change' && props.onInlineEdit) {
-        // Persist style changes as overrides keyed by selector+prop
         props.onInlineEdit({ [`__style_${e.data.selector}__${e.data.prop}`]: e.data.value });
       }
     };

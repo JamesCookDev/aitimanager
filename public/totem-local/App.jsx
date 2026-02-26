@@ -690,7 +690,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
         if (p.fieldOverrides && Object.keys(p.fieldOverrides).length > 0) {
           const parser = new DOMParser();
           const doc = parser.parseFromString(htmlContent, "text/html");
-          // Re-extract text/image fields for matching
+          // Legacy: Re-extract text/image fields for matching
           const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
           let tIdx = 0;
           textEls.forEach(el => {
@@ -719,16 +719,35 @@ function ElementRenderer({ type, props: p, onNavigate }) {
               img.setAttribute("src", p.fieldOverrides[key]);
             }
           });
-          // Also apply inline_* overrides from contentEditable
+
+          // New: Apply selector-based overrides (__text_, __img_, __nav_, __style_)
           Object.entries(p.fieldOverrides).forEach(([k, v]) => {
-            if (k.startsWith("inline_")) {
-              const parts = k.split("_");
-              const tag = parts[1];
-              const idx = parseInt(parts[2], 10);
-              const els = doc.body.querySelectorAll(tag);
-              if (els[idx]) els[idx].textContent = v;
-            }
+            try {
+              if (k.startsWith("__text_")) {
+                const sel = k.slice(7);
+                const el = doc.body.querySelector(sel);
+                if (el) el.textContent = v;
+              } else if (k.startsWith("__img_")) {
+                const sel = k.slice(6);
+                const el = doc.body.querySelector(sel);
+                if (el && el.tagName === "IMG") el.setAttribute("src", v);
+              } else if (k.startsWith("__nav_")) {
+                const sel = k.slice(6);
+                const el = doc.body.querySelector(sel);
+                if (el) { if (v) el.setAttribute("data-navigate", v); else el.removeAttribute("data-navigate"); }
+              } else if (k.startsWith("__style_")) {
+                const rest = k.slice(8);
+                const lastDunder = rest.lastIndexOf("__");
+                if (lastDunder >= 0) {
+                  const sel = rest.slice(0, lastDunder);
+                  const prop = rest.slice(lastDunder + 2);
+                  const el = doc.body.querySelector(sel);
+                  if (el) el.style[prop] = v;
+                }
+              }
+            } catch(e) {}
           });
+
           const head = doc.head.innerHTML;
           const body = doc.body.innerHTML;
           const bodyAttrs = Array.from(doc.body.attributes).map(a => a.name + '="' + a.value + '"').join(" ");
