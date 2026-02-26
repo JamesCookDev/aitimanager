@@ -921,45 +921,50 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                   className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              {/* Page navigation target */}
+              <div>
+                <Label className="text-[8px] text-muted-foreground/50 flex items-center gap-1">
+                  <Link2 className="w-2 h-2" /> Navegar para página
+                </Label>
+                {views && views.length > 0 ? (
+                  <Select
+                    value={overrides[`${field.id}__navigate`] ?? ''}
+                    onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v)}
+                  >
+                    <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma (sem navegação)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhuma</SelectItem>
+                      {views.map(v => (
+                        <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <input
+                    type="text"
+                    value={overrides[`${field.id}__navigate`] ?? ''}
+                    onChange={(e) => handleFieldChange(`${field.id}__navigate`, e.target.value)}
+                    className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Nome da página (data-page)"
+                  />
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-1">
                 <div>
                   <Label className="text-[8px] text-muted-foreground/50">Cor fundo</Label>
                   <div className="flex gap-1">
-                    <input
-                      type="color"
-                      value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '#333333')}
-                      onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
-                    />
-                    <input
-                      type="text"
-                      value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '')}
-                      onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)}
-                      className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono"
-                      placeholder="cor"
-                    />
+                    <input type="color" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '#333333')} onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)} className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
+                    <input type="text" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '')} onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)} className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono" placeholder="cor" />
                   </div>
                 </div>
                 <div>
                   <Label className="text-[8px] text-muted-foreground/50">Cor texto</Label>
                   <div className="flex gap-1">
-                    <input
-                      type="color"
-                      value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '#ffffff')}
-                      onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
-                    />
-                    <input
-                      type="text"
-                      value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '')}
-                      onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)}
-                      className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono"
-                      placeholder="cor"
-                    />
+                    <input type="color" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '#ffffff')} onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)} className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
+                    <input type="text" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '')} onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)} className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono" placeholder="cor" />
                   </div>
                 </div>
               </div>
-              {/* Raw HTML toggle */}
               <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
                 <CollapsibleTrigger className="w-full">
                   <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground">
@@ -993,21 +998,28 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
               </Label>
               <div>
                 <Label className="text-[8px] text-muted-foreground/50">Texto</Label>
-                <input
-                  type="text"
-                  value={overrides[`${field.id}__text`] ?? (field.extras?.text || '')}
-                  onChange={(e) => handleFieldChange(`${field.id}__text`, e.target.value)}
-                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <input type="text" value={overrides[`${field.id}__text`] ?? (field.extras?.text || '')} onChange={(e) => handleFieldChange(`${field.id}__text`, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
                 <Label className="text-[8px] text-muted-foreground/50">URL (href)</Label>
-                <input
-                  type="text"
-                  value={overrides[field.id] ?? field.value}
-                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <input type="text" value={overrides[field.id] ?? field.value} onChange={(e) => handleFieldChange(field.id, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary" />
+              </div>
+              {/* Page navigation target */}
+              <div>
+                <Label className="text-[8px] text-muted-foreground/50 flex items-center gap-1">
+                  <MousePointerClick className="w-2 h-2" /> Navegar para página
+                </Label>
+                {views && views.length > 0 ? (
+                  <Select value={overrides[`${field.id}__navigate`] ?? ''} onValueChange={(v) => handleFieldChange(`${field.id}__navigate`, v)}>
+                    <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhuma</SelectItem>
+                      {views.map(v => (<SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <input type="text" value={overrides[`${field.id}__navigate`] ?? ''} onChange={(e) => handleFieldChange(`${field.id}__navigate`, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Nome da página" />
+                )}
               </div>
               <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
                 <CollapsibleTrigger className="w-full">
@@ -1018,12 +1030,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <textarea
-                    value={overrides[`${field.id}__html`] ?? (field.html || '')}
-                    onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)}
-                    className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
-                    spellCheck={false}
-                  />
+                  <textarea value={overrides[`${field.id}__html`] ?? (field.html || '')} onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)} className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary" spellCheck={false} />
                 </CollapsibleContent>
               </Collapsible>
             </div>
