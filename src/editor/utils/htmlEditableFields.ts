@@ -310,6 +310,16 @@ export function applyFieldOverrides(
         }
       }
 
+      // Apply data-navigate for page linking
+      const navOverride = overrides[`${field.id}__navigate`];
+      if (navOverride !== undefined) {
+        if (navOverride) {
+          el.setAttribute('data-navigate', navOverride);
+        } else {
+          el.removeAttribute('data-navigate');
+        }
+      }
+
       // Apply raw HTML override
       const htmlOverride = overrides[`${field.id}__html`];
       if (htmlOverride !== undefined && htmlOverride !== field.html) {
