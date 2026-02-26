@@ -10,13 +10,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,12 +17,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   X,
-  ChevronDown,
   RotateCcw,
   RefreshCw,
   Brain,
@@ -40,12 +43,16 @@ import {
   CheckSquare,
   AlertTriangle,
   Loader2,
+  Settings,
+  Copy,
+  Send,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 type BulkScope = 'selected' | 'organization' | 'global';
-type BulkAction = 'command_restart' | 'command_sync' | 'ai_prompt' | 'ai_model' | 'ui_config';
+type BulkAction = 'ai_prompt' | 'ai_model' | 'ui_config';
 
 interface BulkActionsToolbarProps {
   selectedIds: string[];
@@ -55,6 +62,48 @@ interface BulkActionsToolbarProps {
   onSelectAll: () => void;
   isSuperAdmin: boolean;
   onRefresh: () => void;
+}
+
+interface ActionCardProps {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: 'default' | 'warning' | 'danger';
+}
+
+function ActionCard({ icon, label, description, onClick, disabled, variant = 'default' }: ActionCardProps) {
+  const variantStyles = {
+    default: 'border-border hover:border-primary/50 hover:bg-primary/5',
+    warning: 'border-border hover:border-yellow-500/50 hover:bg-yellow-500/5',
+    danger: 'border-border hover:border-destructive/50 hover:bg-destructive/5',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex items-start gap-3 p-3 rounded-lg border text-left transition-all duration-150',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        variantStyles[variant]
+      )}
+    >
+      <div className={cn(
+        'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+        variant === 'default' && 'bg-primary/10 text-primary',
+        variant === 'warning' && 'bg-yellow-500/10 text-yellow-500',
+        variant === 'danger' && 'bg-destructive/10 text-destructive',
+      )}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{description}</p>
+      </div>
+    </button>
+  );
 }
 
 export function BulkActionsToolbar({
@@ -68,13 +117,14 @@ export function BulkActionsToolbar({
 }: BulkActionsToolbarProps) {
   const [scope, setScope] = useState<BulkScope>('selected');
   const [actionDialog, setActionDialog] = useState<BulkAction | null>(null);
+  const [confirmCommand, setConfirmCommand] = useState<string | null>(null);
   const [executing, setExecuting] = useState(false);
   const [aiPromptValue, setAiPromptValue] = useState('');
   const [aiModelValue, setAiModelValue] = useState('');
+  const [expanded, setExpanded] = useState(false);
 
   if (selectedIds.length === 0) return null;
 
-  // Get unique orgs from selected devices
   const selectedDevices = devices.filter((d) => selectedIds.includes(d.id));
   const uniqueOrgs = [...new Set(selectedDevices.map((d) => d.org_id))];
 
@@ -99,6 +149,7 @@ export function BulkActionsToolbar({
 
   const executeCommand = async (command: string) => {
     setExecuting(true);
+    setConfirmCommand(null);
     try {
       const ids = targetDevices.map((d) => d.id);
       const { error } = await supabase
@@ -130,7 +181,6 @@ export function BulkActionsToolbar({
         updateData.ai_prompt = aiPromptValue.trim();
       }
       if (actionDialog === 'ai_model' && aiModelValue.trim()) {
-        // Update ai_configs for these devices
         for (const device of targetDevices) {
           const { data: existingConfig } = await supabase
             .from('ai_configs')
@@ -172,140 +222,239 @@ export function BulkActionsToolbar({
     }
   };
 
-  const scopeLabel: Record<BulkScope, string> = {
-    selected: `${selectedIds.length} selecionado(s)`,
-    organization: uniqueOrgs.length === 1 ? 'Toda a organização' : `${uniqueOrgs.length} orgs`,
-    global: 'Todos os dispositivos',
+  const commandLabels: Record<string, { label: string; desc: string }> = {
+    restart: { label: 'Reiniciar', desc: 'Os totens serão reiniciados imediatamente' },
+    sync: { label: 'Sincronizar', desc: 'Os totens buscarão arquivos atualizados do Hub' },
+    sync_restart: { label: 'Sync + Restart', desc: 'Sincroniza e depois reinicia cada totem' },
+    reload_config: { label: 'Reload Config', desc: 'Recarrega as configurações da API' },
   };
 
   return (
     <>
-      {/* Floating toolbar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-xl shadow-2xl px-4 py-3 animate-in slide-in-from-bottom-4">
-        {/* Selection count */}
-        <div className="flex items-center gap-2">
-          <CheckSquare className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-foreground">{selectedIds.length}</span>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClearSelection}>
-            <X className="w-3.5 h-3.5" />
-          </Button>
+      {/* Floating panel */}
+      <div className={cn(
+        'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90vw] max-w-2xl',
+        'bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl',
+        'animate-in slide-in-from-bottom-4 duration-300',
+        'transition-all'
+      )}>
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CheckSquare className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {selectedIds.length} selecionado{selectedIds.length > 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {targetCount} alvo{targetCount > 1 ? 's' : ''} no escopo atual
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Scope selector */}
+            <Select value={scope} onValueChange={(v) => setScope(v as BulkScope)}>
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/50 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="selected">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-3.5 h-3.5 text-primary" />
+                    Selecionados ({selectedIds.length})
+                  </div>
+                </SelectItem>
+                {uniqueOrgs.length === 1 && (
+                  <SelectItem value="organization">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                      Toda a organização
+                    </div>
+                  </SelectItem>
+                )}
+                {isSuperAdmin && (
+                  <SelectItem value="global">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5 text-orange-500" />
+                      Global ({devices.length})
+                    </div>
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-muted-foreground"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? 'Menos' : 'Mais ações'}
+            </Button>
+
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClearSelection}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
-        <div className="w-px h-6 bg-border" />
+        {/* Quick actions row - always visible */}
+        <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-2"
+                  disabled={executing}
+                  onClick={() => setConfirmCommand('restart')}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reiniciar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reiniciar {targetCount} totem(s)</TooltipContent>
+            </Tooltip>
 
-        {/* Scope selector */}
-        <Select value={scope} onValueChange={(v) => setScope(v as BulkScope)}>
-          <SelectTrigger className="w-[200px] h-8 text-xs bg-muted/50 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="selected">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="w-3.5 h-3.5" />
-                Selecionados ({selectedIds.length})
-              </div>
-            </SelectItem>
-            {uniqueOrgs.length === 1 && (
-              <SelectItem value="organization">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-3.5 h-3.5" />
-                  Toda a organização
-                </div>
-              </SelectItem>
-            )}
-            {isSuperAdmin && (
-              <SelectItem value="global">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-3.5 h-3.5" />
-                  Global ({devices.length})
-                </div>
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-2"
+                  disabled={executing}
+                  onClick={() => setConfirmCommand('sync')}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronizar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Baixar arquivos atualizados do Hub</TooltipContent>
+            </Tooltip>
 
-        <Badge variant="secondary" className="text-xs">
-          {targetCount} alvo(s)
-        </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-2"
+                  disabled={executing}
+                  onClick={() => setConfirmCommand('sync_restart')}
+                >
+                  <Send className="w-4 h-4" />
+                  Sync + Restart
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sincroniza e reinicia em sequência</TooltipContent>
+            </Tooltip>
 
-        <div className="w-px h-6 bg-border" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-2"
+                  disabled={executing}
+                  onClick={() => setConfirmCommand('reload_config')}
+                >
+                  <Settings className="w-4 h-4" />
+                  Reload Config
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Recarrega configurações da API</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Commands dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs" disabled={executing}>
-              <Zap className="w-3.5 h-3.5 mr-1.5" />
-              Comandos
-              <ChevronDown className="w-3 h-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center">
-            <DropdownMenuItem onClick={() => executeCommand('restart')}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reiniciar ({targetCount})
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => executeCommand('sync')}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Sincronizar ({targetCount})
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => executeCommand('sync_restart')}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Sync + Restart ({targetCount})
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => executeCommand('reload_config')}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reload Config ({targetCount})
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          {executing && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2" />}
+        </div>
 
-        {/* AI dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs" disabled={executing}>
-              <Brain className="w-3.5 h-3.5 mr-1.5" />
-              IA
-              <ChevronDown className="w-3 h-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center">
-            <DropdownMenuItem onClick={() => setActionDialog('ai_prompt')}>
-              Alterar Prompt do Sistema
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setActionDialog('ai_model')}>
-              Alterar Modelo IA
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Layout actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs" disabled={executing}>
-              <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
-              Layout
-              <ChevronDown className="w-3 h-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center">
-            <DropdownMenuItem onClick={() => setActionDialog('ui_config')}>
-              Copiar Layout de um Dispositivo
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {executing && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        {/* Expanded panel with advanced actions */}
+        {expanded && (
+          <div className="px-4 pb-4 border-t border-border/50 pt-3 animate-in fade-in duration-200">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Ações avançadas
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <ActionCard
+                icon={<Brain className="w-4 h-4" />}
+                label="Prompt do Sistema"
+                description="Alterar prompt de IA em massa"
+                onClick={() => setActionDialog('ai_prompt')}
+                disabled={executing}
+              />
+              <ActionCard
+                icon={<Zap className="w-4 h-4" />}
+                label="Modelo de IA"
+                description="Trocar modelo (Ollama, Gemini…)"
+                onClick={() => setActionDialog('ai_model')}
+                disabled={executing}
+              />
+              <ActionCard
+                icon={<Copy className="w-4 h-4" />}
+                label="Copiar Layout"
+                description="Replicar design de outro totem"
+                onClick={() => setActionDialog('ui_config')}
+                disabled={executing}
+              />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Confirm command dialog */}
+      <AlertDialog open={!!confirmCommand} onOpenChange={(o) => !o && setConfirmCommand(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              Confirmar ação em massa
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Você está prestes a enviar o comando{' '}
+                <strong>"{confirmCommand && commandLabels[confirmCommand]?.label}"</strong> para{' '}
+                <strong>{targetCount} dispositivo(s)</strong>.
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {confirmCommand && commandLabels[confirmCommand]?.desc}
+              </span>
+              {scope === 'global' && (
+                <span className="block text-destructive text-xs font-medium">
+                  ⚠️ Escopo GLOBAL — todos os dispositivos da plataforma serão afetados!
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmCommand && executeCommand(confirmCommand)}
+              disabled={executing}
+            >
+              {executing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Confirmar ({targetCount})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* AI Prompt Dialog */}
       <Dialog open={actionDialog === 'ai_prompt'} onOpenChange={(o) => !o && setActionDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alterar Prompt do Sistema</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-primary" />
+              Alterar Prompt do Sistema
+            </DialogTitle>
             <DialogDescription>
               Este prompt será aplicado a{' '}
-              <strong>{targetCount} dispositivo(s)</strong>.
+              <Badge variant="secondary" className="mx-1">{targetCount} dispositivo(s)</Badge>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -316,12 +465,11 @@ export function BulkActionsToolbar({
               value={aiPromptValue}
               onChange={(e) => setAiPromptValue(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              O prompt antigo de cada dispositivo será substituído por este novo.
+            </p>
           </div>
-          <DialogFooter className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-warning mr-auto">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              Ação irreversível em massa
-            </div>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(null)}>
               Cancelar
             </Button>
@@ -337,10 +485,13 @@ export function BulkActionsToolbar({
       <Dialog open={actionDialog === 'ai_model'} onOpenChange={(o) => !o && setActionDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alterar Modelo de IA</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              Alterar Modelo de IA
+            </DialogTitle>
             <DialogDescription>
               O modelo será atualizado nas configs ativas de{' '}
-              <strong>{targetCount} dispositivo(s)</strong>.
+              <Badge variant="secondary" className="mx-1">{targetCount} dispositivo(s)</Badge>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -350,6 +501,9 @@ export function BulkActionsToolbar({
               value={aiModelValue}
               onChange={(e) => setAiModelValue(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Modelos comuns: llama3.2:1b, gemini-2.5-flash, gemma3:4b
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(null)}>
@@ -376,7 +530,6 @@ export function BulkActionsToolbar({
   );
 }
 
-// Sub-component for copying layout from one device to many
 function CopyLayoutDialog({
   open,
   onClose,
@@ -399,7 +552,6 @@ function CopyLayoutDialog({
     if (!sourceId) return;
     setExecuting(true);
     try {
-      // Get source device ui_config
       const { data: source, error: fetchErr } = await supabase
         .from('devices')
         .select('ui_config')
@@ -435,10 +587,13 @@ function CopyLayoutDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Copiar Layout</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Copy className="w-5 h-5 text-primary" />
+            Copiar Layout
+          </DialogTitle>
           <DialogDescription>
-            Selecione o dispositivo de origem. O layout dele será aplicado a{' '}
-            <strong>{targetDevices.length} dispositivo(s)</strong>.
+            Selecione o totem de origem. O layout dele será replicado para{' '}
+            <Badge variant="secondary" className="mx-1">{targetDevices.length} dispositivo(s)</Badge>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
