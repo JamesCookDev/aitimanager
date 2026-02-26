@@ -1,12 +1,12 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
-import { Globe, Pencil, Link2, Eye, X, Paintbrush } from 'lucide-react';
+import { Globe, Pencil, Link2, Eye, X, Paintbrush, Move, Trash2 } from 'lucide-react';
 import { Placeholder } from './Placeholder';
 import { applyFieldOverrides } from '../../utils/htmlEditableFields';
 
 const DESIGN_W = 1080;
 const DESIGN_H = 1920;
 
-type EditTool = 'off' | 'text' | 'navigate' | 'inspect' | 'style';
+type EditTool = 'off' | 'text' | 'navigate' | 'inspect' | 'style' | 'layout';
 
 interface IframeProps {
   _iframeMode?: 'html' | 'url';
@@ -33,7 +33,6 @@ export function IframePlaceholder(props: IframeProps) {
   const prevEditMode = useRef(props.editMode);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
-  // Observe container size for responsive scaling
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -44,7 +43,6 @@ export function IframePlaceholder(props: IframeProps) {
     return () => ro.disconnect();
   }, []);
 
-  // Sync editMode prop from properties panel
   useEffect(() => {
     if (props.editMode && !prevEditMode.current) {
       setTool('text');
@@ -54,7 +52,6 @@ export function IframePlaceholder(props: IframeProps) {
     prevEditMode.current = props.editMode;
   }, [props.editMode]);
 
-  // Apply editable field overrides to raw HTML
   const finalHtml = useMemo(() => {
     if (!htmlContent) return '';
     let html = htmlContent;
@@ -68,6 +65,28 @@ export function IframePlaceholder(props: IframeProps) {
   [data-nav-highlight]::after { content: attr(data-nav-label); position: absolute; top: -18px; left: 0; background: #f59e0b; color: #000; font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 9999; }
   .inspect-tooltip { position: fixed; background: rgba(0,0,0,.85); color: #fff; font: 11px/1.4 monospace; padding: 6px 10px; border-radius: 6px; z-index: 99999; pointer-events: none; max-width: 320px; word-break: break-all; }
   [data-style-highlight] { outline: 2px solid #ec4899 !important; outline-offset: 2px; border-radius: 4px; }
+  /* Layout mode */
+  [data-layout-selected] { outline: 2px solid #3b82f6 !important; outline-offset: 2px; position: relative; }
+  [data-layout-hover] { outline: 1px dashed #60a5fa !important; outline-offset: 1px; }
+  .layout-toolbar {
+    position: absolute; z-index: 999999; background: #1e293b; border: 1px solid rgba(59,130,246,0.4);
+    border-radius: 8px; padding: 4px; display: flex; gap: 2px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    font-family: system-ui, sans-serif;
+  }
+  .layout-toolbar button {
+    display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px;
+    border: none; font-size: 10px; font-weight: 600; color: #fff; cursor: pointer;
+    background: transparent; white-space: nowrap;
+  }
+  .layout-toolbar button:hover { background: rgba(255,255,255,0.1); }
+  .layout-toolbar .btn-delete { color: #f87171; }
+  .layout-toolbar .btn-delete:hover { background: rgba(248,113,113,0.2); }
+  .layout-toolbar .btn-bg { color: #a78bfa; }
+  .layout-toolbar .btn-move { color: #60a5fa; }
+  .layout-toolbar .btn-resize { color: #34d399; }
+  .layout-toolbar .btn-duplicate { color: #fbbf24; }
+  .layout-toolbar .btn-hide { color: #94a3b8; }
+  .layout-drag-ghost { position: absolute; z-index: 999990; pointer-events: none; opacity: 0.5; border: 2px dashed #3b82f6; }
   .style-panel {
     position: fixed; z-index: 999999; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
     border-radius: 12px; padding: 12px; min-width: 220px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
@@ -89,8 +108,12 @@ export function IframePlaceholder(props: IframeProps) {
   var inspectTooltip = null;
   var stylePanel = null;
   var styledEl = null;
+  var layoutSelected = null;
+  var layoutToolbar = null;
+  var isDragging = false;
+  var dragStart = { x: 0, y: 0 };
+  var dragElStart = { x: 0, y: 0 };
 
-  // ── Page navigation via clicks ──
   document.addEventListener('click', function(e) {
     if (currentMode !== 'off') return;
     var el = e.target;
@@ -109,37 +132,29 @@ export function IframePlaceholder(props: IframeProps) {
     document.querySelectorAll('[contenteditable=true]').forEach(function(el) { el.contentEditable = 'false'; el.style.cursor = ''; el.removeAttribute('data-edit-highlight'); });
     document.querySelectorAll('[data-nav-highlight]').forEach(function(el) { el.removeAttribute('data-nav-highlight'); el.removeAttribute('data-nav-label'); });
     document.querySelectorAll('[data-style-highlight]').forEach(function(el) { el.removeAttribute('data-style-highlight'); });
+    document.querySelectorAll('[data-layout-selected]').forEach(function(el) { el.removeAttribute('data-layout-selected'); });
+    document.querySelectorAll('[data-layout-hover]').forEach(function(el) { el.removeAttribute('data-layout-hover'); });
     document.querySelectorAll('img').forEach(function(img) { img.style.cursor = ''; img.title = ''; });
     document.body.style.cursor = '';
     if (inspectTooltip) { inspectTooltip.remove(); inspectTooltip = null; }
     if (stylePanel) { stylePanel.remove(); stylePanel = null; styledEl = null; }
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    layoutSelected = null;
+    isDragging = false;
   }
 
   function isLeafText(el) {
-    // A leaf text element has direct text nodes but no child elements with significant text
-    var childEls = el.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
     var directText = '';
     for (var i = 0; i < el.childNodes.length; i++) {
       if (el.childNodes[i].nodeType === 3) directText += el.childNodes[i].textContent.trim();
     }
-    // Has direct text, or is a simple element (no complex children)
     if (directText.length > 0) return true;
-    // Button/span with only inline children (no block-level descendants with their own text)
     var tag = el.tagName.toLowerCase();
     if ((tag === 'button' || tag === 'a' || tag === 'span' || tag === 'label') && el.textContent.trim().length > 0) {
-      // Only if no nested block elements
       var blocks = el.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,li,td,th');
       return blocks.length === 0;
     }
     return false;
-  }
-
-  function getDirectText(el) {
-    var text = '';
-    for (var i = 0; i < el.childNodes.length; i++) {
-      if (el.childNodes[i].nodeType === 3) text += el.childNodes[i].textContent;
-    }
-    return text.trim() || el.textContent.trim();
   }
 
   function enableText() {
@@ -149,7 +164,6 @@ export function IframePlaceholder(props: IframeProps) {
     textEls.forEach(function(el) {
       if (editedSet.has(el)) return;
       if (!isLeafText(el)) return;
-      // Skip if a parent is already editable (avoid nested contentEditable)
       var parent = el.parentElement;
       while (parent && parent !== document.body) {
         if (parent.contentEditable === 'true') return;
@@ -241,7 +255,6 @@ export function IframePlaceholder(props: IframeProps) {
 
   function enableStyle() {
     document.body.style.cursor = 'crosshair';
-    // Hover highlight
     document.addEventListener('mouseover', function styleHover(e) {
       if (currentMode !== 'style') return;
       var el = e.target;
@@ -260,7 +273,6 @@ export function IframePlaceholder(props: IframeProps) {
       if (!el || !el.tagName || el === document.body) return;
       if (el.closest('.style-panel')) return;
       e.preventDefault(); e.stopPropagation();
-      // Remove previous highlight
       if (styledEl) styledEl.removeAttribute('data-style-highlight');
       styledEl = el;
       el.setAttribute('data-style-highlight', '');
@@ -273,7 +285,6 @@ export function IframePlaceholder(props: IframeProps) {
     var cs = window.getComputedStyle(el);
     var panel = document.createElement('div');
     panel.className = 'style-panel';
-    // Position near click
     var px = Math.min(mx + 10, window.innerWidth - 250);
     var py = Math.min(my + 10, window.innerHeight - 360);
     panel.style.left = px + 'px';
@@ -281,13 +292,27 @@ export function IframePlaceholder(props: IframeProps) {
     var tag = el.tagName.toLowerCase();
     var sel = buildSel(el);
 
+    // Check for background image
+    var bgImg = cs.backgroundImage;
+    var hasBgImg = bgImg && bgImg !== 'none';
+    var bgImgRow = '';
+    if (hasBgImg) {
+      var urlMatch = bgImg.match(/url\\(["']?([^"')]+)["']?\\)/);
+      var bgUrl = urlMatch ? urlMatch[1] : '';
+      bgImgRow = '<div class="style-panel-row"><span class="style-panel-label">Bg Image</span><input class="style-panel-input" data-prop="backgroundImage" value="' + bgUrl + '" placeholder="URL da imagem"></div>';
+    } else {
+      bgImgRow = '<div class="style-panel-row"><span class="style-panel-label">Bg Image</span><input class="style-panel-input" data-prop="backgroundImage" value="" placeholder="URL da imagem de fundo"></div>';
+    }
+
     panel.innerHTML = '<div class="style-panel-title">🎨 Estilos — ' + tag + '</div>'
       + '<button class="style-panel-close" data-close>✕</button>'
       + '<div class="style-panel-row"><span class="style-panel-label">Bg Color</span><input type="color" class="style-panel-color" data-prop="backgroundColor" value="' + rgbToHex(cs.backgroundColor) + '"><input class="style-panel-input" data-prop="backgroundColor" data-text="1" value="' + cs.backgroundColor + '" style="width:90px"></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Cor texto</span><input type="color" class="style-panel-color" data-prop="color" value="' + rgbToHex(cs.color) + '"><input class="style-panel-input" data-prop="color" data-text="1" value="' + cs.color + '" style="width:90px"></div>'
+      + bgImgRow
+      + '<div class="style-panel-row"><span class="style-panel-label">Bg Size</span><select class="style-panel-select" data-prop="backgroundSize"><option value="cover"' + (cs.backgroundSize === 'cover' ? ' selected' : '') + '>cover</option><option value="contain"' + (cs.backgroundSize === 'contain' ? ' selected' : '') + '>contain</option><option value="auto"' + (cs.backgroundSize === 'auto' ? ' selected' : '') + '>auto</option><option value="100% 100%">stretch</option></select></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Font size</span><input class="style-panel-input" data-prop="fontSize" value="' + cs.fontSize + '"></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Font family</span><select class="style-panel-select" data-prop="fontFamily">'
-        + ['inherit','Arial','Helvetica','Georgia','Times New Roman','Courier New','Verdana','Impact','Comic Sans MS','Trebuchet MS','system-ui'].map(function(f) {
+        + ['inherit','Arial','Helvetica','Georgia','Times New Roman','Courier New','Verdana','Impact','system-ui'].map(function(f) {
             return '<option value="' + f + '"' + (cs.fontFamily.indexOf(f) >= 0 ? ' selected' : '') + '>' + f + '</option>';
           }).join('')
       + '</select></div>'
@@ -297,32 +322,248 @@ export function IframePlaceholder(props: IframeProps) {
           }).join('')
       + '</select></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Padding</span><input class="style-panel-input" data-prop="padding" value="' + cs.padding + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Margin</span><input class="style-panel-input" data-prop="margin" value="' + cs.margin + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Width</span><input class="style-panel-input" data-prop="width" value="' + cs.width + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Height</span><input class="style-panel-input" data-prop="height" value="' + cs.height + '"></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Radius</span><input class="style-panel-input" data-prop="borderRadius" value="' + cs.borderRadius + '"></div>'
       + '<div class="style-panel-row"><span class="style-panel-label">Borda</span><input class="style-panel-input" data-prop="border" value="' + cs.border + '"></div>'
-      + '<div class="style-panel-row"><span class="style-panel-label">Opacity</span><input class="style-panel-input" data-prop="opacity" value="' + cs.opacity + '" type="number" min="0" max="1" step="0.1"></div>';
+      + '<div class="style-panel-row"><span class="style-panel-label">Opacity</span><input class="style-panel-input" data-prop="opacity" value="' + cs.opacity + '" type="number" min="0" max="1" step="0.1"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Display</span><select class="style-panel-select" data-prop="display"><option value="block"' + (cs.display === 'block' ? ' selected' : '') + '>block</option><option value="flex"' + (cs.display === 'flex' ? ' selected' : '') + '>flex</option><option value="none"' + (cs.display === 'none' ? ' selected' : '') + '>none</option><option value="inline-block"' + (cs.display === 'inline-block' ? ' selected' : '') + '>inline-block</option><option value="grid"' + (cs.display === 'grid' ? ' selected' : '') + '>grid</option></select></div>';
 
     document.body.appendChild(panel);
     stylePanel = panel;
 
-    // Close
     panel.querySelector('[data-close]').addEventListener('click', function() {
       panel.remove(); stylePanel = null;
       if (styledEl) { styledEl.removeAttribute('data-style-highlight'); styledEl = null; }
     });
 
-    // Listen to changes
     panel.querySelectorAll('[data-prop]').forEach(function(input) {
       input.addEventListener('input', function() {
         var prop = input.getAttribute('data-prop');
         var val = input.value;
+        // Special handling for backgroundImage
+        if (prop === 'backgroundImage') {
+          if (val) {
+            el.style.backgroundImage = 'url("' + val + '")';
+          } else {
+            el.style.backgroundImage = 'none';
+          }
+          window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'backgroundImage', value: val ? 'url("' + val + '")' : 'none' }, '*');
+          return;
+        }
         el.style[prop] = val;
-        // Sync paired inputs (color picker + text)
         var peers = panel.querySelectorAll('[data-prop="' + prop + '"]');
         peers.forEach(function(p) { if (p !== input) { if (p.type === 'color') p.value = rgbToHex(val); else p.value = val; } });
-        // Notify parent
         window.parent.postMessage({ type: 'style-change', selector: sel, prop: prop, value: val }, '*');
       });
     });
+  }
+
+  /* ── Layout mode: select, drag, delete, hide ── */
+  function enableLayout() {
+    document.body.style.cursor = 'default';
+    
+    document.addEventListener('mouseover', function layoutHover(e) {
+      if (currentMode !== 'layout') return;
+      var el = e.target;
+      if (!el || !el.tagName || el === document.body || el === document.documentElement) return;
+      if (el.closest('.layout-toolbar')) return;
+      document.querySelectorAll('[data-layout-hover]').forEach(function(h) { h.removeAttribute('data-layout-hover'); });
+      if (el !== layoutSelected) el.setAttribute('data-layout-hover', '');
+    });
+    
+    document.addEventListener('mouseout', function layoutOut(e) {
+      if (currentMode !== 'layout') return;
+      var el = e.target;
+      if (el) el.removeAttribute('data-layout-hover');
+    });
+
+    document.addEventListener('click', function layoutClick(e) {
+      if (currentMode !== 'layout') return;
+      var el = e.target;
+      if (!el || !el.tagName || el === document.body || el === document.documentElement) return;
+      if (el.closest('.layout-toolbar')) return;
+      e.preventDefault(); e.stopPropagation();
+
+      // Deselect previous
+      if (layoutSelected) layoutSelected.removeAttribute('data-layout-selected');
+      if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+
+      layoutSelected = el;
+      el.setAttribute('data-layout-selected', '');
+      showLayoutToolbar(el);
+    }, true);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function layoutKey(e) {
+      if (currentMode !== 'layout' || !layoutSelected) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+      }
+      if (e.key === 'Escape') {
+        if (layoutSelected) layoutSelected.removeAttribute('data-layout-selected');
+        if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+        layoutSelected = null;
+      }
+      // Arrow key nudge
+      var nudge = e.shiftKey ? 10 : 1;
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key) >= 0) {
+        e.preventDefault();
+        var cs = window.getComputedStyle(layoutSelected);
+        if (cs.position === 'static') layoutSelected.style.position = 'relative';
+        var top = parseInt(layoutSelected.style.top || '0') || 0;
+        var left = parseInt(layoutSelected.style.left || '0') || 0;
+        if (e.key === 'ArrowUp') layoutSelected.style.top = (top - nudge) + 'px';
+        if (e.key === 'ArrowDown') layoutSelected.style.top = (top + nudge) + 'px';
+        if (e.key === 'ArrowLeft') layoutSelected.style.left = (left - nudge) + 'px';
+        if (e.key === 'ArrowRight') layoutSelected.style.left = (left + nudge) + 'px';
+        notifyPositionChange(layoutSelected);
+      }
+    });
+  }
+
+  function showLayoutToolbar(el) {
+    if (layoutToolbar) layoutToolbar.remove();
+    var toolbar = document.createElement('div');
+    toolbar.className = 'layout-toolbar';
+
+    var rect = el.getBoundingClientRect();
+    toolbar.style.left = Math.max(0, Math.min(rect.left, window.innerWidth - 300)) + 'px';
+    toolbar.style.top = Math.max(0, rect.top - 36) + 'px';
+
+    var tag = el.tagName.toLowerCase();
+    var isImg = tag === 'img';
+    var hasBg = window.getComputedStyle(el).backgroundImage !== 'none';
+
+    toolbar.innerHTML = '<button class="btn-move" data-action="move" title="Arrastar (ou use setas do teclado)">↕ Mover</button>'
+      + (isImg ? '<button class="btn-bg" data-action="change-img" title="Trocar imagem">🖼 Imagem</button>' : '')
+      + (hasBg || !isImg ? '<button class="btn-bg" data-action="change-bg" title="Trocar imagem de fundo">🎨 Fundo</button>' : '')
+      + '<button class="btn-duplicate" data-action="duplicate" title="Duplicar elemento">⧉ Duplicar</button>'
+      + '<button class="btn-hide" data-action="hide" title="Ocultar elemento">👁 Ocultar</button>'
+      + '<button class="btn-delete" data-action="delete" title="Excluir elemento (Delete)">✕ Excluir</button>';
+
+    document.body.appendChild(toolbar);
+    layoutToolbar = toolbar;
+
+    toolbar.querySelectorAll('button').forEach(function(btn) {
+      btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var action = btn.getAttribute('data-action');
+        if (action === 'delete') deleteSelected();
+        else if (action === 'hide') hideSelected();
+        else if (action === 'change-img') changeImage();
+        else if (action === 'change-bg') changeBackground();
+        else if (action === 'duplicate') duplicateSelected();
+        else if (action === 'move') startDrag(e);
+      });
+    });
+  }
+
+  function deleteSelected() {
+    if (!layoutSelected) return;
+    var sel = buildSel(layoutSelected);
+    layoutSelected.remove();
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    window.parent.postMessage({ type: 'layout-delete', selector: sel }, '*');
+    layoutSelected = null;
+  }
+
+  function hideSelected() {
+    if (!layoutSelected) return;
+    var sel = buildSel(layoutSelected);
+    layoutSelected.style.display = 'none';
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'display', value: 'none' }, '*');
+    layoutSelected = null;
+  }
+
+  function changeImage() {
+    if (!layoutSelected) return;
+    var img = layoutSelected;
+    var currentSrc = img.getAttribute('src') || '';
+    var url = prompt('Nova URL da imagem:', currentSrc);
+    if (url) {
+      img.src = url;
+      var sel = buildSel(img);
+      window.parent.postMessage({ type: 'inline-edit-img', selector: sel, src: url }, '*');
+    }
+  }
+
+  function changeBackground() {
+    if (!layoutSelected) return;
+    var el = layoutSelected;
+    var cs = window.getComputedStyle(el);
+    var current = '';
+    var bgMatch = cs.backgroundImage.match(/url\\(["']?([^"')]+)["']?\\)/);
+    if (bgMatch) current = bgMatch[1];
+    var url = prompt('URL da imagem de fundo:', current);
+    if (url !== null) {
+      var sel = buildSel(el);
+      if (url) {
+        el.style.backgroundImage = 'url("' + url + '")';
+        el.style.backgroundSize = el.style.backgroundSize || 'cover';
+        el.style.backgroundPosition = el.style.backgroundPosition || 'center';
+        window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'backgroundImage', value: 'url("' + url + '")' }, '*');
+        window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'backgroundSize', value: 'cover' }, '*');
+        window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'backgroundPosition', value: 'center' }, '*');
+      } else {
+        el.style.backgroundImage = 'none';
+        window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'backgroundImage', value: 'none' }, '*');
+      }
+    }
+  }
+
+  function duplicateSelected() {
+    if (!layoutSelected) return;
+    var clone = layoutSelected.cloneNode(true);
+    clone.removeAttribute('data-layout-selected');
+    clone.style.position = 'relative';
+    clone.style.top = '10px';
+    layoutSelected.parentElement.insertBefore(clone, layoutSelected.nextSibling);
+    // Notify parent about the new HTML
+    var sel = buildSel(clone);
+    window.parent.postMessage({ type: 'layout-duplicate', selector: buildSel(layoutSelected), newHtml: clone.outerHTML }, '*');
+  }
+
+  function startDrag(startEvent) {
+    if (!layoutSelected) return;
+    var el = layoutSelected;
+    isDragging = true;
+    var cs = window.getComputedStyle(el);
+    if (cs.position === 'static') el.style.position = 'relative';
+    dragStart = { x: startEvent.clientX, y: startEvent.clientY };
+    dragElStart = { x: parseInt(el.style.left || '0') || 0, y: parseInt(el.style.top || '0') || 0 };
+    el.style.zIndex = '9999';
+    el.style.transition = 'none';
+
+    function onMove(e) {
+      if (!isDragging) return;
+      var dx = e.clientX - dragStart.x;
+      var dy = e.clientY - dragStart.y;
+      el.style.left = (dragElStart.x + dx) + 'px';
+      el.style.top = (dragElStart.y + dy) + 'px';
+    }
+    function onUp() {
+      isDragging = false;
+      el.style.zIndex = '';
+      el.style.transition = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      notifyPositionChange(el);
+      if (layoutToolbar) showLayoutToolbar(el);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function notifyPositionChange(el) {
+    var sel = buildSel(el);
+    if (el.style.position) window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'position', value: el.style.position }, '*');
+    if (el.style.top) window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'top', value: el.style.top }, '*');
+    if (el.style.left) window.parent.postMessage({ type: 'style-change', selector: sel, prop: 'left', value: el.style.left }, '*');
   }
 
   function rgbToHex(rgb) {
@@ -346,7 +587,6 @@ export function IframePlaceholder(props: IframeProps) {
     return parts.join(' > ');
   }
 
-  // ── Message handler ──
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'navigate-page') {
       document.querySelectorAll('[data-page]').forEach(function(p) { p.classList.remove('active'); p.style.display = 'none'; });
@@ -360,6 +600,7 @@ export function IframePlaceholder(props: IframeProps) {
       else if (currentMode === 'navigate') enableNavigate();
       else if (currentMode === 'inspect') enableInspect();
       else if (currentMode === 'style') enableStyle();
+      else if (currentMode === 'layout') enableLayout();
     }
   });
 })();
@@ -372,7 +613,6 @@ export function IframePlaceholder(props: IframeProps) {
     return html;
   }, [htmlContent, overrides]);
 
-  // Listen for messages from iframe
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === 'inline-edit-text' && props.onInlineEdit) {
@@ -390,12 +630,14 @@ export function IframePlaceholder(props: IframeProps) {
       if (e.data?.type === 'style-change' && props.onInlineEdit) {
         props.onInlineEdit({ [`__style_${e.data.selector}__${e.data.prop}`]: e.data.value });
       }
+      if (e.data?.type === 'layout-delete' && props.onInlineEdit) {
+        props.onInlineEdit({ [`__style_${e.data.selector}__display`]: 'none' });
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [props.onInlineEdit, props.onNavigatePage]);
 
-  // Sync data-page navigation when activeViewName changes
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow || !props.activeViewName || !props.htmlPages?.length) return;
@@ -408,7 +650,6 @@ export function IframePlaceholder(props: IframeProps) {
     }
   }, [props.activeViewName, props.htmlPages]);
 
-  // Send tool mode to iframe
   const setTool = useCallback((tool: EditTool) => {
     const iframe = iframeRef.current;
     setActiveTool(tool);
@@ -423,9 +664,9 @@ export function IframePlaceholder(props: IframeProps) {
 
   const isActive = activeTool !== 'off';
 
-  // Raw HTML mode
   if (activeMode === 'html' && finalHtml) {
     const tools: { id: EditTool; icon: typeof Pencil; label: string; color: string }[] = [
+      { id: 'layout', icon: Move, label: 'Layout', color: 'bg-blue-500' },
       { id: 'text', icon: Pencil, label: 'Textos/Imagens', color: 'bg-indigo-500' },
       { id: 'style', icon: Paintbrush, label: 'Estilos CSS', color: 'bg-pink-500' },
       { id: 'navigate', icon: Link2, label: 'Navegação', color: 'bg-amber-500' },
@@ -488,12 +729,13 @@ export function IframePlaceholder(props: IframeProps) {
         {isActive && (
           <div
             className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-full text-white text-[10px] font-medium shadow-lg backdrop-blur-sm ${
-              activeTool === 'text' ? 'bg-indigo-500/90' : activeTool === 'style' ? 'bg-pink-500/90' : activeTool === 'navigate' ? 'bg-amber-500/90' : 'bg-emerald-500/90'
+              activeTool === 'layout' ? 'bg-blue-500/90' : activeTool === 'text' ? 'bg-indigo-500/90' : activeTool === 'style' ? 'bg-pink-500/90' : activeTool === 'navigate' ? 'bg-amber-500/90' : 'bg-emerald-500/90'
             }`}
             style={{ pointerEvents: 'none' }}
           >
-            {activeTool === 'text' && 'Clique em textos para editar • Duplo clique em imagens para trocar'}
-            {activeTool === 'style' && 'Clique em qualquer elemento para editar cores, fontes e tamanhos'}
+            {activeTool === 'layout' && 'Clique para selecionar • Arraste para mover • Delete para excluir • Setas para ajustar'}
+            {activeTool === 'text' && 'Clique em textos para editar • Clique em imagens para trocar'}
+            {activeTool === 'style' && 'Clique em qualquer elemento para editar cores, fontes, fundo e tamanhos'}
             {activeTool === 'navigate' && 'Clique em um elemento para definir navegação entre páginas'}
             {activeTool === 'inspect' && 'Passe o mouse para inspecionar • Clique para ver detalhes'}
           </div>
@@ -502,7 +744,6 @@ export function IframePlaceholder(props: IframeProps) {
     );
   }
 
-  // URL mode
   if (activeMode === 'url' && !url) {
     return <Placeholder icon={Globe} label="Cole a URL do site ou HTML" gradient="bg-gradient-to-br from-gray-800 to-gray-900" />;
   }
