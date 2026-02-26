@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Link2, X as XIcon } from 'lucide-react';
 import type { CanvasElement, CanvasView } from '../types/canvas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +61,14 @@ function CanvasPropsPanel({ bgColor, onBgColorChange }: { bgColor: string; onBgC
   );
 }
 
+interface NavElementInfo {
+  selector: string;
+  tag: string;
+  text: string;
+  currentNavigate: string;
+  elementId: string;
+}
+
 interface Props {
   element: CanvasElement | null;
   elements?: CanvasElement[];
@@ -77,12 +86,16 @@ interface Props {
   selectedId?: string | null;
   views?: CanvasView[];
   onAssignView?: (elementId: string, viewId: string | null) => void;
+  selectedNavElement?: NavElementInfo | null;
+  onAssignNavigation?: (selector: string, pageId: string, pageName: string) => void;
+  onClearNavElement?: () => void;
 }
 
 export function PropertiesPanel({
   element, elements = [], onUpdate, onUpdateProps, onDelete, onDuplicate,
   onBringForward, onSendBackward, onSelectElement, onToggleVisibility, onToggleLock,
   bgColor, onBgColorChange, selectedId, views, onAssignView,
+  selectedNavElement, onAssignNavigation, onClearNavElement,
 }: Props) {
   const [activeTab, setActiveTab] = useState<string>('props');
 
@@ -109,6 +122,75 @@ export function PropertiesPanel({
       </TabsContent>
 
       <TabsContent value="props" className="flex-1 overflow-hidden mt-0">
+        {/* Nav element panel - shown when user clicks an element in navigate mode */}
+        {selectedNavElement && onAssignNavigation && (
+          <div className="border-b border-border/50 bg-amber-500/5">
+            <div className="p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-md bg-amber-500/15 flex items-center justify-center">
+                    <Link2 className="w-3 h-3 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-foreground">Navegação do Elemento</p>
+                    <p className="text-[8px] text-muted-foreground/60">Clique em outro elemento para trocar</p>
+                  </div>
+                </div>
+                <button onClick={onClearNavElement} className="p-1 rounded hover:bg-muted/50">
+                  <XIcon className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Selected element info */}
+              <div className="rounded-md bg-muted/30 px-2.5 py-2 space-y-1">
+                <p className="text-[9px] font-semibold text-foreground flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-mono text-[8px]">{selectedNavElement.tag}</span>
+                  <span className="truncate">{selectedNavElement.text || '(sem texto)'}</span>
+                </p>
+              </div>
+
+              {/* Page selector */}
+              <div className="space-y-1">
+                <Label className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Ao clicar, ir para:</Label>
+                <Select
+                  value={selectedNavElement.currentNavigate || '__none__'}
+                  onValueChange={(v) => {
+                    const pageId = v === '__none__' ? '' : v;
+                    const pageName = views?.find(p => p.id === v)?.name || '';
+                    onAssignNavigation(selectedNavElement.selector, pageId, pageName);
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[10px]">
+                    <SelectValue placeholder="Selecione uma página..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">
+                      <span className="text-muted-foreground">Nenhuma (remover navegação)</span>
+                    </SelectItem>
+                    {views?.map(v => (
+                      <SelectItem key={v.id} value={v.id}>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                          {v.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedNavElement.currentNavigate && (
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-primary/10 border border-primary/20">
+                  <span className="text-[9px] text-primary font-medium">✓ Vinculado a:</span>
+                  <span className="text-[9px] font-bold text-primary">
+                    {views?.find(v => v.id === selectedNavElement.currentNavigate)?.name || selectedNavElement.currentNavigate}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {!element ? (
           <CanvasPropsPanel bgColor={bgColor} onBgColorChange={onBgColorChange} />
         ) : (

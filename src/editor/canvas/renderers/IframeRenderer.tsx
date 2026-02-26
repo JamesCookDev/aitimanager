@@ -8,6 +8,13 @@ const DESIGN_H = 1920;
 
 type EditTool = 'off' | 'text' | 'navigate' | 'inspect' | 'style' | 'layout';
 
+interface NavElementInfo {
+  selector: string;
+  tag: string;
+  text: string;
+  currentNavigate: string;
+}
+
 interface IframeProps {
   _iframeMode?: 'html' | 'url';
   url?: string;
@@ -22,6 +29,7 @@ interface IframeProps {
   htmlPages?: { id: string; name: string; selector: string }[];
   onNavigatePage?: (pageName: string) => void;
   availableViews?: { id: string; name: string }[];
+  onNavElementSelected?: (info: NavElementInfo) => void;
 }
 
 export function IframePlaceholder(props: IframeProps) {
@@ -219,6 +227,7 @@ export function IframePlaceholder(props: IframeProps) {
   }
 
   function enableNavigate() {
+    // Highlight existing navigable elements
     var navEls = document.querySelectorAll('[data-navigate], a[href^="#"]');
     navEls.forEach(function(el) {
       var target = el.getAttribute('data-navigate') || (el.getAttribute('href') || '').substring(1);
@@ -226,88 +235,74 @@ export function IframePlaceholder(props: IframeProps) {
       el.setAttribute('data-nav-label', '→ ' + target);
       el.style.position = 'relative';
     });
+    // Highlight all interactive elements
+    var interactiveEls = document.querySelectorAll('button, [role="button"], a, [class*="btn"], [class*="button"], [onclick], input[type="button"], input[type="submit"], [class*="card"], [class*="item"], [class*="arrow"]');
+    interactiveEls.forEach(function(el) {
+      if (!el.hasAttribute('data-nav-highlight')) {
+        el.style.outline = '2px dashed rgba(245,158,11,0.4)';
+        el.style.outlineOffset = '2px';
+        el.style.cursor = 'pointer';
+      }
+    });
+
     document.addEventListener('click', function navClick(e) {
       if (currentMode !== 'navigate') { document.removeEventListener('click', navClick, true); return; }
+      e.preventDefault(); e.stopPropagation();
       var el = e.target;
-      if (el.hasAttribute && el.hasAttribute('data-nav-highlight')) return;
-      if (el.tagName && !el.hasAttribute('data-navigate') && el !== document.body) {
-        e.preventDefault(); e.stopPropagation();
-        // Show dropdown with available views
-        showNavPicker(el, e.clientX, e.clientY);
+      // Walk up to find the best interactive parent
+      while (el && el !== document.body) {
+        var tag = el.tagName.toLowerCase();
+        if (tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button' ||
+            el.hasAttribute('data-navigate') || el.className.match && el.className.match(/btn|button|card|item|arrow/i)) {
+          break;
+        }
+        el = el.parentElement;
       }
+      if (!el || el === document.body) el = e.target;
+      
+      // Clear previous selection
+      document.querySelectorAll('[data-nav-selected]').forEach(function(s) { s.removeAttribute('data-nav-selected'); s.style.outline = ''; });
+      el.setAttribute('data-nav-selected', '');
+      el.style.outline = '3px solid #f59e0b';
+      el.style.outlineOffset = '2px';
+      
+      var selector = buildSel(el);
+      var currentNav = el.getAttribute('data-navigate') || '';
+      var text = (el.textContent || '').trim().substring(0, 60);
+      var tagName = el.tagName.toLowerCase();
+      
+      window.parent.postMessage({
+        type: 'nav-element-selected',
+        selector: selector,
+        tag: tagName,
+        text: text,
+        currentNavigate: currentNav,
+      }, '*');
     }, true);
   }
 
-  function showNavPicker(targetEl, mx, my) {
-    var existing = document.querySelector('.nav-picker-panel');
-    if (existing) existing.remove();
-    var panel = document.createElement('div');
-    panel.className = 'nav-picker-panel';
-    panel.style.cssText = 'position:fixed;z-index:999999;background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:8px;min-width:180px;box-shadow:0 20px 60px rgba(0,0,0,0.6);font-family:system-ui,sans-serif;color:#fff;font-size:11px;left:' + Math.min(mx+10,window.innerWidth-200) + 'px;top:' + Math.min(my+10,window.innerHeight-200) + 'px';
-    var title = document.createElement('div');
-    title.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#f59e0b;margin-bottom:6px;padding:2px 4px;';
-    title.textContent = '🔗 Navegar para...';
-    panel.appendChild(title);
-    var views = window.__availableViews || [];
-    if (views.length === 0) {
-      var noViews = document.createElement('div');
-      noViews.style.cssText = 'padding:8px 4px;color:rgba(255,255,255,0.5);font-size:10px;';
-      noViews.textContent = 'Nenhuma página disponível. Crie páginas no painel lateral.';
-      panel.appendChild(noViews);
+  // Listen for nav assignment from parent props panel
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'assign-navigate') {
+      var el = document.querySelector(e.data.selector);
+      if (!el) return;
+      if (e.data.page) {
+        el.setAttribute('data-navigate', e.data.page);
+        el.setAttribute('data-nav-highlight', '');
+        el.setAttribute('data-nav-label', '→ ' + (e.data.pageName || e.data.page));
+        el.style.position = 'relative';
+        el.style.cursor = 'pointer';
+        el.style.outline = '3px solid #22c55e';
+        el.style.outlineOffset = '2px';
+        setTimeout(function() { el.style.outline = '2px dashed #f59e0b'; }, 1500);
+      } else {
+        el.removeAttribute('data-navigate');
+        el.removeAttribute('data-nav-highlight');
+        el.removeAttribute('data-nav-label');
+        el.style.outline = '2px dashed rgba(245,158,11,0.4)';
+      }
     }
-    views.forEach(function(v) {
-      var btn = document.createElement('button');
-      btn.style.cssText = 'display:block;width:100%;text-align:left;padding:6px 8px;border-radius:6px;border:none;background:transparent;color:#fff;font-size:11px;cursor:pointer;';
-      btn.textContent = '→ ' + v.name;
-      btn.onmouseover = function() { btn.style.background = 'rgba(245,158,11,0.2)'; };
-      btn.onmouseout = function() { btn.style.background = 'transparent'; };
-      btn.onclick = function(ev) {
-        ev.stopPropagation();
-        targetEl.setAttribute('data-navigate', v.id);
-        targetEl.setAttribute('data-nav-highlight', '');
-        targetEl.setAttribute('data-nav-label', '→ ' + v.name);
-        targetEl.style.position = 'relative';
-        targetEl.style.cursor = 'pointer';
-        window.parent.postMessage({ type: 'set-navigate', selector: buildSel(targetEl), page: v.id }, '*');
-        panel.remove();
-      };
-      panel.appendChild(btn);
-    });
-    // Remove nav button
-    var currentNav = targetEl.getAttribute('data-navigate');
-    if (currentNav) {
-      var divider = document.createElement('div');
-      divider.style.cssText = 'height:1px;background:rgba(255,255,255,0.1);margin:4px 0;';
-      panel.appendChild(divider);
-      var removeBtn = document.createElement('button');
-      removeBtn.style.cssText = 'display:block;width:100%;text-align:left;padding:6px 8px;border-radius:6px;border:none;background:transparent;color:#f87171;font-size:11px;cursor:pointer;';
-      removeBtn.textContent = '✕ Remover navegação';
-      removeBtn.onmouseover = function() { removeBtn.style.background = 'rgba(248,113,113,0.2)'; };
-      removeBtn.onmouseout = function() { removeBtn.style.background = 'transparent'; };
-      removeBtn.onclick = function(ev) {
-        ev.stopPropagation();
-        targetEl.removeAttribute('data-navigate');
-        targetEl.removeAttribute('data-nav-highlight');
-        targetEl.removeAttribute('data-nav-label');
-        window.parent.postMessage({ type: 'set-navigate', selector: buildSel(targetEl), page: '' }, '*');
-        panel.remove();
-      };
-      panel.appendChild(removeBtn);
-    }
-    // Close button
-    var closeBtn = document.createElement('button');
-    closeBtn.style.cssText = 'position:absolute;top:4px;right:6px;background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:14px;';
-    closeBtn.textContent = '✕';
-    closeBtn.onclick = function() { panel.remove(); };
-    panel.appendChild(closeBtn);
-    document.body.appendChild(panel);
-    // Click outside to close
-    setTimeout(function() {
-      document.addEventListener('click', function closeNav(ev) {
-        if (!panel.contains(ev.target)) { panel.remove(); document.removeEventListener('click', closeNav); }
-      });
-    }, 100);
-  }
+  });
 
   function enableInspect() {
     inspectTooltip = document.createElement('div');
@@ -718,6 +713,14 @@ export function IframePlaceholder(props: IframeProps) {
       if (e.data?.type === 'set-navigate' && props.onInlineEdit) {
         props.onInlineEdit({ [`__nav_${e.data.selector}`]: e.data.page });
       }
+      if (e.data?.type === 'nav-element-selected' && props.onNavElementSelected) {
+        props.onNavElementSelected({
+          selector: e.data.selector,
+          tag: e.data.tag,
+          text: e.data.text,
+          currentNavigate: e.data.currentNavigate,
+        });
+      }
       if (e.data?.type === 'style-change' && props.onInlineEdit) {
         props.onInlineEdit({ [`__style_${e.data.selector}__${e.data.prop}`]: e.data.value });
       }
@@ -727,7 +730,7 @@ export function IframePlaceholder(props: IframeProps) {
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [props.onInlineEdit, props.onNavigatePage]);
+  }, [props.onInlineEdit, props.onNavigatePage, props.onNavElementSelected]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
