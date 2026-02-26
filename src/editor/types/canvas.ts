@@ -41,6 +41,8 @@ export interface CanvasView {
   id: string;
   name: string;
   isDefault?: boolean;
+  /** Parent view ID for hierarchy. null/undefined = root level */
+  parentId?: string | null;
 }
 
 export const DEFAULT_VIEW: CanvasView = { id: '__default__', name: 'Home', isDefault: true };
