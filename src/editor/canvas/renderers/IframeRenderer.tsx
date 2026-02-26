@@ -90,6 +90,10 @@ export function IframePlaceholder(props: IframeProps) {
   [data-edit-highlight] { outline: 2px solid #818cf8 !important; outline-offset: 2px; border-radius: 4px; }
   [data-nav-highlight] { outline: 2px dashed #f59e0b !important; outline-offset: 2px; border-radius: 4px; cursor: pointer !important; }
   [data-nav-highlight]::after { content: attr(data-nav-label); position: absolute; top: -18px; left: 0; background: #f59e0b; color: #000; font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 9999; }
+  /* Persistent badge for linked elements */
+  [data-navigate] { position: relative !important; }
+  .nav-linked-badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 9998; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+  .nav-linked-badge svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .inspect-tooltip { position: fixed; background: rgba(0,0,0,.85); color: #fff; font: 11px/1.4 monospace; padding: 6px 10px; border-radius: 6px; z-index: 99999; pointer-events: none; max-width: 320px; word-break: break-all; }
   [data-style-highlight] { outline: 2px solid #ec4899 !important; outline-offset: 2px; border-radius: 4px; }
   /* Layout mode */
@@ -140,6 +144,19 @@ export function IframePlaceholder(props: IframeProps) {
   var isDragging = false;
   var dragStart = { x: 0, y: 0 };
   var dragElStart = { x: 0, y: 0 };
+
+  function refreshNavBadges() {
+    document.querySelectorAll('.nav-linked-badge').forEach(function(b) { b.remove(); });
+    document.querySelectorAll('[data-navigate]').forEach(function(el) {
+      var badge = document.createElement('div');
+      badge.className = 'nav-linked-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+      badge.title = '→ ' + el.getAttribute('data-navigate');
+      el.appendChild(badge);
+    });
+  }
+  // Run on load
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', refreshNavBadges); } else { refreshNavBadges(); }
 
   document.addEventListener('click', function(e) {
     if (currentMode !== 'off') return;
@@ -301,6 +318,7 @@ export function IframePlaceholder(props: IframeProps) {
         el.removeAttribute('data-nav-label');
         el.style.outline = '2px dashed rgba(245,158,11,0.4)';
       }
+      refreshNavBadges();
     }
   });
 
