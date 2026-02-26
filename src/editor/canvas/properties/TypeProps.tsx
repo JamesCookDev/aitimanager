@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Navigation, Type, ImageIcon, ChevronDown, Code2, Link2, MousePointerClick, Palette, Pencil } from 'lucide-react';
+import { Navigation, Type, ImageIcon, ChevronDown, Code2, Link2, MousePointerClick, Palette, Pencil, Move, Eye, Paintbrush } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { CanvasView } from '../../types/canvas';
 import { Section, PropInput, ImageUploadField } from './shared';
@@ -17,7 +17,7 @@ import { AnimatedNumberPropsPanel } from './AnimatedNumberPropsPanel';
 import { CatalogPropsPanel } from './CatalogPropsPanel';
 import { FormPropsPanel } from './FormPropsPanel';
 import { FeedPropsPanel } from './FeedPropsPanel';
-import { extractEditableFields, type EditableField } from '../../utils/htmlEditableFields';
+import { extractEditableFields, applyFieldOverrides, type EditableField } from '../../utils/htmlEditableFields';
 
 /* Reusable navigation action panel for any element */
 function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
@@ -861,8 +861,15 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
   const overrides: Record<string, string> = props.fieldOverrides || {};
 
   const handleFieldChange = (fieldId: string, newValue: string) => {
-    const updated = { ...overrides, [fieldId]: newValue };
-    onChange({ fieldOverrides: updated });
+    // Apply the change directly to htmlContent so the raw HTML stays in sync
+    const currentHtml = props.htmlContent || '';
+    if (currentHtml) {
+      const updatedHtml = applyFieldOverrides(currentHtml, { [fieldId]: newValue });
+      onChange({ htmlContent: updatedHtml });
+    } else {
+      const updated = { ...overrides, [fieldId]: newValue };
+      onChange({ fieldOverrides: updated });
+    }
   };
 
   const textFields = editableFields.filter(f => f.type === 'text');
@@ -903,7 +910,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
         </div>
 
         {isHtmlMode && props.htmlContent && (
-          <div className="pt-1">
+          <div className="space-y-2 pt-1">
             <button
               onClick={() => onChange({ editMode: !props.editMode })}
               className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -916,7 +923,38 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
               {props.editMode ? '✏️ Modo edição ATIVO — clique para sair' : 'Editar HTML no canvas'}
             </button>
             {props.editMode && (
-              <p className="text-[9px] text-indigo-400 mt-1 text-center">Clique nos textos para editar • Duplo clique em imagens para trocar</p>
+              <div className="space-y-1.5">
+                <p className="text-[9px] text-muted-foreground text-center">Selecione uma ferramenta abaixo:</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    { tool: 'layout', icon: Move, label: 'Layout', desc: 'Mover, duplicar, excluir', color: 'bg-blue-500' },
+                    { tool: 'text', icon: Pencil, label: 'Textos', desc: 'Editar textos e imagens', color: 'bg-indigo-500' },
+                    { tool: 'style', icon: Paintbrush, label: 'Estilos', desc: 'Cores, fontes, fundo', color: 'bg-pink-500' },
+                    { tool: 'navigate', icon: Link2, label: 'Navegação', desc: 'Links entre páginas', color: 'bg-amber-500' },
+                    { tool: 'inspect', icon: Eye, label: 'Inspecionar', desc: 'Ver estrutura DOM', color: 'bg-emerald-500' },
+                  ].map(({ tool, icon: Icon, label, desc, color }) => (
+                    <button
+                      key={tool}
+                      onClick={() => {
+                        const currentTool = props._activeTool || 'off';
+                        onChange({ _activeTool: currentTool === tool ? 'off' : tool });
+                      }}
+                      className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-[9px] font-semibold transition-all ${
+                        props._activeTool === tool
+                          ? `${color} text-white ring-1 ring-white/30 shadow-md`
+                          : 'bg-muted/50 hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{label}</span>
+                      <span className="text-[7px] font-normal opacity-70">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[8px] text-muted-foreground/60 text-center">
+                  ⚡ Todas as alterações são aplicadas diretamente ao HTML
+                </p>
+              </div>
             )}
           </div>
         )}

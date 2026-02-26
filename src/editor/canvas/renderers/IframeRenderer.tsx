@@ -16,6 +16,7 @@ interface IframeProps {
   borderRadius?: number;
   scrolling?: boolean;
   editMode?: boolean;
+  _activeTool?: string;
   onInlineEdit?: (overrides: Record<string, string>) => void;
   activeViewName?: string;
   htmlPages?: { id: string; name: string; selector: string }[];
@@ -51,6 +52,13 @@ export function IframePlaceholder(props: IframeProps) {
     }
     prevEditMode.current = props.editMode;
   }, [props.editMode]);
+
+  // Sync tool from props panel
+  useEffect(() => {
+    if (props._activeTool && props.editMode) {
+      setTool(props._activeTool as EditTool);
+    }
+  }, [props._activeTool]);
 
   const finalHtml = useMemo(() => {
     if (!htmlContent) return '';
