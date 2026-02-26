@@ -685,6 +685,31 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
       // Raw HTML mode — render via srcdoc
       if (htmlContent) {
+        // Navigation bridge script — always injected so data-navigate clicks work
+        const NAV_BRIDGE = `<script>
+(function(){
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-navigate]');
+    if (el) {
+      e.preventDefault();
+      e.stopPropagation();
+      var target = el.getAttribute('data-navigate');
+      var transition = el.getAttribute('data-transition') || 'fade';
+      if (target && window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'totem-navigate', target: target, transition: transition }, '*');
+      }
+    }
+  }, true);
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'totem-set-page') {
+      var pages = document.querySelectorAll('[data-page]');
+      pages.forEach(function(p) {
+        p.style.display = p.getAttribute('data-page') === e.data.pageId ? '' : 'none';
+      });
+    }
+  });
+})();
+</script>`;
         // Apply field overrides if present
         let finalHtml = htmlContent;
         if (p.fieldOverrides && Object.keys(p.fieldOverrides).length > 0) {
@@ -758,10 +783,15 @@ function ElementRenderer({ type, props: p, onNavigate }) {
           finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
         }
 
+        // Always inject the navigation bridge script
+        const htmlWithBridge = finalHtml.includes('</body>')
+          ? finalHtml.replace('</body>', NAV_BRIDGE + '</body>')
+          : finalHtml + NAV_BRIDGE;
+
         return (
           <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
             <iframe
-              srcDoc={finalHtml}
+              srcDoc={htmlWithBridge}
               style={{
                 position: "absolute",
                 top: 0,
@@ -2945,7 +2975,19 @@ export default function App() {
     window.__totemNavigatePage = (viewId, transition, variables) => {
       handleNavigate(viewId, transition, variables);
     };
-    return () => { delete window.__totemNavigatePage; };
+
+    // Listen for postMessage from HTML Puro iframes (data-navigate bridge)
+    const handleIframeMessage = (e) => {
+      if (e.data && e.data.type === 'totem-navigate' && e.data.target) {
+        handleNavigate(e.data.target, e.data.transition || 'fade');
+      }
+    };
+    window.addEventListener('message', handleIframeMessage);
+
+    return () => {
+      delete window.__totemNavigatePage;
+      window.removeEventListener('message', handleIframeMessage);
+    };
   }, [handleNavigate]);
 
   // Background — supports per-page colors via pageBgColors
