@@ -1,12 +1,12 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
-import { Globe, Pencil, MousePointer, Link2, Eye, X } from 'lucide-react';
+import { Globe, Pencil, Link2, Eye, X, Paintbrush } from 'lucide-react';
 import { Placeholder } from './Placeholder';
 import { applyFieldOverrides } from '../../utils/htmlEditableFields';
 
 const DESIGN_W = 1080;
 const DESIGN_H = 1920;
 
-type EditTool = 'off' | 'text' | 'navigate' | 'inspect';
+type EditTool = 'off' | 'text' | 'navigate' | 'inspect' | 'style';
 
 interface IframeProps {
   _iframeMode?: 'html' | 'url';
@@ -67,14 +67,32 @@ export function IframePlaceholder(props: IframeProps) {
   [data-nav-highlight] { outline: 2px dashed #f59e0b !important; outline-offset: 2px; border-radius: 4px; cursor: pointer !important; }
   [data-nav-highlight]::after { content: attr(data-nav-label); position: absolute; top: -18px; left: 0; background: #f59e0b; color: #000; font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 9999; }
   .inspect-tooltip { position: fixed; background: rgba(0,0,0,.85); color: #fff; font: 11px/1.4 monospace; padding: 6px 10px; border-radius: 6px; z-index: 99999; pointer-events: none; max-width: 320px; word-break: break-all; }
+  [data-style-highlight] { outline: 2px solid #ec4899 !important; outline-offset: 2px; border-radius: 4px; }
+  .style-panel {
+    position: fixed; z-index: 999999; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 12px; min-width: 220px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    font-family: system-ui, sans-serif; color: #fff; font-size: 11px;
+  }
+  .style-panel-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #ec4899; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .style-panel-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .style-panel-label { width: 70px; font-size: 10px; color: rgba(255,255,255,0.6); flex-shrink: 0; }
+  .style-panel-input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 4px 8px; color: #fff; font-size: 11px; outline: none; }
+  .style-panel-input:focus { border-color: #ec4899; }
+  .style-panel-color { width: 28px; height: 28px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; padding: 0; }
+  .style-panel-close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 14px; }
+  .style-panel-close:hover { color: #fff; }
+  .style-panel-select { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 4px 6px; color: #fff; font-size: 11px; outline: none; appearance: auto; }
 </style>
 <script>
 (function() {
   var currentMode = 'off';
   var inspectTooltip = null;
+  var stylePanel = null;
+  var styledEl = null;
 
   // ── Page navigation via clicks ──
   document.addEventListener('click', function(e) {
+    if (currentMode !== 'off') return;
     var el = e.target;
     while (el && el !== document.body) {
       var nav = el.getAttribute('data-navigate');
@@ -90,9 +108,11 @@ export function IframePlaceholder(props: IframeProps) {
   function clearAll() {
     document.querySelectorAll('[contenteditable=true]').forEach(function(el) { el.contentEditable = 'false'; el.style.cursor = ''; el.removeAttribute('data-edit-highlight'); });
     document.querySelectorAll('[data-nav-highlight]').forEach(function(el) { el.removeAttribute('data-nav-highlight'); el.removeAttribute('data-nav-label'); });
+    document.querySelectorAll('[data-style-highlight]').forEach(function(el) { el.removeAttribute('data-style-highlight'); });
     document.querySelectorAll('img').forEach(function(img) { img.style.cursor = ''; img.title = ''; });
     document.body.style.cursor = '';
     if (inspectTooltip) { inspectTooltip.remove(); inspectTooltip = null; }
+    if (stylePanel) { stylePanel.remove(); stylePanel = null; styledEl = null; }
   }
 
   function enableText() {
@@ -133,12 +153,10 @@ export function IframePlaceholder(props: IframeProps) {
       el.setAttribute('data-nav-label', '→ ' + target);
       el.style.position = 'relative';
     });
-    // Allow clicking any element to set data-navigate
     document.addEventListener('click', function navClick(e) {
       if (currentMode !== 'navigate') { document.removeEventListener('click', navClick, true); return; }
       var el = e.target;
-      if (el.hasAttribute && el.hasAttribute('data-nav-highlight')) return; // already has nav
-      // If clicking a non-nav element, prompt to add navigation
+      if (el.hasAttribute && el.hasAttribute('data-nav-highlight')) return;
       if (el.tagName && !el.hasAttribute('data-navigate') && el !== document.body) {
         e.preventDefault(); e.stopPropagation();
         var page = prompt('Navegar para qual página? (nome do data-page)');
@@ -147,7 +165,6 @@ export function IframePlaceholder(props: IframeProps) {
           el.setAttribute('data-nav-highlight', '');
           el.setAttribute('data-nav-label', '→ ' + page);
           el.style.position = 'relative';
-          // Notify parent to persist
           window.parent.postMessage({ type: 'set-navigate', selector: buildSel(el), page: page }, '*');
         }
       }
@@ -171,7 +188,6 @@ export function IframePlaceholder(props: IframeProps) {
       inspectTooltip.style.display = 'block';
       inspectTooltip.style.left = Math.min(e.clientX + 12, window.innerWidth - 330) + 'px';
       inspectTooltip.style.top = (e.clientY + 16) + 'px';
-      // Highlight
       document.querySelectorAll('[data-edit-highlight]').forEach(function(h) { h.removeAttribute('data-edit-highlight'); });
       el.setAttribute('data-edit-highlight', '');
     });
@@ -181,6 +197,100 @@ export function IframePlaceholder(props: IframeProps) {
       var el = e.target;
       window.parent.postMessage({ type: 'inspect-element', tag: el.tagName.toLowerCase(), html: el.outerHTML.substring(0, 500), text: (el.textContent || '').trim().substring(0, 100) }, '*');
     }, true);
+  }
+
+  function enableStyle() {
+    document.body.style.cursor = 'crosshair';
+    // Hover highlight
+    document.addEventListener('mouseover', function styleHover(e) {
+      if (currentMode !== 'style') return;
+      var el = e.target;
+      if (!el || !el.tagName || el === document.body || el.closest('.style-panel')) return;
+      document.querySelectorAll('[data-style-highlight]').forEach(function(h) { if (h !== styledEl) h.removeAttribute('data-style-highlight'); });
+      if (el !== styledEl) el.setAttribute('data-style-highlight', '');
+    });
+    document.addEventListener('mouseout', function styleOut(e) {
+      if (currentMode !== 'style') return;
+      var el = e.target;
+      if (el !== styledEl) el.removeAttribute('data-style-highlight');
+    });
+    document.addEventListener('click', function styleClick(e) {
+      if (currentMode !== 'style') return;
+      var el = e.target;
+      if (!el || !el.tagName || el === document.body) return;
+      if (el.closest('.style-panel')) return;
+      e.preventDefault(); e.stopPropagation();
+      // Remove previous highlight
+      if (styledEl) styledEl.removeAttribute('data-style-highlight');
+      styledEl = el;
+      el.setAttribute('data-style-highlight', '');
+      showStylePanel(el, e.clientX, e.clientY);
+    }, true);
+  }
+
+  function showStylePanel(el, mx, my) {
+    if (stylePanel) stylePanel.remove();
+    var cs = window.getComputedStyle(el);
+    var panel = document.createElement('div');
+    panel.className = 'style-panel';
+    // Position near click
+    var px = Math.min(mx + 10, window.innerWidth - 250);
+    var py = Math.min(my + 10, window.innerHeight - 360);
+    panel.style.left = px + 'px';
+    panel.style.top = py + 'px';
+    var tag = el.tagName.toLowerCase();
+    var sel = buildSel(el);
+
+    panel.innerHTML = '<div class="style-panel-title">🎨 Estilos — ' + tag + '</div>'
+      + '<button class="style-panel-close" data-close>✕</button>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Bg Color</span><input type="color" class="style-panel-color" data-prop="backgroundColor" value="' + rgbToHex(cs.backgroundColor) + '"><input class="style-panel-input" data-prop="backgroundColor" data-text="1" value="' + cs.backgroundColor + '" style="width:90px"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Cor texto</span><input type="color" class="style-panel-color" data-prop="color" value="' + rgbToHex(cs.color) + '"><input class="style-panel-input" data-prop="color" data-text="1" value="' + cs.color + '" style="width:90px"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Font size</span><input class="style-panel-input" data-prop="fontSize" value="' + cs.fontSize + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Font family</span><select class="style-panel-select" data-prop="fontFamily">'
+        + ['inherit','Arial','Helvetica','Georgia','Times New Roman','Courier New','Verdana','Impact','Comic Sans MS','Trebuchet MS','system-ui'].map(function(f) {
+            return '<option value="' + f + '"' + (cs.fontFamily.indexOf(f) >= 0 ? ' selected' : '') + '>' + f + '</option>';
+          }).join('')
+      + '</select></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Font weight</span><select class="style-panel-select" data-prop="fontWeight">'
+        + ['100','200','300','400','500','600','700','800','900'].map(function(w) {
+            return '<option value="' + w + '"' + (cs.fontWeight === w ? ' selected' : '') + '>' + w + '</option>';
+          }).join('')
+      + '</select></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Padding</span><input class="style-panel-input" data-prop="padding" value="' + cs.padding + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Radius</span><input class="style-panel-input" data-prop="borderRadius" value="' + cs.borderRadius + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Borda</span><input class="style-panel-input" data-prop="border" value="' + cs.border + '"></div>'
+      + '<div class="style-panel-row"><span class="style-panel-label">Opacity</span><input class="style-panel-input" data-prop="opacity" value="' + cs.opacity + '" type="number" min="0" max="1" step="0.1"></div>';
+
+    document.body.appendChild(panel);
+    stylePanel = panel;
+
+    // Close
+    panel.querySelector('[data-close]').addEventListener('click', function() {
+      panel.remove(); stylePanel = null;
+      if (styledEl) { styledEl.removeAttribute('data-style-highlight'); styledEl = null; }
+    });
+
+    // Listen to changes
+    panel.querySelectorAll('[data-prop]').forEach(function(input) {
+      input.addEventListener('input', function() {
+        var prop = input.getAttribute('data-prop');
+        var val = input.value;
+        el.style[prop] = val;
+        // Sync paired inputs (color picker + text)
+        var peers = panel.querySelectorAll('[data-prop="' + prop + '"]');
+        peers.forEach(function(p) { if (p !== input) { if (p.type === 'color') p.value = rgbToHex(val); else p.value = val; } });
+        // Notify parent
+        window.parent.postMessage({ type: 'style-change', selector: sel, prop: prop, value: val }, '*');
+      });
+    });
+  }
+
+  function rgbToHex(rgb) {
+    if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return '#000000';
+    if (rgb.startsWith('#')) return rgb;
+    var m = rgb.match(/\\d+/g);
+    if (!m || m.length < 3) return '#000000';
+    return '#' + ((1 << 24) + (parseInt(m[0]) << 16) + (parseInt(m[1]) << 8) + parseInt(m[2])).toString(16).slice(1);
   }
 
   function buildSel(el) {
@@ -209,6 +319,7 @@ export function IframePlaceholder(props: IframeProps) {
       if (currentMode === 'text') enableText();
       else if (currentMode === 'navigate') enableNavigate();
       else if (currentMode === 'inspect') enableInspect();
+      else if (currentMode === 'style') enableStyle();
     }
   });
 })();
@@ -234,8 +345,11 @@ export function IframePlaceholder(props: IframeProps) {
         props.onNavigatePage(e.data.page);
       }
       if (e.data?.type === 'set-navigate' && props.onInlineEdit) {
-        // Persist the data-navigate attribute change
         props.onInlineEdit({ [`__nav_${e.data.selector}`]: e.data.page });
+      }
+      if (e.data?.type === 'style-change' && props.onInlineEdit) {
+        // Persist style changes as overrides keyed by selector+prop
+        props.onInlineEdit({ [`__style_${e.data.selector}__${e.data.prop}`]: e.data.value });
       }
     };
     window.addEventListener('message', handler);
@@ -273,9 +387,10 @@ export function IframePlaceholder(props: IframeProps) {
   // Raw HTML mode
   if (activeMode === 'html' && finalHtml) {
     const tools: { id: EditTool; icon: typeof Pencil; label: string; color: string }[] = [
-      { id: 'text', icon: Pencil, label: 'Editar textos/imagens', color: 'bg-indigo-500' },
-      { id: 'navigate', icon: Link2, label: 'Vincular páginas', color: 'bg-amber-500' },
-      { id: 'inspect', icon: Eye, label: 'Inspecionar elemento', color: 'bg-emerald-500' },
+      { id: 'text', icon: Pencil, label: 'Textos/Imagens', color: 'bg-indigo-500' },
+      { id: 'style', icon: Paintbrush, label: 'Estilos CSS', color: 'bg-pink-500' },
+      { id: 'navigate', icon: Link2, label: 'Navegação', color: 'bg-amber-500' },
+      { id: 'inspect', icon: Eye, label: 'Inspecionar', color: 'bg-emerald-500' },
     ];
 
     return (
@@ -334,11 +449,12 @@ export function IframePlaceholder(props: IframeProps) {
         {isActive && (
           <div
             className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-full text-white text-[10px] font-medium shadow-lg backdrop-blur-sm ${
-              activeTool === 'text' ? 'bg-indigo-500/90' : activeTool === 'navigate' ? 'bg-amber-500/90' : 'bg-emerald-500/90'
+              activeTool === 'text' ? 'bg-indigo-500/90' : activeTool === 'style' ? 'bg-pink-500/90' : activeTool === 'navigate' ? 'bg-amber-500/90' : 'bg-emerald-500/90'
             }`}
             style={{ pointerEvents: 'none' }}
           >
             {activeTool === 'text' && 'Clique em textos para editar • Duplo clique em imagens para trocar'}
+            {activeTool === 'style' && 'Clique em qualquer elemento para editar cores, fontes e tamanhos'}
             {activeTool === 'navigate' && 'Clique em um elemento para definir navegação entre páginas'}
             {activeTool === 'inspect' && 'Passe o mouse para inspecionar • Clique para ver detalhes'}
           </div>
