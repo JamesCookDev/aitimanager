@@ -848,7 +848,8 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
 /* ── Iframe / HTML Editable Panel ── */
 function IframePropsPanel({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
   const set = (key: string) => (val: any) => onChange({ [key]: val });
-  const isHtmlMode = !!(props.htmlContent);
+  // Use explicit mode prop so switching doesn't lose data
+  const isHtmlMode = props._iframeMode === 'html' || (!props._iframeMode && !!props.htmlContent);
   const [showCode, setShowCode] = useState(false);
   const [expandedHtml, setExpandedHtml] = useState<string | null>(null);
 
@@ -877,8 +878,8 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
         <div>
           <Label className="text-[11px]">Modo</Label>
           <Select value={isHtmlMode ? 'html' : 'url'} onValueChange={(v) => {
-            if (v === 'html') onChange({ url: '', htmlContent: props.htmlContent || '' });
-            else onChange({ htmlContent: '', url: props.url || '' });
+            // Only switch mode flag — preserve both url and htmlContent data
+            onChange({ _iframeMode: v });
           }}>
             <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
