@@ -30,6 +30,7 @@ export function IframePlaceholder(props: IframeProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTool, setActiveTool] = useState<EditTool>('off');
+  const prevEditMode = useRef(props.editMode);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   // Observe container size for responsive scaling
@@ -42,6 +43,16 @@ export function IframePlaceholder(props: IframeProps) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Sync editMode prop from properties panel
+  useEffect(() => {
+    if (props.editMode && !prevEditMode.current) {
+      setTool('text');
+    } else if (!props.editMode && prevEditMode.current) {
+      setTool('off');
+    }
+    prevEditMode.current = props.editMode;
+  }, [props.editMode]);
 
   // Apply editable field overrides to raw HTML
   const finalHtml = useMemo(() => {
