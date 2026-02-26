@@ -68,9 +68,10 @@ interface Props {
   onNavigate?: (targetViewId: string, transition?: PageTransition) => void;
   onUpdateProps?: (props: Record<string, any>) => void;
   previewMode?: boolean;
+  activeViewName?: string;
 }
 
-export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode }: Props) {
+export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode, activeViewName }: Props) {
   const handleDragStop = useCallback((_e: any, d: { x: number; y: number }) => {
     onMove(Math.round(d.x), Math.round(d.y));
   }, [onMove]);
@@ -120,7 +121,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           }
         }}
       >
-        <ElementRenderer element={element} onUpdateProps={onUpdateProps} />
+        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} />
       </div>
     );
   }
@@ -194,7 +195,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
         {/* Element content */}
         <div className="w-full h-full overflow-hidden" style={{ borderRadius: element.props.borderRadius || 0 }}>
-          <ElementRenderer element={element} onUpdateProps={onUpdateProps} />
+          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} />
         </div>
 
         {/* Navigate badge */}

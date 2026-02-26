@@ -13,6 +13,10 @@ interface IframeProps {
   editMode?: boolean;
   /** Callback when text is edited inline */
   onInlineEdit?: (overrides: Record<string, string>) => void;
+  /** Active view/page name to sync data-page navigation */
+  activeViewName?: string;
+  /** Pages detected in HTML */
+  htmlPages?: { id: string; name: string; selector: string }[];
 }
 
 export function IframePlaceholder(props: IframeProps) {
@@ -35,6 +39,11 @@ export function IframePlaceholder(props: IframeProps) {
 (function() {
   var editing = false;
   window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'navigate-page') {
+      document.querySelectorAll('[data-page]').forEach(function(p) { p.classList.remove('active'); p.style.display = 'none'; });
+      var target = document.querySelector('[data-page="' + e.data.page + '"]');
+      if (target) { target.classList.add('active'); target.style.display = 'flex'; }
+    }
     if (e.data === 'enable-edit') {
       editing = true;
       document.body.style.cursor = 'text';
@@ -113,6 +122,21 @@ export function IframePlaceholder(props: IframeProps) {
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [props.onInlineEdit]);
+
+  // Sync data-page navigation when activeViewName changes
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow || !props.activeViewName || !props.htmlPages?.length) return;
+    // Find matching htmlPage by view name
+    const match = props.htmlPages.find(p => p.name === props.activeViewName);
+    if (match) {
+      // Extract data-page value from selector like [data-page="home"]
+      const m = match.selector.match(/data-page="([^"]+)"/);
+      if (m) {
+        iframe.contentWindow.postMessage({ type: 'navigate-page', page: m[1] }, '*');
+      }
+    }
+  }, [props.activeViewName, props.htmlPages]);
 
   // Toggle edit mode
   const toggleEdit = useCallback(() => {
