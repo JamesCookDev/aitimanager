@@ -248,6 +248,15 @@ export function BulkActionsToolbar({
               <RefreshCw className="w-4 h-4 mr-2" />
               Sincronizar ({targetCount})
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => executeCommand('sync_restart')}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sync + Restart ({targetCount})
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => executeCommand('reload_config')}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reload Config ({targetCount})
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

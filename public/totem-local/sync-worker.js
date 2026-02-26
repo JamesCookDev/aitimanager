@@ -257,9 +257,35 @@ console.log('');
 // Usa endpoint dedicado que NÃO atualiza last_ping
 async function checkLoop() {
   const command = await checkRemoteCommand();
-  if (command === 'sync') {
-    log('⚡ Comando "sync" recebido do Hub — sincronizando imediatamente...');
-    await syncFiles();
+  if (!command) return;
+
+  log(`⚡ Comando "${command}" recebido do Hub`);
+
+  switch (command) {
+    case 'sync':
+      log('📥 Sincronizando imediatamente...');
+      await syncFiles();
+      break;
+
+    case 'restart':
+      log('🔃 Reiniciando totem por comando remoto...');
+      triggerRestart();
+      break;
+
+    case 'sync_restart':
+      log('📥 Sync + Restart recebido — sincronizando e depois reiniciando...');
+      await syncFiles();
+      triggerRestart();
+      break;
+
+    case 'reload_config':
+      log('🔄 Reload de configuração solicitado — reiniciando aplicação...');
+      triggerRestart();
+      break;
+
+    default:
+      warn(`Comando desconhecido: "${command}" — ignorando.`);
+      break;
   }
 }
 
