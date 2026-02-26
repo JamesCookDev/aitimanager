@@ -1,4 +1,5 @@
 import type { CanvasElement } from '../../types/canvas';
+import { applyFieldOverrides } from '../../utils/htmlEditableFields';
 import { TextRenderer } from './TextRenderer';
 import { ImageRenderer } from './ImageRenderer';
 import { ButtonRenderer } from './ButtonRenderer';
@@ -63,8 +64,15 @@ export function ElementRenderer({ element, onUpdateProps, activeViewName, onNavi
       return <CountdownPlaceholder {...element.props} />;
     case 'iframe':
       return <IframePlaceholder {...element.props} activeViewName={activeViewName} onNavigatePage={onNavigatePage} onInlineEdit={onUpdateProps ? (changes) => {
-        const existing = element.props.fieldOverrides || {};
-        onUpdateProps({ fieldOverrides: { ...existing, ...changes } });
+        // Apply edits directly to htmlContent so the raw HTML stays in sync
+        const currentHtml = element.props.htmlContent || '';
+        if (currentHtml) {
+          const updatedHtml = applyFieldOverrides(currentHtml, changes);
+          onUpdateProps({ htmlContent: updatedHtml });
+        } else {
+          const existing = element.props.fieldOverrides || {};
+          onUpdateProps({ fieldOverrides: { ...existing, ...changes } });
+        }
       } : undefined} />;
     case 'carousel':
       return <CarouselRenderer {...element.props} />;
