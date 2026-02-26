@@ -32,9 +32,10 @@ interface Props {
   onUpdateProps?: (props: Record<string, any>) => void;
   activeViewName?: string;
   onNavigatePage?: (pageName: string) => void;
+  availableViews?: { id: string; name: string }[];
 }
 
-export function ElementRenderer({ element, onUpdateProps, activeViewName, onNavigatePage }: Props) {
+export function ElementRenderer({ element, onUpdateProps, activeViewName, onNavigatePage, availableViews }: Props) {
   switch (element.type) {
     case 'text':
       return <TextRenderer {...element.props} />;
@@ -63,7 +64,7 @@ export function ElementRenderer({ element, onUpdateProps, activeViewName, onNavi
     case 'countdown':
       return <CountdownPlaceholder {...element.props} />;
     case 'iframe':
-      return <IframePlaceholder {...element.props} activeViewName={activeViewName} onNavigatePage={onNavigatePage} onInlineEdit={onUpdateProps ? (changes) => {
+      return <IframePlaceholder {...element.props} activeViewName={activeViewName} onNavigatePage={onNavigatePage} availableViews={availableViews} onInlineEdit={onUpdateProps ? (changes) => {
         // Apply edits directly to htmlContent so the raw HTML stays in sync
         const currentHtml = element.props.htmlContent || '';
         if (currentHtml) {

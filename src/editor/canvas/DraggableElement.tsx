@@ -69,9 +69,10 @@ interface Props {
   onUpdateProps?: (props: Record<string, any>) => void;
   previewMode?: boolean;
   activeViewName?: string;
+  availableViews?: { id: string; name: string }[];
 }
 
-export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode, activeViewName }: Props) {
+export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode, activeViewName, availableViews }: Props) {
   const handleDragStop = useCallback((_e: any, d: { x: number; y: number }) => {
     onMove(Math.round(d.x), Math.round(d.y));
   }, [onMove]);
@@ -94,18 +95,10 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
   // Handle page navigation from inside iframe (HTML buttons with data-navigate or href="#page")
   const handleIframeNavigatePage = useCallback((pageName: string) => {
-    if (!onNavigate || !element.props.htmlPages) return;
-    // Find matching page by name or data-page value
-    const pages = element.props.htmlPages as { id: string; name: string; selector: string }[];
-    const match = pages.find(p => 
-      p.name === pageName || 
-      p.selector.includes(`data-page="${pageName}"`) ||
-      p.id === pageName
-    );
-    if (match) {
-      onNavigate(match.id, 'fade');
-    }
-  }, [element.props.htmlPages, onNavigate]);
+    if (!onNavigate) return;
+    // Direct view ID match
+    onNavigate(pageName, 'fade');
+  }, [onNavigate]);
 
   const hasNavigateAction = element.props.actionType === 'navigate' && element.props.navigateTarget;
   const visualStyles = useMemo(() => buildVisualStyles(element.props), [element.props]);
@@ -136,7 +129,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           }
         }}
       >
-        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} />
+        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} />
       </div>
     );
   }
@@ -210,7 +203,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
         {/* Element content */}
         <div className="w-full h-full overflow-hidden" style={{ borderRadius: element.props.borderRadius || 0 }}>
-          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} />
+          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} />
         </div>
 
         {/* Navigate badge */}
