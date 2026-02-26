@@ -170,11 +170,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
   const handleNavigateToPage = useCallback((targetViewId: string, transition: PageTransition = 'fade') => {
     if (!targetViewId || targetViewId === activeViewId) return;
-    const targetExists = views.some(v => v.id === targetViewId);
-    if (!targetExists) { toast.error('Página de destino não encontrada'); return; }
+    // Try matching by ID first, then by name
+    let target = views.find(v => v.id === targetViewId);
+    if (!target) {
+      target = views.find(v => v.name.toLowerCase() === targetViewId.toLowerCase());
+    }
+    if (!target) { toast.error('Página de destino não encontrada'); return; }
     setPageTransition(transition);
-    dispatch({ type: 'SET_ACTIVE_VIEW', id: targetViewId });
-    toast.info(`Navegou para "${views.find(v => v.id === targetViewId)?.name || targetViewId}"`);
+    dispatch({ type: 'SET_ACTIVE_VIEW', id: target.id });
+    toast.info(`Navegou para "${target.name}"`);
   }, [activeViewId, views, dispatch]);
 
   const handleAdd = useCallback((el: CanvasElement) => {
@@ -576,6 +580,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                             onUpdateProps={(props) => dispatch({ type: 'UPDATE_PROPS', id: el.id, props })}
                             previewMode={previewMode}
                             activeViewName={activePage?.name}
+                            availableViews={views.map(v => ({ id: v.id, name: v.name }))}
                           />
                         ))}
                     </motion.div>
@@ -658,7 +663,52 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     <SVGImportDialog
       open={showSvgImport}
       onOpenChange={setShowSvgImport}
-      onImport={(imported) => dispatch({ type: 'LOAD', state: imported })}
+      onImport={(imported) => {
+        // Instead of replacing the entire state, ADD elements to the current active page
+        const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
+        
+        // Assign each imported element to the current active page
+        const newElements = imported.elements.map(el => ({
+          ...el,
+          viewId: activeViewId,
+          id: `${el.id}_${Date.now()}`, // Ensure unique IDs
+        }));
+        
+        // If imported state has multiple views (multi-page HTML), create new views
+        const importedViews = imported.views || [];
+        const hasMultiplePages = importedViews.length > 1;
+        
+        if (hasMultiplePages) {
+          // Multi-page import: create new views and assign elements
+          const viewMap: Record<string, string> = {};
+          importedViews.forEach(v => {
+            if (v.isDefault) {
+              // Map default imported page to the current active view
+              viewMap[v.id] = activeViewId;
+            } else {
+              // Create new views for non-default pages
+              const newId = viewUid();
+              viewMap[v.id] = newId;
+              dispatch({ type: 'ADD_VIEW', view: { id: newId, name: v.name } });
+            }
+          });
+          // Re-assign elements to mapped view IDs
+          const mappedElements = imported.elements.map(el => ({
+            ...el,
+            viewId: viewMap[el.viewId || importedViews[0]?.id || '__default__'] || activeViewId,
+            id: `${el.id}_${Date.now()}`,
+          }));
+          mappedElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
+        } else {
+          // Single page import: add all elements to current page
+          newElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
+        }
+        
+        // Set page bg color if provided
+        if (imported.bgColor && imported.bgColor !== state.bgColor) {
+          dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: imported.bgColor });
+        }
+      }}
     />
     </PageVariablesProvider>
   );
