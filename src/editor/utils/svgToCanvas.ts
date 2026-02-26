@@ -43,17 +43,16 @@ function pathBounds(d: string): PathInfo | null {
   const tokens = d.match(/[a-zA-Z]|[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g);
   if (!tokens) return null;
 
-  // Safety: limit token processing for extremely large paths (>50k tokens)
   const maxTokens = Math.min(tokens.length, 50000);
 
   let i = 0;
   const num = () => (i < maxTokens ? parseFloat(tokens[i++]) : 0);
-  const hasMore = () => i < maxTokens && !/[a-zA-Z]/.test(tokens[i]);
+  const isNum = () => i < maxTokens && !/^[a-zA-Z]$/.test(tokens[i]);
 
   let cmd = '';
   while (i < maxTokens) {
     const t = tokens[i];
-    if (/[a-zA-Z]/.test(t)) { cmd = t; i++; }
+    if (/^[a-zA-Z]$/.test(t)) { cmd = t; i++; }
     cmdCount++;
 
     switch (cmd) {
@@ -88,10 +87,11 @@ function pathBounds(d: string): PathInfo | null {
       default: { i++; break; }
     }
 
-    while (hasMore() && 'MLCSQTAHVmlcsqtahv'.includes(cmd)) break;
+    // Implicit repeat: if next token is a number and current command allows repeats, continue
+    // Do NOT break here — let the while loop naturally re-enter with the same cmd
   }
 
-  if (!found || maxX - minX < 1 || maxY - minY < 1) return null;
+  if (!found || maxX - minX < 0.5 || maxY - minY < 0.5) return null;
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY, cmdCount, curveCount, subpathCount };
 }
 
@@ -326,7 +326,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     if (!id) return;
     const useEl = pattern.querySelector('use');
     const imgEl = pattern.querySelector('image');
-    
+
     let href = '';
     let w = 0;
     let h = 0;
@@ -337,15 +337,24 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
       h = parseFloat(imgEl.getAttribute('height') || '0');
     } else if (useEl) {
       const refId = (useEl.getAttribute('href') || useEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '');
+      
+      // Check for scale transform on <use> to compute actual dimensions
+      const useTransform = useEl.getAttribute('transform') || '';
+      let useScale = 1;
+      const scaleMatch = useTransform.match(/scale\(\s*([-\d.eE]+)\s*(?:,\s*([-\d.eE]+))?\s*\)/);
+      if (scaleMatch) {
+        useScale = parseFloat(scaleMatch[1]);
+      }
+
       if (refId) {
-        // Look up from our pre-collected image map first (more reliable)
         const imgData = imageMap.get(refId);
         if (imgData) {
           href = imgData.href;
+          // If scale is present, the pattern maps the image: actual pixel size = imgData.w, imgData.h
+          // The pattern uses objectBoundingBox, so we just need the href
           w = imgData.w;
           h = imgData.h;
         } else {
-          // Fallback to querySelector
           try {
             const refImg = svg.querySelector(`[id="${refId}"]`);
             if (refImg) {
@@ -359,7 +368,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         }
       }
     }
-    
+
     if (href) {
       patternImageMap.set(id, { href, w, h });
     }
@@ -379,8 +388,8 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return {
       x: Math.round(rx),
       y: Math.round(ry),
-      width: Math.max(20, Math.round(rw)),
-      height: Math.max(20, Math.round(rh)),
+      width: Math.max(10, Math.round(rw)),
+      height: Math.max(10, Math.round(rh)),
     };
   }
 
@@ -469,8 +478,18 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
     return op ? parseFloat(op) : 1;
   }
 
+  // ── Collect raw text-path items for post-process merging ──
+  interface TextPathItem {
+    x: number; y: number; w: number; h: number;
+    fontSize: number;
+    color: string;
+    opacity: number;
+    placeholder: string;
+    fontWeight: string;
+  }
+  const textPathItems: TextPathItem[] = [];
+
   function processNode(node: Element, parentTx = 0, parentTy = 0, parentOpacity = 1) {
-    // ── Safety: wrap each node in try-catch ──
     try {
       processNodeInner(node, parentTx, parentTy, parentOpacity);
     } catch (err) {
@@ -531,7 +550,6 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
             el.opacity = elOpacity;
             elements.push(el);
           } else {
-            // Pattern without image data → treat as shape with placeholder
             const el = makeElement('shape', x, y, w, h, {
               shapeType: 'rectangle',
               fill: '#1E293B',
@@ -552,7 +570,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           if (stroke && stroke !== 'none' && strokeW > 0) {
             const mappedSW = w * scaleX;
             const mappedSH = h * scaleY;
-            if (mappedSW >= 20 || mappedSH >= 20) {
+            if (mappedSW >= 10 || mappedSH >= 10) {
               const isSeparator = (w / Math.max(h, 1) > 4) || (h / Math.max(w, 1) > 4);
               const minH = Math.max(h, strokeW * 2);
               const el = makeElement('shape', x, y, w, minH, {
@@ -570,15 +588,17 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           break;
         }
 
-        // Skip decorative rects with very low fill-opacity
+        // Skip decorative rects with very low fill-opacity (but keep if it has a pattern sibling)
         if (fillOp < 0.1 && !fill.includes('gradient')) break;
 
-        // Skip very small rects (icon parts, decorative dots)
+        // Compute mapped dimensions
         const mappedW = w * scaleX;
         const mappedH = h * scaleY;
-        if (mappedW < 20 && mappedH < 20) break;
 
-        // Gradient-filled rects that cover a large vertical zone → background shapes
+        // Skip very tiny rects (icon dots) — lower threshold to 8px
+        if (mappedW < 8 && mappedH < 8) break;
+
+        // Gradient-filled rects
         const isGradient = fill.includes('gradient');
 
         const el = makeElement('shape', x, y, w, h, {
@@ -595,8 +615,8 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
       case 'circle':
       case 'ellipse': {
-        const cx = parseFloat(node.getAttribute('cx') || '0') + ox;
-        const cy = parseFloat(node.getAttribute('cy') || '0') + oy;
+        const cxAttr = parseFloat(node.getAttribute('cx') || '0') + ox;
+        const cyAttr = parseFloat(node.getAttribute('cy') || '0') + oy;
         const rx = tag === 'circle'
           ? parseFloat(node.getAttribute('r') || '0')
           : parseFloat(node.getAttribute('rx') || '0');
@@ -608,7 +628,7 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const fill = parseColor(node);
         if (fill === 'none') break;
 
-        const elX = cx - rx, elY = cy - ry;
+        const elX = cxAttr - rx, elY = cyAttr - ry;
         if (isOutOfBounds(elX, elY, rx * 2, ry * 2)) break;
 
         const elOpacity = parseOpacity(node) * nodeOpacity;
@@ -733,24 +753,18 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         const elOpacity = parseOpacity(node) * nodeOpacity;
         if (elOpacity < 0.05) break;
 
-        // Convert vectorized text to editable text placeholder
+        // Convert vectorized text to text placeholder — collect for merging
         if (isLikelyTextPath(bounds)) {
           const mappedH = ph * scaleY;
-          
-          // Skip very small text paths (tiny labels, icon text)
-          if (mappedH < 15) break;
+
+          // Skip very small text paths (tiny labels)
+          if (mappedH < 10) break;
 
           const fontSize = estimateFontSize(ph, scaleX);
           const charCount = estimateCharCount(pw, ph);
-          
-          // For very wide text paths (spanning most of the width), check if it's
-          // a multi-line text block. The height relative to width gives us a clue.
           const isMultiLine = pw > refW * 0.5 && ph > pw * 0.1;
-          
-          // Generate descriptive placeholder based on size and position
+
           let placeholder: string;
-          const relY = (py - originY) / refH; // relative Y position (0-1)
-          
           if (fontSize >= 40) {
             placeholder = 'Título aqui';
           } else if (fontSize >= 24) {
@@ -760,36 +774,33 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
           } else {
             placeholder = charCount > 30 ? 'Texto do parágrafo ou descrição detalhada' : 'Texto aqui';
           }
-          
+
           const fillColor = fill === 'none' ? '#ffffff' : (fill.includes('gradient') ? '#ffffff' : fill);
 
-          // For very large text blocks, use the text's Y center for alignment
-          const el = makeElement('text', px, py, pw, ph, {
-            text: placeholder,
+          // Add to collection for merging instead of directly to elements
+          textPathItems.push({
+            x: px, y: py, w: pw, h: ph,
             fontSize: Math.max(12, fontSize),
-            fontWeight: fontSize > 24 ? 'bold' : 'normal',
             color: fillColor,
-            align: pw > refW * 0.6 ? 'center' : 'left',
-            fontFamily: 'Inter',
-          }, `Texto (editar)`);
-          el.opacity = elOpacity;
-          elements.push(el);
+            opacity: elOpacity,
+            placeholder,
+            fontWeight: fontSize > 24 ? 'bold' : 'normal',
+          });
           break;
         }
 
-        // Skip small paths (icons, decorative elements)
+        // Skip small paths (icons, decorative elements) — lower threshold
         const mappedPW = pw * scaleX;
         const mappedPH = ph * scaleY;
-        if (mappedPW < 25 && mappedPH < 25) break;
+        if (mappedPW < 15 && mappedPH < 15) break;
 
         // Skip stroke-only paths (outlines, borders)
         if (fill === 'none' && !stroke) break;
 
         // Check if this looks like an icon (small-ish, roughly square)
         const isIconLike = mappedPW < 80 && mappedPH < 80 && Math.abs(pw - ph) / Math.max(pw, ph) < 0.5;
-        
+
         if (isIconLike) {
-          // Import as a shape placeholder for icon
           const el = makeElement('shape', px, py, pw, ph, {
             shapeType: 'rectangle',
             fill: fill === 'none' ? (stroke || 'transparent') : fill,
@@ -813,6 +824,42 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
         elements.push(el);
         break;
       }
+
+      case 'use': {
+        // Resolve <use> references that point to images or groups
+        const refId = (node.getAttribute('href') || node.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '');
+        if (!refId) break;
+        
+        const x = parseFloat(node.getAttribute('x') || '0') + ox;
+        const y = parseFloat(node.getAttribute('y') || '0') + oy;
+        
+        // Check if it references an image
+        const imgData = imageMap.get(refId);
+        if (imgData && imgData.href) {
+          const w = parseFloat(node.getAttribute('width') || String(imgData.w));
+          const h = parseFloat(node.getAttribute('height') || String(imgData.h));
+          if (!isOutOfBounds(x, y, w, h)) {
+            const el = makeElement('image', x, y, w, h, {
+              src: imgData.href,
+              fit: 'cover',
+              borderRadius: 0,
+            }, 'Imagem (use)');
+            el.opacity = parseOpacity(node) * nodeOpacity;
+            elements.push(el);
+          }
+        } else {
+          // Try to find and process the referenced element
+          try {
+            const refEl = svg.querySelector(`[id="${refId}"]`);
+            if (refEl) {
+              processNode(refEl, x, y, nodeOpacity);
+            }
+          } catch (e) {
+            console.warn(`SVG Import: Could not resolve <use> reference #${refId}`);
+          }
+        }
+        break;
+      }
     }
 
     // Process children for non-group elements that may contain nested elements
@@ -823,6 +870,60 @@ export function parseSVGToCanvas(svgString: string): ParsedSVG {
 
   // Process all top-level children of the SVG
   Array.from(svg.children).forEach(child => processNode(child));
+
+  // ── Post-process: merge adjacent text paths into single text elements ──
+  if (textPathItems.length > 0) {
+    // Sort by Y position, then X
+    textPathItems.sort((a, b) => {
+      const yDiff = a.y - b.y;
+      if (Math.abs(yDiff) > Math.max(a.h, b.h) * 0.5) return yDiff;
+      return a.x - b.x;
+    });
+
+    // Merge items that are on the same line (similar Y, adjacent X)
+    const merged: TextPathItem[] = [];
+    let current = { ...textPathItems[0] };
+
+    for (let ti = 1; ti < textPathItems.length; ti++) {
+      const item = textPathItems[ti];
+      const sameRow = Math.abs(item.y - current.y) < Math.max(current.h, item.h) * 0.6;
+      const closeX = (item.x - (current.x + current.w)) < current.h * 2;
+      const sameColor = item.color === current.color;
+      const sameSize = Math.abs(item.fontSize - current.fontSize) < 4;
+
+      if (sameRow && closeX && sameColor && sameSize) {
+        // Merge: extend bounding box
+        const newX = Math.min(current.x, item.x);
+        const newY = Math.min(current.y, item.y);
+        const newRight = Math.max(current.x + current.w, item.x + item.w);
+        const newBottom = Math.max(current.y + current.h, item.y + item.h);
+        current.x = newX;
+        current.y = newY;
+        current.w = newRight - newX;
+        current.h = newBottom - newY;
+        // Keep the larger font size
+        current.fontSize = Math.max(current.fontSize, item.fontSize);
+      } else {
+        merged.push(current);
+        current = { ...item };
+      }
+    }
+    merged.push(current);
+
+    // Create text elements from merged items
+    for (const item of merged) {
+      const el = makeElement('text', item.x, item.y, item.w, item.h, {
+        text: item.placeholder,
+        fontSize: item.fontSize,
+        fontWeight: item.fontWeight,
+        color: item.color,
+        align: item.w > refW * 0.6 ? 'center' : 'left',
+        fontFamily: 'Inter',
+      }, `Texto (editar)`);
+      el.opacity = item.opacity;
+      elements.push(el);
+    }
+  }
 
   if (skippedCount > 0) {
     console.warn(`SVG Import: ${skippedCount} elements were skipped due to parsing errors`);
