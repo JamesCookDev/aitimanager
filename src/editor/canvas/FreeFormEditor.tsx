@@ -575,6 +575,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                             onNavigate={handleNavigateToPage}
                             onUpdateProps={(props) => dispatch({ type: 'UPDATE_PROPS', id: el.id, props })}
                             previewMode={previewMode}
+                            activeViewName={activePage?.name}
                           />
                         ))}
                     </motion.div>
