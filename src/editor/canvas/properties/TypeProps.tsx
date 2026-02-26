@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Navigation, Type, ImageIcon, ChevronDown, Code2 } from 'lucide-react';
+import { Navigation, Type, ImageIcon, ChevronDown, Code2, Link2, MousePointerClick, Palette } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { CanvasView } from '../../types/canvas';
 import { Section, PropInput, ImageUploadField } from './shared';
@@ -850,6 +850,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
   const set = (key: string) => (val: any) => onChange({ [key]: val });
   const isHtmlMode = !!(props.htmlContent);
   const [showCode, setShowCode] = useState(false);
+  const [expandedHtml, setExpandedHtml] = useState<string | null>(null);
 
   const editableFields = useMemo(() => {
     if (!props.htmlContent) return [];
@@ -865,6 +866,9 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
 
   const textFields = editableFields.filter(f => f.type === 'text');
   const imageFields = editableFields.filter(f => f.type === 'image');
+  const buttonFields = editableFields.filter(f => f.type === 'button');
+  const linkFields = editableFields.filter(f => f.type === 'link');
+  const colorFields = editableFields.filter(f => f.type === 'color');
 
   return (
     <>
@@ -898,11 +902,139 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
         </div>
       </Section>
 
-      {/* Editable fields for HTML mode */}
+      {/* ── Buttons ── */}
+      {isHtmlMode && buttonFields.length > 0 && (
+        <Section title={`🔘 Botões (${buttonFields.length})`}>
+          {buttonFields.map((field) => (
+            <div key={field.id} className="space-y-1 p-2 rounded-md border border-border/50 bg-muted/10">
+              <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
+                <MousePointerClick className="w-2.5 h-2.5" />
+                {field.label}
+              </Label>
+              <div>
+                <Label className="text-[8px] text-muted-foreground/50">Texto</Label>
+                <input
+                  type="text"
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  <Label className="text-[8px] text-muted-foreground/50">Cor fundo</Label>
+                  <div className="flex gap-1">
+                    <input
+                      type="color"
+                      value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '#333333')}
+                      onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)}
+                      className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '')}
+                      onChange={(e) => handleFieldChange(`${field.id}__bgColor`, e.target.value)}
+                      className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono"
+                      placeholder="cor"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[8px] text-muted-foreground/50">Cor texto</Label>
+                  <div className="flex gap-1">
+                    <input
+                      type="color"
+                      value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '#ffffff')}
+                      onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)}
+                      className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '')}
+                      onChange={(e) => handleFieldChange(`${field.id}__textColor`, e.target.value)}
+                      className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono"
+                      placeholder="cor"
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Raw HTML toggle */}
+              <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground">
+                    <Code2 className="w-2.5 h-2.5" />
+                    <span>Editar HTML</span>
+                    <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <textarea
+                    value={overrides[`${field.id}__html`] ?? (field.html || '')}
+                    onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)}
+                    className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                    spellCheck={false}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* ── Links ── */}
+      {isHtmlMode && linkFields.length > 0 && (
+        <Section title={`🔗 Links (${linkFields.length})`}>
+          {linkFields.map((field) => (
+            <div key={field.id} className="space-y-1 p-2 rounded-md border border-border/50 bg-muted/10">
+              <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
+                <Link2 className="w-2.5 h-2.5" />
+                {field.label}
+              </Label>
+              <div>
+                <Label className="text-[8px] text-muted-foreground/50">Texto</Label>
+                <input
+                  type="text"
+                  value={overrides[`${field.id}__text`] ?? (field.extras?.text || '')}
+                  onChange={(e) => handleFieldChange(`${field.id}__text`, e.target.value)}
+                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-[8px] text-muted-foreground/50">URL (href)</Label>
+                <input
+                  type="text"
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground">
+                    <Code2 className="w-2.5 h-2.5" />
+                    <span>Editar HTML</span>
+                    <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <textarea
+                    value={overrides[`${field.id}__html`] ?? (field.html || '')}
+                    onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)}
+                    className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                    spellCheck={false}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* ── Texts ── */}
       {isHtmlMode && textFields.length > 0 && (
         <Section title={`✏️ Textos (${textFields.length})`}>
           {textFields.map((field) => (
-            <div key={field.id} className="space-y-0.5">
+            <div key={field.id} className="space-y-0.5 p-2 rounded-md border border-border/50 bg-muted/10">
               <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
                 <Type className="w-2.5 h-2.5" />
                 {field.tag}
@@ -921,15 +1053,33 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                   className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               )}
+              <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground">
+                    <Code2 className="w-2.5 h-2.5" />
+                    <span>Editar HTML</span>
+                    <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <textarea
+                    value={overrides[`${field.id}__html`] ?? (field.html || '')}
+                    onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)}
+                    className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                    spellCheck={false}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           ))}
         </Section>
       )}
 
+      {/* ── Images ── */}
       {isHtmlMode && imageFields.length > 0 && (
         <Section title={`🖼️ Imagens (${imageFields.length})`}>
           {imageFields.map((field) => (
-            <div key={field.id} className="space-y-1">
+            <div key={field.id} className="space-y-1 p-2 rounded-md border border-border/50 bg-muted/10">
               <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
                 <ImageIcon className="w-2.5 h-2.5" />
                 {field.label}
@@ -945,6 +1095,51 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                 </div>
               )}
               <ImageUploadField value={overrides[field.id] ?? field.value} onChange={(v) => handleFieldChange(field.id, v)} />
+              <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground">
+                    <Code2 className="w-2.5 h-2.5" />
+                    <span>Editar HTML</span>
+                    <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <textarea
+                    value={overrides[`${field.id}__html`] ?? (field.html || '')}
+                    onChange={(e) => handleFieldChange(`${field.id}__html`, e.target.value)}
+                    className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                    spellCheck={false}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* ── Colors ── */}
+      {isHtmlMode && colorFields.length > 0 && (
+        <Section title={`🎨 Cores (${colorFields.length})`}>
+          {colorFields.map((field) => (
+            <div key={field.id} className="space-y-1 p-1.5 rounded-md border border-border/50 bg-muted/10">
+              <Label className="text-[9px] text-muted-foreground/70 flex items-center gap-1">
+                <Palette className="w-2.5 h-2.5" />
+                {field.label}
+              </Label>
+              <div className="flex gap-1">
+                <input
+                  type="color"
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono"
+                />
+              </div>
             </div>
           ))}
         </Section>
@@ -956,7 +1151,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
           <CollapsibleTrigger className="w-full">
             <div className="flex items-center gap-1.5 py-1.5 px-1 group cursor-pointer">
               <Code2 className="w-3 h-3 text-muted-foreground/50" />
-              <span className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider flex-1 text-left">Código HTML</span>
+              <span className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider flex-1 text-left">Código HTML completo</span>
               <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform group-data-[state=open]:rotate-180" />
             </div>
           </CollapsibleTrigger>
