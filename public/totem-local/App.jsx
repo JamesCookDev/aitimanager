@@ -681,6 +681,83 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
     case "iframe": {
       const url = p.url || "";
+      const htmlContent = p.htmlContent || "";
+
+      // Raw HTML mode — render via srcdoc
+      if (htmlContent) {
+        // Apply field overrides if present
+        let finalHtml = htmlContent;
+        if (p.fieldOverrides && Object.keys(p.fieldOverrides).length > 0) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlContent, "text/html");
+          // Re-extract text/image fields for matching
+          const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
+          let tIdx = 0;
+          textEls.forEach(el => {
+            const directText = Array.from(el.childNodes)
+              .filter(n => n.nodeType === 3)
+              .map(n => n.textContent?.trim())
+              .filter(Boolean)
+              .join(" ");
+            if (directText) {
+              tIdx++;
+              const key = "text_" + tIdx;
+              if (p.fieldOverrides[key] !== undefined && p.fieldOverrides[key] !== directText) {
+                Array.from(el.childNodes).forEach(node => {
+                  if (node.nodeType === 3 && node.textContent?.trim() === directText) {
+                    node.textContent = p.fieldOverrides[key];
+                  }
+                });
+              }
+            }
+          });
+          let iIdx = 0;
+          doc.body.querySelectorAll("img").forEach(img => {
+            iIdx++;
+            const key = "img_" + iIdx;
+            if (p.fieldOverrides[key] !== undefined) {
+              img.setAttribute("src", p.fieldOverrides[key]);
+            }
+          });
+          // Also apply inline_* overrides from contentEditable
+          Object.entries(p.fieldOverrides).forEach(([k, v]) => {
+            if (k.startsWith("inline_")) {
+              const parts = k.split("_");
+              const tag = parts[1];
+              const idx = parseInt(parts[2], 10);
+              const els = doc.body.querySelectorAll(tag);
+              if (els[idx]) els[idx].textContent = v;
+            }
+          });
+          const head = doc.head.innerHTML;
+          const body = doc.body.innerHTML;
+          const bodyAttrs = Array.from(doc.body.attributes).map(a => a.name + '="' + a.value + '"').join(" ");
+          finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
+        }
+
+        return (
+          <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+            <iframe
+              srcDoc={finalHtml}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                border: "none",
+                pointerEvents: "auto",
+                display: "block",
+                zIndex: 10,
+              }}
+              scrolling={p.scrolling === false ? "no" : "yes"}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              title="HTML embed"
+            />
+          </div>
+        );
+      }
+
       if (!url) return <PremiumPlaceholder emoji="🌐" label="Iframe — configure a URL" />;
       return (
         <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
