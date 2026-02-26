@@ -33,10 +33,39 @@ export function IframePlaceholder(props: IframeProps) {
     if (overrides && Object.keys(overrides).length > 0) {
       html = applyFieldOverrides(html, overrides);
     }
-    // Inject inline editing support script
+    // Inject responsive scaling + inline editing support script
     const editScript = `
 <script>
 (function() {
+  // ── Responsive scaling ──
+  function autoScale() {
+    var body = document.body;
+    var bw = body.scrollWidth || body.offsetWidth;
+    var bh = body.scrollHeight || body.offsetHeight;
+    // Try to detect designed size from CSS (e.g. body { width:1080px; height:1920px })
+    var cs = getComputedStyle(body);
+    var designW = parseInt(cs.width) || bw;
+    var designH = parseInt(cs.height) || bh;
+    if (designW <= 0 || designH <= 0) return;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var scaleX = vw / designW;
+    var scaleY = vh / designH;
+    var s = Math.min(scaleX, scaleY);
+    if (s >= 0.99 && s <= 1.01) return; // no scaling needed
+    body.style.transformOrigin = 'top left';
+    body.style.transform = 'scale(' + s + ')';
+    body.style.width = designW + 'px';
+    body.style.height = designH + 'px';
+    // Prevent scrollbars from unscaled overflow
+    document.documentElement.style.overflow = 'hidden';
+  }
+  // Run on load and resize
+  if (document.readyState === 'complete') autoScale();
+  else window.addEventListener('load', autoScale);
+  window.addEventListener('resize', autoScale);
+
+  // ── Page navigation + inline editing ──
   var editing = false;
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'navigate-page') {
@@ -47,7 +76,6 @@ export function IframePlaceholder(props: IframeProps) {
     if (e.data === 'enable-edit') {
       editing = true;
       document.body.style.cursor = 'text';
-      // Make text elements editable
       var textEls = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button');
       textEls.forEach(function(el) {
         if (el.childNodes.length > 0) {
@@ -63,7 +91,6 @@ export function IframePlaceholder(props: IframeProps) {
             });
             el.addEventListener('blur', function() {
               el.style.outline = 'none';
-              // Send update to parent
               var changes = {};
               document.querySelectorAll('[contenteditable=true]').forEach(function(cel, i) {
                 var tag = cel.tagName.toLowerCase();
@@ -75,7 +102,6 @@ export function IframePlaceholder(props: IframeProps) {
           }
         }
       });
-      // Make images swappable on double-click
       document.querySelectorAll('img').forEach(function(img, i) {
         img.style.cursor = 'pointer';
         img.title = 'Duplo clique para trocar imagem';
