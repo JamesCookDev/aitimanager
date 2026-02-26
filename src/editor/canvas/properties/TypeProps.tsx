@@ -862,10 +862,42 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
 
   const handleFieldChange = (fieldId: string, newValue: string) => {
     const currentHtml = props.htmlContent || '';
-    if (currentHtml) {
+    if (!currentHtml) {
+      const updated = { ...overrides, [fieldId]: newValue };
+      onChange({ fieldOverrides: updated });
+      return;
+    }
+
+    // For __html overrides, do direct string replacement of the element's outerHTML
+    if (fieldId.endsWith('__html')) {
+      const baseId = fieldId.replace('__html', '');
+      const field = editableFields.find(f => f.id === baseId);
+      if (field?.html) {
+        const oldHtml = field.html;
+        if (currentHtml.includes(oldHtml)) {
+          onChange({ htmlContent: currentHtml.replace(oldHtml, newValue) });
+          return;
+        }
+        // Fallback: try trimmed match
+        const trimmedOld = oldHtml.trim();
+        if (currentHtml.includes(trimmedOld)) {
+          onChange({ htmlContent: currentHtml.replace(trimmedOld, newValue) });
+          return;
+        }
+      }
+    }
+
+    // For all other changes, use applyFieldOverrides
+    try {
       const updatedHtml = applyFieldOverrides(currentHtml, { [fieldId]: newValue });
-      onChange({ htmlContent: updatedHtml });
-    } else {
+      if (updatedHtml !== currentHtml) {
+        onChange({ htmlContent: updatedHtml });
+      } else {
+        // Fallback: store as override
+        const updated = { ...overrides, [fieldId]: newValue };
+        onChange({ fieldOverrides: updated });
+      }
+    } catch {
       const updated = { ...overrides, [fieldId]: newValue };
       onChange({ fieldOverrides: updated });
     }
@@ -1221,11 +1253,12 @@ function HtmlFieldCard({ field, overrides, expandedHtml, setExpandedHtml, onChan
         </CollapsibleTrigger>
         <CollapsibleContent>
           <textarea
-            value={overrides[`${field.id}__html`] ?? (field.html || '')}
+            value={field.html || ''}
             onChange={(e) => onChange(`${field.id}__html`, e.target.value)}
             className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
             spellCheck={false}
           />
+          <p className="text-[7px] text-muted-foreground/40 mt-0.5">Edite o HTML e as alterações serão aplicadas ao código completo</p>
         </CollapsibleContent>
       </Collapsible>
     </div>
