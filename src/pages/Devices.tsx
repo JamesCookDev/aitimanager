@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { DeviceTable } from '@/components/devices/DeviceTable';
 import { MetricCard } from '@/components/devices/MetricCard';
 import { NewDeviceDialog } from '@/components/devices/NewDeviceDialog';
+import { BulkActionsToolbar } from '@/components/devices/BulkActionsToolbar';
 import { Device, getDeviceStatus } from '@/types/database';
 import { Cpu, Zap, WifiOff, RefreshCw, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ export default function Devices() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewDevice, setShowNewDevice] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const isSuperAdmin = role === 'super_admin';
 
@@ -128,7 +130,24 @@ export default function Devices() {
         <MetricCard title="Interagindo" value={speakingCount} subtitle="Avatares ativos" icon={MessageSquare} variant={speakingCount > 0 ? 'success' : 'default'} />
       </div>
 
-      <DeviceTable devices={devices} showOrganization={isSuperAdmin} loading={loading} onDeviceDeleted={fetchDevices} />
+      <DeviceTable
+        devices={devices}
+        showOrganization={isSuperAdmin}
+        loading={loading}
+        onDeviceDeleted={fetchDevices}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
+
+      <BulkActionsToolbar
+        selectedIds={selectedIds}
+        devices={devices}
+        onClearSelection={() => setSelectedIds([])}
+        onSelectByOrg={(orgId) => setSelectedIds(devices.filter(d => d.org_id === orgId).map(d => d.id))}
+        onSelectAll={() => setSelectedIds(devices.map(d => d.id))}
+        isSuperAdmin={isSuperAdmin}
+        onRefresh={fetchDevices}
+      />
 
       <NewDeviceDialog
         open={showNewDevice}
