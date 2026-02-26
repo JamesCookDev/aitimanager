@@ -335,6 +335,20 @@ export function applyFieldOverrides(
     }
   }
 
+  // Apply style overrides from the style tool (__style_selector__prop = value)
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__style_')) continue;
+    const rest = key.slice('__style_'.length); // selector__prop
+    const lastDunder = rest.lastIndexOf('__');
+    if (lastDunder < 0) continue;
+    const selector = rest.slice(0, lastDunder);
+    const prop = rest.slice(lastDunder + 2);
+    try {
+      const el = doc.body.querySelector(selector) as HTMLElement;
+      if (el) (el.style as any)[prop] = value;
+    } catch {}
+  }
+
   // Reconstruct the full HTML preserving <head>
   const headContent = doc.head.innerHTML;
   const bodyContent = doc.body.innerHTML;
