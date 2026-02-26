@@ -92,6 +92,21 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
     }
   }, [element, onNavigate]);
 
+  // Handle page navigation from inside iframe (HTML buttons with data-navigate or href="#page")
+  const handleIframeNavigatePage = useCallback((pageName: string) => {
+    if (!onNavigate || !element.props.htmlPages) return;
+    // Find matching page by name or data-page value
+    const pages = element.props.htmlPages as { id: string; name: string; selector: string }[];
+    const match = pages.find(p => 
+      p.name === pageName || 
+      p.selector.includes(`data-page="${pageName}"`) ||
+      p.id === pageName
+    );
+    if (match) {
+      onNavigate(match.id, 'fade');
+    }
+  }, [element.props.htmlPages, onNavigate]);
+
   const hasNavigateAction = element.props.actionType === 'navigate' && element.props.navigateTarget;
   const visualStyles = useMemo(() => buildVisualStyles(element.props), [element.props]);
 
@@ -121,7 +136,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           }
         }}
       >
-        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} />
+        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} />
       </div>
     );
   }
@@ -195,7 +210,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
         {/* Element content */}
         <div className="w-full h-full overflow-hidden" style={{ borderRadius: element.props.borderRadius || 0 }}>
-          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} />
+          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} />
         </div>
 
         {/* Navigate badge */}
