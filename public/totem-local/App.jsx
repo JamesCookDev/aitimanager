@@ -726,7 +726,11 @@ function ElementRenderer({ type, props: p, onNavigate }) {
               if (k.startsWith("__text_")) {
                 const sel = k.slice(7);
                 const el = doc.body.querySelector(sel);
-                if (el) el.textContent = v;
+                // Safety: only apply to leaf elements (no nested block children)
+                if (el) {
+                  const blocks = el.querySelectorAll("div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article");
+                  if (blocks.length === 0) el.textContent = v;
+                }
               } else if (k.startsWith("__img_")) {
                 const sel = k.slice(6);
                 const el = doc.body.querySelector(sel);

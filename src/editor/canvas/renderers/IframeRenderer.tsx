@@ -115,25 +115,58 @@ export function IframePlaceholder(props: IframeProps) {
     if (stylePanel) { stylePanel.remove(); stylePanel = null; styledEl = null; }
   }
 
+  function isLeafText(el) {
+    // A leaf text element has direct text nodes but no child elements with significant text
+    var childEls = el.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
+    var directText = '';
+    for (var i = 0; i < el.childNodes.length; i++) {
+      if (el.childNodes[i].nodeType === 3) directText += el.childNodes[i].textContent.trim();
+    }
+    // Has direct text, or is a simple element (no complex children)
+    if (directText.length > 0) return true;
+    // Button/span with only inline children (no block-level descendants with their own text)
+    var tag = el.tagName.toLowerCase();
+    if ((tag === 'button' || tag === 'a' || tag === 'span' || tag === 'label') && el.textContent.trim().length > 0) {
+      // Only if no nested block elements
+      var blocks = el.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,li,td,th');
+      return blocks.length === 0;
+    }
+    return false;
+  }
+
+  function getDirectText(el) {
+    var text = '';
+    for (var i = 0; i < el.childNodes.length; i++) {
+      if (el.childNodes[i].nodeType === 3) text += el.childNodes[i].textContent;
+    }
+    return text.trim() || el.textContent.trim();
+  }
+
   function enableText() {
     document.body.style.cursor = 'text';
-    var textEls = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
+    var textEls = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button');
+    var editedSet = new Set();
     textEls.forEach(function(el) {
-      // Check for direct text OR inner text in buttons/spans
-      var hasText = el.textContent && el.textContent.trim().length > 0;
-      if (hasText) {
-        el.contentEditable = 'true';
-        el.style.outline = 'none';
-        el.style.cursor = 'text';
-        el.setAttribute('data-edit-highlight', '');
-        el.addEventListener('focus', function() { el.style.outline = '2px solid #818cf8'; el.style.outlineOffset = '2px'; });
-        el.addEventListener('blur', function() {
-          el.style.outline = 'none';
-          var sel = buildSel(el);
-          var newText = el.textContent.trim();
-          window.parent.postMessage({ type: 'inline-edit-text', selector: sel, text: newText }, '*');
-        });
+      if (editedSet.has(el)) return;
+      if (!isLeafText(el)) return;
+      // Skip if a parent is already editable (avoid nested contentEditable)
+      var parent = el.parentElement;
+      while (parent && parent !== document.body) {
+        if (parent.contentEditable === 'true') return;
+        parent = parent.parentElement;
       }
+      editedSet.add(el);
+      el.contentEditable = 'true';
+      el.style.outline = 'none';
+      el.style.cursor = 'text';
+      el.setAttribute('data-edit-highlight', '');
+      el.addEventListener('focus', function() { el.style.outline = '2px solid #818cf8'; el.style.outlineOffset = '2px'; });
+      el.addEventListener('blur', function() {
+        el.style.outline = 'none';
+        var sel = buildSel(el);
+        var newText = el.textContent.trim();
+        window.parent.postMessage({ type: 'inline-edit-text', selector: sel, text: newText }, '*');
+      });
     });
     document.querySelectorAll('img').forEach(function(img) {
       img.style.cursor = 'pointer';
