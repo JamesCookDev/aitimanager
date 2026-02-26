@@ -466,10 +466,10 @@ export function StorePropsPanel({ props, onChange, views }: { props: Record<stri
               <p className="text-[9px] text-muted-foreground">Ao clicar em uma loja, navega para página de detalhes com dados da loja.</p>
               <div>
                 <Label className="text-[11px]">Página de destino</Label>
-                <Select value={props.storeNavigateTarget || ''} onValueChange={set('storeNavigateTarget')}>
+                <Select value={props.storeNavigateTarget || '__none__'} onValueChange={(v) => set('storeNavigateTarget')(v === '__none__' ? '' : v)}>
                   <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Desativado" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Desativado</SelectItem>
+                    <SelectItem value="__none__">Desativado</SelectItem>
                     {views.map(v => (
                       <SelectItem key={v.id} value={v.id}>📄 {v.name}</SelectItem>
                     ))}
