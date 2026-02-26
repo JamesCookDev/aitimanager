@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Navigation, Type, ImageIcon, ChevronDown, Code2, Link2, MousePointerClick, Palette } from 'lucide-react';
+import { Navigation, Type, ImageIcon, ChevronDown, Code2, Link2, MousePointerClick, Palette, Pencil } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { CanvasView } from '../../types/canvas';
 import { Section, PropInput, ImageUploadField } from './shared';
@@ -901,6 +901,25 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
           <Label className="text-[11px]">Scrolling</Label>
           <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
         </div>
+
+        {isHtmlMode && props.htmlContent && (
+          <div className="pt-1">
+            <button
+              onClick={() => onChange({ editMode: !props.editMode })}
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                props.editMode
+                  ? 'bg-indigo-500 text-white ring-2 ring-indigo-400/50 shadow-lg shadow-indigo-500/25'
+                  : 'bg-muted hover:bg-muted/80 text-foreground'
+              }`}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {props.editMode ? '✏️ Modo edição ATIVO — clique para sair' : 'Editar HTML no canvas'}
+            </button>
+            {props.editMode && (
+              <p className="text-[9px] text-indigo-400 mt-1 text-center">Clique nos textos para editar • Duplo clique em imagens para trocar</p>
+            )}
+          </div>
+        )}
       </Section>
 
       {/* ── Buttons ── */}
