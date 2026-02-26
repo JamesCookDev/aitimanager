@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { parseSVGToCanvas } from '../utils/svgToCanvas';
 import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
+import { detectHtmlPages } from '../utils/htmlEditableFields';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../types/canvas';
-import type { CanvasState, CanvasElement } from '../types/canvas';
+import type { CanvasState, CanvasElement, CanvasView } from '../types/canvas';
 import { ElementRenderer } from './renderers/ElementRenderer';
 
 interface SVGImportDialogProps {
@@ -153,20 +154,37 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
 
   const handleConfirm = useCallback(() => {
     if (!parsedResult) return;
+
+    // Detect pages from HTML for raw mode
+    let views: CanvasView[] = [{ id: '__default__', name: 'Home', isDefault: true }];
+    if (mode === 'raw' && parsedResult.elements.length === 1 && parsedResult.elements[0].props.htmlContent) {
+      const detectedPages = detectHtmlPages(parsedResult.elements[0].props.htmlContent);
+      if (detectedPages.length > 1) {
+        views = detectedPages.map((p, i) => ({
+          id: p.id,
+          name: p.name,
+          isDefault: i === 0,
+        }));
+        // Store page selectors in element props for navigation
+        parsedResult.elements[0].props.htmlPages = detectedPages;
+      }
+    }
+
     const state: CanvasState = {
       bgColor: parsedResult.bgColor,
       elements: parsedResult.elements,
       selectedId: null,
-      views: [{ id: '__default__', name: 'Home', isDefault: true }],
-      activeViewId: '__default__',
+      views,
+      activeViewId: views[0].id,
       viewIdleTimeout: 30,
       pageBgColors: {},
     };
     onImport(state);
-    toast.success(`${parsedResult.elements.length} elementos importados`);
+    const pageMsg = views.length > 1 ? ` • ${views.length} páginas detectadas` : '';
+    toast.success(`${parsedResult.elements.length} elementos importados${pageMsg}`);
     reset();
     onOpenChange(false);
-  }, [parsedResult, onImport, onOpenChange]);
+  }, [parsedResult, onImport, onOpenChange, mode]);
 
   const modeLabel = mode === 'svg' ? 'SVG' : mode === 'raw' ? 'HTML Puro' : 'HTML';
   const placeholder = mode === 'svg'

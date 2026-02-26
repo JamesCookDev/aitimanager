@@ -1,8 +1,10 @@
+import { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Navigation } from 'lucide-react';
+import { Navigation, Type, ImageIcon, ChevronDown, Code2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { CanvasView } from '../../types/canvas';
 import { Section, PropInput, ImageUploadField } from './shared';
 import { MapPropsPanel } from './MapPropsPanel';
@@ -15,6 +17,7 @@ import { AnimatedNumberPropsPanel } from './AnimatedNumberPropsPanel';
 import { CatalogPropsPanel } from './CatalogPropsPanel';
 import { FormPropsPanel } from './FormPropsPanel';
 import { FeedPropsPanel } from './FeedPropsPanel';
+import { extractEditableFields, type EditableField } from '../../utils/htmlEditableFields';
 
 /* Reusable navigation action panel for any element */
 function NavigationActionSection({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
@@ -400,50 +403,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
         </Section>
       );
     case 'iframe':
-      return (
-        <Section title="Iframe / HTML">
-          {/* Toggle between URL and Raw HTML */}
-          <div>
-            <Label className="text-[11px]">Modo</Label>
-            <Select value={props.htmlContent ? 'html' : 'url'} onValueChange={(v) => {
-              if (v === 'html') onChange({ url: '', htmlContent: props.htmlContent || '' });
-              else onChange({ htmlContent: '', url: props.url || '' });
-            }}>
-              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="url">🔗 URL externa</SelectItem>
-                <SelectItem value="html">📝 HTML puro</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {props.htmlContent !== undefined && props.htmlContent !== '' ? (
-            <>
-              <div>
-                <Label className="text-[11px]">Código HTML</Label>
-                <textarea
-                  value={props.htmlContent || ''}
-                  onChange={(e) => set('htmlContent')(e.target.value)}
-                  className="w-full mt-1 rounded-md border border-border bg-background px-2 py-1.5 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="<div>Seu HTML aqui...</div>"
-                  spellCheck={false}
-                />
-                <p className="text-[9px] text-muted-foreground mt-1">Cole qualquer HTML — será renderizado como iframe.</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <PropInput label="URL do site" value={props.url} onChange={set('url')} />
-              <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
-            </>
-          )}
-          <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
-          <div className="flex items-center justify-between">
-            <Label className="text-[11px]">Scrolling</Label>
-            <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
-          </div>
-          <NavigationActionSection props={props} onChange={onChange} views={views} />
-        </Section>
-      );
+      return <IframePropsPanel props={props} onChange={onChange} views={views} />;
     case 'map':
       return <MapPropsPanel props={props} onChange={onChange} />;
     case 'chat':
@@ -883,4 +843,136 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
         </Section>
       );
   }
+}
+
+/* ── Iframe / HTML Editable Panel ── */
+function IframePropsPanel({ props, onChange, views }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void; views?: CanvasView[] }) {
+  const set = (key: string) => (val: any) => onChange({ [key]: val });
+  const isHtmlMode = !!(props.htmlContent);
+  const [showCode, setShowCode] = useState(false);
+
+  const editableFields = useMemo(() => {
+    if (!props.htmlContent) return [];
+    return extractEditableFields(props.htmlContent);
+  }, [props.htmlContent]);
+
+  const overrides: Record<string, string> = props.fieldOverrides || {};
+
+  const handleFieldChange = (fieldId: string, newValue: string) => {
+    const updated = { ...overrides, [fieldId]: newValue };
+    onChange({ fieldOverrides: updated });
+  };
+
+  const textFields = editableFields.filter(f => f.type === 'text');
+  const imageFields = editableFields.filter(f => f.type === 'image');
+
+  return (
+    <>
+      {/* Mode toggle */}
+      <Section title="Iframe / HTML">
+        <div>
+          <Label className="text-[11px]">Modo</Label>
+          <Select value={isHtmlMode ? 'html' : 'url'} onValueChange={(v) => {
+            if (v === 'html') onChange({ url: '', htmlContent: props.htmlContent || '' });
+            else onChange({ htmlContent: '', url: props.url || '' });
+          }}>
+            <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="url">🔗 URL externa</SelectItem>
+              <SelectItem value="html">📝 HTML puro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!isHtmlMode && (
+          <>
+            <PropInput label="URL do site" value={props.url} onChange={set('url')} />
+            <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
+          </>
+        )}
+
+        <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px]">Scrolling</Label>
+          <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
+        </div>
+      </Section>
+
+      {/* Editable fields for HTML mode */}
+      {isHtmlMode && textFields.length > 0 && (
+        <Section title={`✏️ Textos (${textFields.length})`}>
+          {textFields.map((field) => (
+            <div key={field.id} className="space-y-0.5">
+              <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
+                <Type className="w-2.5 h-2.5" />
+                {field.tag}
+              </Label>
+              {(overrides[field.id] || field.value).length > 60 ? (
+                <textarea
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-2 py-1 text-[10px] min-h-[50px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={overrides[field.id] ?? field.value}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              )}
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {isHtmlMode && imageFields.length > 0 && (
+        <Section title={`🖼️ Imagens (${imageFields.length})`}>
+          {imageFields.map((field) => (
+            <div key={field.id} className="space-y-1">
+              <Label className="text-[9px] text-muted-foreground/70 uppercase tracking-wide flex items-center gap-1">
+                <ImageIcon className="w-2.5 h-2.5" />
+                {field.label}
+              </Label>
+              {(overrides[field.id] || field.value) && (
+                <div className="w-full h-16 rounded border border-border overflow-hidden bg-muted/30">
+                  <img
+                    src={overrides[field.id] ?? field.value}
+                    alt={field.label}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+              )}
+              <ImageUploadField value={overrides[field.id] ?? field.value} onChange={(v) => handleFieldChange(field.id, v)} />
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Show/hide raw code */}
+      {isHtmlMode && (
+        <Collapsible open={showCode} onOpenChange={setShowCode}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center gap-1.5 py-1.5 px-1 group cursor-pointer">
+              <Code2 className="w-3 h-3 text-muted-foreground/50" />
+              <span className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider flex-1 text-left">Código HTML</span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform group-data-[state=open]:rotate-180" />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <textarea
+              value={props.htmlContent || ''}
+              onChange={(e) => set('htmlContent')(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="<div>Seu HTML aqui...</div>"
+              spellCheck={false}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      <NavigationActionSection props={props} onChange={onChange} views={views} />
+    </>
+  );
 }
