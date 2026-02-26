@@ -91,7 +91,32 @@ export function PagesPanel({
     });
 
     return (
-      <div key={v.id}>
+      <div key={v.id} className="relative">
+        {/* Tree connector lines */}
+        {depth > 0 && (
+          <>
+            {/* Vertical line from parent */}
+            <div
+              className="absolute border-l-2 border-muted-foreground/20"
+              style={{
+                left: `${depth * 20 + 2}px`,
+                top: 0,
+                bottom: hasKids && !isCollapsed ? 0 : '50%',
+                height: hasKids && !isCollapsed ? undefined : '50%',
+              }}
+            />
+            {/* Horizontal line to item */}
+            <div
+              className="absolute border-t-2 border-muted-foreground/20"
+              style={{
+                left: `${depth * 20 + 2}px`,
+                top: '50%',
+                width: '10px',
+              }}
+            />
+          </>
+        )}
+
         <div
           onClick={() => onSelectView(v.id)}
           className={cn(
@@ -141,7 +166,7 @@ export function PagesPanel({
                   className="h-6 text-[11px] px-1.5"
                   autoFocus
                 />
-                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} className="text-green-500 hover:text-green-400 shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} className="text-primary hover:text-primary/80 shrink-0">
                   <Check className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -225,7 +250,7 @@ export function PagesPanel({
 
         {/* Inline add child input */}
         {addingChildOf === v.id && (
-          <div className="flex items-center gap-1.5 py-1" style={{ paddingLeft: `${30 + depth * 20}px` }}>
+          <div className="flex items-center gap-1.5 py-1 relative" style={{ paddingLeft: `${30 + depth * 20}px` }}>
             <CornerDownRight className="w-3 h-3 text-muted-foreground shrink-0" />
             <Input
               value={newName}
@@ -248,8 +273,40 @@ export function PagesPanel({
           </div>
         )}
 
-        {/* Children */}
-        {hasKids && !isCollapsed && children.map(child => renderPageItem(child, depth + 1))}
+        {/* Children with continuous vertical line */}
+        {hasKids && !isCollapsed && (
+          <div className="relative">
+            {/* Continuous vertical line spanning all children */}
+            <div
+              className="absolute border-l-2 border-muted-foreground/20"
+              style={{
+                left: `${(depth + 1) * 20 + 2}px`,
+                top: 0,
+                bottom: 0,
+              }}
+            />
+            {children.map((child, idx) => {
+              const isLast = idx === children.length - 1;
+              return (
+                <div key={child.id} className="relative">
+                  {/* Clip the vertical line at last child */}
+                  {isLast && (
+                    <div
+                      className="absolute bg-background"
+                      style={{
+                        left: `${(depth + 1) * 20 + 1}px`,
+                        top: '50%',
+                        bottom: -1,
+                        width: 4,
+                      }}
+                    />
+                  )}
+                  {renderPageItem(child, depth + 1)}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -263,7 +320,7 @@ export function PagesPanel({
         </div>
 
         {/* Pages tree */}
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 relative">
           {rootViews.map(v => renderPageItem(v))}
         </div>
 
