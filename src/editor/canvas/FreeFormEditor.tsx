@@ -30,6 +30,7 @@ import { PageVariablesProvider } from './PageVariablesContext';
 import { TotemFrame } from './TotemFrame';
 import { ZoneGuides } from './ZoneGuides';
 import { SVGImportDialog } from './SVGImportDialog';
+import { applyFieldOverrides } from '../utils/htmlEditableFields';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -133,7 +134,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
   const [showSvgImport, setShowSvgImport] = useState(false);
-
+  const [selectedNavElement, setSelectedNavElement] = useState<{
+    selector: string; tag: string; text: string; currentNavigate: string; elementId: string;
+  } | null>(null);
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
     const rect = viewportRef.current.getBoundingClientRect();
@@ -582,6 +585,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                             previewMode={previewMode}
                             activeViewName={activePage?.name}
                             availableViews={views.map(v => ({ id: v.id, name: v.name }))}
+                            onNavElementSelected={(info) => {
+                              setSelectedNavElement({ ...info, elementId: el.id });
+                              dispatch({ type: 'SELECT', id: el.id });
+                            }}
                           />
                         ))}
                     </motion.div>
@@ -630,6 +637,32 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   selectedId={state.selectedId}
                   views={views}
                   onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}
+                  selectedNavElement={selectedNavElement}
+                  onAssignNavigation={(selector, pageId, pageName) => {
+                    // Send message to iframe to update the element
+                    const iframes = document.querySelectorAll('iframe');
+                    iframes.forEach(iframe => {
+                      iframe.contentWindow?.postMessage({
+                        type: 'assign-navigate',
+                        selector,
+                        page: pageId,
+                        pageName,
+                      }, '*');
+                    });
+                    // Also persist to HTML via override
+                    if (state.selectedId) {
+                      const el = state.elements.find(e => e.id === state.selectedId);
+                      if (el?.props?.htmlContent) {
+                        const currentHtml = el.props.htmlContent;
+                        const updatedHtml = applyFieldOverrides(currentHtml, {
+                          [`__nav_${selector}`]: pageId,
+                        });
+                        dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props: { htmlContent: updatedHtml } });
+                      }
+                    }
+                    setSelectedNavElement(prev => prev ? { ...prev, currentNavigate: pageId } : null);
+                  }}
+                  onClearNavElement={() => setSelectedNavElement(null)}
                 />
               </motion.div>
             )}

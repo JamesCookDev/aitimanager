@@ -70,9 +70,10 @@ interface Props {
   previewMode?: boolean;
   activeViewName?: string;
   availableViews?: { id: string; name: string }[];
+  onNavElementSelected?: (info: { selector: string; tag: string; text: string; currentNavigate: string }) => void;
 }
 
-export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode, activeViewName, availableViews }: Props) {
+export function DraggableElement({ element, scale, selected, onSelect, onMove, onResize, onNavigate, onUpdateProps, previewMode, activeViewName, availableViews, onNavElementSelected }: Props) {
   const handleDragStop = useCallback((_e: any, d: { x: number; y: number }) => {
     onMove(Math.round(d.x), Math.round(d.y));
   }, [onMove]);
@@ -129,7 +130,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
           }
         }}
       >
-        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} />
+        <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} onNavElementSelected={onNavElementSelected} />
       </div>
     );
   }
@@ -203,7 +204,7 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
 
         {/* Element content */}
         <div className="w-full h-full overflow-hidden" style={{ borderRadius: element.props.borderRadius || 0 }}>
-          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} />
+          <ElementRenderer element={element} onUpdateProps={onUpdateProps} activeViewName={activeViewName} onNavigatePage={handleIframeNavigatePage} availableViews={availableViews} onNavElementSelected={onNavElementSelected} />
         </div>
 
         {/* Navigate badge */}
