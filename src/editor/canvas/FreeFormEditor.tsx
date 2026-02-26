@@ -493,9 +493,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                       pageBgColors={state.pageBgColors || {}}
                       globalBgColor={state.bgColor}
                       onSelectView={(id) => dispatch({ type: 'SET_ACTIVE_VIEW', id })}
-                      onAddView={(name) => {
+                      onAddView={(name, parentId) => {
                         const id = viewUid();
-                        dispatch({ type: 'ADD_VIEW', view: { id, name } });
+                        dispatch({ type: 'ADD_VIEW', view: { id, name, parentId: parentId || null } });
                         dispatch({ type: 'SET_ACTIVE_VIEW', id });
                       }}
                       onRenameView={(id, name) => dispatch({ type: 'UPDATE_VIEW', id, patch: { name } })}
@@ -506,6 +506,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                       }}
                       onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
                       onSetPageBgColor={(viewId, color) => dispatch({ type: 'SET_PAGE_BG_COLOR', viewId, color })}
+                      onSetParent={(viewId, parentId) => dispatch({ type: 'UPDATE_VIEW', id: viewId, patch: { parentId } })}
                     />
                   </TabsContent>
                   <TabsContent value="elements" className="flex-1 overflow-hidden mt-0">
