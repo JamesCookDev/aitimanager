@@ -7,6 +7,7 @@ const DESIGN_W = 1080;
 const DESIGN_H = 1920;
 
 interface IframeProps {
+  _iframeMode?: 'html' | 'url';
   url?: string;
   htmlContent?: string;
   fieldOverrides?: Record<string, string>;
@@ -27,6 +28,8 @@ interface IframeProps {
 export function IframePlaceholder(props: IframeProps) {
   const url = props.url || '';
   const htmlContent = props.htmlContent || '';
+  // Determine active mode: explicit flag or fallback to content detection
+  const activeMode = props._iframeMode || (htmlContent ? 'html' : 'url');
   const overrides = props.fieldOverrides;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -200,7 +203,7 @@ export function IframePlaceholder(props: IframeProps) {
     : 1;
 
   // Raw HTML mode — render via srcdoc with CSS transform scaling
-  if (finalHtml) {
+  if (activeMode === 'html' && finalHtml) {
     return (
       <div ref={containerRef} className="w-full h-full relative overflow-hidden group" style={{ borderRadius: props.borderRadius || 0 }}>
         <iframe
@@ -247,7 +250,7 @@ export function IframePlaceholder(props: IframeProps) {
   }
 
   // URL mode
-  if (!url) {
+  if (activeMode === 'url' && !url) {
     return <Placeholder icon={Globe} label="Cole a URL do site ou HTML" gradient="bg-gradient-to-br from-gray-800 to-gray-900" />;
   }
   return (
