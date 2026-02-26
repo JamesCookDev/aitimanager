@@ -6,8 +6,8 @@ const corsHeaders = {
 }
 
 /**
- * Endpoint exclusivo para o sync-worker buscar comandos pendentes
- * SEM atualizar last_ping (não interfere no status online/offline do totem)
+ * Endpoint para o worker reportar resultado de execução de comandos.
+ * POST { command: string, status: 'executed' | 'failed', error?: string }
  */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,47 +28,54 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Busca apenas o pending_command, sem tocar em last_ping
-    const { data: device, error } = await supabase
+    const { data: device, error: fetchErr } = await supabase
       .from('devices')
-      .select('id, pending_command')
+      .select('id')
       .eq('api_key', apiKey)
       .single()
 
-    if (error || !device) {
+    if (fetchErr || !device) {
       return new Response(
         JSON.stringify({ error: 'Dispositivo não encontrado' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const command = device.pending_command || null
+    const body = await req.json()
+    const { command, status, error: execError } = body
 
-    // Se houver comando, limpa sem alterar last_ping e registra no audit log
-    if (command) {
-      // Clear pending command
-      await supabase
-        .from('devices')
-        .update({ pending_command: null, command_sent_at: null })
-        .eq('id', device.id)
-
-      // Mark matching command_logs as 'delivered'
-      await supabase
-        .from('command_logs')
-        .update({ status: 'delivered', executed_at: new Date().toISOString() })
-        .eq('device_id', device.id)
-        .eq('command', command)
-        .eq('status', 'pending')
-
-      console.log(`[poll-command] Device ${device.id}: comando "${command}" entregue ao worker`)
+    if (!command || !status) {
+      return new Response(
+        JSON.stringify({ error: 'command e status são obrigatórios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
+    // Update the most recent matching log entry
+    const { error: updateErr } = await supabase
+      .from('command_logs')
+      .update({
+        status: status === 'executed' ? 'executed' : 'failed',
+        executed_at: new Date().toISOString(),
+      })
+      .eq('device_id', device.id)
+      .eq('command', command)
+      .eq('status', 'delivered')
+      .order('sent_at', { ascending: false })
+      .limit(1)
+
+    if (updateErr) {
+      console.error(`[command-report] Erro ao atualizar log:`, updateErr)
+    }
+
+    console.log(`[command-report] Device ${device.id}: "${command}" → ${status}${execError ? ` (${execError})` : ''}`)
+
     return new Response(
-      JSON.stringify({ command }),
+      JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
-    console.error('Erro no poll-command:', err)
+    console.error('Erro no command-report:', err)
     return new Response(
       JSON.stringify({ error: 'Erro interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
