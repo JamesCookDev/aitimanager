@@ -58,12 +58,12 @@ function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgCol
   );
 }
 
-type ImportMode = 'svg' | 'html';
+type ImportMode = 'svg' | 'html' | 'raw';
 
 export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialogProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<ImportMode>('html');
+  const [mode, setMode] = useState<ImportMode>('raw');
   const [parsedResult, setParsedResult] = useState<{ elements: CanvasElement[]; bgColor: string } | null>(null);
 
   const reset = () => {
@@ -76,6 +76,27 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
     setError('');
     setParsedResult(null);
     try {
+      if (importMode === 'raw') {
+        // Raw HTML mode — create single iframe element
+        if (!input.trim()) {
+          setError('Cole algum código HTML para importar.');
+          return;
+        }
+        const rawElement: CanvasElement = {
+          id: `raw_${Date.now()}`,
+          type: 'iframe',
+          x: 0, y: 0,
+          width: CANVAS_WIDTH, height: CANVAS_HEIGHT,
+          rotation: 0, zIndex: 1, opacity: 1,
+          locked: false, visible: true,
+          name: 'HTML Puro',
+          props: { htmlContent: input, borderRadius: 0, scrolling: true },
+        };
+        setParsedResult({ elements: [rawElement], bgColor: '#0f172a' });
+        setCode(input);
+        return;
+      }
+
       let result: { elements: CanvasElement[]; bgColor: string };
 
       if (importMode === 'svg') {
@@ -147,9 +168,11 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
     onOpenChange(false);
   }, [parsedResult, onImport, onOpenChange]);
 
-  const modeLabel = mode === 'svg' ? 'SVG' : 'HTML';
+  const modeLabel = mode === 'svg' ? 'SVG' : mode === 'raw' ? 'HTML Puro' : 'HTML';
   const placeholder = mode === 'svg'
     ? '<svg viewBox="0 0 1080 1920" ...>\n  ...\n</svg>'
+    : mode === 'raw'
+    ? '<!DOCTYPE html>\n<html>\n<head><style>body { margin:0; background:#0f172a; color:white; font-family:sans-serif; }</style></head>\n<body>\n  <h1>Seu layout aqui</h1>\n</body>\n</html>'
     : '<div style="background:#0f172a; width:1080px; min-height:1920px">\n  <h1 style="color:white">Título</h1>\n  <img src="..." />\n  <button>Clique aqui</button>\n</div>';
 
   return (
@@ -161,18 +184,25 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
             Importar Design
           </DialogTitle>
           <DialogDescription>
-            Cole código HTML ou SVG para converter em elementos editáveis do canvas.
+            Cole código HTML ou SVG para importar no canvas.
           </DialogDescription>
         </DialogHeader>
 
         {/* ── Mode selector ── */}
         <div className="flex gap-1 p-0.5 rounded-lg bg-muted/60 w-fit">
           <button
+            onClick={() => { setMode('raw'); reset(); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'raw' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
+            HTML Puro
+          </button>
+          <button
             onClick={() => { setMode('html'); reset(); }}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'html' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
-            HTML
+            HTML → Widgets
           </button>
           <button
             onClick={() => { setMode('svg'); reset(); }}
@@ -244,10 +274,19 @@ export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialo
             {parsedResult && (
               <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-xs text-primary font-medium">
-                  ✅ {parsedResult.elements.length} elementos reconhecidos — Fundo: {parsedResult.bgColor}
+                  ✅ {mode === 'raw' ? 'HTML será carregado diretamente como iframe' : `${parsedResult.elements.length} elementos reconhecidos — Fundo: ${parsedResult.bgColor}`}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Elementos mapeados para o canvas 1080×1920.
+                  {mode === 'raw' ? 'O HTML será renderizado exatamente como está. Você pode editá-lo depois no painel de propriedades.' : 'Elementos mapeados para o canvas 1080×1920.'}
+                </p>
+              </div>
+            )}
+
+            {mode === 'raw' && !parsedResult && !code && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border/40">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  💡 <strong>HTML Puro:</strong> Cole qualquer HTML e ele será renderizado diretamente no canvas como um iframe editável. 
+                  Sem conversão de elementos — o layout é preservado exatamente como está. Ideal para designs do Figma ou layouts prontos.
                 </p>
               </div>
             )}

@@ -401,9 +401,41 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
       );
     case 'iframe':
       return (
-        <Section title="Iframe">
-          <PropInput label="URL do site" value={props.url} onChange={set('url')} />
-          <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
+        <Section title="Iframe / HTML">
+          {/* Toggle between URL and Raw HTML */}
+          <div>
+            <Label className="text-[11px]">Modo</Label>
+            <Select value={props.htmlContent ? 'html' : 'url'} onValueChange={(v) => {
+              if (v === 'html') onChange({ url: '', htmlContent: props.htmlContent || '' });
+              else onChange({ htmlContent: '', url: props.url || '' });
+            }}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="url">🔗 URL externa</SelectItem>
+                <SelectItem value="html">📝 HTML puro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {props.htmlContent !== undefined && props.htmlContent !== '' ? (
+            <>
+              <div>
+                <Label className="text-[11px]">Código HTML</Label>
+                <textarea
+                  value={props.htmlContent || ''}
+                  onChange={(e) => set('htmlContent')(e.target.value)}
+                  className="w-full mt-1 rounded-md border border-border bg-background px-2 py-1.5 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="<div>Seu HTML aqui...</div>"
+                  spellCheck={false}
+                />
+                <p className="text-[9px] text-muted-foreground mt-1">Cole qualquer HTML — será renderizado como iframe.</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <PropInput label="URL do site" value={props.url} onChange={set('url')} />
+              <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
+            </>
+          )}
           <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
           <div className="flex items-center justify-between">
             <Label className="text-[11px]">Scrolling</Label>
