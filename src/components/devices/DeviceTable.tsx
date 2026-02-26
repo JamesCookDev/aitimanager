@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from './StatusBadge';
 import { Device, getDeviceStatus } from '@/types/database';
 import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2 } from 'lucide-react';
@@ -34,10 +35,31 @@ interface DeviceTableProps {
   showOrganization?: boolean;
   loading?: boolean;
   onDeviceDeleted?: () => void;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
-export function DeviceTable({ devices, showOrganization = false, loading, onDeviceDeleted }: DeviceTableProps) {
+export function DeviceTable({ devices, showOrganization = false, loading, onDeviceDeleted, selectedIds = [], onSelectionChange }: DeviceTableProps) {
   const navigate = useNavigate();
+  const selectable = !!onSelectionChange;
+
+  const toggleDevice = (id: string) => {
+    if (!onSelectionChange) return;
+    onSelectionChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((i) => i !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (!onSelectionChange) return;
+    if (selectedIds.length === devices.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(devices.map((d) => d.id));
+    }
+  };
 
   const handleDelete = async (deviceId: string, deviceName: string) => {
     try {
@@ -82,6 +104,15 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
+            {selectable && (
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={devices.length > 0 && selectedIds.length === devices.length}
+                  onCheckedChange={toggleAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
+            )}
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
               Status
             </TableHead>
@@ -117,9 +148,21 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
             return (
               <TableRow
                 key={device.id}
-                className="table-row-industrial border-border cursor-pointer"
+                className={cn(
+                  "table-row-industrial border-border cursor-pointer",
+                  selectedIds.includes(device.id) && "bg-primary/5"
+                )}
                 onClick={() => navigate(`/dashboard/devices/${device.id}`)}
               >
+                {selectable && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(device.id)}
+                      onCheckedChange={() => toggleDevice(device.id)}
+                      aria-label={`Selecionar ${device.name}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={status} />
