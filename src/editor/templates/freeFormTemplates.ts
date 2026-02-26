@@ -1504,39 +1504,40 @@ const shoppingAvatarDirectory: CanvasState = (() => {
 // ═══════════════════════════════════════════════════
 const mpShoppingAI: CanvasState = (() => {
   _id = 0;
-  const V = { lojas: 'v_sai_lojas', categorias: 'v_sai_cats', mapa: 'v_sai_mapa', eventos: 'v_sai_eventos' };
+  const V = {
+    home: 'v_sai_home',
+    categorias: 'v_sai_cats',
+    mapa: 'v_sai_mapa',
+    chat: 'v_sai_chat',
+  };
 
-  // Bottom nav helper — creates 4 nav buttons at the bottom of each page
+  // Bottom nav helper
   const bottomNav = (currentView: string) => {
     const tabs = [
-      { icon: '🏪', label: 'Lojas', target: V.lojas, active: currentView === V.lojas },
-      { icon: '📂', label: 'Categorias', target: V.categorias, active: currentView === V.categorias },
-      { icon: '🗺️', label: 'Mapa', target: V.mapa, active: currentView === V.mapa },
-      { icon: '📅', label: 'Eventos', target: V.eventos, active: currentView === V.eventos },
+      { icon: '🏪', label: 'Lojas', target: V.home },
+      { icon: '📂', label: 'Categorias', target: V.categorias },
+      { icon: '🗺️', label: 'Mapa', target: V.mapa },
+      { icon: '💬', label: 'Chat IA', target: V.chat },
     ];
     const navY = 1800;
-    const tabW = 240;
+    const tabW = 230;
     return [
-      // Nav bar background
       elv(currentView, 'shape', 0, navY - 10, 1080, 130, {
-        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.06)', borderRadius: 0,
+        shapeType: 'rectangle', fill: 'rgba(0,0,0,0.85)', borderRadius: 0,
         borderColor: 'transparent', borderWidth: 0,
       }),
       ...tabs.flatMap((tab, i) => {
-        const x = 30 + i * tabW + i * 20;
+        const x = 30 + i * (tabW + 15);
+        const active = currentView === tab.target;
         return [
-          elv(currentView, 'shape', x, navY, tabW, 100, {
-            shapeType: 'rectangle', fill: tab.active ? '#3b82f6' + '18' : 'transparent', borderRadius: 16,
-            borderColor: tab.active ? '#3b82f6' + '40' : 'transparent', borderWidth: tab.active ? 1 : 0,
-          }),
-          elv(currentView, 'icon', x + (tabW - 40) / 2, navY + 10, 40, 36, {
-            icon: tab.icon, size: 26, color: tab.active ? '#3b82f6' : 'rgba(255,255,255,0.4)',
-          }),
-          elv(currentView, 'button', x, navY + 50, tabW, 44, {
-            label: tab.label,
-            bgColor: 'transparent', textColor: tab.active ? '#3b82f6' : 'rgba(255,255,255,0.4)',
-            fontSize: 13, borderRadius: 0, actionType: 'navigate' as any,
-            navigateTarget: tab.target, navigateTransition: 'fade' as any,
+          elv(currentView, 'button', x, navY + 10, tabW, 80, {
+            label: `${tab.icon} ${tab.label}`,
+            bgColor: active ? '#3b82f6' : 'transparent',
+            textColor: active ? '#ffffff' : 'rgba(255,255,255,0.5)',
+            fontSize: 14, borderRadius: 16,
+            actionType: 'navigate' as any,
+            navigateTarget: tab.target,
+            navigateTransition: 'fade' as any,
           }),
         ];
       }),
@@ -1544,155 +1545,150 @@ const mpShoppingAI: CanvasState = (() => {
   };
 
   return {
-    bgColor: '#f5f5f7',
+    bgColor: '#0f172a',
     views: [
-      { id: V.lojas, name: '🏪 Lojas', isDefault: true },
+      { id: V.home, name: '🏪 Home', isDefault: true },
       { id: V.categorias, name: '📂 Categorias' },
       { id: V.mapa, name: '🗺️ Mapa' },
-      { id: V.eventos, name: '📅 Eventos' },
+      { id: V.chat, name: '💬 Chat IA' },
     ],
     pageBgColors: {
-      [V.lojas]: '#0f172a',
+      [V.home]: '#0a0a14',
       [V.categorias]: '#0f172a',
       [V.mapa]: '#0f172a',
-      [V.eventos]: '#0f172a',
+      [V.chat]: '#0f172a',
     },
     elements: [
       // ══════════════════════════════════════════════
-      // PÁGINA 1 — LOJAS (Home)
+      // PÁGINA 1 — HOME (imagem de fundo + overlays editáveis)
       // ══════════════════════════════════════════════
 
-      // Header dark gradient
-      elv(V.lojas, 'shape', 0, 0, 1080, 520, {
-        shapeType: 'rectangle', fill: '#111827', borderRadius: 0,
+      // Imagem de fundo completa
+      elv(V.home, 'image', 0, 0, 1080, 1920, {
+        src: '/templates/shopping-ai-bg.png',
+        objectFit: 'cover',
+        borderRadius: 0,
+      }, { locked: true, name: 'Fundo (imagem)' }),
+
+      // Overlay escuro no topo para legibilidade
+      elv(V.home, 'shape', 0, 0, 1080, 140, {
+        shapeType: 'rectangle', fill: 'rgba(0,0,0,0.5)', borderRadius: 0,
         borderColor: 'transparent', borderWidth: 0,
-      }),
+      }, { name: 'Header overlay' }),
 
-      // Title "SHOPPING ASSISTANT AI"
-      elv(V.lojas, 'text', 60, 50, 500, 50, {
-        text: 'SHOPPING ASSISTANT AI', fontSize: 20, fontWeight: 'bold',
+      // Título editável
+      elv(V.home, 'text', 60, 40, 600, 60, {
+        text: 'SHOPPING ASSISTANT AI', fontSize: 22, fontWeight: 'bold',
         color: '#ffffff', align: 'left', fontFamily: 'Inter',
-      }),
+      }, { name: 'Título' }),
 
-      // Avatar 3D center-top
-      elv(V.lojas, 'avatar', 290, 60, 500, 440, {
-        position: 'center', scale: 1.5, animation: 'idle', enabled: true,
-        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
-        colors: { shirt: '#3b82f6', pants: '#1e293b', shoes: '#111827' },
-        frameY: -5, frameZoom: 55, transparentBg: true,
-      }),
+      // Horário editável
+      elv(V.home, 'text', 700, 45, 320, 50, {
+        text: '🕐 10h – 22h', fontSize: 18, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.7)', align: 'right', fontFamily: 'Inter',
+      }, { name: 'Horário' }),
 
-      // Speech bubble
-      elv(V.lojas, 'shape', 600, 100, 400, 100, {
-        shapeType: 'rectangle', fill: '#ffffff', borderRadius: 20,
-        borderColor: 'rgba(0,0,0,0.08)', borderWidth: 1,
-      }),
-      elv(V.lojas, 'text', 620, 110, 360, 80, {
-        text: 'Olá! 👋\nComo posso ajudar você hoje?', fontSize: 17, fontWeight: 'normal',
-        color: '#1f2937', align: 'left', fontFamily: 'Inter',
-      }),
-
-      // Content area — white rounded card
-      elv(V.lojas, 'shape', 0, 500, 1080, 1300, {
-        shapeType: 'rectangle', fill: '#f8fafc', borderRadius: 40,
-        borderColor: 'rgba(0,0,0,0.05)', borderWidth: 0,
-      }),
-
-      // Search bar
-      elv(V.lojas, 'shape', 60, 540, 960, 70, {
-        shapeType: 'rectangle', fill: '#ffffff', borderRadius: 20,
-        borderColor: 'rgba(0,0,0,0.08)', borderWidth: 1,
-      }),
-      elv(V.lojas, 'text', 100, 555, 700, 40, {
+      // Barra de busca flutuante
+      elv(V.home, 'shape', 60, 160, 960, 70, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.95)', borderRadius: 20,
+        borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1,
+      }, { name: 'Busca fundo' }),
+      elv(V.home, 'text', 100, 175, 700, 40, {
         text: '🔍 Buscar loja, produto ou serviço...', fontSize: 16, fontWeight: 'normal',
         color: 'rgba(0,0,0,0.35)', align: 'left', fontFamily: 'Inter',
-      }),
-      elv(V.lojas, 'shape', 930, 550, 60, 60, {
-        shapeType: 'circle', fill: '#3b82f6', borderRadius: 30,
+      }, { name: 'Busca texto' }),
+
+      // Botão microfone
+      elv(V.home, 'button', 930, 170, 60, 50, {
+        label: '🎤', bgColor: '#3b82f6', textColor: '#ffffff',
+        fontSize: 20, borderRadius: 14,
+      }, { name: 'Mic' }),
+
+      // Overlay na parte inferior para cards
+      elv(V.home, 'shape', 0, 1200, 1080, 600, {
+        shapeType: 'rectangle', fill: 'rgba(0,0,0,0.7)', borderRadius: 40,
         borderColor: 'transparent', borderWidth: 0,
-      }),
-      elv(V.lojas, 'icon', 940, 560, 40, 40, { icon: '🎤', size: 22, color: '#ffffff' }),
+      }, { name: 'Cards overlay' }),
 
-      // Category pills
-      ...[
-        { label: 'Todas', active: true },
-        { label: 'Moda', active: false },
-        { label: 'Alimentação', active: false },
-        { label: 'Tecnologia', active: false },
-        { label: 'Serviços', active: false },
-      ].map((cat, i) => {
-        const x = 60 + i * 190;
-        return elv(V.lojas, 'shape', x, 640, 170, 48, {
-          shapeType: 'rectangle',
-          fill: cat.active ? '#1f2937' : '#ffffff',
-          borderRadius: 999,
-          borderColor: cat.active ? 'transparent' : 'rgba(0,0,0,0.12)',
-          borderWidth: cat.active ? 0 : 1,
-        });
-      }),
-      ...[
-        { label: 'Todas', active: true },
-        { label: 'Moda', active: false },
-        { label: 'Alimentação', active: false },
-        { label: 'Tecnologia', active: false },
-        { label: 'Serviços', active: false },
-      ].map((cat, i) => {
-        const x = 60 + i * 190;
-        return elv(V.lojas, 'text', x, 648, 170, 32, {
-          text: cat.label, fontSize: 14, fontWeight: cat.active ? 'bold' : 'normal',
-          color: cat.active ? '#ffffff' : '#374151', align: 'center', fontFamily: 'Inter',
-        });
-      }),
+      // Seção "Lojas em destaque"
+      elv(V.home, 'text', 60, 1230, 600, 50, {
+        text: '⭐ Lojas em destaque', fontSize: 24, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Seção título' }),
 
-      // Store cards — 2 columns
-      ...[
-        { name: 'Zara', desc: 'Moda Feminina, Masculina e Infantil', status: '● ABERTO', statusColor: '#22c55e' },
-        { name: 'Apple Store', desc: 'Eletrônicos e Acessórios', status: '● ABERTO', statusColor: '#22c55e' },
-        { name: 'Starbucks', desc: 'Cafés e Bebidas Especiais', status: '● ABERTO', statusColor: '#22c55e' },
-        { name: 'Nike', desc: 'Artigos Esportivos', status: '● ABERTO', statusColor: '#22c55e' },
-        { name: 'Farmácia Popular', desc: 'Medicamentos e Bem-estar', status: '● ABERTO', statusColor: '#22c55e' },
-        { name: 'Cinema IMAX', desc: 'Filmes e Sessões Especiais', status: '● 12h', statusColor: '#f59e0b' },
-      ].flatMap((store, i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const x = 60 + col * 490;
-        const y = 720 + row * 330;
-        const cardW = 460;
-        const cardH = 300;
-        return [
-          // Card bg
-          elv(V.lojas, 'shape', x, y, cardW, cardH, {
-            shapeType: 'rectangle', fill: '#ffffff', borderRadius: 24,
-            borderColor: 'rgba(0,0,0,0.06)', borderWidth: 1,
-          }),
-          // Logo placeholder
-          elv(V.lojas, 'shape', x + (cardW - 70) / 2, y + 40, 70, 70, {
-            shapeType: 'circle', fill: 'rgba(245,158,11,0.08)', borderRadius: 35,
-            borderColor: 'rgba(245,158,11,0.15)', borderWidth: 1,
-          }),
-          elv(V.lojas, 'icon', x + (cardW - 40) / 2, y + 55, 40, 40, {
-            icon: '🏪', size: 24, color: '#d97706',
-          }),
-          // Store name
-          elv(V.lojas, 'text', x + 20, y + 130, cardW - 40, 40, {
-            text: store.name, fontSize: 20, fontWeight: 'bold',
-            color: '#1f2937', align: 'center', fontFamily: 'Inter',
-          }),
-          // Description
-          elv(V.lojas, 'text', x + 20, y + 180, cardW - 40, 36, {
-            text: store.desc, fontSize: 13, fontWeight: 'normal',
-            color: '#6b7280', align: 'center', fontFamily: 'Inter',
-          }),
-          // Status
-          elv(V.lojas, 'text', x + 20, y + 240, cardW - 40, 30, {
-            text: store.status, fontSize: 13, fontWeight: 'bold',
-            color: store.statusColor, align: 'center', fontFamily: 'Inter',
-          }),
-        ];
-      }),
+      // Card 1
+      elv(V.home, 'shape', 60, 1310, 460, 200, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.08)', borderRadius: 20,
+        borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+      }, { name: 'Card 1 bg' }),
+      elv(V.home, 'text', 100, 1340, 380, 40, {
+        text: '👗 Zara', fontSize: 22, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 1 nome' }),
+      elv(V.home, 'text', 100, 1390, 380, 36, {
+        text: 'Moda Feminina e Masculina', fontSize: 14, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 1 desc' }),
+      elv(V.home, 'text', 100, 1440, 200, 30, {
+        text: '● ABERTO', fontSize: 13, fontWeight: 'bold',
+        color: '#22c55e', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 1 status' }),
 
-      // Bottom nav
-      ...bottomNav(V.lojas),
+      // Card 2
+      elv(V.home, 'shape', 560, 1310, 460, 200, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.08)', borderRadius: 20,
+        borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+      }, { name: 'Card 2 bg' }),
+      elv(V.home, 'text', 600, 1340, 380, 40, {
+        text: '📱 Apple Store', fontSize: 22, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 2 nome' }),
+      elv(V.home, 'text', 600, 1390, 380, 36, {
+        text: 'Eletrônicos e Acessórios', fontSize: 14, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 2 desc' }),
+      elv(V.home, 'text', 600, 1440, 200, 30, {
+        text: '● ABERTO', fontSize: 13, fontWeight: 'bold',
+        color: '#22c55e', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 2 status' }),
+
+      // Card 3
+      elv(V.home, 'shape', 60, 1540, 460, 200, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.08)', borderRadius: 20,
+        borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+      }, { name: 'Card 3 bg' }),
+      elv(V.home, 'text', 100, 1570, 380, 40, {
+        text: '☕ Starbucks', fontSize: 22, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 3 nome' }),
+      elv(V.home, 'text', 100, 1620, 380, 36, {
+        text: 'Cafés e Bebidas Especiais', fontSize: 14, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 3 desc' }),
+      elv(V.home, 'text', 100, 1670, 200, 30, {
+        text: '● ABERTO', fontSize: 13, fontWeight: 'bold',
+        color: '#22c55e', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 3 status' }),
+
+      // Card 4
+      elv(V.home, 'shape', 560, 1540, 460, 200, {
+        shapeType: 'rectangle', fill: 'rgba(255,255,255,0.08)', borderRadius: 20,
+        borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+      }, { name: 'Card 4 bg' }),
+      elv(V.home, 'text', 600, 1570, 380, 40, {
+        text: '👟 Nike', fontSize: 22, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 4 nome' }),
+      elv(V.home, 'text', 600, 1620, 380, 36, {
+        text: 'Artigos Esportivos', fontSize: 14, fontWeight: 'normal',
+        color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 4 desc' }),
+      elv(V.home, 'text', 600, 1670, 200, 30, {
+        text: '● 12h', fontSize: 13, fontWeight: 'bold',
+        color: '#f59e0b', align: 'left', fontFamily: 'Inter',
+      }, { name: 'Card 4 status' }),
+
+      ...bottomNav(V.home),
 
       // ══════════════════════════════════════════════
       // PÁGINA 2 — CATEGORIAS
@@ -1707,7 +1703,6 @@ const mpShoppingAI: CanvasState = (() => {
         color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter',
       }),
 
-      // Category grid — 2 columns
       ...[
         { icon: '👗', name: 'Moda', count: '24 lojas', color: '#ec4899' },
         { icon: '🍔', name: 'Alimentação', count: '18 lojas', color: '#f97316' },
@@ -1721,18 +1716,14 @@ const mpShoppingAI: CanvasState = (() => {
         const col = i % 2;
         const row = Math.floor(i / 2);
         const x = 60 + col * 500;
-        const y = 190 + row * 360;
+        const y = 190 + row * 380;
         return [
-          elv(V.categorias, 'shape', x, y, 460, 320, {
+          elv(V.categorias, 'shape', x, y, 460, 340, {
             shapeType: 'rectangle', fill: cat.color + '10', borderRadius: 24,
             borderColor: cat.color + '25', borderWidth: 1,
           }),
-          elv(V.categorias, 'shape', x + (460 - 90) / 2, y + 40, 90, 90, {
-            shapeType: 'circle', fill: cat.color + '18', borderRadius: 45,
-            borderColor: cat.color + '30', borderWidth: 1,
-          }),
-          elv(V.categorias, 'icon', x + (460 - 50) / 2, y + 60, 50, 50, {
-            icon: cat.icon, size: 34, color: cat.color,
+          elv(V.categorias, 'icon', x + 190, y + 50, 80, 80, {
+            icon: cat.icon, size: 44, color: cat.color,
           }),
           elv(V.categorias, 'text', x + 20, y + 160, 420, 50, {
             text: cat.name, fontSize: 24, fontWeight: 'bold',
@@ -1742,10 +1733,10 @@ const mpShoppingAI: CanvasState = (() => {
             text: cat.count, fontSize: 15, fontWeight: 'normal',
             color: 'rgba(255,255,255,0.4)', align: 'center', fontFamily: 'Inter',
           }),
-          elv(V.categorias, 'button', x + 80, y + 260, 300, 44, {
+          elv(V.categorias, 'button', x + 80, y + 270, 300, 44, {
             label: 'Ver lojas →', bgColor: cat.color + '20', textColor: cat.color,
             fontSize: 13, borderRadius: 999, actionType: 'navigate' as any,
-            navigateTarget: V.lojas, navigateTransition: 'slide-left' as any,
+            navigateTarget: V.home, navigateTransition: 'slide-left' as any,
           }),
         ];
       }),
@@ -1760,21 +1751,14 @@ const mpShoppingAI: CanvasState = (() => {
         text: '🗺️ Mapa do Shopping', fontSize: 38, fontWeight: 'bold',
         color: '#ffffff', align: 'left', fontFamily: 'Inter',
       }),
-      elv(V.mapa, 'text', 60, 120, 960, 36, {
-        text: 'Toque nos pins para ver detalhes', fontSize: 16, fontWeight: 'normal',
-        color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter',
-      }),
 
-      // Store element in map mode
-      elv(V.mapa, 'store', 60, 190, 960, 1000, {
+      elv(V.mapa, 'store', 60, 150, 960, 1000, {
         title: '', titleColor: '#ffffff', titleSize: 0,
         bgColor: 'rgba(0,0,0,0.3)', borderRadius: 24,
         stores: [
-          { id: '1', name: 'Zara', logo: '', floor: 'Piso 1', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda feminina e masculina', mapX: 25, mapY: 30 },
-          { id: '2', name: 'Apple Store', logo: '', floor: 'Piso 2', category: 'Tecnologia', hours: '10h–22h', phone: '', description: 'Eletrônicos e acessórios', mapX: 70, mapY: 25 },
-          { id: '3', name: 'Starbucks', logo: '', floor: 'Piso 1', category: 'Alimentação', hours: '9h–22h', phone: '', description: 'Cafés e bebidas', mapX: 50, mapY: 60 },
-          { id: '4', name: 'Nike', logo: '', floor: 'Piso 2', category: 'Esportes', hours: '10h–22h', phone: '', description: 'Artigos esportivos', mapX: 80, mapY: 70 },
-          { id: '5', name: 'Cinema IMAX', logo: '', floor: 'Piso 3', category: 'Lazer', hours: '12h–00h', phone: '', description: 'Filmes e sessões', mapX: 30, mapY: 80 },
+          { id: '1', name: 'Zara', logo: '', floor: 'Piso 1', category: 'Moda', hours: '10h–22h', phone: '', description: 'Moda', mapX: 25, mapY: 30 },
+          { id: '2', name: 'Apple Store', logo: '', floor: 'Piso 2', category: 'Tech', hours: '10h–22h', phone: '', description: 'Eletrônicos', mapX: 70, mapY: 25 },
+          { id: '3', name: 'Starbucks', logo: '', floor: 'Piso 1', category: 'Food', hours: '9h–22h', phone: '', description: 'Café', mapX: 50, mapY: 60 },
         ],
         columns: 1, gap: 10, enableMap: true,
         cardBgColor: 'rgba(255,255,255,0.06)', cardBorderRadius: 14,
@@ -1783,90 +1767,51 @@ const mpShoppingAI: CanvasState = (() => {
         showCategoryFilter: false, showSearch: false,
       }),
 
-      // Floor selector
       ...[
         { label: 'Piso 1', active: true },
         { label: 'Piso 2', active: false },
         { label: 'Piso 3', active: false },
       ].map((floor, i) =>
-        elv(V.mapa, 'button', 60 + i * 330, 1230, 300, 56, {
+        elv(V.mapa, 'button', 60 + i * 330, 1200, 300, 56, {
           label: floor.label,
           bgColor: floor.active ? '#3b82f6' : 'rgba(255,255,255,0.06)',
           textColor: floor.active ? '#ffffff' : 'rgba(255,255,255,0.5)',
-          fontSize: 16, borderRadius: 16, action: floor.label,
+          fontSize: 16, borderRadius: 16,
         })
       ),
-
-      // Chat IA for "onde fica"
-      elv(V.mapa, 'chat', 60, 1320, 960, 420, {
-        placeholder: 'Pergunte "Onde fica a Zara?" ou "Restaurantes no piso 3"...', theme: 'dark',
-      }),
 
       ...bottomNav(V.mapa),
 
       // ══════════════════════════════════════════════
-      // PÁGINA 4 — EVENTOS
+      // PÁGINA 4 — CHAT IA
       // ══════════════════════════════════════════════
 
-      elv(V.eventos, 'text', 60, 50, 800, 60, {
-        text: '📅 Eventos', fontSize: 38, fontWeight: 'bold',
+      elv(V.chat, 'text', 60, 50, 800, 60, {
+        text: '💬 Assistente IA', fontSize: 38, fontWeight: 'bold',
         color: '#ffffff', align: 'left', fontFamily: 'Inter',
       }),
-      elv(V.eventos, 'text', 60, 120, 960, 36, {
-        text: 'Confira o que está acontecendo', fontSize: 16, fontWeight: 'normal',
+      elv(V.chat, 'text', 60, 120, 960, 36, {
+        text: 'Pergunte qualquer coisa sobre o shopping', fontSize: 16, fontWeight: 'normal',
         color: 'rgba(255,255,255,0.4)', align: 'left', fontFamily: 'Inter',
       }),
 
-      // Event cards
-      ...[
-        { title: '🎵 Show ao Vivo', desc: 'Banda local na praça de alimentação', date: 'Hoje • 19h', color: '#ec4899', badge: 'HOJE' },
-        { title: '🛍️ Liquidação de Inverno', desc: 'Até 60% OFF em mais de 30 lojas participantes', date: '01–15 Mar', color: '#ef4444', badge: 'PROMOÇÃO' },
-        { title: '👶 Dia das Crianças', desc: 'Atividades recreativas, teatro infantil e brindes', date: '12 Mar • 14h', color: '#8b5cf6', badge: 'FAMÍLIA' },
-        { title: '🍷 Festival Gastronômico', desc: 'Degustação com chefs renomados na praça gourmet', date: '20–22 Mar', color: '#f97316', badge: 'FOOD' },
-        { title: '🎤 Stand-up Comedy', desc: 'Show de humor no terraço do shopping', date: '25 Mar • 20h', color: '#06b6d4', badge: 'SHOW' },
-      ].flatMap((evt, i) => {
-        const y = 190 + i * 300;
-        return [
-          elv(V.eventos, 'shape', 60, y, 960, 270, {
-            shapeType: 'rectangle', fill: evt.color + '08', borderRadius: 24,
-            borderColor: evt.color + '20', borderWidth: 1,
-          }),
-          // Badge
-          elv(V.eventos, 'shape', 100, y + 20, 140, 32, {
-            shapeType: 'rectangle', fill: evt.color, borderRadius: 999,
-            borderColor: 'transparent', borderWidth: 0,
-          }),
-          elv(V.eventos, 'text', 100, y + 24, 140, 24, {
-            text: evt.badge, fontSize: 11, fontWeight: 'bold',
-            color: '#ffffff', align: 'center', fontFamily: 'Inter',
-          }),
-          // Title
-          elv(V.eventos, 'text', 100, y + 70, 880, 50, {
-            text: evt.title, fontSize: 26, fontWeight: 'bold',
-            color: '#ffffff', align: 'left', fontFamily: 'Inter',
-          }),
-          // Description
-          elv(V.eventos, 'text', 100, y + 130, 880, 40, {
-            text: evt.desc, fontSize: 15, fontWeight: 'normal',
-            color: 'rgba(255,255,255,0.5)', align: 'left', fontFamily: 'Inter',
-          }),
-          // Date
-          elv(V.eventos, 'text', 100, y + 190, 500, 36, {
-            text: `📅 ${evt.date}`, fontSize: 14, fontWeight: 'bold',
-            color: evt.color, align: 'left', fontFamily: 'Inter',
-          }),
-          // CTA
-          elv(V.eventos, 'button', 700, y + 185, 280, 44, {
-            label: 'Saiba mais →', bgColor: evt.color + '20', textColor: evt.color,
-            fontSize: 13, borderRadius: 999, action: evt.title,
-          }),
-        ];
+      // Avatar
+      elv(V.chat, 'avatar', 290, 180, 500, 500, {
+        position: 'center', scale: 1.5, animation: 'idle', enabled: true,
+        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
+        colors: { shirt: '#3b82f6', pants: '#1e293b', shoes: '#111827' },
+        frameY: -5, frameZoom: 55, transparentBg: true,
       }),
 
-      ...bottomNav(V.eventos),
+      // Chat completo
+      elv(V.chat, 'chat', 60, 720, 960, 1000, {
+        placeholder: 'Pergunte sobre lojas, eventos, horários...', theme: 'dark',
+      }),
+
+      ...bottomNav(V.chat),
     ],
     selectedId: null,
-    activeViewId: V.lojas,
+    activeViewId: V.home,
     viewIdleTimeout: 45,
   };
 })();
