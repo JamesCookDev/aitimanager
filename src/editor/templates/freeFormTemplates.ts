@@ -2035,6 +2035,840 @@ const mpHtmlShopping: CanvasState = {
 };
 
 // ═══════════════════════════════════════════════════
+// HTML Templates — Restaurante / Pizzaria
+// ═══════════════════════════════════════════════════
+const htmlRestaurantContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a0f0a;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(234,88,12,0.25),transparent)}
+.header h1{font-size:38px;font-weight:800;color:#fb923c}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.6);border-top:1px solid rgba(251,146,60,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#fb923c}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.06);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(251,146,60,0.1)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:340px;object-fit:cover}
+.menu-item{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.menu-item:last-child{border:none}
+.menu-item .info h4{font-size:18px;font-weight:600}
+.menu-item .info p{font-size:13px;opacity:0.5;margin-top:4px}
+.menu-item .price{font-size:20px;font-weight:800;color:#fb923c;white-space:nowrap}
+.section-title{font-size:22px;font-weight:700;color:#fb923c;margin:24px 0 12px;display:flex;align-items:center;gap:10px}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.rating{color:#fbbf24;font-size:14px;letter-spacing:2px;margin-top:8px}
+</style>
+<script>
+function goPage(id){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));
+  var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1080&h=340&fit=crop" alt="Pizza">
+  <div class="header"><h1>🍕 Pizzaria Napoli</h1><p>A melhor pizza artesanal da cidade</p></div>
+  <div class="content">
+    <div class="card">
+      <h3>🔥 Pizza do Dia</h3>
+      <p>Margherita Trufada — Massa artesanal, molho San Marzano, mozzarella de búfala e trufa negra.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+        <div><span style="text-decoration:line-through;opacity:0.4;font-size:14px">R$ 69,90</span><span style="font-size:24px;font-weight:800;color:#fb923c;margin-left:12px">R$ 49,90</span></div>
+        <span class="badge" style="background:#fb923c;color:#fff">-29%</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('cardapio')">
+        <div style="font-size:36px;margin-bottom:8px">📋</div><p style="font-weight:600">Cardápio</p>
+      </div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('pedido')">
+        <div style="font-size:36px;margin-bottom:8px">🛒</div><p style="font-weight:600">Fazer Pedido</p>
+      </div>
+    </div>
+    <div class="rating">★★★★★</div>
+    <p style="font-size:12px;opacity:0.4;margin-top:4px">4.8 — 2.340 avaliações no Google</p>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cardapio" data-navigate="page_1" onclick="goPage('cardapio')"><span class="icon">📋</span>Cardápio</button>
+    <button class="nav-btn" data-target="pedido" data-navigate="page_2" onclick="goPage('pedido')"><span class="icon">🛒</span>Pedido</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="cardapio" data-name="Cardápio">
+  <div class="header"><h1>📋 Cardápio</h1><p>Ingredientes selecionados, massa artesanal</p></div>
+  <div class="content">
+    <div class="section-title">🍕 Pizzas Tradicionais</div>
+    <div class="menu-item"><div class="info"><h4>Margherita</h4><p>Molho, mozzarella, manjericão</p></div><div class="price">R$ 42</div></div>
+    <div class="menu-item"><div class="info"><h4>Calabresa</h4><p>Calabresa, cebola, azeitona</p></div><div class="price">R$ 45</div></div>
+    <div class="menu-item"><div class="info"><h4>Quatro Queijos</h4><p>Mozzarella, gorgonzola, parmesão, brie</p></div><div class="price">R$ 52</div></div>
+    <div class="section-title">🥩 Pizzas Especiais</div>
+    <div class="menu-item"><div class="info"><h4>Filé Mignon</h4><p>Filé, catupiry, rúcula</p></div><div class="price">R$ 62</div></div>
+    <div class="menu-item"><div class="info"><h4>Camarão</h4><p>Camarão, catupiry, tomate seco</p></div><div class="price">R$ 68</div></div>
+    <div class="section-title">🥤 Bebidas</div>
+    <div class="menu-item"><div class="info"><h4>Refrigerante 600ml</h4><p>Coca-Cola, Guaraná, Fanta</p></div><div class="price">R$ 10</div></div>
+    <div class="menu-item"><div class="info"><h4>Suco Natural</h4><p>Laranja, limão, maracujá</p></div><div class="price">R$ 14</div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="cardapio" data-navigate="page_1" onclick="goPage('cardapio')"><span class="icon">📋</span>Cardápio</button>
+    <button class="nav-btn" data-target="pedido" data-navigate="page_2" onclick="goPage('pedido')"><span class="icon">🛒</span>Pedido</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="pedido" data-name="Pedido">
+  <div class="header"><h1>🛒 Fazer Pedido</h1><p>Monte seu pedido e retire no balcão</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(251,146,60,0.2),rgba(234,88,12,0.1));border-color:rgba(251,146,60,0.2)">
+      <h3>📲 Peça pelo WhatsApp</h3>
+      <p>Envie seu pedido diretamente para a cozinha. Rápido e prático!</p>
+      <button class="cta-btn" style="background:#25d366;color:#fff">💬 Abrir WhatsApp</button>
+    </div>
+    <div class="card">
+      <h3>🏪 Retire no Balcão</h3>
+      <p>Faça seu pedido no totem e retire quando estiver pronto. Tempo médio: 20 minutos.</p>
+      <button class="cta-btn" style="background:#fb923c;color:#fff">🍕 Começar Pedido</button>
+    </div>
+    <div class="card">
+      <h3>💳 Formas de Pagamento</h3>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <span class="badge" style="background:rgba(255,255,255,0.1)">💳 Cartão</span>
+        <span class="badge" style="background:rgba(255,255,255,0.1)">📱 Pix</span>
+        <span class="badge" style="background:rgba(255,255,255,0.1)">💵 Dinheiro</span>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cardapio" data-navigate="page_1" onclick="goPage('cardapio')"><span class="icon">📋</span>Cardápio</button>
+    <button class="nav-btn active" data-target="pedido" data-navigate="page_2" onclick="goPage('pedido')"><span class="icon">🛒</span>Pedido</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="sobre" data-name="Sobre">
+  <div class="header"><h1>ℹ️ Sobre Nós</h1><p>Tradição italiana desde 1998</p></div>
+  <div class="content">
+    <img src="https://images.unsplash.com/photo-1579751626657-72bc17010498?w=960&h=280&fit=crop" alt="Interior" style="width:100%;height:280px;object-fit:cover;border-radius:16px;margin-bottom:20px">
+    <div class="card"><h3>📍 Endereço</h3><p>Rua das Pizzas, 42 — Centro<br>São Paulo — SP</p></div>
+    <div class="card"><h3>🕐 Horário</h3><p>Seg a Sex: 18h às 23h<br>Sáb e Dom: 11h às 23h</p></div>
+    <div class="card"><h3>📞 Contato</h3><p>WhatsApp: (11) 99999-0000<br>Instagram: @pizzarianapoli</p></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cardapio" data-navigate="page_1" onclick="goPage('cardapio')"><span class="icon">📋</span>Cardápio</button>
+    <button class="nav-btn" data-target="pedido" data-navigate="page_2" onclick="goPage('pedido')"><span class="icon">🛒</span>Pedido</button>
+    <button class="nav-btn active" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlRestaurant: CanvasState = {
+  bgColor: '#1a0f0a',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Restaurante HTML',
+    props: { htmlContent: htmlRestaurantContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Cardápio', selector: '[data-page="cardapio"]' },
+        { id: 'page_2', name: 'Pedido', selector: '[data-page="pedido"]' },
+        { id: 'page_3', name: 'Sobre', selector: '[data-page="sobre"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Cardápio', isDefault: false },
+    { id: 'page_2', name: 'Pedido', isDefault: false },
+    { id: 'page_3', name: 'Sobre', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Clínica Médica / Consultório
+// ═══════════════════════════════════════════════════
+const htmlClinicContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a1628;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(16,185,129,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#34d399}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(52,211,153,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#34d399}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.06);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(52,211,153,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.stat-card{background:rgba(52,211,153,0.1);border-radius:16px;padding:20px;text-align:center;border:1px solid rgba(52,211,153,0.15)}
+.stat-card .num{font-size:36px;font-weight:800;color:#34d399}
+.stat-card .label{font-size:12px;opacity:0.5;margin-top:6px}
+.doc-card{display:flex;gap:16px;background:rgba(255,255,255,0.06);border-radius:16px;padding:20px;margin-bottom:12px;align-items:center;border:1px solid rgba(52,211,153,0.08)}
+.doc-avatar{width:64px;height:64px;border-radius:50%;background:rgba(52,211,153,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.doc-info h4{font-size:16px;font-weight:700}
+.doc-info p{font-size:12px;opacity:0.5;margin-top:4px}
+</style>
+<script>
+function goPage(id){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));
+  var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <div class="header" style="padding-top:60px;padding-bottom:40px;text-align:center">
+    <div style="font-size:56px;margin-bottom:16px">🏥</div>
+    <h1>Clínica Vida Plena</h1>
+    <p>Cuidando de você com carinho e tecnologia</p>
+  </div>
+  <div class="content">
+    <div class="grid-3">
+      <div class="stat-card"><div class="num">12</div><div class="label">Especialidades</div></div>
+      <div class="stat-card"><div class="num">25+</div><div class="label">Médicos</div></div>
+      <div class="stat-card"><div class="num">4.9★</div><div class="label">Avaliação</div></div>
+    </div>
+    <div class="card" style="margin-top:20px;background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.05));border-color:rgba(52,211,153,0.2)">
+      <h3>📋 Check-in Rápido</h3>
+      <p>Já tem consulta agendada? Faça seu check-in pelo totem e agilize o atendimento.</p>
+      <button class="cta-btn" style="background:#34d399;color:#000;font-weight:800">✅ Fazer Check-in</button>
+    </div>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('especialidades')">
+        <div style="font-size:32px;margin-bottom:8px">🩺</div><p style="font-weight:600;font-size:14px">Especialidades</p>
+      </div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('medicos')">
+        <div style="font-size:32px;margin-bottom:8px">👨‍⚕️</div><p style="font-weight:600;font-size:14px">Médicos</p>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="especialidades" data-navigate="page_1" onclick="goPage('especialidades')"><span class="icon">🩺</span>Áreas</button>
+    <button class="nav-btn" data-target="medicos" data-navigate="page_2" onclick="goPage('medicos')"><span class="icon">👨‍⚕️</span>Médicos</button>
+    <button class="nav-btn" data-target="info" data-navigate="page_3" onclick="goPage('info')"><span class="icon">ℹ️</span>Info</button>
+  </nav>
+</div>
+
+<div data-page="especialidades" data-name="Especialidades">
+  <div class="header"><h1>🩺 Especialidades</h1><p>Atendimento completo para toda a família</p></div>
+  <div class="content">
+    <div class="grid-2">
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">❤️</div><h3 style="font-size:16px">Cardiologia</h3><p style="font-size:12px">Sala 201</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">🦴</div><h3 style="font-size:16px">Ortopedia</h3><p style="font-size:12px">Sala 105</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">👶</div><h3 style="font-size:16px">Pediatria</h3><p style="font-size:12px">Sala 302</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">🧠</div><h3 style="font-size:16px">Neurologia</h3><p style="font-size:12px">Sala 204</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">👁️</div><h3 style="font-size:16px">Oftalmologia</h3><p style="font-size:12px">Sala 108</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">🦷</div><h3 style="font-size:16px">Odontologia</h3><p style="font-size:12px">Sala 110</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">💊</div><h3 style="font-size:16px">Clínico Geral</h3><p style="font-size:12px">Sala 101</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">🧬</div><h3 style="font-size:16px">Dermatologia</h3><p style="font-size:12px">Sala 206</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="especialidades" data-navigate="page_1" onclick="goPage('especialidades')"><span class="icon">🩺</span>Áreas</button>
+    <button class="nav-btn" data-target="medicos" data-navigate="page_2" onclick="goPage('medicos')"><span class="icon">👨‍⚕️</span>Médicos</button>
+    <button class="nav-btn" data-target="info" data-navigate="page_3" onclick="goPage('info')"><span class="icon">ℹ️</span>Info</button>
+  </nav>
+</div>
+
+<div data-page="medicos" data-name="Médicos">
+  <div class="header"><h1>👨‍⚕️ Corpo Clínico</h1><p>Profissionais qualificados e experientes</p></div>
+  <div class="content">
+    <div class="doc-card"><div class="doc-avatar">👨‍⚕️</div><div class="doc-info"><h4>Dr. Carlos Silva</h4><p>Cardiologia — CRM 12345</p><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;margin-top:8px">Disponível hoje</span></div></div>
+    <div class="doc-card"><div class="doc-avatar">👩‍⚕️</div><div class="doc-info"><h4>Dra. Ana Oliveira</h4><p>Pediatria — CRM 23456</p><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;margin-top:8px">Disponível hoje</span></div></div>
+    <div class="doc-card"><div class="doc-avatar">👨‍⚕️</div><div class="doc-info"><h4>Dr. Roberto Santos</h4><p>Ortopedia — CRM 34567</p><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24;margin-top:8px">Próximo: Quinta</span></div></div>
+    <div class="doc-card"><div class="doc-avatar">👩‍⚕️</div><div class="doc-info"><h4>Dra. Maria Costa</h4><p>Dermatologia — CRM 45678</p><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;margin-top:8px">Disponível hoje</span></div></div>
+    <div class="doc-card"><div class="doc-avatar">👨‍⚕️</div><div class="doc-info"><h4>Dr. Paulo Ferreira</h4><p>Neurologia — CRM 56789</p><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24;margin-top:8px">Próximo: Sexta</span></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="especialidades" data-navigate="page_1" onclick="goPage('especialidades')"><span class="icon">🩺</span>Áreas</button>
+    <button class="nav-btn active" data-target="medicos" data-navigate="page_2" onclick="goPage('medicos')"><span class="icon">👨‍⚕️</span>Médicos</button>
+    <button class="nav-btn" data-target="info" data-navigate="page_3" onclick="goPage('info')"><span class="icon">ℹ️</span>Info</button>
+  </nav>
+</div>
+
+<div data-page="info" data-name="Informações">
+  <div class="header"><h1>ℹ️ Informações</h1><p>Tudo que você precisa saber</p></div>
+  <div class="content">
+    <div class="card"><h3>📍 Endereço</h3><p>Av. da Saúde, 500 — Centro Médico<br>São Paulo — SP, CEP 01000-000</p></div>
+    <div class="card"><h3>🕐 Horário</h3><p>Segunda a Sexta: 7h às 19h<br>Sábado: 7h às 12h<br>Emergência: 24 horas</p></div>
+    <div class="card"><h3>📞 Contato</h3><p>Recepção: (11) 3000-1000<br>WhatsApp: (11) 99999-1000<br>E-mail: contato@vidaplena.com.br</p></div>
+    <div class="card"><h3>🅿️ Estacionamento</h3><p>Estacionamento próprio com 120 vagas.<br>Manobrista disponível.</p></div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.05));border-color:rgba(52,211,153,0.2)">
+      <h3>🆘 Emergência</h3>
+      <p>Pronto-socorro funcionando 24h. Acesso pela entrada lateral.</p>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="especialidades" data-navigate="page_1" onclick="goPage('especialidades')"><span class="icon">🩺</span>Áreas</button>
+    <button class="nav-btn" data-target="medicos" data-navigate="page_2" onclick="goPage('medicos')"><span class="icon">👨‍⚕️</span>Médicos</button>
+    <button class="nav-btn active" data-target="info" data-navigate="page_3" onclick="goPage('info')"><span class="icon">ℹ️</span>Info</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlClinic: CanvasState = {
+  bgColor: '#0a1628',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Clínica HTML',
+    props: { htmlContent: htmlClinicContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Especialidades', selector: '[data-page="especialidades"]' },
+        { id: 'page_2', name: 'Médicos', selector: '[data-page="medicos"]' },
+        { id: 'page_3', name: 'Informações', selector: '[data-page="info"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Especialidades', isDefault: false },
+    { id: 'page_2', name: 'Médicos', isDefault: false },
+    { id: 'page_3', name: 'Informações', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Barbearia / Salão
+// ═══════════════════════════════════════════════════
+const htmlBarberContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f0f;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(212,175,55,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#d4af37}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.7);border-top:1px solid rgba(212,175,55,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#d4af37}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(212,175,55,0.1)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:360px;object-fit:cover}
+.service-row{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.service-row:last-child{border:none}
+.service-row .left{display:flex;align-items:center;gap:14px}
+.service-row .left .emoji{font-size:28px}
+.service-row .left h4{font-size:17px;font-weight:600}
+.service-row .left p{font-size:12px;opacity:0.5;margin-top:2px}
+.service-row .right{text-align:right}
+.service-row .right .price{font-size:20px;font-weight:800;color:#d4af37}
+.service-row .right .time{font-size:11px;opacity:0.4;margin-top:2px}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.gallery-img{width:100%;height:220px;object-fit:cover;border-radius:12px;margin-bottom:12px}
+</style>
+<script>
+function goPage(id){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));
+  var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1080&h=360&fit=crop" alt="Barbearia">
+  <div class="header"><h1>✂️ Barbearia Elite</h1><p>Estilo, tradição e atendimento premium</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(0,0,0,0));border-color:rgba(212,175,55,0.2)">
+      <h3>🌟 Promoção do Mês</h3>
+      <p>Combo Barba + Corte + Sobrancelha por apenas</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <span style="text-decoration:line-through;opacity:0.4">R$ 120</span>
+        <span style="font-size:28px;font-weight:800;color:#d4af37">R$ 89</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('servicos')">
+        <div style="font-size:32px;margin-bottom:8px">💈</div><p style="font-weight:600">Serviços</p>
+      </div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('portfolio')">
+        <div style="font-size:32px;margin-bottom:8px">📸</div><p style="font-weight:600">Portfólio</p>
+      </div>
+    </div>
+    <button class="cta-btn" style="background:#d4af37;color:#000" data-navigate="page_3" onclick="goPage('agendar')">📅 Agendar Horário</button>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">💈</span>Serviços</button>
+    <button class="nav-btn" data-target="portfolio" data-navigate="page_2" onclick="goPage('portfolio')"><span class="icon">📸</span>Portfólio</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="servicos" data-name="Serviços">
+  <div class="header"><h1>💈 Serviços</h1><p>Tudo para o seu visual perfeito</p></div>
+  <div class="content">
+    <div class="card">
+      <div class="service-row"><div class="left"><span class="emoji">✂️</span><div><h4>Corte Masculino</h4><p>Tesoura ou máquina</p></div></div><div class="right"><div class="price">R$ 50</div><div class="time">40 min</div></div></div>
+      <div class="service-row"><div class="left"><span class="emoji">🪒</span><div><h4>Barba Completa</h4><p>Navalha + toalha quente</p></div></div><div class="right"><div class="price">R$ 40</div><div class="time">30 min</div></div></div>
+      <div class="service-row"><div class="left"><span class="emoji">💇</span><div><h4>Corte + Barba</h4><p>Combo completo</p></div></div><div class="right"><div class="price">R$ 80</div><div class="time">1h</div></div></div>
+      <div class="service-row"><div class="left"><span class="emoji">🧴</span><div><h4>Hidratação</h4><p>Tratamento capilar</p></div></div><div class="right"><div class="price">R$ 35</div><div class="time">20 min</div></div></div>
+      <div class="service-row"><div class="left"><span class="emoji">✨</span><div><h4>Sobrancelha</h4><p>Design e acabamento</p></div></div><div class="right"><div class="price">R$ 20</div><div class="time">15 min</div></div></div>
+      <div class="service-row"><div class="left"><span class="emoji">🎨</span><div><h4>Coloração</h4><p>Tintura completa</p></div></div><div class="right"><div class="price">R$ 90</div><div class="time">1h30</div></div></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">💈</span>Serviços</button>
+    <button class="nav-btn" data-target="portfolio" data-navigate="page_2" onclick="goPage('portfolio')"><span class="icon">📸</span>Portfólio</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="portfolio" data-name="Portfólio">
+  <div class="header"><h1>📸 Portfólio</h1><p>Nossos melhores trabalhos</p></div>
+  <div class="content">
+    <div class="grid-2">
+      <div><img class="gallery-img" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=480&h=220&fit=crop" alt="Corte 1"><p style="font-size:13px;opacity:0.5;text-align:center">Fade Clássico</p></div>
+      <div><img class="gallery-img" src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=480&h=220&fit=crop" alt="Corte 2"><p style="font-size:13px;opacity:0.5;text-align:center">Pompadour</p></div>
+      <div><img class="gallery-img" src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=480&h=220&fit=crop" alt="Barba"><p style="font-size:13px;opacity:0.5;text-align:center">Barba Desenhada</p></div>
+      <div><img class="gallery-img" src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=480&h=220&fit=crop" alt="Corte 3"><p style="font-size:13px;opacity:0.5;text-align:center">Undercut</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">💈</span>Serviços</button>
+    <button class="nav-btn active" data-target="portfolio" data-navigate="page_2" onclick="goPage('portfolio')"><span class="icon">📸</span>Portfólio</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="agendar" data-name="Agendar">
+  <div class="header"><h1>📅 Agendar Horário</h1><p>Escolha a melhor forma de agendar</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(0,0,0,0));border-color:rgba(212,175,55,0.2)">
+      <h3>📱 Agende pelo WhatsApp</h3>
+      <p>Fale com a gente e escolha o melhor horário. Resposta rápida!</p>
+      <button class="cta-btn" style="background:#25d366;color:#fff">💬 WhatsApp</button>
+    </div>
+    <div class="card">
+      <h3>📞 Ligue para Nós</h3>
+      <p style="font-size:24px;font-weight:800;color:#d4af37;margin-top:8px">(11) 3000-2000</p>
+      <p style="margin-top:8px">Seg a Sáb: 9h às 20h</p>
+    </div>
+    <div class="card">
+      <h3>🕐 Horários Disponíveis Hoje</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <span class="badge" style="background:rgba(212,175,55,0.2);color:#d4af37">10:00</span>
+        <span class="badge" style="background:rgba(212,175,55,0.2);color:#d4af37">11:30</span>
+        <span class="badge" style="background:rgba(212,175,55,0.2);color:#d4af37">14:00</span>
+        <span class="badge" style="background:rgba(212,175,55,0.2);color:#d4af37">15:30</span>
+        <span class="badge" style="background:rgba(212,175,55,0.2);color:#d4af37">17:00</span>
+        <span class="badge" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3)">18:30</span>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">💈</span>Serviços</button>
+    <button class="nav-btn" data-target="portfolio" data-navigate="page_2" onclick="goPage('portfolio')"><span class="icon">📸</span>Portfólio</button>
+    <button class="nav-btn active" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlBarber: CanvasState = {
+  bgColor: '#0f0f0f',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Barbearia HTML',
+    props: { htmlContent: htmlBarberContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Serviços', selector: '[data-page="servicos"]' },
+        { id: 'page_2', name: 'Portfólio', selector: '[data-page="portfolio"]' },
+        { id: 'page_3', name: 'Agendar', selector: '[data-page="agendar"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Serviços', isDefault: false },
+    { id: 'page_2', name: 'Portfólio', isDefault: false },
+    { id: 'page_3', name: 'Agendar', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Hotel / Pousada
+// ═══════════════════════════════════════════════════
+const htmlHotelContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0c1222;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(99,102,241,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#a5b4fc}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(165,180,252,0.1)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#a5b4fc}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(165,180,252,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:380px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.amenity{display:flex;flex-direction:column;align-items:center;background:rgba(165,180,252,0.08);border-radius:14px;padding:20px 12px;text-align:center;border:1px solid rgba(165,180,252,0.1)}
+.amenity .emoji{font-size:32px;margin-bottom:8px}
+.amenity .name{font-size:13px;font-weight:600}
+.amenity .detail{font-size:11px;opacity:0.4;margin-top:4px}
+.room-card{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(165,180,252,0.08)}
+.room-card img{width:100%;height:200px;object-fit:cover}
+.room-card .info{padding:20px}
+.room-card .info h4{font-size:18px;font-weight:700}
+.room-card .info .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+</style>
+<script>
+function goPage(id){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));
+  var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1080&h=380&fit=crop" alt="Hotel">
+  <div class="header"><h1>🏨 Grand Hotel</h1><p>Sua experiência premium começa aqui</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(165,180,252,0.15),rgba(99,102,241,0.05));border-color:rgba(165,180,252,0.2)">
+      <h3>🔑 Check-in Express</h3>
+      <p>Tem reserva? Faça o check-in digital e vá direto para o quarto.</p>
+      <button class="cta-btn" style="background:#6366f1;color:#fff">✅ Fazer Check-in</button>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('quartos')">
+        <div style="font-size:32px;margin-bottom:8px">🛏️</div><p style="font-weight:600">Quartos</p>
+      </div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('servicos')">
+        <div style="font-size:32px;margin-bottom:8px">🍽️</div><p style="font-weight:600">Serviços</p>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="quartos" data-navigate="page_1" onclick="goPage('quartos')"><span class="icon">🛏️</span>Quartos</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_2" onclick="goPage('servicos')"><span class="icon">🍽️</span>Serviços</button>
+    <button class="nav-btn" data-target="turismo" data-navigate="page_3" onclick="goPage('turismo')"><span class="icon">🗺️</span>Turismo</button>
+  </nav>
+</div>
+
+<div data-page="quartos" data-name="Quartos">
+  <div class="header"><h1>🛏️ Acomodações</h1><p>Conforto e elegância para sua estadia</p></div>
+  <div class="content">
+    <div class="room-card"><img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=960&h=200&fit=crop" alt="Standard"><div class="info"><h4>Standard</h4><p style="font-size:13px;opacity:0.5;margin-top:4px">Cama Queen • Wi-Fi • TV 43" • Frigobar</p><div class="price-row"><span class="badge" style="background:rgba(165,180,252,0.2);color:#a5b4fc">Disponível</span><span style="font-size:22px;font-weight:800;color:#a5b4fc">R$ 280<span style="font-size:12px;opacity:0.5">/noite</span></span></div></div></div>
+    <div class="room-card"><img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=960&h=200&fit=crop" alt="Luxo"><div class="info"><h4>Luxo</h4><p style="font-size:13px;opacity:0.5;margin-top:4px">Cama King • Banheira • Varanda • Vista Mar</p><div class="price-row"><span class="badge" style="background:rgba(165,180,252,0.2);color:#a5b4fc">Disponível</span><span style="font-size:22px;font-weight:800;color:#a5b4fc">R$ 520<span style="font-size:12px;opacity:0.5">/noite</span></span></div></div></div>
+    <div class="room-card"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=960&h=200&fit=crop" alt="Suite"><div class="info"><h4>Suíte Presidencial</h4><p style="font-size:13px;opacity:0.5;margin-top:4px">Living • Jacuzzi • Butler Service • Panorâmica</p><div class="price-row"><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">2 restantes</span><span style="font-size:22px;font-weight:800;color:#a5b4fc">R$ 1.200<span style="font-size:12px;opacity:0.5">/noite</span></span></div></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="quartos" data-navigate="page_1" onclick="goPage('quartos')"><span class="icon">🛏️</span>Quartos</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_2" onclick="goPage('servicos')"><span class="icon">🍽️</span>Serviços</button>
+    <button class="nav-btn" data-target="turismo" data-navigate="page_3" onclick="goPage('turismo')"><span class="icon">🗺️</span>Turismo</button>
+  </nav>
+</div>
+
+<div data-page="servicos" data-name="Serviços">
+  <div class="header"><h1>🍽️ Serviços</h1><p>Tudo para tornar sua estadia inesquecível</p></div>
+  <div class="content">
+    <div class="grid-3">
+      <div class="amenity"><span class="emoji">🏊</span><span class="name">Piscina</span><span class="detail">7h–22h</span></div>
+      <div class="amenity"><span class="emoji">🏋️</span><span class="name">Academia</span><span class="detail">24h</span></div>
+      <div class="amenity"><span class="emoji">💆</span><span class="name">Spa</span><span class="detail">9h–21h</span></div>
+      <div class="amenity"><span class="emoji">🍳</span><span class="name">Café da Manhã</span><span class="detail">6h–10h</span></div>
+      <div class="amenity"><span class="emoji">🍷</span><span class="name">Bar</span><span class="detail">18h–01h</span></div>
+      <div class="amenity"><span class="emoji">🅿️</span><span class="name">Valet</span><span class="detail">24h</span></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>🛎️ Room Service</h3>
+      <p>Peça direto do quarto. Cardápio completo, 24 horas.</p>
+      <button class="cta-btn" style="background:#6366f1;color:#fff">📋 Ver Cardápio</button>
+    </div>
+    <div class="card">
+      <h3>📶 Wi-Fi</h3>
+      <p style="font-weight:700;color:#a5b4fc;font-size:18px;margin-top:4px">Rede: GrandHotel_Guest</p>
+      <p style="margin-top:4px">Senha: Bem-vindo2024</p>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="quartos" data-navigate="page_1" onclick="goPage('quartos')"><span class="icon">🛏️</span>Quartos</button>
+    <button class="nav-btn active" data-target="servicos" data-navigate="page_2" onclick="goPage('servicos')"><span class="icon">🍽️</span>Serviços</button>
+    <button class="nav-btn" data-target="turismo" data-navigate="page_3" onclick="goPage('turismo')"><span class="icon">🗺️</span>Turismo</button>
+  </nav>
+</div>
+
+<div data-page="turismo" data-name="Turismo">
+  <div class="header"><h1>🗺️ Turismo</h1><p>Descubra as atrações da região</p></div>
+  <div class="content">
+    <div class="card"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=960&h=200&fit=crop" alt="Praia" style="width:100%;height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px"><h3>🏖️ Praia Central</h3><p>A 5 minutos do hotel. Quiosques e esportes aquáticos.</p><span class="badge" style="background:rgba(56,189,248,0.2);color:#38bdf8;margin-top:8px">500m</span></div>
+    <div class="card"><h3>🏛️ Centro Histórico</h3><p>Passeio guiado pela história da cidade. Saídas diárias às 9h e 15h.</p><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24;margin-top:8px">2km</span></div>
+    <div class="card"><h3>🌿 Trilha Ecológica</h3><p>Percurso de 3km em meio à Mata Atlântica. Guias disponíveis no hotel.</p><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;margin-top:8px">4km</span></div>
+    <div class="card"><h3>🛥️ Passeio de Barco</h3><p>Tour pelas ilhas com paradas para mergulho. Reservas na recepção.</p><span class="badge" style="background:rgba(165,180,252,0.2);color:#a5b4fc;margin-top:8px">Porto — 1km</span></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="quartos" data-navigate="page_1" onclick="goPage('quartos')"><span class="icon">🛏️</span>Quartos</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_2" onclick="goPage('servicos')"><span class="icon">🍽️</span>Serviços</button>
+    <button class="nav-btn active" data-target="turismo" data-navigate="page_3" onclick="goPage('turismo')"><span class="icon">🗺️</span>Turismo</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlHotel: CanvasState = {
+  bgColor: '#0c1222',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Hotel HTML',
+    props: { htmlContent: htmlHotelContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Quartos', selector: '[data-page="quartos"]' },
+        { id: 'page_2', name: 'Serviços', selector: '[data-page="servicos"]' },
+        { id: 'page_3', name: 'Turismo', selector: '[data-page="turismo"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Quartos', isDefault: false },
+    { id: 'page_2', name: 'Serviços', isDefault: false },
+    { id: 'page_3', name: 'Turismo', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Academia / Gym
+// ═══════════════════════════════════════════════════
+const htmlGymContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0a;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(239,68,68,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#f87171}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.7);border-top:1px solid rgba(239,68,68,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#f87171}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(239,68,68,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:340px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.plan-card{background:rgba(255,255,255,0.05);border-radius:20px;padding:28px;text-align:center;border:1px solid rgba(239,68,68,0.1);margin-bottom:16px}
+.plan-card.featured{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(251,113,133,0.05));border-color:rgba(239,68,68,0.3)}
+.plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
+.plan-card .price{font-size:36px;font-weight:900;color:#f87171;margin:12px 0}
+.plan-card .price span{font-size:14px;opacity:0.5;font-weight:400}
+.plan-card ul{list-style:none;text-align:left;margin-top:12px}
+.plan-card ul li{padding:8px 0;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.plan-card ul li:before{content:'✅ ';font-size:12px}
+.schedule-row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.schedule-row:last-child{border:none}
+.schedule-row .time{font-size:14px;font-weight:700;color:#f87171;min-width:60px}
+.schedule-row .name{font-size:16px;font-weight:600;flex:1;margin-left:16px}
+.schedule-row .teacher{font-size:12px;opacity:0.4}
+.schedule-row .badge{margin-left:auto}
+</style>
+<script>
+function goPage(id){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));
+  var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1080&h=340&fit=crop" alt="Academia">
+  <div class="header"><h1>🏋️ Power Gym</h1><p>Supere seus limites todos os dias</p></div>
+  <div class="content">
+    <div class="grid-3">
+      <div style="background:rgba(239,68,68,0.1);border-radius:16px;padding:16px;text-align:center;border:1px solid rgba(239,68,68,0.15)"><div style="font-size:28px;font-weight:900;color:#f87171">850+</div><div style="font-size:11px;opacity:0.4;margin-top:4px">Alunos Ativos</div></div>
+      <div style="background:rgba(239,68,68,0.1);border-radius:16px;padding:16px;text-align:center;border:1px solid rgba(239,68,68,0.15)"><div style="font-size:28px;font-weight:900;color:#f87171">30+</div><div style="font-size:11px;opacity:0.4;margin-top:4px">Aulas/Semana</div></div>
+      <div style="background:rgba(239,68,68,0.1);border-radius:16px;padding:16px;text-align:center;border:1px solid rgba(239,68,68,0.15)"><div style="font-size:28px;font-weight:900;color:#f87171">5h–23h</div><div style="font-size:11px;opacity:0.4;margin-top:4px">Horário</div></div>
+    </div>
+    <div class="card" style="margin-top:16px;background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(0,0,0,0));border-color:rgba(239,68,68,0.2)">
+      <h3>🆓 Aula Experimental</h3>
+      <p>Primeira aula grátis! Venha conhecer nossa estrutura.</p>
+      <button class="cta-btn" style="background:#ef4444;color:#fff">💪 Agendar Aula Grátis</button>
+    </div>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('planos')"><div style="font-size:32px;margin-bottom:8px">💎</div><p style="font-weight:600">Planos</p></div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('aulas')"><div style="font-size:32px;margin-bottom:8px">📅</div><p style="font-weight:600">Aulas</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="planos" data-navigate="page_1" onclick="goPage('planos')"><span class="icon">💎</span>Planos</button>
+    <button class="nav-btn" data-target="aulas" data-navigate="page_2" onclick="goPage('aulas')"><span class="icon">📅</span>Aulas</button>
+    <button class="nav-btn" data-target="checkin" data-navigate="page_3" onclick="goPage('checkin')"><span class="icon">✅</span>Check-in</button>
+  </nav>
+</div>
+
+<div data-page="planos" data-name="Planos">
+  <div class="header"><h1>💎 Planos</h1><p>Escolha o plano ideal para você</p></div>
+  <div class="content">
+    <div class="plan-card"><h3>Basic</h3><div class="price">R$ 89<span>/mês</span></div><ul><li>Acesso à musculação</li><li>Horário: 5h–23h</li><li>Avaliação física</li></ul><button class="cta-btn" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1)">Assinar Basic</button></div>
+    <div class="plan-card featured"><span class="badge" style="background:#ef4444;color:#fff;margin-bottom:12px">⭐ Mais Popular</span><h3>Premium</h3><div class="price">R$ 149<span>/mês</span></div><ul><li>Musculação + Aulas</li><li>Horário: 5h–23h</li><li>Personal 2x/mês</li><li>Área de alongamento</li></ul><button class="cta-btn" style="background:#ef4444;color:#fff">Assinar Premium</button></div>
+    <div class="plan-card"><h3>VIP</h3><div class="price">R$ 249<span>/mês</span></div><ul><li>Acesso total</li><li>Personal ilimitado</li><li>Nutricionista</li><li>Armário pessoal</li><li>Spa e sauna</li></ul><button class="cta-btn" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1)">Assinar VIP</button></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="planos" data-navigate="page_1" onclick="goPage('planos')"><span class="icon">💎</span>Planos</button>
+    <button class="nav-btn" data-target="aulas" data-navigate="page_2" onclick="goPage('aulas')"><span class="icon">📅</span>Aulas</button>
+    <button class="nav-btn" data-target="checkin" data-navigate="page_3" onclick="goPage('checkin')"><span class="icon">✅</span>Check-in</button>
+  </nav>
+</div>
+
+<div data-page="aulas" data-name="Aulas">
+  <div class="header"><h1>📅 Aulas de Hoje</h1><p>Grade completa do dia</p></div>
+  <div class="content">
+    <div class="card">
+      <div class="schedule-row"><div class="time">06:00</div><div class="name">Spinning<div class="teacher">Prof. Ricardo</div></div><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">5 vagas</span></div>
+      <div class="schedule-row"><div class="time">07:30</div><div class="name">Funcional<div class="teacher">Prof. Amanda</div></div><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">8 vagas</span></div>
+      <div class="schedule-row"><div class="time">09:00</div><div class="name">Yoga<div class="teacher">Prof. Camila</div></div><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">2 vagas</span></div>
+      <div class="schedule-row"><div class="time">10:30</div><div class="name">Pilates<div class="teacher">Prof. Fernanda</div></div><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">6 vagas</span></div>
+      <div class="schedule-row"><div class="time">17:00</div><div class="name">CrossFit<div class="teacher">Prof. Bruno</div></div><span class="badge" style="background:rgba(239,68,68,0.2);color:#f87171">Lotada</span></div>
+      <div class="schedule-row"><div class="time">18:30</div><div class="name">Muay Thai<div class="teacher">Prof. Diego</div></div><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">4 vagas</span></div>
+      <div class="schedule-row"><div class="time">20:00</div><div class="name">Dança<div class="teacher">Prof. Juliana</div></div><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">10 vagas</span></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="planos" data-navigate="page_1" onclick="goPage('planos')"><span class="icon">💎</span>Planos</button>
+    <button class="nav-btn active" data-target="aulas" data-navigate="page_2" onclick="goPage('aulas')"><span class="icon">📅</span>Aulas</button>
+    <button class="nav-btn" data-target="checkin" data-navigate="page_3" onclick="goPage('checkin')"><span class="icon">✅</span>Check-in</button>
+  </nav>
+</div>
+
+<div data-page="checkin" data-name="Check-in">
+  <div class="header"><h1>✅ Check-in</h1><p>Registre sua presença de forma rápida</p></div>
+  <div class="content">
+    <div class="card" style="text-align:center;padding:40px;background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(0,0,0,0));border-color:rgba(239,68,68,0.2)">
+      <div style="font-size:64px;margin-bottom:16px">📱</div>
+      <h3>Escaneie seu QR Code</h3>
+      <p style="margin-top:8px">Aproxime o celular do leitor para registrar sua entrada.</p>
+    </div>
+    <div class="card" style="text-align:center">
+      <h3>Ou digite sua matrícula</h3>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:center">
+        <div style="width:60px;height:72px;background:rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border:2px solid rgba(239,68,68,0.2)">_</div>
+        <div style="width:60px;height:72px;background:rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border:2px solid rgba(255,255,255,0.06)">_</div>
+        <div style="width:60px;height:72px;background:rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border:2px solid rgba(255,255,255,0.06)">_</div>
+        <div style="width:60px;height:72px;background:rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border:2px solid rgba(255,255,255,0.06)">_</div>
+        <div style="width:60px;height:72px;background:rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border:2px solid rgba(255,255,255,0.06)">_</div>
+      </div>
+      <button class="cta-btn" style="background:#ef4444;color:#fff;max-width:300px;margin:16px auto 0">Confirmar</button>
+    </div>
+    <div class="card">
+      <h3>🕐 Horário de Funcionamento</h3>
+      <p>Seg a Sex: 5h às 23h<br>Sáb: 7h às 18h<br>Dom e Feriados: 8h às 14h</p>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="planos" data-navigate="page_1" onclick="goPage('planos')"><span class="icon">💎</span>Planos</button>
+    <button class="nav-btn" data-target="aulas" data-navigate="page_2" onclick="goPage('aulas')"><span class="icon">📅</span>Aulas</button>
+    <button class="nav-btn active" data-target="checkin" data-navigate="page_3" onclick="goPage('checkin')"><span class="icon">✅</span>Check-in</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlGym: CanvasState = {
+  bgColor: '#0a0a0a',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Academia HTML',
+    props: { htmlContent: htmlGymContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Planos', selector: '[data-page="planos"]' },
+        { id: 'page_2', name: 'Aulas', selector: '[data-page="aulas"]' },
+        { id: 'page_3', name: 'Check-in', selector: '[data-page="checkin"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Planos', isDefault: false },
+    { id: 'page_2', name: 'Aulas', isDefault: false },
+    { id: 'page_3', name: 'Check-in', isDefault: false },
+  ],
+  activeViewId: 'page_0',
+  viewIdleTimeout: 30,
+  pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -2060,4 +2894,9 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   { id: 'mp-shopping-ai', name: '🤖 Shopping AI Assistant', description: '4 páginas: Lojas + Avatar → Categorias → Mapa → Eventos', icon: '🤖', category: 'retail', state: mpShoppingAI },
   // ── HTML Puro (multi-page) ──
   { id: 'html-shopping', name: '📄 Shopping HTML Puro', description: '4 páginas HTML nativas com navegação, edição inline de textos e imagens', icon: '📄', category: 'retail', state: mpHtmlShopping },
+  { id: 'html-restaurant', name: '🍕 Pizzaria HTML Puro', description: '4 páginas: Início → Cardápio → Pedido → Sobre com design premium', icon: '🍕', category: 'menu', state: mpHtmlRestaurant },
+  { id: 'html-clinic', name: '🏥 Clínica HTML Puro', description: '4 páginas: Início → Especialidades → Médicos → Informações', icon: '🏥', category: 'health', state: mpHtmlClinic },
+  { id: 'html-barber', name: '💈 Barbearia HTML Puro', description: '4 páginas: Início → Serviços → Portfólio → Agendamento', icon: '💈', category: 'welcome', state: mpHtmlBarber },
+  { id: 'html-hotel', name: '🏨 Hotel HTML Puro', description: '4 páginas: Início → Quartos → Serviços → Turismo', icon: '🏨', category: 'hotel', state: mpHtmlHotel },
+  { id: 'html-gym', name: '🏋️ Academia HTML Puro', description: '4 páginas: Início → Planos → Aulas → Check-in', icon: '🏋️', category: 'menu', state: mpHtmlGym },
 ];
