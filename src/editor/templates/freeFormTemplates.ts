@@ -16,7 +16,7 @@ export interface FreeFormTemplate {
   name: string;
   description: string;
   icon: string;
-  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate' | 'health' | 'hotel' | 'retail';
+  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate' | 'health' | 'hotel' | 'retail' | 'beauty' | 'fitness' | 'education' | 'auto' | 'pets' | 'realestate';
   state: CanvasState;
 }
 
@@ -29,6 +29,12 @@ export const FREEFORM_TEMPLATE_CATEGORIES = [
   { id: 'health', label: 'Saúde', icon: '🏥' },
   { id: 'hotel', label: 'Hotel', icon: '🏨' },
   { id: 'retail', label: 'Varejo', icon: '🛒' },
+  { id: 'beauty', label: 'Beleza', icon: '💈' },
+  { id: 'fitness', label: 'Fitness', icon: '🏋️' },
+  { id: 'education', label: 'Educação', icon: '🎓' },
+  { id: 'auto', label: 'Automotivo', icon: '🚗' },
+  { id: 'pets', label: 'Pet Shop', icon: '🐾' },
+  { id: 'realestate', label: 'Imóveis', icon: '🏠' },
 ];
 
 let _id = 0;
@@ -2869,6 +2875,600 @@ const mpHtmlGym: CanvasState = {
 };
 
 // ═══════════════════════════════════════════════════
+// HTML Templates — Imobiliária
+// ═══════════════════════════════════════════════════
+const htmlRealEstateContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0c1425;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(14,165,233,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#38bdf8}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(56,189,248,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#38bdf8}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(56,189,248,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:360px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.property-card{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(56,189,248,0.08)}
+.property-card img{width:100%;height:200px;object-fit:cover}
+.property-card .info{padding:20px}
+.property-card .info h4{font-size:18px;font-weight:700}
+.property-card .info .details{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.property-card .info .details span{font-size:12px;opacity:0.5}
+.property-card .info .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.stat-card{background:rgba(56,189,248,0.1);border-radius:16px;padding:20px;text-align:center;border:1px solid rgba(56,189,248,0.15)}
+.stat-card .num{font-size:32px;font-weight:800;color:#38bdf8}
+.stat-card .label{font-size:11px;opacity:0.5;margin-top:6px}
+</style>
+<script>
+function goPage(id){document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1080&h=360&fit=crop" alt="Imóveis">
+  <div class="header"><h1>🏠 Prime Imóveis</h1><p>Encontre o imóvel dos seus sonhos</p></div>
+  <div class="content">
+    <div class="grid-2">
+      <div class="stat-card"><div class="num">250+</div><div class="label">Imóveis</div></div>
+      <div class="stat-card"><div class="num">15+</div><div class="label">Bairros</div></div>
+    </div>
+    <div class="card" style="margin-top:16px;background:linear-gradient(135deg,rgba(56,189,248,0.15),transparent);border-color:rgba(56,189,248,0.2)">
+      <h3>🔍 Buscar Imóvel</h3>
+      <p>Apartamentos, casas e salas comerciais disponíveis na sua região.</p>
+      <button class="cta-btn" style="background:#38bdf8;color:#000;font-weight:800" data-navigate="page_1" onclick="goPage('imoveis')">🏘️ Ver Imóveis Disponíveis</button>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('financiamento')"><div style="font-size:32px;margin-bottom:8px">💰</div><p style="font-weight:600">Financiamento</p></div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_3" onclick="goPage('contato')"><div style="font-size:32px;margin-bottom:8px">📞</div><p style="font-weight:600">Fale Conosco</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="imoveis" data-navigate="page_1" onclick="goPage('imoveis')"><span class="icon">🏘️</span>Imóveis</button>
+    <button class="nav-btn" data-target="financiamento" data-navigate="page_2" onclick="goPage('financiamento')"><span class="icon">💰</span>Financiar</button>
+    <button class="nav-btn" data-target="contato" data-navigate="page_3" onclick="goPage('contato')"><span class="icon">📞</span>Contato</button>
+  </nav>
+</div>
+
+<div data-page="imoveis" data-name="Imóveis">
+  <div class="header"><h1>🏘️ Imóveis Disponíveis</h1><p>Os melhores imóveis da região</p></div>
+  <div class="content">
+    <div class="property-card"><img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=960&h=200&fit=crop" alt="Apto"><div class="info"><h4>Apartamento Vila Mariana</h4><div class="details"><span>🛏️ 3 quartos</span><span>🚿 2 banheiros</span><span>📐 95m²</span><span>🅿️ 2 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(56,189,248,0.2);color:#38bdf8">Venda</span><span style="font-size:22px;font-weight:800;color:#38bdf8">R$ 680.000</span></div></div></div>
+    <div class="property-card"><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=960&h=200&fit=crop" alt="Casa"><div class="info"><h4>Casa Alphaville</h4><div class="details"><span>🛏️ 4 quartos</span><span>🚿 3 banheiros</span><span>📐 220m²</span><span>🅿️ 3 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">Venda</span><span style="font-size:22px;font-weight:800;color:#38bdf8">R$ 1.450.000</span></div></div></div>
+    <div class="property-card"><img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=960&h=200&fit=crop" alt="Sala"><div class="info"><h4>Sala Comercial Paulista</h4><div class="details"><span>📐 45m²</span><span>🅿️ 1 vaga</span><span>🏢 12° andar</span></div><div class="price-row"><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">Aluguel</span><span style="font-size:22px;font-weight:800;color:#38bdf8">R$ 3.500/mês</span></div></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="imoveis" data-navigate="page_1" onclick="goPage('imoveis')"><span class="icon">🏘️</span>Imóveis</button>
+    <button class="nav-btn" data-target="financiamento" data-navigate="page_2" onclick="goPage('financiamento')"><span class="icon">💰</span>Financiar</button>
+    <button class="nav-btn" data-target="contato" data-navigate="page_3" onclick="goPage('contato')"><span class="icon">📞</span>Contato</button>
+  </nav>
+</div>
+
+<div data-page="financiamento" data-name="Financiamento">
+  <div class="header"><h1>💰 Financiamento</h1><p>Realize o sonho da casa própria</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(56,189,248,0.15),transparent);border-color:rgba(56,189,248,0.2)">
+      <h3>📊 Simule seu Financiamento</h3>
+      <p>Descubra as melhores condições para o seu perfil.</p>
+      <div style="margin-top:16px"><p style="font-size:13px;opacity:0.4">Valor do imóvel</p><div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-top:6px;font-size:24px;font-weight:700;color:#38bdf8">R$ 500.000</div></div>
+      <div style="margin-top:12px"><p style="font-size:13px;opacity:0.4">Entrada (20%)</p><div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-top:6px;font-size:20px;font-weight:700">R$ 100.000</div></div>
+      <div style="margin-top:12px"><p style="font-size:13px;opacity:0.4">Parcela estimada (360x)</p><div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-top:6px;font-size:20px;font-weight:700;color:#34d399">R$ 3.200/mês</div></div>
+      <button class="cta-btn" style="background:#38bdf8;color:#000">📋 Solicitar Análise de Crédito</button>
+    </div>
+    <div class="card"><h3>🏦 Bancos Parceiros</h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><span class="badge" style="background:rgba(255,255,255,0.08)">Caixa</span><span class="badge" style="background:rgba(255,255,255,0.08)">Itaú</span><span class="badge" style="background:rgba(255,255,255,0.08)">Bradesco</span><span class="badge" style="background:rgba(255,255,255,0.08)">Santander</span><span class="badge" style="background:rgba(255,255,255,0.08)">BB</span></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="imoveis" data-navigate="page_1" onclick="goPage('imoveis')"><span class="icon">🏘️</span>Imóveis</button>
+    <button class="nav-btn active" data-target="financiamento" data-navigate="page_2" onclick="goPage('financiamento')"><span class="icon">💰</span>Financiar</button>
+    <button class="nav-btn" data-target="contato" data-navigate="page_3" onclick="goPage('contato')"><span class="icon">📞</span>Contato</button>
+  </nav>
+</div>
+
+<div data-page="contato" data-name="Contato">
+  <div class="header"><h1>📞 Fale Conosco</h1><p>Estamos prontos para ajudar</p></div>
+  <div class="content">
+    <div class="card"><h3>📱 WhatsApp</h3><p>Atendimento rápido e personalizado</p><button class="cta-btn" style="background:#25d366;color:#fff">💬 Chamar no WhatsApp</button></div>
+    <div class="card"><h3>📍 Nosso Escritório</h3><p>Av. Paulista, 1000 — Conj. 1201<br>São Paulo — SP</p></div>
+    <div class="card"><h3>🕐 Horário</h3><p>Seg a Sex: 9h às 18h<br>Sáb: 9h às 13h</p></div>
+    <div class="card"><h3>📞 Telefone</h3><p style="font-size:22px;font-weight:700;color:#38bdf8;margin-top:4px">(11) 3000-3000</p></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="imoveis" data-navigate="page_1" onclick="goPage('imoveis')"><span class="icon">🏘️</span>Imóveis</button>
+    <button class="nav-btn" data-target="financiamento" data-navigate="page_2" onclick="goPage('financiamento')"><span class="icon">💰</span>Financiar</button>
+    <button class="nav-btn active" data-target="contato" data-navigate="page_3" onclick="goPage('contato')"><span class="icon">📞</span>Contato</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlRealEstate: CanvasState = {
+  bgColor: '#0c1425',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Imobiliária HTML',
+    props: { htmlContent: htmlRealEstateContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Imóveis', selector: '[data-page="imoveis"]' },
+        { id: 'page_2', name: 'Financiamento', selector: '[data-page="financiamento"]' },
+        { id: 'page_3', name: 'Contato', selector: '[data-page="contato"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Imóveis', isDefault: false },
+    { id: 'page_2', name: 'Financiamento', isDefault: false },
+    { id: 'page_3', name: 'Contato', isDefault: false },
+  ],
+  activeViewId: 'page_0', viewIdleTimeout: 30, pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Concessionária
+// ═══════════════════════════════════════════════════
+const htmlAutoContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a12;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(220,38,38,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#f87171}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.6);border-top:1px solid rgba(248,113,113,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#f87171}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(248,113,113,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:360px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.car-card{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(248,113,113,0.08)}
+.car-card img{width:100%;height:220px;object-fit:cover}
+.car-card .info{padding:20px}
+.car-card .info h4{font-size:18px;font-weight:700}
+.car-card .info .specs{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.car-card .info .specs span{font-size:12px;opacity:0.5;background:rgba(255,255,255,0.06);padding:4px 10px;border-radius:8px}
+.car-card .info .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+</style>
+<script>
+function goPage(id){document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1080&h=360&fit=crop" alt="Carro">
+  <div class="header"><h1>🚗 AutoPrime</h1><p>Os melhores veículos, as melhores condições</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(248,113,113,0.15),transparent);border-color:rgba(248,113,113,0.2)">
+      <h3>🔥 Feirão da Semana</h3>
+      <p>Taxas a partir de 0,99% a.m. e entrada facilitada em todos os modelos.</p>
+      <button class="cta-btn" style="background:#ef4444;color:#fff" data-navigate="page_2" onclick="goPage('ofertas')">🏷️ Ver Ofertas</button>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('veiculos')"><div style="font-size:32px;margin-bottom:8px">🚘</div><p style="font-weight:600">Estoque</p></div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_3" onclick="goPage('agendar')"><div style="font-size:32px;margin-bottom:8px">📅</div><p style="font-weight:600">Test Drive</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="veiculos" data-navigate="page_1" onclick="goPage('veiculos')"><span class="icon">🚘</span>Veículos</button>
+    <button class="nav-btn" data-target="ofertas" data-navigate="page_2" onclick="goPage('ofertas')"><span class="icon">🏷️</span>Ofertas</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="veiculos" data-name="Veículos">
+  <div class="header"><h1>🚘 Nosso Estoque</h1><p>Veículos novos e seminovos</p></div>
+  <div class="content">
+    <div class="car-card"><img src="https://images.unsplash.com/photo-1617469767053-d3b523a0b982?w=960&h=220&fit=crop" alt="SUV"><div class="info"><h4>SUV Premium 2024</h4><div class="specs"><span>⛽ Flex</span><span>🔄 Automático</span><span>📏 15.000 km</span></div><div class="price-row"><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">Seminovo</span><span style="font-size:22px;font-weight:800;color:#f87171">R$ 165.000</span></div></div></div>
+    <div class="car-card"><img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=960&h=220&fit=crop" alt="Sedan"><div class="info"><h4>Sedan Executivo 2025</h4><div class="specs"><span>⛽ Híbrido</span><span>🔄 CVT</span><span>📏 0 km</span></div><div class="price-row"><span class="badge" style="background:rgba(56,189,248,0.2);color:#38bdf8">Novo</span><span style="font-size:22px;font-weight:800;color:#f87171">R$ 198.000</span></div></div></div>
+    <div class="car-card"><img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0637?w=960&h=220&fit=crop" alt="Hatch"><div class="info"><h4>Hatch Turbo 2024</h4><div class="specs"><span>⛽ Flex</span><span>🔄 Manual</span><span>📏 8.000 km</span></div><div class="price-row"><span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399">Seminovo</span><span style="font-size:22px;font-weight:800;color:#f87171">R$ 95.000</span></div></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="veiculos" data-navigate="page_1" onclick="goPage('veiculos')"><span class="icon">🚘</span>Veículos</button>
+    <button class="nav-btn" data-target="ofertas" data-navigate="page_2" onclick="goPage('ofertas')"><span class="icon">🏷️</span>Ofertas</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="ofertas" data-name="Ofertas">
+  <div class="header"><h1>🏷️ Ofertas Especiais</h1><p>Condições imperdíveis</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(248,113,113,0.2),rgba(251,146,60,0.1));border-color:rgba(248,113,113,0.3)">
+      <h3>⚡ Taxa Zero</h3>
+      <p>Financiamento com taxa 0% nos primeiros 12 meses para veículos selecionados.</p>
+      <span class="badge" style="background:#ef4444;color:#fff;margin-top:8px">Válido até 30/03</span>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(52,211,153,0.15),transparent);border-color:rgba(52,211,153,0.2)">
+      <h3>💰 Troca Garantida</h3>
+      <p>Traga seu usado e ganhe até R$ 5.000 de bônus na troca.</p>
+      <span class="badge" style="background:#34d399;color:#000;margin-top:8px">Avaliação na hora</span>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(165,180,252,0.15),transparent);border-color:rgba(165,180,252,0.2)">
+      <h3>🎁 Revisão Grátis</h3>
+      <p>Compre qualquer veículo e ganhe 3 revisões gratuitas no primeiro ano.</p>
+      <span class="badge" style="background:#a5b4fc;color:#000;margin-top:8px">Exclusivo</span>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="veiculos" data-navigate="page_1" onclick="goPage('veiculos')"><span class="icon">🚘</span>Veículos</button>
+    <button class="nav-btn active" data-target="ofertas" data-navigate="page_2" onclick="goPage('ofertas')"><span class="icon">🏷️</span>Ofertas</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="agendar" data-name="Agendar">
+  <div class="header"><h1>📅 Agendar Visita</h1><p>Test drive ou avaliação do seu usado</p></div>
+  <div class="content">
+    <div class="card"><h3>🚗 Test Drive</h3><p>Agende seu test drive em qualquer modelo do estoque.</p><button class="cta-btn" style="background:#ef4444;color:#fff">📅 Agendar Test Drive</button></div>
+    <div class="card"><h3>🔄 Avaliar meu Veículo</h3><p>Traga seu carro para uma avaliação gratuita e sem compromisso.</p><button class="cta-btn" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1)">📋 Solicitar Avaliação</button></div>
+    <div class="card"><h3>📞 Contato</h3><p style="font-size:22px;font-weight:700;color:#f87171;margin-top:4px">(11) 4000-4000</p><p style="margin-top:8px">WhatsApp: (11) 99999-4000</p><button class="cta-btn" style="background:#25d366;color:#fff">💬 WhatsApp</button></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="veiculos" data-navigate="page_1" onclick="goPage('veiculos')"><span class="icon">🚘</span>Veículos</button>
+    <button class="nav-btn" data-target="ofertas" data-navigate="page_2" onclick="goPage('ofertas')"><span class="icon">🏷️</span>Ofertas</button>
+    <button class="nav-btn active" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlAuto: CanvasState = {
+  bgColor: '#0a0a12',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Concessionária HTML',
+    props: { htmlContent: htmlAutoContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Veículos', selector: '[data-page="veiculos"]' },
+        { id: 'page_2', name: 'Ofertas', selector: '[data-page="ofertas"]' },
+        { id: 'page_3', name: 'Agendar', selector: '[data-page="agendar"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Veículos', isDefault: false },
+    { id: 'page_2', name: 'Ofertas', isDefault: false },
+    { id: 'page_3', name: 'Agendar', isDefault: false },
+  ],
+  activeViewId: 'page_0', viewIdleTimeout: 30, pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Pet Shop
+// ═══════════════════════════════════════════════════
+const htmlPetShopContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1a0f;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(34,197,94,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#4ade80}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(74,222,128,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#4ade80}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(74,222,128,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:360px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.service-card{background:rgba(74,222,128,0.06);border-radius:16px;padding:20px;text-align:center;border:1px solid rgba(74,222,128,0.12)}
+.service-card .emoji{font-size:36px;margin-bottom:10px}
+.service-card h4{font-size:15px;font-weight:700}
+.service-card .price{font-size:16px;font-weight:800;color:#4ade80;margin-top:6px}
+.service-card .time{font-size:11px;opacity:0.4;margin-top:4px}
+.product-card{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;border:1px solid rgba(74,222,128,0.08)}
+.product-card img{width:100%;height:160px;object-fit:cover}
+.product-card .info{padding:14px}
+.product-card .info h4{font-size:14px;font-weight:700}
+.product-card .info .price{font-size:16px;font-weight:800;color:#4ade80;margin-top:4px}
+</style>
+<script>
+function goPage(id){document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1080&h=360&fit=crop" alt="Pet">
+  <div class="header"><h1>🐾 Pet Paradise</h1><p>Amor e cuidado para seu melhor amigo</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(74,222,128,0.15),transparent);border-color:rgba(74,222,128,0.2)">
+      <h3>🎉 Promoção Banho + Tosa</h3>
+      <p>Combo completo com hidratação por apenas</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px"><span style="text-decoration:line-through;opacity:0.4">R$ 120</span><span style="font-size:28px;font-weight:800;color:#4ade80">R$ 79</span></div>
+    </div>
+    <div class="grid-2">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('servicos')"><div style="font-size:32px;margin-bottom:8px">🛁</div><p style="font-weight:600">Serviços</p></div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('produtos')"><div style="font-size:32px;margin-bottom:8px">🦴</div><p style="font-weight:600">Produtos</p></div>
+    </div>
+    <button class="cta-btn" style="background:#4ade80;color:#000" data-navigate="page_3" onclick="goPage('agendar')">📅 Agendar Agora</button>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">🛁</span>Serviços</button>
+    <button class="nav-btn" data-target="produtos" data-navigate="page_2" onclick="goPage('produtos')"><span class="icon">🦴</span>Produtos</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="servicos" data-name="Serviços">
+  <div class="header"><h1>🛁 Serviços</h1><p>Cuidados profissionais para seu pet</p></div>
+  <div class="content">
+    <div class="grid-2">
+      <div class="service-card"><div class="emoji">🛁</div><h4>Banho</h4><div class="price">R$ 50</div><div class="time">Pequeno porte</div></div>
+      <div class="service-card"><div class="emoji">✂️</div><h4>Tosa Higiênica</h4><div class="price">R$ 40</div><div class="time">30 min</div></div>
+      <div class="service-card"><div class="emoji">🧴</div><h4>Hidratação</h4><div class="price">R$ 35</div><div class="time">Pelagem brilhante</div></div>
+      <div class="service-card"><div class="emoji">💅</div><h4>Unha + Ouvido</h4><div class="price">R$ 25</div><div class="time">15 min</div></div>
+      <div class="service-card"><div class="emoji">🏥</div><h4>Veterinário</h4><div class="price">R$ 120</div><div class="time">Consulta</div></div>
+      <div class="service-card"><div class="emoji">💉</div><h4>Vacinação</h4><div class="price">A partir R$ 80</div><div class="time">Agendar</div></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">🛁</span>Serviços</button>
+    <button class="nav-btn" data-target="produtos" data-navigate="page_2" onclick="goPage('produtos')"><span class="icon">🦴</span>Produtos</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="produtos" data-name="Produtos">
+  <div class="header"><h1>🦴 Produtos</h1><p>Tudo que seu pet precisa</p></div>
+  <div class="content">
+    <div class="grid-2">
+      <div class="product-card"><img src="https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=480&h=160&fit=crop" alt="Ração"><div class="info"><h4>Ração Premium 15kg</h4><div class="price">R$ 189</div></div></div>
+      <div class="product-card"><img src="https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=480&h=160&fit=crop" alt="Brinquedo"><div class="info"><h4>Kit Brinquedos</h4><div class="price">R$ 49</div></div></div>
+      <div class="product-card"><img src="https://images.unsplash.com/photo-1583337130417-13104dec14a3?w=480&h=160&fit=crop" alt="Cama"><div class="info"><h4>Cama Ortopédica</h4><div class="price">R$ 159</div></div></div>
+      <div class="product-card"><img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=480&h=160&fit=crop" alt="Coleira"><div class="info"><h4>Coleira LED</h4><div class="price">R$ 69</div></div></div>
+    </div>
+    <button class="cta-btn" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1)">Ver Catálogo Completo</button>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">🛁</span>Serviços</button>
+    <button class="nav-btn active" data-target="produtos" data-navigate="page_2" onclick="goPage('produtos')"><span class="icon">🦴</span>Produtos</button>
+    <button class="nav-btn" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+<div data-page="agendar" data-name="Agendar">
+  <div class="header"><h1>📅 Agendar</h1><p>Marque o melhor horário para seu pet</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(74,222,128,0.15),transparent);border-color:rgba(74,222,128,0.2)">
+      <h3>📱 Agende pelo WhatsApp</h3>
+      <p>Rápido e prático! Envie o nome do pet e o serviço desejado.</p>
+      <button class="cta-btn" style="background:#25d366;color:#fff">💬 WhatsApp</button>
+    </div>
+    <div class="card"><h3>🕐 Horários Disponíveis Hoje</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <span class="badge" style="background:rgba(74,222,128,0.2);color:#4ade80">9:00</span>
+        <span class="badge" style="background:rgba(74,222,128,0.2);color:#4ade80">10:30</span>
+        <span class="badge" style="background:rgba(74,222,128,0.2);color:#4ade80">14:00</span>
+        <span class="badge" style="background:rgba(74,222,128,0.2);color:#4ade80">15:30</span>
+        <span class="badge" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3)">17:00</span>
+      </div>
+    </div>
+    <div class="card"><h3>📍 Endereço</h3><p>Rua dos Pets, 123 — Jardim Animal<br>São Paulo — SP</p></div>
+    <div class="card"><h3>📞 Telefone</h3><p style="font-size:22px;font-weight:700;color:#4ade80;margin-top:4px">(11) 5000-5000</p></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="servicos" data-navigate="page_1" onclick="goPage('servicos')"><span class="icon">🛁</span>Serviços</button>
+    <button class="nav-btn" data-target="produtos" data-navigate="page_2" onclick="goPage('produtos')"><span class="icon">🦴</span>Produtos</button>
+    <button class="nav-btn active" data-target="agendar" data-navigate="page_3" onclick="goPage('agendar')"><span class="icon">📅</span>Agendar</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlPetShop: CanvasState = {
+  bgColor: '#0f1a0f',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Pet Shop HTML',
+    props: { htmlContent: htmlPetShopContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Serviços', selector: '[data-page="servicos"]' },
+        { id: 'page_2', name: 'Produtos', selector: '[data-page="produtos"]' },
+        { id: 'page_3', name: 'Agendar', selector: '[data-page="agendar"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Serviços', isDefault: false },
+    { id: 'page_2', name: 'Produtos', isDefault: false },
+    { id: 'page_3', name: 'Agendar', isDefault: false },
+  ],
+  activeViewId: 'page_0', viewIdleTimeout: 30, pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
+// HTML Templates — Escola / Cursos
+// ═══════════════════════════════════════════════════
+const htmlSchoolContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f2e;color:#fff;width:1080px;height:1920px;overflow:hidden}
+[data-page]{display:none;width:100%;height:100%;position:absolute;top:0;left:0;flex-direction:column}
+[data-page].active{display:flex}
+.header{padding:50px 60px 24px;background:linear-gradient(180deg,rgba(168,85,247,0.2),transparent)}
+.header h1{font-size:36px;font-weight:800;color:#c084fc}
+.header p{font-size:16px;opacity:0.5;margin-top:8px}
+.content{flex:1;padding:16px 60px;overflow:auto}
+.nav-bar{display:flex;justify-content:space-around;padding:20px 40px 44px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(192,132,252,0.15)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;opacity:0.4;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn.active{opacity:1;color:#c084fc}
+.nav-btn span.icon{font-size:26px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid rgba(192,132,252,0.08)}
+.card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;opacity:0.7;line-height:1.5}
+.hero-img{width:100%;height:340px;object-fit:cover}
+.cta-btn{width:100%;padding:18px;border-radius:14px;border:none;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600}
+.course-card{background:rgba(192,132,252,0.06);border-radius:16px;padding:20px;border:1px solid rgba(192,132,252,0.12);margin-bottom:14px}
+.course-card h4{font-size:17px;font-weight:700;margin-bottom:6px}
+.course-card .meta{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.course-card .meta span{font-size:12px;opacity:0.5}
+.course-card .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.stat-card{background:rgba(192,132,252,0.1);border-radius:16px;padding:20px;text-align:center;border:1px solid rgba(192,132,252,0.15)}
+.stat-card .num{font-size:32px;font-weight:800;color:#c084fc}
+.stat-card .label{font-size:11px;opacity:0.5;margin-top:6px}
+</style>
+<script>
+function goPage(id){document.querySelectorAll('[data-page]').forEach(p=>p.classList.remove('active'));var t=document.querySelector('[data-page="'+id+'"]');if(t)t.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.target===id));}
+document.addEventListener('DOMContentLoaded',()=>goPage('home'));
+</script></head><body>
+
+<div data-page="home" data-name="Início" class="active">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1523050854058-8df90110c476?w=1080&h=340&fit=crop" alt="Escola">
+  <div class="header"><h1>🎓 Instituto Futuro</h1><p>Transformando carreiras desde 2010</p></div>
+  <div class="content">
+    <div class="grid-3">
+      <div class="stat-card"><div class="num">5.000+</div><div class="label">Alunos formados</div></div>
+      <div class="stat-card"><div class="num">40+</div><div class="label">Cursos</div></div>
+      <div class="stat-card"><div class="num">98%</div><div class="label">Aprovação</div></div>
+    </div>
+    <div class="card" style="margin-top:16px;background:linear-gradient(135deg,rgba(192,132,252,0.15),transparent);border-color:rgba(192,132,252,0.2)">
+      <h3>🆓 Aula Experimental Grátis</h3>
+      <p>Conheça nossa metodologia. Sem compromisso!</p>
+      <button class="cta-btn" style="background:#a855f7;color:#fff">✨ Agendar Aula Grátis</button>
+    </div>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_1" onclick="goPage('cursos')"><div style="font-size:32px;margin-bottom:8px">📚</div><p style="font-weight:600">Cursos</p></div>
+      <div class="card" style="cursor:pointer;text-align:center" data-navigate="page_2" onclick="goPage('matricula')"><div style="font-size:32px;margin-bottom:8px">📝</div><p style="font-weight:600">Matrícula</p></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cursos" data-navigate="page_1" onclick="goPage('cursos')"><span class="icon">📚</span>Cursos</button>
+    <button class="nav-btn" data-target="matricula" data-navigate="page_2" onclick="goPage('matricula')"><span class="icon">📝</span>Matrícula</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="cursos" data-name="Cursos">
+  <div class="header"><h1>📚 Nossos Cursos</h1><p>Formação profissional de qualidade</p></div>
+  <div class="content">
+    <div class="course-card"><h4>💻 Desenvolvimento Web Full Stack</h4><p style="font-size:13px;opacity:0.6">HTML, CSS, JavaScript, React, Node.js e banco de dados</p><div class="meta"><span>⏱️ 6 meses</span><span>📅 Noturno</span><span>👥 30 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(192,132,252,0.2);color:#c084fc">Vagas abertas</span><span style="font-size:20px;font-weight:800;color:#c084fc">R$ 199/mês</span></div></div>
+    <div class="course-card"><h4>📊 Data Science & IA</h4><p style="font-size:13px;opacity:0.6">Python, Machine Learning, Deep Learning e estatística</p><div class="meta"><span>⏱️ 8 meses</span><span>📅 Sábados</span><span>👥 25 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(192,132,252,0.2);color:#c084fc">Vagas abertas</span><span style="font-size:20px;font-weight:800;color:#c084fc">R$ 249/mês</span></div></div>
+    <div class="course-card"><h4>🎨 Design UX/UI</h4><p style="font-size:13px;opacity:0.6">Figma, prototipagem, pesquisa e design systems</p><div class="meta"><span>⏱️ 4 meses</span><span>📅 Online</span><span>👥 40 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">Últimas vagas</span><span style="font-size:20px;font-weight:800;color:#c084fc">R$ 179/mês</span></div></div>
+    <div class="course-card"><h4>📱 Marketing Digital</h4><p style="font-size:13px;opacity:0.6">Tráfego pago, SEO, redes sociais e analytics</p><div class="meta"><span>⏱️ 3 meses</span><span>📅 Intensivo</span><span>👥 35 vagas</span></div><div class="price-row"><span class="badge" style="background:rgba(192,132,252,0.2);color:#c084fc">Vagas abertas</span><span style="font-size:20px;font-weight:800;color:#c084fc">R$ 149/mês</span></div></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn active" data-target="cursos" data-navigate="page_1" onclick="goPage('cursos')"><span class="icon">📚</span>Cursos</button>
+    <button class="nav-btn" data-target="matricula" data-navigate="page_2" onclick="goPage('matricula')"><span class="icon">📝</span>Matrícula</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="matricula" data-name="Matrícula">
+  <div class="header"><h1>📝 Matrícula</h1><p>Comece sua jornada hoje mesmo</p></div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,rgba(192,132,252,0.15),transparent);border-color:rgba(192,132,252,0.2)">
+      <h3>🎁 Matrícula com Desconto</h3>
+      <p>Matricule-se agora e ganhe 20% de desconto nas primeiras 3 mensalidades!</p>
+      <span class="badge" style="background:#a855f7;color:#fff;margin-top:8px">Válido até 30/03</span>
+    </div>
+    <div class="card"><h3>📋 Como Matricular</h3>
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="width:32px;height:32px;border-radius:50%;background:rgba(192,132,252,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#c084fc;flex-shrink:0">1</span><span style="font-size:14px">Escolha o curso desejado</span></div>
+        <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="width:32px;height:32px;border-radius:50%;background:rgba(192,132,252,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#c084fc;flex-shrink:0">2</span><span style="font-size:14px">Preencha o formulário de matrícula</span></div>
+        <div style="display:flex;gap:12px;align-items:center;padding:12px 0"><span style="width:32px;height:32px;border-radius:50%;background:rgba(192,132,252,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#c084fc;flex-shrink:0">3</span><span style="font-size:14px">Comece a estudar!</span></div>
+      </div>
+    </div>
+    <div class="card"><h3>💳 Formas de Pagamento</h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><span class="badge" style="background:rgba(255,255,255,0.08)">💳 Cartão</span><span class="badge" style="background:rgba(255,255,255,0.08)">📱 Pix</span><span class="badge" style="background:rgba(255,255,255,0.08)">🏦 Boleto</span></div></div>
+    <button class="cta-btn" style="background:#a855f7;color:#fff">📝 Iniciar Matrícula</button>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cursos" data-navigate="page_1" onclick="goPage('cursos')"><span class="icon">📚</span>Cursos</button>
+    <button class="nav-btn active" data-target="matricula" data-navigate="page_2" onclick="goPage('matricula')"><span class="icon">📝</span>Matrícula</button>
+    <button class="nav-btn" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+<div data-page="sobre" data-name="Sobre">
+  <div class="header"><h1>ℹ️ Sobre Nós</h1><p>Educação que transforma vidas</p></div>
+  <div class="content">
+    <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=960&h=260&fit=crop" alt="Campus" style="width:100%;height:260px;object-fit:cover;border-radius:16px;margin-bottom:20px">
+    <div class="card"><h3>🏫 Nossa Estrutura</h3><p>• 15 salas de aula climatizadas<br>• Laboratório de informática<br>• Biblioteca com +5.000 títulos<br>• Espaço de coworking</p></div>
+    <div class="card"><h3>📍 Endereço</h3><p>Rua do Saber, 500 — Centro Educacional<br>São Paulo — SP</p></div>
+    <div class="card"><h3>🕐 Secretaria</h3><p>Seg a Sex: 8h às 21h<br>Sáb: 8h às 12h</p></div>
+    <div class="card"><h3>📞 Contato</h3><p>(11) 6000-6000<br>WhatsApp: (11) 99999-6000<br>contato@institutofuturo.com.br</p></div>
+  </div>
+  <nav class="nav-bar">
+    <button class="nav-btn" data-target="home" data-navigate="page_0" onclick="goPage('home')"><span class="icon">🏠</span>Início</button>
+    <button class="nav-btn" data-target="cursos" data-navigate="page_1" onclick="goPage('cursos')"><span class="icon">📚</span>Cursos</button>
+    <button class="nav-btn" data-target="matricula" data-navigate="page_2" onclick="goPage('matricula')"><span class="icon">📝</span>Matrícula</button>
+    <button class="nav-btn active" data-target="sobre" data-navigate="page_3" onclick="goPage('sobre')"><span class="icon">ℹ️</span>Sobre</button>
+  </nav>
+</div>
+
+</body></html>`;
+
+const mpHtmlSchool: CanvasState = {
+  bgColor: '#0f0f2e',
+  elements: [{
+    id: eid(), type: 'iframe', x: 0, y: 0, width: 1080, height: 1920,
+    rotation: 0, zIndex: 1, opacity: 1, locked: false, visible: true, name: 'Escola HTML',
+    props: { htmlContent: htmlSchoolContent, borderRadius: 0, scrolling: false,
+      htmlPages: [
+        { id: 'page_0', name: 'Início', selector: '[data-page="home"]' },
+        { id: 'page_1', name: 'Cursos', selector: '[data-page="cursos"]' },
+        { id: 'page_2', name: 'Matrícula', selector: '[data-page="matricula"]' },
+        { id: 'page_3', name: 'Sobre', selector: '[data-page="sobre"]' },
+      ],
+    },
+  }],
+  selectedId: null,
+  views: [
+    { id: 'page_0', name: 'Início', isDefault: true },
+    { id: 'page_1', name: 'Cursos', isDefault: false },
+    { id: 'page_2', name: 'Matrícula', isDefault: false },
+    { id: 'page_3', name: 'Sobre', isDefault: false },
+  ],
+  activeViewId: 'page_0', viewIdleTimeout: 30, pageBgColors: {},
+};
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -2896,7 +3496,11 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   { id: 'html-shopping', name: '📄 Shopping HTML Puro', description: '4 páginas HTML nativas com navegação, edição inline de textos e imagens', icon: '📄', category: 'retail', state: mpHtmlShopping },
   { id: 'html-restaurant', name: '🍕 Pizzaria HTML Puro', description: '4 páginas: Início → Cardápio → Pedido → Sobre com design premium', icon: '🍕', category: 'menu', state: mpHtmlRestaurant },
   { id: 'html-clinic', name: '🏥 Clínica HTML Puro', description: '4 páginas: Início → Especialidades → Médicos → Informações', icon: '🏥', category: 'health', state: mpHtmlClinic },
-  { id: 'html-barber', name: '💈 Barbearia HTML Puro', description: '4 páginas: Início → Serviços → Portfólio → Agendamento', icon: '💈', category: 'welcome', state: mpHtmlBarber },
+  { id: 'html-barber', name: '💈 Barbearia HTML Puro', description: '4 páginas: Início → Serviços → Portfólio → Agendamento', icon: '💈', category: 'beauty', state: mpHtmlBarber },
   { id: 'html-hotel', name: '🏨 Hotel HTML Puro', description: '4 páginas: Início → Quartos → Serviços → Turismo', icon: '🏨', category: 'hotel', state: mpHtmlHotel },
-  { id: 'html-gym', name: '🏋️ Academia HTML Puro', description: '4 páginas: Início → Planos → Aulas → Check-in', icon: '🏋️', category: 'menu', state: mpHtmlGym },
+  { id: 'html-gym', name: '🏋️ Academia HTML Puro', description: '4 páginas: Início → Planos → Aulas → Check-in', icon: '🏋️', category: 'fitness', state: mpHtmlGym },
+  { id: 'html-realestate', name: '🏠 Imobiliária HTML Puro', description: '4 páginas: Início → Imóveis → Financiamento → Contato', icon: '🏠', category: 'realestate', state: mpHtmlRealEstate },
+  { id: 'html-auto', name: '🚗 Concessionária HTML Puro', description: '4 páginas: Início → Veículos → Ofertas → Agendamento', icon: '🚗', category: 'auto', state: mpHtmlAuto },
+  { id: 'html-petshop', name: '🐾 Pet Shop HTML Puro', description: '4 páginas: Início → Serviços → Produtos → Agendamento', icon: '🐾', category: 'pets', state: mpHtmlPetShop },
+  { id: 'html-school', name: '🎓 Escola/Cursos HTML Puro', description: '4 páginas: Início → Cursos → Matrícula → Sobre', icon: '🎓', category: 'education', state: mpHtmlSchool },
 ];
