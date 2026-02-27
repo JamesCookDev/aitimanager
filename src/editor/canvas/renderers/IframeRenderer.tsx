@@ -55,18 +55,30 @@ export function IframePlaceholder(props: IframeProps) {
     return () => ro.disconnect();
   }, []);
 
+  const setToolRef = useRef<(tool: EditTool) => void>(() => {});
+
   useEffect(() => {
     if (props.editMode && !prevEditMode.current) {
-      // Entering edit mode: freeze current HTML so future prop changes don't reload iframe
-      frozenHtmlRef.current = null; // Let the next useMemo compute it fresh, then freeze
-      setTool('text');
-    } else if (!props.editMode && prevEditMode.current) {
-      // Exiting edit mode: unfreeze so the iframe picks up all accumulated changes
       frozenHtmlRef.current = null;
-      setTool('off');
+      setTimeout(() => setToolRef.current('text'), 0);
+    } else if (!props.editMode && prevEditMode.current) {
+      frozenHtmlRef.current = null;
+      setTimeout(() => setToolRef.current('off'), 0);
     }
     prevEditMode.current = props.editMode;
   }, [props.editMode]);
+
+  // Escape key exits editing
+  useEffect(() => {
+    if (activeTool === 'off') return;
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setToolRef.current('off');
+      }
+    }
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [activeTool]);
 
   // Sync tool from props panel
   useEffect(() => {
@@ -766,13 +778,15 @@ export function IframePlaceholder(props: IframeProps) {
     const iframe = iframeRef.current;
     setActiveTool(tool);
     if (iframe?.contentWindow) {
-      // Send available views first
       if (props.availableViews) {
         iframe.contentWindow.postMessage({ type: 'set-available-views', views: props.availableViews }, '*');
       }
       iframe.contentWindow.postMessage({ type: 'set-tool', tool }, '*');
     }
   }, [props.availableViews]);
+
+  // Keep ref in sync for early effects
+  setToolRef.current = setTool;
 
   const iframeScale = containerSize.w > 0
     ? Math.min(containerSize.w / DESIGN_W, containerSize.h / DESIGN_H)
@@ -781,16 +795,29 @@ export function IframePlaceholder(props: IframeProps) {
   const isActive = activeTool !== 'off';
 
   if (activeMode === 'html' && finalHtml) {
-    const tools: { id: EditTool; icon: typeof Pencil; label: string; color: string }[] = [
-      { id: 'layout', icon: Move, label: 'Layout', color: 'bg-blue-500' },
-      { id: 'text', icon: Pencil, label: 'Textos/Imagens', color: 'bg-indigo-500' },
-      { id: 'style', icon: Paintbrush, label: 'Estilos CSS', color: 'bg-pink-500' },
-      { id: 'navigate', icon: Link2, label: 'Navegação', color: 'bg-amber-500' },
-      { id: 'inspect', icon: Eye, label: 'Inspecionar', color: 'bg-emerald-500' },
+    const tools: { id: EditTool; icon: typeof Pencil; label: string; shortLabel: string; color: string; hint: string }[] = [
+      { id: 'layout', icon: Move, label: 'Layout', shortLabel: '🏗️', color: 'bg-blue-500', hint: 'Selecione → Mova / Duplique / Delete' },
+      { id: 'text', icon: Pencil, label: 'Textos', shortLabel: '✏️', color: 'bg-indigo-500', hint: 'Clique em textos ou imagens para editar' },
+      { id: 'style', icon: Paintbrush, label: 'Estilos', shortLabel: '🎨', color: 'bg-pink-500', hint: 'Clique em qualquer elemento → CSS' },
+      { id: 'navigate', icon: Link2, label: 'Links', shortLabel: '🔗', color: 'bg-amber-500', hint: 'Vincule elementos a páginas' },
+      { id: 'inspect', icon: Eye, label: 'DOM', shortLabel: '🔍', color: 'bg-emerald-500', hint: 'Inspecione a estrutura HTML' },
     ];
 
+    const activeToolData = tools.find(t => t.id === activeTool);
+
     return (
-      <div ref={containerRef} className="w-full h-full relative overflow-hidden group" style={{ borderRadius: props.borderRadius || 0 }}>
+      <div ref={containerRef} className="w-full h-full relative overflow-hidden" style={{ borderRadius: props.borderRadius || 0 }}>
+        {/* Glowing border when editing */}
+        {isActive && (
+          <div
+            className="absolute inset-0 z-40 pointer-events-none rounded-lg"
+            style={{
+              border: `3px solid ${activeToolData?.color === 'bg-blue-500' ? '#3b82f6' : activeToolData?.color === 'bg-indigo-500' ? '#6366f1' : activeToolData?.color === 'bg-pink-500' ? '#ec4899' : activeToolData?.color === 'bg-amber-500' ? '#f59e0b' : '#10b981'}`,
+              boxShadow: `0 0 20px ${activeToolData?.color === 'bg-blue-500' ? '#3b82f640' : activeToolData?.color === 'bg-indigo-500' ? '#6366f140' : activeToolData?.color === 'bg-pink-500' ? '#ec489940' : activeToolData?.color === 'bg-amber-500' ? '#f59e0b40' : '#10b98140'}`,
+            }}
+          />
+        )}
+
         <iframe
           ref={iframeRef}
           srcDoc={finalHtml}
@@ -809,51 +836,63 @@ export function IframePlaceholder(props: IframeProps) {
             pointerEvents: (isActive || props.onNavigatePage) ? 'auto' : 'none',
           }}
         />
-        {/* Floating toolbar */}
+
+        {/* ── Always-visible floating toolbar ── */}
         <div
-          className={`absolute top-1.5 right-1.5 z-50 flex items-center gap-0.5 rounded-lg shadow-xl backdrop-blur-md transition-all ${
-            isActive ? 'bg-black/80 p-1' : 'bg-black/50 p-0.5 opacity-0 group-hover:opacity-100'
-          }`}
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl shadow-2xl backdrop-blur-lg transition-all bg-black/85 border border-white/10 p-1.5"
           style={{ pointerEvents: 'auto' }}
         >
           {tools.map(({ id, icon: Icon, label, color }) => (
             <button
               key={id}
               onClick={(e) => { e.stopPropagation(); setTool(activeTool === id ? 'off' : id); }}
-              className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
                 activeTool === id
-                  ? `${color} text-white ring-1 ring-white/30`
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                  ? `${color} text-white shadow-lg ring-2 ring-white/20 scale-105`
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
               title={label}
             >
-              <Icon className="w-3 h-3" />
-              {isActive && activeTool === id && <span className="max-w-[80px] truncate">{label}</span>}
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
             </button>
           ))}
           {isActive && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setTool('off'); }}
-              className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10"
-              title="Desativar"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            <>
+              <div className="w-px h-6 bg-white/20 mx-0.5" />
+              <button
+                onClick={(e) => { e.stopPropagation(); setTool('off'); }}
+                className="p-2 rounded-lg text-red-400/80 hover:text-red-300 hover:bg-red-500/20 transition-all"
+                title="Sair da edição (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
-        {/* Status bar */}
-        {isActive && (
+
+        {/* ── Hint bar at bottom ── */}
+        {isActive && activeToolData && (
           <div
-            className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-full text-white text-[10px] font-medium shadow-lg backdrop-blur-sm ${
-              activeTool === 'layout' ? 'bg-blue-500/90' : activeTool === 'text' ? 'bg-indigo-500/90' : activeTool === 'style' ? 'bg-pink-500/90' : activeTool === 'navigate' ? 'bg-amber-500/90' : 'bg-emerald-500/90'
-            }`}
-            style={{ pointerEvents: 'none' }}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl shadow-xl backdrop-blur-md border border-white/10 bg-black/75 pointer-events-none"
           >
-            {activeTool === 'layout' && 'Clique para selecionar • Arraste para mover • Delete para excluir • Setas para ajustar'}
-            {activeTool === 'text' && 'Clique em textos para editar • Clique em imagens para trocar'}
-            {activeTool === 'style' && 'Clique em qualquer elemento para editar cores, fontes, fundo e tamanhos'}
-            {activeTool === 'navigate' && 'Clique em um elemento para definir navegação entre páginas'}
-            {activeTool === 'inspect' && 'Passe o mouse para inspecionar • Clique para ver detalhes'}
+            <activeToolData.icon className="w-4 h-4 text-white/80 shrink-0" />
+            <span className="text-white/90 text-[11px] font-medium">
+              {activeToolData.hint}
+            </span>
+            <span className="text-white/40 text-[10px] ml-2">Esc para sair</span>
+          </div>
+        )}
+
+        {/* ── "Duplo-clique para editar" hint when NOT editing ── */}
+        {!isActive && !props.editMode && (
+          <div
+            className="absolute inset-0 z-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          >
+            <div className="bg-black/70 backdrop-blur-sm text-white/90 text-xs font-semibold px-4 py-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-2">
+              <Pencil className="w-4 h-4" />
+              Duplo-clique para editar HTML
+            </div>
           </div>
         )}
       </div>

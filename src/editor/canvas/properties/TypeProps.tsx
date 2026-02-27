@@ -953,47 +953,56 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
         {isHtmlMode && props.htmlContent && (
           <div className="space-y-2 pt-1">
             <button
-              onClick={() => onChange({ editMode: !props.editMode })}
-              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+              onClick={() => {
+                const entering = !props.editMode;
+                onChange({ editMode: entering, _activeTool: entering ? 'text' : 'off' });
+              }}
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 props.editMode
-                  ? 'bg-indigo-500 text-white ring-2 ring-indigo-400/50 shadow-lg shadow-indigo-500/25'
-                  : 'bg-muted hover:bg-muted/80 text-foreground'
+                  ? 'bg-indigo-500 text-white ring-2 ring-indigo-400/50 shadow-lg shadow-indigo-500/25 animate-pulse'
+                  : 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20'
               }`}
             >
-              <Pencil className="w-3.5 h-3.5" />
-              {props.editMode ? '✏️ Modo edição ATIVO — clique para sair' : 'Editar HTML no canvas'}
+              <Pencil className="w-4 h-4" />
+              {props.editMode ? 'Sair do modo edição' : '✨ Editar HTML no canvas'}
             </button>
+            {!props.editMode && (
+              <p className="text-[9px] text-muted-foreground/60 text-center">
+                Ou dê <span className="font-bold text-foreground/70">duplo-clique</span> no elemento
+              </p>
+            )}
             {props.editMode && (
-              <div className="space-y-1.5">
-                <p className="text-[9px] text-muted-foreground text-center">Selecione uma ferramenta abaixo:</p>
-                <div className="grid grid-cols-2 gap-1">
+              <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 p-2.5 space-y-2">
+                <p className="text-[9px] text-indigo-300 font-semibold text-center">
+                  🎯 Use a barra de ferramentas no topo do canvas
+                </p>
+                <div className="grid grid-cols-5 gap-1">
                   {[
-                    { tool: 'layout', icon: Move, label: 'Layout', desc: 'Mover, duplicar, excluir', color: 'bg-blue-500' },
-                    { tool: 'text', icon: Pencil, label: 'Textos', desc: 'Editar textos e imagens', color: 'bg-indigo-500' },
-                    { tool: 'style', icon: Paintbrush, label: 'Estilos', desc: 'Cores, fontes, fundo', color: 'bg-pink-500' },
-                    { tool: 'navigate', icon: Link2, label: 'Navegação', desc: 'Links entre páginas', color: 'bg-amber-500' },
-                    { tool: 'inspect', icon: Eye, label: 'Inspecionar', desc: 'Ver estrutura DOM', color: 'bg-emerald-500' },
-                  ].map(({ tool, icon: Icon, label, desc, color }) => (
+                    { tool: 'layout', icon: Move, label: 'Layout', color: 'bg-blue-500' },
+                    { tool: 'text', icon: Pencil, label: 'Texto', color: 'bg-indigo-500' },
+                    { tool: 'style', icon: Paintbrush, label: 'CSS', color: 'bg-pink-500' },
+                    { tool: 'navigate', icon: Link2, label: 'Links', color: 'bg-amber-500' },
+                    { tool: 'inspect', icon: Eye, label: 'DOM', color: 'bg-emerald-500' },
+                  ].map(({ tool, icon: Icon, label, color }) => (
                     <button
                       key={tool}
                       onClick={() => {
                         const currentTool = props._activeTool || 'off';
                         onChange({ _activeTool: currentTool === tool ? 'off' : tool });
                       }}
-                      className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-[9px] font-semibold transition-all ${
+                      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-[8px] font-bold transition-all ${
                         props._activeTool === tool
                           ? `${color} text-white ring-1 ring-white/30 shadow-md`
-                          : 'bg-muted/50 hover:bg-muted text-foreground'
+                          : 'bg-muted/30 hover:bg-muted/50 text-muted-foreground'
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className="w-3 h-3" />
                       <span>{label}</span>
-                      <span className="text-[7px] font-normal opacity-70">{desc}</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-[8px] text-muted-foreground/60 text-center">
-                  ⚡ Todas as alterações são aplicadas diretamente ao HTML
+                <p className="text-[8px] text-muted-foreground/50 text-center">
+                  Pressione <kbd className="bg-muted/30 px-1 rounded font-mono">Esc</kbd> para sair
                 </p>
               </div>
             )}

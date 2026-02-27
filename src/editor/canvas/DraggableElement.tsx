@@ -88,11 +88,17 @@ export function DraggableElement({ element, scale, selected, onSelect, onMove, o
   }, [onResize]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    // Double-click on HTML Puro element → enter edit mode
+    if (element.type === 'iframe' && element.props.htmlContent && element.props._iframeMode !== 'url') {
+      e.stopPropagation();
+      onUpdateProps?.({ editMode: true, _activeTool: 'text' });
+      return;
+    }
     if (element.props.actionType === 'navigate' && element.props.navigateTarget && onNavigate) {
       e.stopPropagation();
       onNavigate(element.props.navigateTarget, element.props.navigateTransition || 'fade');
     }
-  }, [element, onNavigate]);
+  }, [element, onNavigate, onUpdateProps]);
 
   // Handle page navigation from inside iframe (HTML buttons with data-navigate or href="#page")
   const handleIframeNavigatePage = useCallback((pageName: string) => {
