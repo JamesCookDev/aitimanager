@@ -814,10 +814,24 @@ function ElementRenderer({ type, props: p, onNavigate }) {
           finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
         }
 
+        // Inject active page script if _activeDataPage is set
+        const activePageScript = p._activeDataPage ? `<script>
+(function(){
+  var targetPage = '${p._activeDataPage}';
+  document.querySelectorAll('[data-page]').forEach(function(pg) {
+    pg.classList.toggle('active', pg.getAttribute('data-page') === targetPage);
+    pg.style.display = pg.getAttribute('data-page') === targetPage ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-navigate') === targetPage);
+  });
+})();
+</script>` : '';
+
         // Always inject the navigation bridge script
         const htmlWithBridge = finalHtml.includes('</body>')
-          ? finalHtml.replace('</body>', NAV_BRIDGE + '</body>')
-          : finalHtml + NAV_BRIDGE;
+          ? finalHtml.replace('</body>', NAV_BRIDGE + activePageScript + '</body>')
+          : finalHtml + NAV_BRIDGE + activePageScript;
 
         return (
           <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
