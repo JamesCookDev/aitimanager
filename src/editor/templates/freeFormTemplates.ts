@@ -3496,16 +3496,44 @@ body{font-family:'Montserrat',sans-serif;overflow-x:hidden;background:#f0fdf4;co
 .nav-btn.active,.nav-btn:hover{opacity:1}
 .nav-btn .material-icons{font-size:28px;color:#004d40}
 .nav-btn span{font-size:12px;font-weight:600;color:#004d40}
-/* avatar placeholder — transparent so native avatar shows through */
 .avatar-zone{width:200px;height:280px;background:transparent}
 .badge-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:600}
 .card{background:#fff;border-radius:1.5rem;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
-.card-restaurant{display:flex;gap:1rem;padding:1.25rem;border-radius:1.5rem;background:#fff;border:1px solid #e0f2f1;transition:transform 0.2s}
 .stat-card{background:#fff;border-radius:1.25rem;padding:1.25rem;text-align:center;border:1px solid #e0f2f1}
 .stat-card .material-icons{font-size:32px;color:#004d40;margin-bottom:8px}
 .stat-card h3{font-size:14px;font-weight:700;color:#004d40}
 .stat-card p{font-size:12px;color:#64748b;margin-top:4px}
 .hero-gradient{background:linear-gradient(to bottom right,#e0f2f1,#b2dfdb)}
+/* Restaurant cards */
+.rest-card{position:relative;border-radius:1.25rem;overflow:hidden;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.rest-card:active{transform:scale(0.97)}
+.rest-card img{width:100%;height:100%;object-fit:cover;display:block}
+.rest-card .overlay{position:absolute;bottom:0;left:0;right:0;padding:1.25rem;background:linear-gradient(transparent,rgba(0,0,0,0.75))}
+.rest-card .overlay h3{color:#fff;font-size:1.1rem;font-weight:700}
+.rest-card .overlay p{color:rgba(255,255,255,0.8);font-size:11px;margin-top:2px}
+/* Detail overlay */
+.detail-overlay{display:none;position:fixed;inset:0;z-index:100;background:#f0fdf4;overflow-y:auto;animation:slideUp 0.3s ease-out}
+.detail-overlay.active{display:block}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.detail-back{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:8px;padding:1rem 1.5rem;background:rgba(240,253,244,0.95);backdrop-filter:blur(12px);cursor:pointer;border:none;font-family:inherit;font-size:14px;font-weight:700;color:#004d40}
+.detail-hero{position:relative;height:420px;overflow:hidden}
+.detail-hero img{width:100%;height:100%;object-fit:cover}
+.detail-hero .gradient{position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,0.7))}
+.detail-hero .info{position:absolute;bottom:1.5rem;left:1.5rem;right:1.5rem}
+.detail-hero .info h1{color:#fff;font-size:2rem;font-weight:800;line-height:1.1}
+.detail-hero .info p{color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px}
+.detail-section{padding:1.25rem 1.5rem}
+.detail-section h2{font-size:1.1rem;font-weight:700;color:#1a3c34;margin-bottom:0.75rem;display:flex;align-items:center;gap:8px}
+.detail-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.detail-gallery img{width:100%;height:120px;object-fit:cover;border-radius:0.75rem}
+.info-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #e0f2f1}
+.info-row .material-icons{color:#004d40;font-size:22px}
+.info-row .label{font-size:12px;color:#64748b}
+.info-row .value{font-size:14px;font-weight:600;color:#1a3c34}
+.menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e0f2f1}
+.menu-item .name{font-size:14px;font-weight:600;color:#1a3c34}
+.menu-item .desc{font-size:11px;color:#64748b;margin-top:2px}
+.menu-item .price{font-size:16px;font-weight:800;color:#004d40;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -3519,15 +3547,12 @@ body{font-family:'Montserrat',sans-serif;overflow-x:hidden;background:#f0fdf4;co
     </div>
     <h1 style="font-size:2.5rem;font-weight:800;color:#1a3c34;line-height:1.1;max-width:55%">Nossa História</h1>
     <p style="font-size:1rem;color:#4a8b7a;margin-top:4px;max-width:55%">Legado &amp; Futuro</p>
-    <!-- Speech bubble -->
     <div style="position:absolute;top:70px;right:220px;background:#fff;border-radius:16px;padding:12px 16px;max-width:180px;box-shadow:0 4px 12px rgba(0,0,0,0.08);z-index:5">
       <p style="font-size:13px;color:#1a3c34;line-height:1.4">Venha conhecer nossa história centenária!</p>
     </div>
-    <!-- Avatar placeholder (transparent — native 3D avatar renders on top) -->
     <div class="avatar-zone" style="position:absolute;top:0;right:0;width:40%;height:100%"></div>
   </div>
 
-  <!-- Weather bar -->
   <div style="margin:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:1rem;padding:0.75rem 1.25rem;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
     <div style="display:flex;align-items:center;gap:8px">
       <span class="material-icons" style="color:#f59e0b;font-size:24px">wb_sunny</span>
@@ -3536,12 +3561,10 @@ body{font-family:'Montserrat',sans-serif;overflow-x:hidden;background:#f0fdf4;co
     <span style="font-weight:700;font-size:18px;color:#004d40">14:35</span>
   </div>
 
-  <!-- Description card -->
   <div style="margin:0.75rem 1.5rem;background:#fff;border-radius:1.5rem;padding:1.5rem;border-left:5px solid #26a69a;box-shadow:0 2px 12px rgba(0,0,0,0.04)">
     <p style="font-size:15px;color:#37474f;line-height:1.7">Nascido da revitalização de armazéns centenários do início do século XX, o Porto Futuro II preserva a alma portuária de Belém. Um encontro entre o passado histórico e o legado sustentável da COP 30.</p>
   </div>
 
-  <!-- Image card -->
   <div style="margin:0.75rem 1.5rem;position:relative;border-radius:1.5rem;overflow:hidden;height:240px">
     <img src="https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover" class="sepia-filter" alt="Docas do Pará"/>
     <div style="position:absolute;bottom:0;left:0;right:0;padding:1.25rem;background:linear-gradient(transparent,rgba(0,0,0,0.7))">
@@ -3550,107 +3573,348 @@ body{font-family:'Montserrat',sans-serif;overflow-x:hidden;background:#f0fdf4;co
     </div>
   </div>
 
-  <!-- Marcos Históricos -->
   <div style="margin:1.25rem 1.5rem 0;display:flex;align-items:center;gap:8px">
     <span class="material-icons" style="color:#004d40;font-size:22px">verified</span>
     <span style="font-size:18px;font-weight:700;color:#1a3c34">Marcos Históricos</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin:0.75rem 1.5rem">
-    <div class="stat-card">
-      <span class="material-icons">foundation</span>
-      <h3>Fundação</h3>
-      <p>Início do Séc. XX</p>
-    </div>
-    <div class="stat-card">
-      <span class="material-icons">architecture</span>
-      <h3>Arquitetura</h3>
-      <p>Restauro de 5 Armazéns</p>
-    </div>
-    <div class="stat-card">
-      <span class="material-icons">square_foot</span>
-      <h3>Área</h3>
-      <p>50.000m² revitalizados</p>
-    </div>
+    <div class="stat-card"><span class="material-icons">foundation</span><h3>Fundação</h3><p>Início do Séc. XX</p></div>
+    <div class="stat-card"><span class="material-icons">architecture</span><h3>Arquitetura</h3><p>Restauro de 5 Armazéns</p></div>
+    <div class="stat-card"><span class="material-icons">square_foot</span><h3>Área</h3><p>50.000m² revitalizados</p></div>
   </div>
 </div>
 
 <!-- ════════ PAGE: RESTAURANTES ════════ -->
 <div class="page" data-page="pf_rest" id="page-rest">
-  <div class="hero-gradient" style="padding:2rem 1.5rem 1.5rem;position:relative;min-height:280px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
-      <span class="material-icons" style="color:#004d40;font-size:28px">restaurant_menu</span>
-      <span style="font-size:16px;font-weight:800;color:#004d40;letter-spacing:1px">Gastronomia</span>
+  <!-- Header -->
+  <div style="padding:2rem 1.5rem 1rem;background:linear-gradient(135deg,#004d40,#00695c);position:relative;overflow:hidden">
+    <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05)"></div>
+    <div style="position:absolute;bottom:-60px;left:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.03)"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem">
+      <span class="material-icons" style="color:#80cbc4;font-size:28px">restaurant_menu</span>
+      <span style="font-size:14px;font-weight:700;color:#80cbc4;letter-spacing:1px;text-transform:uppercase">Porto Futuro II</span>
     </div>
-    <h1 style="font-size:2.5rem;font-weight:800;color:#1a3c34;line-height:1.1;max-width:55%">Porto Gastronômico</h1>
-    <p style="font-size:1rem;color:#4a8b7a;margin-top:4px;max-width:55%">Sabores da Amazônia</p>
-    <div style="position:absolute;top:70px;right:220px;background:#fff;border-radius:16px;padding:12px 16px;max-width:180px;box-shadow:0 4px 12px rgba(0,0,0,0.08);z-index:5">
-      <p style="font-size:13px;color:#1a3c34;line-height:1.4">Que tal experimentar os sabores da nossa terra?</p>
+    <h1 style="font-size:2.2rem;font-weight:800;color:#fff;line-height:1.1">Gastronomia</h1>
+    <p style="font-size:14px;color:#b2dfdb;margin-top:6px">Explore os melhores sabores da Amazônia</p>
+    <div style="display:flex;gap:0.75rem;margin-top:1rem">
+      <span class="badge-pill" style="background:rgba(255,255,255,0.15);color:#fff;backdrop-filter:blur(8px)"><span class="material-icons" style="font-size:14px">place</span>5 restaurantes</span>
+      <span class="badge-pill" style="background:rgba(255,255,255,0.15);color:#fff;backdrop-filter:blur(8px)"><span class="material-icons" style="font-size:14px">schedule</span>Aberto agora</span>
     </div>
-    <div class="avatar-zone" style="position:absolute;top:0;right:0;width:40%;height:100%"></div>
   </div>
 
-  <div style="margin:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:1rem;padding:0.75rem 1.25rem;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span class="material-icons" style="color:#f59e0b;font-size:24px">wb_sunny</span>
-      <span style="font-weight:700;font-size:18px;color:#1a3c34">32°C</span>
-    </div>
-    <span style="font-weight:700;font-size:18px;color:#004d40">14:35</span>
-  </div>
+  <!-- Restaurant Grid -->
+  <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
 
-  <!-- Restaurant cards -->
-  <div style="display:flex;flex-direction:column;gap:0.75rem;margin:0.75rem 1.5rem">
-    <div class="card-restaurant">
-      <div style="width:56px;height:56px;border-radius:1rem;background:#e0f2f1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=100&h=100&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:1rem" alt=""/>
+    <!-- Restaurant 1: Ver-o-Peso Gourmet — large hero card -->
+    <div class="rest-card" onclick="openDetail('rest1')" style="height:280px">
+      <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=500&fit=crop" alt="Ver-o-Peso Gourmet"/>
+      <div style="position:absolute;top:1rem;left:1rem">
+        <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px)"><span class="material-icons" style="font-size:14px;color:#fbbf24">star</span>4.8</span>
       </div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span class="badge-pill" style="background:#fff8e1;color:#f59e0b"><span class="material-icons" style="font-size:14px">star</span>4.8</span>
+      <div class="overlay">
+        <span class="badge-pill" style="background:#26a69a;color:#fff;margin-bottom:6px;font-size:11px">Peixes & Frutos do Mar</span>
+        <h3>Ver-o-Peso Gourmet</h3>
+        <p><span class="material-icons" style="font-size:12px;vertical-align:middle">location_on</span> Armazém 2 · 11h - 23h</p>
+      </div>
+    </div>
+
+    <!-- Row: 2 cards side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <!-- Restaurant 2: Sabor do Grão -->
+      <div class="rest-card" onclick="openDetail('rest2')" style="height:220px">
+        <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=400&fit=crop" alt="Sabor do Grão"/>
+        <div style="position:absolute;top:0.75rem;left:0.75rem">
+          <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px);font-size:11px"><span class="material-icons" style="font-size:12px;color:#fbbf24">star</span>4.9</span>
         </div>
-        <h3 style="font-size:16px;font-weight:700;color:#1a3c34">Ver-o-Peso Gourmet</h3>
-        <span class="badge-pill" style="background:#e0f2f1;color:#004d40;margin:4px 0">Peixes</span>
-        <p style="font-size:12px;color:#64748b;line-height:1.5">Especializado na autêntica culinária ribeirinha com peixes frescos da região.</p>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
-          <span class="material-icons" style="font-size:14px;color:#004d40">location_on</span>
-          <span style="font-size:11px;color:#64748b">Armazém 2</span>
+        <div class="overlay" style="padding:1rem">
+          <span class="badge-pill" style="background:#7c3aed;color:#fff;margin-bottom:4px;font-size:10px">Açaí</span>
+          <h3 style="font-size:0.95rem">Sabor do Grão</h3>
+          <p style="font-size:10px"><span class="material-icons" style="font-size:11px;vertical-align:middle">location_on</span> Armazém 3</p>
+        </div>
+      </div>
+
+      <!-- Restaurant 3: Docas Grill -->
+      <div class="rest-card" onclick="openDetail('rest3')" style="height:220px">
+        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=400&fit=crop" alt="Docas Grill"/>
+        <div style="position:absolute;top:0.75rem;left:0.75rem">
+          <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px);font-size:11px"><span class="material-icons" style="font-size:12px;color:#fbbf24">star</span>4.7</span>
+        </div>
+        <div class="overlay" style="padding:1rem">
+          <span class="badge-pill" style="background:#dc2626;color:#fff;margin-bottom:4px;font-size:10px">Grill</span>
+          <h3 style="font-size:0.95rem">Docas Grill</h3>
+          <p style="font-size:10px"><span class="material-icons" style="font-size:11px;vertical-align:middle">location_on</span> Armazém 4</p>
         </div>
       </div>
     </div>
-    <div class="card-restaurant">
-      <div style="width:56px;height:56px;border-radius:1rem;background:#e0f2f1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&h=100&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:1rem" alt=""/>
+
+    <!-- Restaurant 4: Amazônia Bistrô — medium card -->
+    <div class="rest-card" onclick="openDetail('rest4')" style="height:200px">
+      <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=400&fit=crop" alt="Amazônia Bistrô"/>
+      <div style="position:absolute;top:1rem;left:1rem">
+        <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px)"><span class="material-icons" style="font-size:14px;color:#fbbf24">star</span>4.6</span>
       </div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span class="badge-pill" style="background:#fff8e1;color:#f59e0b"><span class="material-icons" style="font-size:14px">star</span>4.9</span>
-        </div>
-        <h3 style="font-size:16px;font-weight:700;color:#1a3c34">Sabor do Grão</h3>
-        <span class="badge-pill" style="background:#e0f2f1;color:#004d40;margin:4px 0">Açaí</span>
-        <p style="font-size:12px;color:#64748b;line-height:1.5">O verdadeiro açaí paraense, servido com farinha d'água e camarão seco.</p>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
-          <span class="material-icons" style="font-size:14px;color:#004d40">location_on</span>
-          <span style="font-size:11px;color:#64748b">Armazém 3 - Térreo</span>
-        </div>
+      <div class="overlay">
+        <span class="badge-pill" style="background:#0d47a1;color:#fff;margin-bottom:6px;font-size:11px">Bistrô & Drinks</span>
+        <h3>Amazônia Bistrô</h3>
+        <p><span class="material-icons" style="font-size:12px;vertical-align:middle">location_on</span> Armazém 5 · 17h - 00h</p>
       </div>
     </div>
-    <div class="card-restaurant">
-      <div style="width:56px;height:56px;border-radius:1rem;background:#e0f2f1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=100&h=100&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:1rem" alt=""/>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span class="badge-pill" style="background:#fff8e1;color:#f59e0b"><span class="material-icons" style="font-size:14px">star</span>4.7</span>
+
+    <!-- Row: 2 more cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <!-- Restaurant 5: Café das Docas -->
+      <div class="rest-card" onclick="openDetail('rest5')" style="height:200px">
+        <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop" alt="Café das Docas"/>
+        <div style="position:absolute;top:0.75rem;left:0.75rem">
+          <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px);font-size:11px"><span class="material-icons" style="font-size:12px;color:#fbbf24">star</span>4.5</span>
         </div>
-        <h3 style="font-size:16px;font-weight:700;color:#1a3c34">Docas Grill</h3>
-        <span class="badge-pill" style="background:#e0f2f1;color:#004d40;margin:4px 0">Grill</span>
-        <p style="font-size:12px;color:#64748b;line-height:1.5">Cortes nobres e churrasco premium em um ambiente sofisticado.</p>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
-          <span class="material-icons" style="font-size:14px;color:#004d40">location_on</span>
-          <span style="font-size:11px;color:#64748b">Armazém 4</span>
+        <div class="overlay" style="padding:1rem">
+          <span class="badge-pill" style="background:#78350f;color:#fff;margin-bottom:4px;font-size:10px">Café</span>
+          <h3 style="font-size:0.95rem">Café das Docas</h3>
+          <p style="font-size:10px"><span class="material-icons" style="font-size:11px;vertical-align:middle">location_on</span> Armazém 1</p>
+        </div>
+      </div>
+
+      <!-- Restaurant 6: Sorvetes do Porto -->
+      <div class="rest-card" onclick="openDetail('rest6')" style="height:200px">
+        <img src="https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400&h=400&fit=crop" alt="Sorvetes do Porto"/>
+        <div style="position:absolute;top:0.75rem;left:0.75rem">
+          <span class="badge-pill" style="background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(8px);font-size:11px"><span class="material-icons" style="font-size:12px;color:#fbbf24">star</span>4.8</span>
+        </div>
+        <div class="overlay" style="padding:1rem">
+          <span class="badge-pill" style="background:#ec4899;color:#fff;margin-bottom:4px;font-size:10px">Sorvetes</span>
+          <h3 style="font-size:0.95rem">Sorvetes do Porto</h3>
+          <p style="font-size:10px"><span class="material-icons" style="font-size:11px;vertical-align:middle">location_on</span> Armazém 1</p>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- ════════ DETAIL OVERLAYS ════════ -->
+
+<!-- Detail: Ver-o-Peso Gourmet -->
+<div class="detail-overlay" id="detail-rest1">
+  <button class="detail-back" onclick="closeDetail('rest1')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#26a69a;color:#fff;margin-bottom:8px">Peixes & Frutos do Mar</span>
+      <h1>Ver-o-Peso Gourmet</h1>
+      <p>A autêntica culinária ribeirinha paraense</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.8 (320 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 2, Térreo</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">11:00 - 23:00</div></div></div>
+    <div class="info-row"><span class="material-icons">phone</span><div><div class="label">Telefone</div><div class="value">(91) 3242-5678</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">wifi</span><div><div class="label">Facilidades</div><div class="value">Wi-Fi · Ar-condicionado · Acessível</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Filhote na Brasa</div><div class="desc">Com molho de tucupi e jambu</div></div><div class="price">R$ 89</div></div>
+    <div class="menu-item"><div><div class="name">Moqueca Paraense</div><div class="desc">Camarão, pimentão e leite de coco</div></div><div class="price">R$ 72</div></div>
+    <div class="menu-item"><div><div class="name">Pato no Tucupi</div><div class="desc">Receita tradicional com jambu</div></div><div class="price">R$ 68</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Açaí com Peixe Frito</div><div class="desc">Clássico paraense com farinha</div></div><div class="price">R$ 45</div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">photo_library</span>Fotos</h2>
+    <div class="detail-gallery">
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=300&h=300&fit=crop" alt=""/>
+    </div>
+  </div>
+  <div style="height:2rem"></div>
+</div>
+
+<!-- Detail: Sabor do Grão -->
+<div class="detail-overlay" id="detail-rest2">
+  <button class="detail-back" onclick="closeDetail('rest2')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#7c3aed;color:#fff;margin-bottom:8px">Açaí & Regionais</span>
+      <h1>Sabor do Grão</h1>
+      <p>O verdadeiro açaí paraense</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.9 (540 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 3, Térreo</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">07:00 - 20:00</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">wifi</span><div><div class="label">Facilidades</div><div class="value">Wi-Fi · Take Away · Delivery</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Açaí Tradicional 500ml</div><div class="desc">Com farinha d'água e camarão seco</div></div><div class="price">R$ 18</div></div>
+    <div class="menu-item"><div><div class="name">Açaí Premium 700ml</div><div class="desc">Granola, banana, morango e mel</div></div><div class="price">R$ 28</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Tapioca Recheada</div><div class="desc">Queijo coalho, tucumã e banana</div></div><div class="price">R$ 22</div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">photo_library</span>Fotos</h2>
+    <div class="detail-gallery">
+      <img src="https://images.unsplash.com/photo-1590005024862-6b67f8f407fe?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=300&fit=crop" alt=""/>
+    </div>
+  </div>
+  <div style="height:2rem"></div>
+</div>
+
+<!-- Detail: Docas Grill -->
+<div class="detail-overlay" id="detail-rest3">
+  <button class="detail-back" onclick="closeDetail('rest3')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#dc2626;color:#fff;margin-bottom:8px">Grill & Carnes</span>
+      <h1>Docas Grill</h1>
+      <p>Cortes nobres e churrasco premium</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.7 (280 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$$$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 4</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">12:00 - 00:00</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">local_bar</span><div><div class="label">Facilidades</div><div class="value">Bar · Música ao vivo · Estacionamento</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Picanha Premium 400g</div><div class="desc">Na brasa com farofa especial</div></div><div class="price">R$ 98</div></div>
+    <div class="menu-item"><div><div class="name">Costela 12h</div><div class="desc">Cozida lentamente com molho BBQ</div></div><div class="price">R$ 85</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Tábua Docas</div><div class="desc">Mix de carnes nobres para 2 pessoas</div></div><div class="price">R$ 159</div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">photo_library</span>Fotos</h2>
+    <div class="detail-gallery">
+      <img src="https://images.unsplash.com/photo-1558030006-450675393462?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=300&h=300&fit=crop" alt=""/>
+      <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&h=300&fit=crop" alt=""/>
+    </div>
+  </div>
+  <div style="height:2rem"></div>
+</div>
+
+<!-- Detail: Amazônia Bistrô -->
+<div class="detail-overlay" id="detail-rest4">
+  <button class="detail-back" onclick="closeDetail('rest4')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#0d47a1;color:#fff;margin-bottom:8px">Bistrô & Drinks</span>
+      <h1>Amazônia Bistrô</h1>
+      <p>Coquetelaria autoral e petiscos</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.6 (195 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 5</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">17:00 - 00:00</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">local_bar</span><div><div class="label">Facilidades</div><div class="value">Happy Hour · DJ · Vista para o rio</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Gin Amazônico</div><div class="desc">Gin, cumaru, priprioca e tônica</div></div><div class="price">R$ 38</div></div>
+    <div class="menu-item"><div><div class="name">Tábua de Queijos</div><div class="desc">Seleção artesanal do Marajó</div></div><div class="price">R$ 55</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Risoto de Camarão</div><div class="desc">Rosa com camarão paraense</div></div><div class="price">R$ 62</div></div>
+  </div>
+  <div style="height:2rem"></div>
+</div>
+
+<!-- Detail: Café das Docas -->
+<div class="detail-overlay" id="detail-rest5">
+  <button class="detail-back" onclick="closeDetail('rest5')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#78350f;color:#fff;margin-bottom:8px">Café & Confeitaria</span>
+      <h1>Café das Docas</h1>
+      <p>Cafés especiais e doces regionais</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.5 (410 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 1, Térreo</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">06:30 - 21:00</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">wifi</span><div><div class="label">Facilidades</div><div class="value">Wi-Fi · Tomadas · Espaço leitura</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Espresso Amazônico</div><div class="desc">Blend exclusivo de grãos da região</div></div><div class="price">R$ 12</div></div>
+    <div class="menu-item"><div><div class="name">Bolo de Cupuaçu</div><div class="desc">Receita artesanal com cobertura</div></div><div class="price">R$ 16</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Brunch Paraense</div><div class="desc">Tapioca, frutas, iogurte e granola</div></div><div class="price">R$ 35</div></div>
+  </div>
+  <div style="height:2rem"></div>
+</div>
+
+<!-- Detail: Sorvetes do Porto -->
+<div class="detail-overlay" id="detail-rest6">
+  <button class="detail-back" onclick="closeDetail('rest6')"><span class="material-icons">arrow_back</span>Voltar</button>
+  <div class="detail-hero">
+    <img src="https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=1000&h=600&fit=crop" alt=""/>
+    <div class="gradient"></div>
+    <div class="info">
+      <span class="badge-pill" style="background:#ec4899;color:#fff;margin-bottom:8px">Sorvetes & Gelatos</span>
+      <h1>Sorvetes do Porto</h1>
+      <p>Sabores amazônicos artesanais</p>
+    </div>
+  </div>
+  <div style="padding:0 1.5rem">
+    <div style="display:flex;gap:0.75rem;margin:1rem 0">
+      <span class="badge-pill" style="background:#fff8e1;color:#f59e0b;border:1px solid #fde68a"><span class="material-icons" style="font-size:14px">star</span>4.8 (620 avaliações)</span>
+      <span class="badge-pill" style="background:#e0f2f1;color:#004d40">$</span>
+    </div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">info</span>Informações</h2>
+    <div class="info-row"><span class="material-icons">location_on</span><div><div class="label">Localização</div><div class="value">Armazém 1, Lateral</div></div></div>
+    <div class="info-row"><span class="material-icons">schedule</span><div><div class="label">Horário</div><div class="value">10:00 - 22:00</div></div></div>
+    <div class="info-row" style="border:none"><span class="material-icons">ac_unit</span><div><div class="label">Facilidades</div><div class="value">Take Away · Vegano · Kids</div></div></div>
+  </div>
+  <div class="detail-section">
+    <h2><span class="material-icons">menu_book</span>Destaques do Cardápio</h2>
+    <div class="menu-item"><div><div class="name">Sorvete de Taperebá</div><div class="desc">Fruta amazônica, refrescante</div></div><div class="price">R$ 14</div></div>
+    <div class="menu-item"><div><div class="name">Açaí Gelato</div><div class="desc">Açaí com chocolate belga</div></div><div class="price">R$ 18</div></div>
+    <div class="menu-item" style="border:none"><div><div class="name">Sundae Cupuaçu</div><div class="desc">Com calda, castanha e chantilly</div></div><div class="price">R$ 22</div></div>
+  </div>
+  <div style="height:2rem"></div>
 </div>
 
 <!-- ════════ NAVIGATION BAR ════════ -->
@@ -3669,13 +3933,13 @@ body{font-family:'Montserrat',sans-serif;overflow-x:hidden;background:#f0fdf4;co
 // ── Navigation bridge ──
 function goPage(targetId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const target = document.querySelector('[data-page="' + targetId + '"]');
+  var target = document.querySelector('[data-page="' + targetId + '"]');
   if (target) target.classList.add('active');
-  // Update nav active state
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-navigate') === targetId);
   });
-  // Notify parent (totem hub or local hardware)
+  // Close any open detail
+  document.querySelectorAll('.detail-overlay').forEach(d => d.classList.remove('active'));
   try { window.parent.postMessage({ type: 'totem-navigate', pageId: targetId }, '*'); } catch(e) {}
 }
 document.querySelectorAll('[data-navigate]').forEach(el => {
@@ -3684,12 +3948,21 @@ document.querySelectorAll('[data-navigate]').forEach(el => {
     goPage(this.getAttribute('data-navigate'));
   });
 });
-// Listen for external page changes (from hub editor)
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'set-active-page' && e.data.pageId) {
     goPage(e.data.pageId);
   }
 });
+
+// ── Detail overlay ──
+function openDetail(id) {
+  var el = document.getElementById('detail-' + id);
+  if (el) { el.classList.add('active'); el.scrollTop = 0; }
+}
+function closeDetail(id) {
+  var el = document.getElementById('detail-' + id);
+  if (el) el.classList.remove('active');
+}
 </script>
 </body></html>`;
 
@@ -3715,6 +3988,7 @@ const portoFuturo: CanvasState = (() => {
         bgColor: 'transparent',
         colors: { shirt: '#0d47a1', pants: '#374151', shoes: '#1a1a1a', skin: '#d4a088', hair: '#5a3825' },
         frameY: 0, frameZoom: 55, frameX: 0,
+        fixedOnScreen: true,
       }, { viewId: homeId, name: 'Avatar 3D', zIndex: 10 }),
 
       // Duplicate iframe for Restaurantes page (same HTML, different active page)
@@ -3724,15 +3998,6 @@ const portoFuturo: CanvasState = (() => {
         _iframeMode: 'html',
         _activeDataPage: 'pf_rest',
       }, { viewId: restId, name: 'Layout HTML Rest', zIndex: 1, locked: true }),
-
-      // Avatar on Restaurantes page too
-      el('avatar', 620, 0, 460, 420, {
-        position: 'center', scale: 1.5, animation: 'idle', enabled: true,
-        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
-        bgColor: 'transparent',
-        colors: { shirt: '#0d47a1', pants: '#374151', shoes: '#1a1a1a', skin: '#d4a088', hair: '#5a3825' },
-        frameY: 0, frameZoom: 55, frameX: 0,
-      }, { viewId: restId, name: 'Avatar 3D Rest', zIndex: 10 }),
     ],
     selectedId: null,
     views: [
