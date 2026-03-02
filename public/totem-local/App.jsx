@@ -205,19 +205,53 @@ const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => 
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
   }, [canvas.elements, activeViewId]);
 
+  // Separate fixed elements (rendered in a fixed overlay) from normal elements
+  const { fixedElements, normalElements } = useMemo(() => {
+    const fixed = [];
+    const normal = [];
+    for (const el of sortedElements) {
+      if (el.type === 'avatar' && el.props?.fixedOnScreen !== false) {
+        fixed.push(el);
+      } else {
+        normal.push(el);
+      }
+    }
+    return { fixedElements: fixed, normalElements: normal };
+  }, [sortedElements]);
+
   return (
-    <div style={{
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-      pointerEvents: "none",
-    }}>
-      {sortedElements.map(el => (
-        <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
-      ))}
-    </div>
+    <>
+      {/* Normal elements — scroll with content */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}>
+        {normalElements.map(el => (
+          <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
+        ))}
+      </div>
+
+      {/* Fixed elements — pinned on top, never scroll */}
+      {fixedElements.length > 0 && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          overflow: "visible",
+          pointerEvents: "none",
+          zIndex: 9000,
+        }}>
+          {fixedElements.map(el => (
+            <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
+    </>
   );
 });
 

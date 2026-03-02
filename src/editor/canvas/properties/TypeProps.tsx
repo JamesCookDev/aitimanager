@@ -376,6 +376,14 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <Slider value={[props.frameZoom ?? 50]} onValueChange={([v]) => onChange({ frameZoom: v })} min={10} max={100} step={1} />
             <span className="text-[9px] text-muted-foreground">10 = longe · 100 = perto</span>
           </div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Comportamento</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-[11px]">📌 Fixar na tela</Label>
+              <span className="text-[9px] text-muted-foreground block">Avatar fica fixo mesmo ao rolar o conteúdo</span>
+            </div>
+            <Switch checked={props.fixedOnScreen !== false} onCheckedChange={set('fixedOnScreen')} />
+          </div>
           <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
       );
