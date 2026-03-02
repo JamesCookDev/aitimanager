@@ -191,67 +191,64 @@ function useHeartbeat() {
 // 🖼️ FREE CANVAS RENDERER — Renderiza elementos com posição absoluta
 // Escala de 1080×1920 → tela real
 // ─────────────────────────────────────────────
-const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => {
-  if (!canvas || !canvas.elements || canvas.elements.length === 0) return null;
-
-  const sortedElements = useMemo(() => {
+// Helper: filter visible elements for a view
+function useFilteredElements(canvas, activeViewId) {
+  return useMemo(() => {
+    if (!canvas?.elements) return [];
     return [...canvas.elements]
       .filter(el => {
         if (el.visible === false) return false;
-        // View filtering: show global + elements matching active view
         if (!el.viewId || el.viewId === '__global__') return true;
         return el.viewId === activeViewId;
       })
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-  }, [canvas.elements, activeViewId]);
+  }, [canvas?.elements, activeViewId]);
+}
 
-  // Separate fixed elements (rendered in a fixed overlay) from normal elements
-  const { fixedElements, normalElements } = useMemo(() => {
-    const fixed = [];
-    const normal = [];
-    for (const el of sortedElements) {
-      if (el.type === 'avatar' && el.props?.fixedOnScreen !== false) {
-        fixed.push(el);
-      } else {
-        normal.push(el);
-      }
-    }
-    return { fixedElements: fixed, normalElements: normal };
-  }, [sortedElements]);
+// Renders only NON-fixed elements (inside the page transition wrapper)
+const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => {
+  const sorted = useFilteredElements(canvas, activeViewId);
+  const normalElements = useMemo(() => sorted.filter(el => !(el.type === 'avatar' && el.props?.fixedOnScreen !== false)), [sorted]);
+
+  if (normalElements.length === 0) return null;
 
   return (
-    <>
-      {/* Normal elements — scroll with content */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}>
-        {normalElements.map(el => (
-          <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
-        ))}
-      </div>
+    <div style={{
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      pointerEvents: "none",
+    }}>
+      {normalElements.map(el => (
+        <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
+      ))}
+    </div>
+  );
+});
 
-      {/* Fixed elements — pinned on top, never scroll */}
-      {fixedElements.length > 0 && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          overflow: "visible",
-          pointerEvents: "none",
-          zIndex: 9000,
-        }}>
-          {fixedElements.map(el => (
-            <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
-          ))}
-        </div>
-      )}
-    </>
+// Renders ONLY fixed avatar elements (rendered OUTSIDE page transition wrapper)
+const FixedAvatarLayer = React.memo(({ canvas, activeViewId, onNavigate }) => {
+  const sorted = useFilteredElements(canvas, activeViewId);
+  const fixedElements = useMemo(() => sorted.filter(el => el.type === 'avatar' && el.props?.fixedOnScreen !== false), [sorted]);
+
+  if (fixedElements.length === 0) return null;
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      width: "100vw",
+      height: "100vh",
+      overflow: "visible",
+      pointerEvents: "none",
+      zIndex: 9000,
+    }}>
+      {fixedElements.map(el => (
+        <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
+      ))}
+    </div>
   );
 });
 
@@ -3059,7 +3056,7 @@ export default function App() {
         <Loader />
         <Leva collapsed hidden />
 
-        {/* 🖼️ Free Canvas — todos os elementos (incluindo avatar 3D) */}
+        {/* 🖼️ Free Canvas — normal elements (page transitions apply) */}
         {hasFreeCanvas && (
           <div style={{
             position: "absolute", inset: 0, zIndex: 30,
@@ -3090,6 +3087,11 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* 📌 Fixed avatar layer — rendered OUTSIDE transition wrapper so position:fixed works */}
+      {hasFreeCanvas && (
+        <FixedAvatarLayer canvas={freeCanvas} activeViewId={activeViewId} onNavigate={handleNavigate} />
+      )}
 
       {/* 🔔 Toast de atualização */}
       <UpdateToast key={toastKey} visible={toastKey > 0} />
