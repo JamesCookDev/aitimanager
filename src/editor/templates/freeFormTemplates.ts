@@ -16,7 +16,7 @@ export interface FreeFormTemplate {
   name: string;
   description: string;
   icon: string;
-  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate' | 'health' | 'hotel' | 'retail' | 'beauty' | 'fitness' | 'education' | 'auto' | 'pets' | 'realestate';
+  category: 'welcome' | 'info' | 'promo' | 'menu' | 'corporate' | 'health' | 'hotel' | 'retail' | 'beauty' | 'fitness' | 'education' | 'auto' | 'pets' | 'realestate' | 'cultural';
   state: CanvasState;
 }
 
@@ -35,6 +35,7 @@ export const FREEFORM_TEMPLATE_CATEGORIES = [
   { id: 'auto', label: 'Automotivo', icon: '🚗' },
   { id: 'pets', label: 'Pet Shop', icon: '🐾' },
   { id: 'realestate', label: 'Imóveis', icon: '🏠' },
+  { id: 'cultural', label: 'Cultural', icon: '🏛️' },
 ];
 
 let _id = 0;
@@ -3469,6 +3470,358 @@ const mpHtmlSchool: CanvasState = {
 };
 
 // ═══════════════════════════════════════════════════
+// Porto Futuro II — Espaço Cultural (Nativo com Avatar 3D)
+// Layout inspirado no design real: mint gradient, avatar, weather, cards
+// ═══════════════════════════════════════════════════
+const portoFuturo: CanvasState = (() => {
+  _id = 0;
+  const homeId = 'pf_home';
+  const restId = 'pf_rest';
+  const histId = 'pf_hist';
+  const infoId = 'pf_info';
+
+  return {
+    bgColor: '#dff0ec',
+    elements: [
+      // ════════════════ HOME ════════════════
+
+      // Top gradient overlay shape
+      el('shape', 0, 0, 1080, 440, {
+        shapeType: 'rectangle', fill: 'linear-gradient(180deg, #c8e6df 0%, #dff0ec 100%)',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Header BG', zIndex: 1 }),
+
+      // Brand icon
+      el('icon', 60, 50, 48, 48, {
+        icon: '🏛️', size: 32, color: '#1a6b5a',
+      }, { viewId: homeId, name: 'Logo Icon', zIndex: 10 }),
+
+      // Brand name
+      el('text', 120, 50, 400, 48, {
+        text: 'PORTO FUTURO II', fontSize: 22, fontWeight: 'bold',
+        color: '#1a6b5a', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Brand', zIndex: 10 }),
+
+      // Main title
+      el('text', 60, 120, 500, 80, {
+        text: 'Nossa História', fontSize: 48, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Título', zIndex: 10 }),
+
+      // Subtitle
+      el('text', 60, 200, 400, 40, {
+        text: 'Legado & Futuro', fontSize: 20, fontWeight: 'normal',
+        color: '#4a8b7a', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Subtítulo', zIndex: 10 }),
+
+      // Speech bubble shape
+      el('shape', 480, 80, 260, 100, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 16, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Balão fala', zIndex: 11 }),
+
+      // Speech bubble text
+      el('text', 495, 90, 230, 80, {
+        text: 'Venha conhecer nossa história centenária!', fontSize: 15, fontWeight: 'normal',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Texto balão', zIndex: 12 }),
+
+      // ★ Avatar 3D — positioned top-right
+      el('avatar', 680, 20, 380, 420, {
+        position: 'center', scale: 1.5, animation: 'idle', enabled: true,
+        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
+        bgColor: 'transparent',
+        colors: { shirt: '#3b82a0', pants: '#374151', shoes: '#1a1a1a', skin: '#d4a088', hair: '#5a3825' },
+        frameY: 0, frameZoom: 55, frameX: 0,
+      }, { viewId: homeId, name: 'Avatar 3D', zIndex: 15 }),
+
+      // ── Weather / Time bar ──
+      el('shape', 60, 460, 960, 70, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 16, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Weather BG', zIndex: 5 }),
+
+      el('icon', 80, 475, 40, 40, {
+        icon: '☀️', size: 28, color: '#f59e0b',
+      }, { viewId: homeId, name: 'Weather Icon', zIndex: 10 }),
+
+      el('text', 130, 475, 150, 40, {
+        text: '32°C', fontSize: 22, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Temperatura', zIndex: 10 }),
+
+      el('text', 800, 475, 200, 40, {
+        text: '14:35', fontSize: 22, fontWeight: 'bold',
+        color: '#1a6b5a', align: 'right', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Hora', zIndex: 10 }),
+
+      // ── Description card ──
+      el('shape', 60, 560, 960, 260, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 20, borderWidth: 2, borderColor: '#b8d9d0',
+      }, { viewId: homeId, name: 'Card Descrição BG', zIndex: 5 }),
+
+      // Green accent bar on left of card
+      el('shape', 75, 585, 6, 210, {
+        shapeType: 'rectangle', fill: '#2d9b83',
+        borderRadius: 3, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Accent Bar', zIndex: 6 }),
+
+      el('text', 100, 585, 890, 210, {
+        text: 'Nascido da revitalização de armazéns centenários do início do século XX, o Porto Futuro II preserva a alma portuária de Belém. Um encontro entre o passado histórico e o legado sustentável da COP 30.',
+        fontSize: 20, fontWeight: 'normal',
+        color: '#2d4a42', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Descrição', zIndex: 10 }),
+
+      // ── Image card (Docas do Pará) ──
+      el('image', 60, 850, 960, 400, {
+        src: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=960&h=400&fit=crop',
+        fit: 'cover', borderRadius: 20,
+      }, { viewId: homeId, name: 'Imagem Docas', zIndex: 5 }),
+
+      // Image overlay gradient
+      el('shape', 60, 1050, 960, 200, {
+        shapeType: 'rectangle',
+        fill: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Overlay Imagem', zIndex: 6 }),
+
+      // Badge "MEMÓRIA"
+      el('shape', 100, 1160, 130, 36, {
+        shapeType: 'rectangle', fill: '#f59e0b',
+        borderRadius: 6, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Badge BG', zIndex: 8 }),
+
+      el('text', 100, 1162, 130, 32, {
+        text: 'MEMÓRIA', fontSize: 13, fontWeight: 'bold',
+        color: '#ffffff', align: 'center', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Badge Text', zIndex: 9 }),
+
+      // Image title
+      el('text', 100, 1200, 500, 40, {
+        text: 'Docas do Pará', fontSize: 26, fontWeight: 'bold',
+        color: '#ffffff', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Título Imagem', zIndex: 9 }),
+
+      // ── "Marcos Históricos" section ──
+      el('icon', 60, 1290, 40, 40, {
+        icon: '🌍', size: 24, color: '#1a6b5a',
+      }, { viewId: homeId, name: 'Section Icon', zIndex: 10 }),
+
+      el('text', 110, 1290, 400, 40, {
+        text: 'Marcos Históricos', fontSize: 24, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: homeId, name: 'Seção Título', zIndex: 10 }),
+
+      // History cards row
+      el('shape', 60, 1350, 460, 200, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 16, borderWidth: 1, borderColor: '#d0e5df',
+      }, { viewId: homeId, name: 'Card Hist 1', zIndex: 5 }),
+      el('icon', 80, 1370, 40, 40, { icon: '🏗️', size: 28, color: '#1a6b5a' }, { viewId: homeId, name: 'Icon H1', zIndex: 10 }),
+      el('text', 130, 1370, 370, 36, { text: '1906', fontSize: 20, fontWeight: 'bold', color: '#1a3c34', align: 'left', fontFamily: 'Inter' }, { viewId: homeId, name: 'Ano H1', zIndex: 10 }),
+      el('text', 80, 1420, 420, 110, { text: 'Construção dos armazéns do Porto de Belém, marco da era da borracha.', fontSize: 16, fontWeight: 'normal', color: '#4a6b60', align: 'left', fontFamily: 'Inter' }, { viewId: homeId, name: 'Desc H1', zIndex: 10 }),
+
+      el('shape', 560, 1350, 460, 200, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 16, borderWidth: 1, borderColor: '#d0e5df',
+      }, { viewId: homeId, name: 'Card Hist 2', zIndex: 5 }),
+      el('icon', 580, 1370, 40, 40, { icon: '🌿', size: 28, color: '#1a6b5a' }, { viewId: homeId, name: 'Icon H2', zIndex: 10 }),
+      el('text', 630, 1370, 370, 36, { text: '2025', fontSize: 20, fontWeight: 'bold', color: '#1a3c34', align: 'left', fontFamily: 'Inter' }, { viewId: homeId, name: 'Ano H2', zIndex: 10 }),
+      el('text', 580, 1420, 420, 110, { text: 'Revitalização como complexo cultural e sustentável para a COP 30.', fontSize: 16, fontWeight: 'normal', color: '#4a6b60', align: 'left', fontFamily: 'Inter' }, { viewId: homeId, name: 'Desc H2', zIndex: 10 }),
+
+      // ── Bottom navigation bar ──
+      el('shape', 0, 1780, 1080, 140, {
+        shapeType: 'rectangle', fill: '#ffffff',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Nav BG', zIndex: 20 }),
+
+      // Nav separator line
+      el('shape', 0, 1780, 1080, 2, {
+        shapeType: 'rectangle', fill: '#e0ebe7',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: homeId, name: 'Nav Line', zIndex: 21 }),
+
+      // Nav: Início (active)
+      el('icon', 200, 1800, 60, 40, { icon: '🏠', size: 28, color: '#1a6b5a' }, { viewId: homeId, name: 'Nav Início Icon', zIndex: 22 }),
+      el('text', 170, 1845, 120, 30, { text: 'Início', fontSize: 14, fontWeight: 'bold', color: '#1a6b5a', align: 'center', fontFamily: 'Inter' }, { viewId: homeId, name: 'Nav Início', zIndex: 22 }),
+
+      // Nav: Restaurantes
+      el('button', 460, 1790, 200, 80, {
+        label: '🍴 Restaurantes', bgColor: 'transparent', textColor: '#6b8f84',
+        fontSize: 14, borderRadius: 12, actionType: 'navigate' as any,
+        navigateTarget: restId, navigateTransition: 'slide-left',
+      }, { viewId: homeId, name: 'Nav Restaurantes', zIndex: 22 }),
+
+      // Nav: História
+      el('button', 720, 1790, 200, 80, {
+        label: '📜 História', bgColor: 'transparent', textColor: '#6b8f84',
+        fontSize: 14, borderRadius: 12, actionType: 'navigate' as any,
+        navigateTarget: histId, navigateTransition: 'slide-left',
+      }, { viewId: homeId, name: 'Nav História', zIndex: 22 }),
+
+      // ════════════════ RESTAURANTES ════════════════
+
+      el('shape', 0, 0, 1080, 200, {
+        shapeType: 'rectangle', fill: 'linear-gradient(180deg, #c8e6df 0%, #dff0ec 100%)',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: restId, name: 'Header BG', zIndex: 1 }),
+
+      el('text', 60, 60, 600, 60, {
+        text: '🍴 Restaurantes', fontSize: 36, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: restId, name: 'Título Rest', zIndex: 10 }),
+
+      el('text', 60, 130, 600, 40, {
+        text: 'Sabores da Amazônia e cozinha internacional', fontSize: 18, fontWeight: 'normal',
+        color: '#4a8b7a', align: 'left', fontFamily: 'Inter',
+      }, { viewId: restId, name: 'Subtítulo Rest', zIndex: 10 }),
+
+      // Restaurant cards
+      ...[
+        { name: 'Açaí da Doca', desc: 'Açaí artesanal e pratos regionais', icon: '🫐', hours: '08h–22h' },
+        { name: 'Manjar do Porto', desc: 'Culinária paraense contemporânea', icon: '🍲', hours: '11h–23h' },
+        { name: 'Café Centenário', desc: 'Cafés especiais e confeitaria fina', icon: '☕', hours: '07h–20h' },
+        { name: 'Peixe na Brasa', desc: 'Peixes frescos e frutos do mar', icon: '🐟', hours: '11h–22h' },
+        { name: 'Sabor Nativo', desc: 'Pratos típicos e maniçoba', icon: '🌿', hours: '10h–21h' },
+      ].flatMap((r, i) => [
+        el('shape', 60, 240 + i * 200, 960, 180, {
+          shapeType: 'rectangle', fill: '#ffffff',
+          borderRadius: 20, borderWidth: 1, borderColor: '#d0e5df',
+        }, { viewId: restId, name: `Card ${r.name}`, zIndex: 5 }),
+        el('icon', 90, 270 + i * 200, 60, 60, { icon: r.icon, size: 40, color: '#1a6b5a' }, { viewId: restId, name: `Icon ${r.name}`, zIndex: 10 }),
+        el('text', 170, 260 + i * 200, 600, 40, { text: r.name, fontSize: 24, fontWeight: 'bold', color: '#1a3c34', align: 'left', fontFamily: 'Inter' }, { viewId: restId, name: `Nome ${r.name}`, zIndex: 10 }),
+        el('text', 170, 305 + i * 200, 600, 35, { text: r.desc, fontSize: 16, fontWeight: 'normal', color: '#4a6b60', align: 'left', fontFamily: 'Inter' }, { viewId: restId, name: `Desc ${r.name}`, zIndex: 10 }),
+        el('text', 170, 345 + i * 200, 200, 30, { text: `🕐 ${r.hours}`, fontSize: 14, fontWeight: 'normal', color: '#6b8f84', align: 'left', fontFamily: 'Inter' }, { viewId: restId, name: `Hours ${r.name}`, zIndex: 10 }),
+      ]),
+
+      // Nav bottom for Restaurantes
+      el('shape', 0, 1780, 1080, 140, { shapeType: 'rectangle', fill: '#ffffff', borderRadius: 0, borderWidth: 0, borderColor: 'transparent' }, { viewId: restId, name: 'Nav BG', zIndex: 20 }),
+      el('button', 200, 1790, 200, 80, { label: '🏠 Início', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: homeId, navigateTransition: 'slide-right' }, { viewId: restId, name: 'Nav Início', zIndex: 22 }),
+      el('text', 470, 1810, 180, 40, { text: '🍴 Restaurantes', fontSize: 14, fontWeight: 'bold', color: '#1a6b5a', align: 'center', fontFamily: 'Inter' }, { viewId: restId, name: 'Nav Rest Active', zIndex: 22 }),
+      el('button', 720, 1790, 200, 80, { label: '📜 História', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: histId, navigateTransition: 'slide-left' }, { viewId: restId, name: 'Nav Hist', zIndex: 22 }),
+
+      // ════════════════ HISTÓRIA ════════════════
+
+      el('shape', 0, 0, 1080, 200, {
+        shapeType: 'rectangle', fill: 'linear-gradient(180deg, #c8e6df 0%, #dff0ec 100%)',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: histId, name: 'Header BG', zIndex: 1 }),
+
+      el('text', 60, 60, 600, 60, {
+        text: '📜 Nossa História', fontSize: 36, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: histId, name: 'Título Hist', zIndex: 10 }),
+
+      el('text', 60, 130, 800, 40, {
+        text: 'Uma jornada de mais de um século de história', fontSize: 18, fontWeight: 'normal',
+        color: '#4a8b7a', align: 'left', fontFamily: 'Inter',
+      }, { viewId: histId, name: 'Subtítulo Hist', zIndex: 10 }),
+
+      // Timeline entries
+      ...[
+        { year: '1906', title: 'Os Armazéns', text: 'Construção dos armazéns do Porto de Belém durante o apogeu do ciclo da borracha.', icon: '🏗️' },
+        { year: '1950', title: 'Era do Comércio', text: 'Os armazéns se tornam o principal entreposto comercial da região Norte.', icon: '📦' },
+        { year: '2000', title: 'Tombamento', text: 'Reconhecimento como patrimônio histórico e início dos projetos de preservação.', icon: '🏛️' },
+        { year: '2020', title: 'Revitalização', text: 'Início das obras de transformação em complexo cultural e gastronômico.', icon: '🔨' },
+        { year: '2025', title: 'Porto Futuro II', text: 'Inauguração do espaço como polo de cultura, gastronomia e sustentabilidade para a COP 30.', icon: '🌿' },
+      ].flatMap((t, i) => [
+        // Timeline line
+        ...(i < 4 ? [el('shape', 119, 260 + i * 260, 4, 260, { shapeType: 'rectangle', fill: '#b8d9d0', borderRadius: 2, borderWidth: 0, borderColor: 'transparent' }, { viewId: histId, name: `Line ${i}`, zIndex: 3 })] : []),
+        // Timeline dot
+        el('shape', 105, 240 + i * 260, 32, 32, { shapeType: 'circle', fill: '#1a6b5a', borderRadius: 16, borderWidth: 0, borderColor: 'transparent' }, { viewId: histId, name: `Dot ${t.year}`, zIndex: 5 }),
+        el('icon', 108, 243, 26, 26, { icon: t.icon, size: 16, color: '#fff' }, { viewId: histId, name: `DotIcon ${t.year}`, zIndex: 6 }),
+        // Content
+        el('text', 160, 235 + i * 260, 200, 36, { text: t.year, fontSize: 22, fontWeight: 'bold', color: '#1a6b5a', align: 'left', fontFamily: 'Inter' }, { viewId: histId, name: `Year ${t.year}`, zIndex: 10 }),
+        el('text', 300, 235 + i * 260, 300, 36, { text: t.title, fontSize: 20, fontWeight: 'bold', color: '#1a3c34', align: 'left', fontFamily: 'Inter' }, { viewId: histId, name: `Title ${t.year}`, zIndex: 10 }),
+        el('shape', 160, 280 + i * 260, 850, 130, { shapeType: 'rectangle', fill: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#d0e5df' }, { viewId: histId, name: `Card ${t.year}`, zIndex: 4 }),
+        el('text', 180, 295 + i * 260, 810, 100, { text: t.text, fontSize: 17, fontWeight: 'normal', color: '#3d5a52', align: 'left', fontFamily: 'Inter' }, { viewId: histId, name: `Text ${t.year}`, zIndex: 10 }),
+      ]),
+
+      // Nav bottom for História
+      el('shape', 0, 1780, 1080, 140, { shapeType: 'rectangle', fill: '#ffffff', borderRadius: 0, borderWidth: 0, borderColor: 'transparent' }, { viewId: histId, name: 'Nav BG', zIndex: 20 }),
+      el('button', 200, 1790, 200, 80, { label: '🏠 Início', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: homeId, navigateTransition: 'slide-right' }, { viewId: histId, name: 'Nav Início', zIndex: 22 }),
+      el('button', 460, 1790, 200, 80, { label: '🍴 Restaurantes', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: restId, navigateTransition: 'slide-right' }, { viewId: histId, name: 'Nav Rest', zIndex: 22 }),
+      el('text', 720, 1810, 180, 40, { text: '📜 História', fontSize: 14, fontWeight: 'bold', color: '#1a6b5a', align: 'center', fontFamily: 'Inter' }, { viewId: histId, name: 'Nav Hist Active', zIndex: 22 }),
+
+      // ════════════════ INFORMAÇÕES ════════════════
+
+      el('shape', 0, 0, 1080, 200, {
+        shapeType: 'rectangle', fill: 'linear-gradient(180deg, #c8e6df 0%, #dff0ec 100%)',
+        borderRadius: 0, borderWidth: 0, borderColor: 'transparent',
+      }, { viewId: infoId, name: 'Header BG', zIndex: 1 }),
+
+      el('text', 60, 60, 600, 60, {
+        text: 'ℹ️ Informações', fontSize: 36, fontWeight: 'bold',
+        color: '#1a3c34', align: 'left', fontFamily: 'Inter',
+      }, { viewId: infoId, name: 'Título Info', zIndex: 10 }),
+
+      el('text', 60, 130, 800, 40, {
+        text: 'Tudo que você precisa saber', fontSize: 18, fontWeight: 'normal',
+        color: '#4a8b7a', align: 'left', fontFamily: 'Inter',
+      }, { viewId: infoId, name: 'Subtítulo Info', zIndex: 10 }),
+
+      // Info cards
+      ...[
+        { icon: '🕐', title: 'Horário', text: 'Seg a Sex: 10h–22h\nSáb e Dom: 09h–23h' },
+        { icon: '📍', title: 'Localização', text: 'Av. Marechal Hermes, s/n\nReduto, Belém – PA' },
+        { icon: '🚗', title: 'Estacionamento', text: 'Estacionamento gratuito\n500 vagas disponíveis' },
+        { icon: '♿', title: 'Acessibilidade', text: 'Rampas, elevadores e\nbanheiros adaptados' },
+        { icon: '📶', title: 'Wi-Fi Gratuito', text: 'Rede: PortoFuturo_Free\nSenha: cultura2025' },
+        { icon: '🎫', title: 'Eventos', text: 'Confira a programação\nespecial COP 30' },
+      ].flatMap((c, i) => {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const cx = 60 + col * 500;
+        const cy = 240 + row * 220;
+        return [
+          el('shape', cx, cy, 460, 200, { shapeType: 'rectangle', fill: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#d0e5df' }, { viewId: infoId, name: `Card ${c.title}`, zIndex: 5 }),
+          el('icon', cx + 30, cy + 30, 50, 50, { icon: c.icon, size: 32, color: '#1a6b5a' }, { viewId: infoId, name: `Icon ${c.title}`, zIndex: 10 }),
+          el('text', cx + 90, cy + 30, 340, 40, { text: c.title, fontSize: 22, fontWeight: 'bold', color: '#1a3c34', align: 'left', fontFamily: 'Inter' }, { viewId: infoId, name: `Title ${c.title}`, zIndex: 10 }),
+          el('text', cx + 90, cy + 80, 340, 90, { text: c.text, fontSize: 16, fontWeight: 'normal', color: '#4a6b60', align: 'left', fontFamily: 'Inter' }, { viewId: infoId, name: `Desc ${c.title}`, zIndex: 10 }),
+        ];
+      }),
+
+      // Avatar 3D on info page too
+      el('avatar', 280, 930, 520, 500, {
+        position: 'center', scale: 1.5, animation: 'idle', enabled: true,
+        avatarUrl: '/models/avatar.glb', animationsUrl: '/models/animations.glb',
+        bgColor: 'transparent',
+        colors: { shirt: '#3b82a0', pants: '#374151', shoes: '#1a1a1a', skin: '#d4a088', hair: '#5a3825' },
+        frameY: 0, frameZoom: 50, frameX: 0,
+      }, { viewId: infoId, name: 'Avatar Info', zIndex: 15 }),
+
+      // Chat IA
+      el('chat', 60, 1440, 960, 300, {
+        placeholder: 'Pergunte sobre o Porto Futuro...', theme: 'light',
+      }, { viewId: infoId, name: 'Chat IA', zIndex: 10 }),
+
+      // Nav bottom for Info
+      el('shape', 0, 1780, 1080, 140, { shapeType: 'rectangle', fill: '#ffffff', borderRadius: 0, borderWidth: 0, borderColor: 'transparent' }, { viewId: infoId, name: 'Nav BG', zIndex: 20 }),
+      el('button', 100, 1790, 200, 80, { label: '🏠 Início', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: homeId, navigateTransition: 'slide-right' }, { viewId: infoId, name: 'Nav Início', zIndex: 22 }),
+      el('button', 340, 1790, 200, 80, { label: '🍴 Restaurantes', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: restId, navigateTransition: 'slide-right' }, { viewId: infoId, name: 'Nav Rest', zIndex: 22 }),
+      el('button', 580, 1790, 200, 80, { label: '📜 História', bgColor: 'transparent', textColor: '#6b8f84', fontSize: 14, borderRadius: 12, actionType: 'navigate' as any, navigateTarget: histId, navigateTransition: 'slide-right' }, { viewId: infoId, name: 'Nav Hist', zIndex: 22 }),
+      el('text', 810, 1810, 180, 40, { text: 'ℹ️ Info', fontSize: 14, fontWeight: 'bold', color: '#1a6b5a', align: 'center', fontFamily: 'Inter' }, { viewId: infoId, name: 'Nav Info Active', zIndex: 22 }),
+    ],
+    selectedId: null,
+    views: [
+      { id: homeId, name: 'Início', isDefault: true },
+      { id: restId, name: 'Restaurantes', isDefault: false },
+      { id: histId, name: 'História', isDefault: false },
+      { id: infoId, name: 'Informações', isDefault: false },
+    ],
+    activeViewId: homeId,
+    viewIdleTimeout: 30,
+    pageBgColors: {
+      [homeId]: '#dff0ec',
+      [restId]: '#dff0ec',
+      [histId]: '#dff0ec',
+      [infoId]: '#dff0ec',
+    },
+  };
+})();
+
+// ═══════════════════════════════════════════════════
 // Export all
 // ═══════════════════════════════════════════════════
 export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
@@ -3503,4 +3856,6 @@ export const FREEFORM_TEMPLATES: FreeFormTemplate[] = [
   { id: 'html-auto', name: '🚗 Concessionária HTML Puro', description: '4 páginas: Início → Veículos → Ofertas → Agendamento', icon: '🚗', category: 'auto', state: mpHtmlAuto },
   { id: 'html-petshop', name: '🐾 Pet Shop HTML Puro', description: '4 páginas: Início → Serviços → Produtos → Agendamento', icon: '🐾', category: 'pets', state: mpHtmlPetShop },
   { id: 'html-school', name: '🎓 Escola/Cursos HTML Puro', description: '4 páginas: Início → Cursos → Matrícula → Sobre', icon: '🎓', category: 'education', state: mpHtmlSchool },
+  // ── Nativo com Avatar 3D ──
+  { id: 'porto-futuro', name: '🏛️ Porto Futuro II', description: '4 páginas: Início com Avatar 3D → Restaurantes → História → Informações + Chat IA', icon: '🏛️', category: 'cultural', state: portoFuturo },
 ];
