@@ -8,7 +8,7 @@ export function AvatarRenderer(props: any) {
   const showBackground = bg !== 'transparent' && bg !== '';
 
   return (
-    <div className="w-full h-full relative overflow-hidden" style={{ background: bg }}>
+    <div className="w-full h-full relative overflow-hidden pointer-events-none" style={{ background: bg }}>
       {/* Ambient particles — only with background */}
       {showBackground && [...Array(6)].map((_, i) => (
         <div
