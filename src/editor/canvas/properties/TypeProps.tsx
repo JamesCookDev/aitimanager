@@ -377,10 +377,23 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
             <span className="text-[9px] text-muted-foreground">10 = longe · 100 = perto</span>
           </div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Comportamento</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-[11px]">📌 Fixar na tela</Label>
-              <span className="text-[9px] text-muted-foreground block">Avatar fica fixo mesmo ao rolar o conteúdo</span>
+          <div
+            className={`flex items-center justify-between p-2.5 rounded-lg border-2 transition-all ${
+              props.fixedOnScreen === true
+                ? 'border-amber-500/60 bg-amber-500/10'
+                : 'border-border bg-muted/30'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{props.fixedOnScreen === true ? '📌' : '📍'}</span>
+              <div>
+                <Label className="text-[11px] font-semibold">{props.fixedOnScreen === true ? 'Fixo na tela' : 'Fixo na página'}</Label>
+                <span className="text-[9px] text-muted-foreground block">
+                  {props.fixedOnScreen === true
+                    ? 'Avatar acompanha o scroll (sobrepõe conteúdo)'
+                    : 'Avatar fica preso na posição do canvas'}
+                </span>
+              </div>
             </div>
             <Switch checked={props.fixedOnScreen === true} onCheckedChange={set('fixedOnScreen')} />
           </div>
