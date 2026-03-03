@@ -2840,9 +2840,119 @@ function UpdateToast({ visible }) {
 }
 
 // ─────────────────────────────────────────────
+// 🎭 AVATAR-ONLY EMBED MODE
+// ─────────────────────────────────────────────
+// Renderiza APENAS o avatar 3D com fundo transparente.
+// Uso no HTML Puro:
+//   <iframe src="/?mode=avatar-only" style="border:none;background:transparent" allowtransparency="true"></iframe>
+//
+// Query params opcionais:
+//   frameX    — pan horizontal (-100..100, default 0)
+//   frameY    — pan vertical (-100..100, default 0)
+//   frameZoom — zoom (10..100, default 50)
+//   bgColor   — cor de fundo (default "transparent")
+//   shirt     — cor da camisa (hex, default #1E3A8A)
+//   pants     — cor da calça (hex, default #1F2937)
+//   shoes     — cor do sapato (hex, default #000000)
+//   avatarUrl — URL do modelo GLB
+//   animationsUrl — URL das animações GLB
+function AvatarOnlyEmbed({ params }) {
+  const frameX = parseFloat(params.get("frameX")) || 0;
+  const frameY = parseFloat(params.get("frameY")) || 0;
+  const frameZoom = parseFloat(params.get("frameZoom")) || 50;
+  const bgColor = params.get("bgColor") || "transparent";
+  const isTransparent = !bgColor || bgColor === "transparent";
+
+  const shirt = params.get("shirt") || "#1E3A8A";
+  const pants = params.get("pants") || "#1F2937";
+  const shoes = params.get("shoes") || "#000000";
+  const avatarUrl = params.get("avatarUrl") || "/models/avatar.glb";
+  const animationsUrl = params.get("animationsUrl") || "/models/animations.glb";
+
+  const camZ = 8 - (frameZoom / 100) * 6;
+  const camY = 1.5 + (frameY / 100) * 1.5;
+  const camX = (frameX / 100) * 3;
+  const targetY = 1.0 + (frameY / 100) * 1.2;
+
+  // Listen for speak commands from parent via postMessage
+  let speechCtx = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    speechCtx = useSpeech();
+  } catch (_) {}
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === "avatar-speak" && e.data?.text) {
+        if (speechCtx?.speakDirect) {
+          speechCtx.speakDirect(e.data.text);
+        } else if (window.__totemSpeak) {
+          window.__totemSpeak(e.data.text);
+        }
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [speechCtx]);
+
+  return (
+    <div style={{
+      width: "100vw", height: "100vh", position: "relative", overflow: "hidden",
+      background: isTransparent ? "transparent" : bgColor,
+    }}>
+      <Leva collapsed hidden />
+      <Canvas
+        shadows
+        camera={{ position: [camX, camY, camZ], fov: 30 }}
+        gl={{ preserveDrawingBuffer: true, alpha: true }}
+        style={{ width: "100%", height: "100%", background: "transparent" }}
+      >
+        <Scenario uiOverride={{
+          components: {
+            avatar: {
+              enabled: true,
+              position: "center",
+              scale: 1.5,
+              colors: { shirt, pants, shoes },
+              models: { avatar_url: avatarUrl, animations_url: animationsUrl },
+              animations: { idle: "Idle", talking: "TalkingOne" },
+              materials: { roughness: 0.5, metalness: 0.0 },
+            },
+          },
+          canvas: {
+            camera: {
+              initial_look_at: {
+                position: [camX, camY, camZ],
+                target: [camX, targetY, 0],
+                smooth: false,
+              },
+              controls: {
+                minDistance: camZ,
+                maxDistance: camZ,
+                minPolarAngle: Math.PI / 2,
+                maxPolarAngle: Math.PI / 2,
+              },
+            },
+          },
+        }} />
+      </Canvas>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // 🚀 APP PRINCIPAL
 // ─────────────────────────────────────────────
 export default function App() {
+  // ── Avatar-only embed mode ──
+  // Usage: /?mode=avatar-only&frameX=0&frameY=0&frameZoom=50&bgColor=transparent
+  const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const isAvatarOnly = urlParams.get("mode") === "avatar-only";
+
+  if (isAvatarOnly) {
+    return <AvatarOnlyEmbed params={urlParams} />;
+  }
+
   const { ui: initialUi } = useCMSConfig();
   const [liveUi, setLiveUi] = useState(null);
   const [toastKey, setToastKey] = useState(0);
