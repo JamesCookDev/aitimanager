@@ -230,10 +230,15 @@ const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => 
 
 // Renders ONLY fixed avatar elements (rendered OUTSIDE page transition wrapper)
 const FixedAvatarLayer = React.memo(({ canvas, activeViewId, onNavigate }) => {
-  const sorted = useFilteredElements(canvas, activeViewId);
-  const fixedElements = useMemo(() => sorted.filter(el => el.type === 'avatar' && el.props?.fixedOnScreen !== false), [sorted]);
+  // Fixed avatars should persist across ALL pages — skip viewId filtering
+  const allElements = useMemo(() => {
+    if (!canvas?.elements) return [];
+    return canvas.elements
+      .filter(el => el.visible !== false && el.type === 'avatar' && el.props?.fixedOnScreen !== false)
+      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+  }, [canvas?.elements]);
 
-  if (fixedElements.length === 0) return null;
+  if (allElements.length === 0) return null;
 
   return (
     <div style={{
@@ -245,7 +250,7 @@ const FixedAvatarLayer = React.memo(({ canvas, activeViewId, onNavigate }) => {
       pointerEvents: "none",
       zIndex: 9000,
     }}>
-      {fixedElements.map(el => (
+      {allElements.map(el => (
         <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
       ))}
     </div>
