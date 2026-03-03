@@ -833,10 +833,26 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 })();
 </script>` : '';
 
-        // Always inject the navigation bridge script
+        // Avatar embed script — resolves data-avatar-embed iframes with correct origin
+        const AVATAR_EMBED_SCRIPT = `<script>
+(function(){
+  var frames = document.querySelectorAll('iframe[data-avatar-embed]');
+  if (!frames.length) return;
+  var origin = '';
+  try { origin = window.parent.location.origin; } catch(e) { origin = window.location.origin; }
+  frames.forEach(function(f) {
+    var zoom = f.getAttribute('data-zoom') || '65';
+    var fy = f.getAttribute('data-fy') || '5';
+    var fx = f.getAttribute('data-fx') || '0';
+    f.src = origin + '/?mode=avatar-only&frameZoom=' + zoom + '&frameY=' + fy + '&frameX=' + fx + '&bgColor=transparent';
+  });
+})();
+</script>`;
+
+        // Always inject the navigation bridge script + avatar embed
         const htmlWithBridge = finalHtml.includes('</body>')
-          ? finalHtml.replace('</body>', NAV_BRIDGE + activePageScript + '</body>')
-          : finalHtml + NAV_BRIDGE + activePageScript;
+          ? finalHtml.replace('</body>', NAV_BRIDGE + activePageScript + AVATAR_EMBED_SCRIPT + '</body>')
+          : finalHtml + NAV_BRIDGE + activePageScript + AVATAR_EMBED_SCRIPT;
 
         return (
           <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
