@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Complexo Porto Futuro • Totem Interativo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --verde-mata:    #1a3a2e;
+      --verde-deep:    #0d2218;
+      --verde-vivo:    #2e7d52;
+      --verde-claro:   #4caf82;
+      --verde-neon:    #5de8a0;
+      --agua:          #1b4f6a;
+      --agua-claro:    #2897c4;
+      --agua-brilho:   #7fd3f0;
+      --terra:         #8b5e3c;
+      --ouro:          #c9a84c;
+      --creme:         #f5ead6;
+      --folha-escura:  #13291f;
+
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'Sora', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-body);
+      background: var(--verde-deep);
+      color: var(--creme);
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    /* ── FUNDO ANIMADO AMAZÔNICO ── */
+    .bg-amazonia {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      overflow: hidden;
+    }
+    .bg-amazonia::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 120% 60% at 10% 0%, rgba(46,125,82,.45) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 80% at 90% 20%, rgba(27,79,106,.50) 0%, transparent 55%),
+        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(13,34,24,.90) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 75% 70%, rgba(201,168,76,.12) 0%, transparent 55%);
+    }
+    .bg-amazonia::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='800' height='800' viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='800' height='800' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      opacity: .7;
+      pointer-events: none;
+    }
+
+    /* folhas decorativas SVG */
+    .leaf-deco {
+      position: fixed;
+      pointer-events: none;
+      z-index: -5;
+      opacity: .07;
+    }
+    .leaf-deco.tl { top: -40px; left: -60px; transform: rotate(-25deg); }
+    .leaf-deco.tr { top: -20px; right: -80px; transform: rotate(30deg) scaleX(-1); }
+    .leaf-deco.bl { bottom: -60px; left: -40px; transform: rotate(10deg); }
+    .leaf-deco.br { bottom: -40px; right: -60px; transform: rotate(-15deg) scaleX(-1); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(93,232,160,.25); border-radius: 3px; }
+
+    /* ── GLASS ── */
+    .glass {
+      background: rgba(13,34,24,.70);
+      border: 1px solid rgba(93,232,160,.15);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .glass-light {
+      background: rgba(26,58,46,.55);
+      border: 1px solid rgba(93,232,160,.18);
+      backdrop-filter: blur(10px);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .hero-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .35;
+      filter: saturate(1.3);
+    }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(13,34,24,.95) 0%, rgba(13,34,24,.65) 50%, rgba(27,79,106,.40) 100%);
+    }
+    .hero-bottom-fade {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 160px;
+      background: linear-gradient(to bottom, transparent, var(--verde-deep));
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: relative;
+      z-index: 5;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .logo-icon {
+      width: 56px; height: 56px;
+      border-radius: 18px;
+      background: rgba(93,232,160,.12);
+      border: 1.5px solid rgba(93,232,160,.30);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .logo-text .name {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.3px;
+    }
+    .logo-text .sub {
+      font-size: 13px;
+      color: rgba(245,234,214,.65);
+      margin-top: 2px;
+    }
+
+    .topbar-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* ── BOTÕES ── */
+    .btn {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+      border-radius: 16px;
+      padding: 14px 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all .18s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--creme);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.13); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--verde-vivo), var(--verde-claro));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(76,175,130,.30);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(76,175,130,.45); filter: brightness(1.07); }
+    .btn-agua {
+      background: linear-gradient(135deg, var(--agua), var(--agua-claro));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(40,151,196,.25);
+    }
+    .btn-agua:hover { filter: brightness(1.08); }
+
+    /* ── HERO CONTENT ── */
+    .hero-content {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      padding: 16px 40px 48px;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: rgba(93,232,160,.12);
+      border: 1px solid rgba(93,232,160,.25);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--verde-neon);
+      margin-bottom: 20px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .hero-content h1 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -.5px;
+      max-width: 680px;
+    }
+    .hero-content h1 em {
+      font-style: italic;
+      color: var(--verde-neon);
+    }
+    .hero-content h1 .agua-word {
+      color: var(--agua-brilho);
+    }
+    .hero-sub {
+      margin-top: 16px;
+      font-size: 17px;
+      color: rgba(245,234,214,.80);
+      max-width: 560px;
+      line-height: 1.65;
+      font-weight: 300;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .tab-btn {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 16px 28px;
+      border-radius: 100px;
+      border: 1.5px solid rgba(93,232,160,.18);
+      background: rgba(26,58,46,.55);
+      color: rgba(245,234,214,.75);
+      cursor: pointer;
+      transition: all .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn:active { transform: scale(0.97); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--verde-vivo), var(--verde-claro));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(76,175,130,.35);
+    }
+    .tab-btn:not(.active):hover {
+      border-color: rgba(93,232,160,.40);
+      color: var(--creme);
+      background: rgba(26,58,46,.80);
+    }
+
+    /* ── STICKY BAR ── */
+    .stickybar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      padding: 16px 40px;
+      transition: box-shadow .3s;
+    }
+    .stickybar.scrolled { box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+    .search-panel {
+      border-radius: 24px;
+      padding: 20px 24px;
+    }
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(245,234,214,.55);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin-bottom: 8px;
+    }
+    .search-input, .search-select {
+      font-family: var(--font-body);
+      font-size: 16px;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: rgba(13,34,24,.70);
+      border: 1.5px solid rgba(93,232,160,.15);
+      color: var(--creme);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .search-input::placeholder { color: rgba(245,234,214,.35); }
+    .search-input:focus, .search-select:focus {
+      border-color: rgba(93,232,160,.50);
+      box-shadow: 0 0 0 3px rgba(93,232,160,.10);
+    }
+    .search-input:focus { caret-color: var(--verde-neon); }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--verde-neon);
+      font-size: 14px;
+      pointer-events: none;
+    }
+    .search-select option { background: var(--folha-escura); }
+
+    .result-bar {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .result-count {
+      font-size: 14px;
+      color: rgba(245,234,214,.60);
+    }
+    .result-count strong { color: var(--verde-neon); font-size: 16px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(93,232,160,.10);
+      border: 1px solid rgba(93,232,160,.20);
+      font-size: 12px;
+      color: rgba(245,234,214,.80);
+    }
+    .chip span { color: var(--verde-neon); }
+
+    /* ── HERO INNER GRID (texto | avatar | detalhes) ── */
+    .hero-inner-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px 200px;
+      gap: 28px;
+      align-items: center;
+    }
+    .hero-avatar-box {
+      position: relative;
+      width: 300px;
+      height: 380px;
+      border-radius: 24px;
+      background: rgba(13,34,24,.65);
+      border: 1.5px solid rgba(93,232,160,.22);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.50), inset 0 1px 0 rgba(93,232,160,.12);
+      flex-shrink: 0;
+    }
+
+    /* Coluna de detalhes */
+    .hero-details-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-self: stretch;
+      justify-content: center;
+    }
+    .hero-detail-card {
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(13,34,24,.60);
+      border: 1px solid rgba(93,232,160,.12);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border-color .2s, background .2s;
+    }
+    .hero-detail-card:hover {
+      border-color: rgba(93,232,160,.28);
+      background: rgba(26,58,46,.55);
+    }
+    .hero-detail-card--highlight {
+      border-color: rgba(201,168,76,.25);
+      background: rgba(201,168,76,.07);
+    }
+    .hero-detail-card--highlight:hover {
+      border-color: rgba(201,168,76,.42);
+    }
+    .hero-detail-icon {
+      font-size: 22px;
+      width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .hero-detail-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: rgba(245,234,214,.45);
+      line-height: 1;
+    }
+    .hero-detail-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--creme);
+      margin-top: 3px;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 900px) {
+      .hero-avatar-box { width: 100%; height: 220px; }
+    }
+
+    /* ── MAIN GRID ── */
+    .main-layout {
+      padding: 32px 40px 80px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, rgba(93,232,160,.25), transparent);
+    }
+
+    /* ── CARDS ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      border-radius: 24px;
+      padding: 26px;
+      cursor: pointer;
+      transition: all .22s ease;
+      position: relative;
+      overflow: hidden;
+      text-align: left;
+      border: none;
+      font-family: var(--font-body);
+      background: rgba(26,58,46,.45);
+      border: 1.5px solid rgba(93,232,160,.12);
+      color: var(--creme);
+      display: block;
+      width: 100%;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(93,232,160,.06) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 16px 50px rgba(0,0,0,.40), 0 0 0 1.5px rgba(93,232,160,.30); }
+    .card:hover::before { opacity: 1; }
+    .card:active { transform: translateY(-1px) scale(0.99); }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .card-name {
+      font-family: var(--font-display);
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .badge {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-gastro {
+      background: rgba(201,168,76,.18);
+      border: 1px solid rgba(201,168,76,.35);
+      color: #e8c97a;
+    }
+    .badge-lazer {
+      background: rgba(93,232,160,.14);
+      border: 1px solid rgba(93,232,160,.30);
+      color: var(--verde-neon);
+    }
+
+    .card-area {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--agua-brilho);
+      font-weight: 500;
+    }
+    .card-desc {
+      margin-top: 14px;
+      font-size: 15px;
+      color: rgba(245,234,214,.70);
+      line-height: 1.65;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(93,232,160,.10);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-horario { font-size: 14px; color: rgba(245,234,214,.55); }
+    .card-cta {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--verde-neon);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── EMPTY ── */
+    .empty-state {
+      display: none;
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 40px;
+      border-radius: 24px;
+      border: 1.5px dashed rgba(93,232,160,.20);
+      background: rgba(26,58,46,.20);
+    }
+    .empty-emoji { font-size: 52px; margin-bottom: 16px; }
+    .empty-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; }
+    .empty-sub { margin-top: 8px; color: rgba(245,234,214,.55); font-size: 16px; }
+
+    /* ── ASIDE: AVATAR + INFO ── */
+    .aside-card {
+      border-radius: 24px;
+      padding: 24px;
+      position: sticky;
+      top: 100px;
+    }
+    .aside-card .avatar-viewer {
+      width: 100%;
+      height: 300px;
+      margin-top: 14px;
+      background: rgba(13,34,24,.60);
+      border: 1px solid rgba(93,232,160,.12);
+      border-radius: 18px;
+    }
+    .aside-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      font-weight: 600;
+      color: rgba(245,234,214,.50);
+    }
+    .aside-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+    .aside-btns { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .info-block {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(13,34,24,.55);
+      border: 1px solid rgba(93,232,160,.10);
+    }
+    .info-block-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--verde-neon);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin-bottom: 10px;
+    }
+    .info-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(93,232,160,.06);
+      font-size: 14px;
+      color: rgba(245,234,214,.75);
+    }
+    .info-line:last-child { border-bottom: none; }
+    .info-icon { font-size: 18px; width: 26px; text-align: center; }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,15,10,.80);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 60;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal-wrap {
+      width: 100%;
+      max-width: 940px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: linear-gradient(160deg, rgba(20,48,36,.98) 0%, rgba(13,34,24,.98) 100%);
+      border: 1.5px solid rgba(93,232,160,.18);
+      box-shadow: 0 40px 120px rgba(0,0,0,.70);
+      animation: modalIn .3s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.93) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 28px 32px 24px;
+      border-bottom: 1px solid rgba(93,232,160,.10);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    .modal-meta {
+      margin-top: 6px;
+      font-size: 15px;
+      color: rgba(245,234,214,.55);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--verde-neon); }
+    .modal-body {
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+    .modal-desc-box {
+      border-radius: 20px;
+      padding: 24px;
+      background: rgba(13,34,24,.55);
+      border: 1px solid rgba(93,232,160,.10);
+    }
+    .modal-desc-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--verde-neon); margin-bottom: 12px; }
+    .modal-desc-text { font-size: 17px; color: rgba(245,234,214,.85); line-height: 1.75; }
+    .modal-info-grid { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-info-item {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(26,58,46,.40);
+      border: 1px solid rgba(93,232,160,.10);
+    }
+    .modal-info-item .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: rgba(245,234,214,.45); }
+    .modal-info-item .val { margin-top: 5px; font-size: 16px; font-weight: 600; }
+    .modal-tags { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .modal-tag {
+      padding: 7px 14px;
+      border-radius: 100px;
+      background: rgba(93,232,160,.08);
+      border: 1px solid rgba(93,232,160,.18);
+      font-size: 13px;
+      color: rgba(245,234,214,.70);
+    }
+
+    /* Modal foto */
+    .modal-photo-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3/4;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(93,232,160,.12);
+      background: rgba(13,34,24,.70);
+      flex: 1;
+    }
+    .modal-photo-wrap img#mPhoto {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .modal-photo-wrap img#mPhoto.loaded { display: block; }
+    .modal-photo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 14px;
+      color: rgba(245,234,214,.40);
+      text-align: center;
+      padding: 20px;
+    }
+    .modal-photo-placeholder.hidden { display: none; }
+
+    /* Modal mapa */
+    .modal-map-box {
+      border-radius: 20px;
+      padding: 20px;
+      background: rgba(13,34,24,.55);
+      border: 1px solid rgba(93,232,160,.10);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 420px;
+    }
+    .modal-map-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--agua-brilho); }
+    .map-svg-wrap { border-radius: 16px; overflow: hidden; border: 1px solid rgba(93,232,160,.12); }
+
+    .modal-footer {
+      padding: 20px 32px;
+      border-top: 1px solid rgba(93,232,160,.10);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .modal-footer-note { font-size: 13px; color: rgba(245,234,214,.40); }
+
+    /* ── INACTIVITY OVERLAY ── */
+    .attract-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,15,10,.92);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .attract-overlay.show { display: flex; }
+    .attract-logo {
+      font-family: var(--font-display);
+      font-size: clamp(48px, 8vw, 80px);
+      font-weight: 900;
+      line-height: 1;
+    }
+    .attract-logo em { color: var(--verde-neon); font-style: italic; }
+    .attract-sub { font-size: 20px; color: rgba(245,234,214,.60); font-weight: 300; }
+    .attract-cta {
+      margin-top: 16px;
+      padding: 18px 48px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, var(--verde-vivo), var(--verde-claro));
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      animation: pulse-cta 2.5s ease-in-out infinite;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+    @keyframes pulse-cta {
+      0%,100% { box-shadow: 0 4px 30px rgba(76,175,130,.35); }
+      50%      { box-shadow: 0 8px 50px rgba(76,175,130,.65); transform: scale(1.03); }
+    }
+    .attract-leaves {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .leaf-float {
+      position: absolute;
+      opacity: .12;
+      animation: floatLeaf linear infinite;
+    }
+    @keyframes floatLeaf {
+      0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: .12; }
+      90%  { opacity: .12; }
+      100% { transform: translateY(-20px) rotate(360deg); opacity: 0; }
+    }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE — mobile-first, 4 breakpoints
+       xs  < 480px   (phones portrait)
+       sm  < 640px   (phones landscape)
+       md  < 900px   (tablets portrait)
+       lg  < 1100px  (tablets landscape / small laptops)
+    ═══════════════════════════════════════════ */
+
+    /* ── LG  (≤ 1100px) ── */
+    @media (max-width: 1100px) {
+      .main-layout { padding: 24px 24px 60px; }
+      .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+      /* hero: 2 cols, hide details sidebar */
+      .hero-inner-grid {
+        grid-template-columns: 1fr 260px;
+      }
+      .hero-avatar-box { width: 260px; height: 320px; }
+      .hero-details-col { display: none; }
+
+      /* stickybar search row: 3 cols */
+      .search-row { grid-template-columns: 1fr 1fr auto; }
+    }
+
+    /* ── MD  (≤ 900px) ── */
+    @media (max-width: 900px) {
+      /* topbar: tighten padding, shrink logo text */
+      .topbar { padding: 16px 20px; gap: 10px; }
+      .logo-text .name { font-size: 20px; }
+      .logo-text .sub  { font-size: 11px; }
+      .logo-icon { width: 46px; height: 46px; border-radius: 14px; }
+
+      /* hero: single col, avatar shows below text */
+      .hero { min-height: unset; }
+      .hero-content { padding: 12px 20px 36px; }
+      .hero-inner-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .hero-avatar-box {
+        width: 100%;
+        height: 220px;
+        border-radius: 18px;
+      }
+      .hero-sub { font-size: 15px; }
+      .tabs { gap: 8px; margin-top: 20px; }
+      .tab-btn { font-size: 14px; padding: 12px 20px; }
+
+      /* stickybar */
+      .stickybar { padding: 10px 16px; }
+      .search-panel { padding: 14px 16px; border-radius: 18px; }
+      .search-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .search-row > div:last-child { grid-column: 1 / -1; flex-direction: row; }
+      .search-input, .search-select { font-size: 15px; padding: 12px 14px; }
+
+      /* cards grid */
+      .main-layout { padding: 16px 16px 60px; }
+      .cards-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+      .section-title { font-size: 22px; }
+
+      /* modal */
+      .modal-backdrop { padding: 12px; align-items: flex-end; }
+      .modal-wrap { border-radius: 22px 22px 0 0; max-height: 92dvh; overflow-y: auto; }
+      .modal-body {
+        grid-template-columns: 1fr;
+        padding: 20px 18px;
+        gap: 16px;
+      }
+      .modal-header { padding: 20px 18px 16px; }
+      .modal-footer { padding: 16px 18px; }
+      .modal-title { font-size: 22px; }
+      .modal-photo-wrap { aspect-ratio: 16/9; }
+      .modal-map-box { min-height: unset; }
+    }
+
+    /* ── SM  (≤ 640px) ── */
+    @media (max-width: 640px) {
+      /* topbar: hide subtitle on very small */
+      .logo-text .sub { display: none; }
+      .logo-icon { width: 40px; height: 40px; }
+      .btn { font-size: 13px; padding: 11px 16px; border-radius: 13px; }
+
+      /* hero */
+      .hero-content { padding: 10px 14px 28px; }
+      .hero-eyebrow { font-size: 11px; padding: 6px 12px; }
+      .hero-avatar-box { height: 180px; }
+      .tabs { gap: 6px; margin-top: 16px; }
+      .tab-btn { font-size: 13px; padding: 10px 16px; }
+
+      /* sticky search: stack all fields */
+      .stickybar { padding: 8px 12px; }
+      .search-row { grid-template-columns: 1fr; gap: 8px; }
+      .search-row > div:last-child { flex-direction: row; gap: 8px; }
+      .search-row > div:last-child .btn { flex: 1; }
+      .result-bar { gap: 8px; }
+
+      /* cards: single col */
+      .cards-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; border-radius: 18px; }
+      .card-name { font-size: 18px; }
+      .main-layout { padding: 12px 12px 60px; }
+      .section-title { font-size: 20px; }
+
+      /* modal: full-screen sheet */
+      .modal-backdrop { padding: 0; align-items: flex-end; }
+      .modal-wrap { border-radius: 20px 20px 0 0; max-height: 95dvh; }
+      .modal-header { padding: 18px 16px 14px; gap: 10px; }
+      .modal-title { font-size: 20px; }
+      .modal-body { padding: 16px; gap: 14px; }
+      .modal-footer { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 10px; }
+      .modal-footer-note { text-align: center; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+      .modal-desc-text { font-size: 15px; }
+      .modal-info-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .modal-tags { gap: 6px; }
+      .modal-photo-wrap { aspect-ratio: 4/3; }
+
+      /* attract overlay */
+      .attract-logo { font-size: clamp(32px, 10vw, 52px); }
+      .attract-sub { font-size: 15px; }
+      .attract-cta { font-size: 15px; padding: 14px 32px; }
+    }
+
+    /* ── XS  (≤ 480px) ── */
+    @media (max-width: 480px) {
+      .topbar { padding: 12px 12px; }
+      .logo-text .name { font-size: 17px; }
+      .hero-avatar-box { height: 150px; }
+      .hero-content { padding: 8px 12px 20px; }
+      .card { padding: 16px; }
+      .card-name { font-size: 16px; }
+      .card-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .card-cta { align-self: flex-end; }
+      .tab-btn { font-size: 12px; padding: 9px 13px; }
+      .badge { font-size: 11px; padding: 4px 10px; }
+      .search-input, .search-select { font-size: 14px; padding: 11px 12px; }
+    }
+
+    /* ── ONDAS DECORATIVAS ── */
+    .wave-divider {
+      width: 100%;
+      height: 60px;
+      overflow: hidden;
+      line-height: 0;
+    }
+    .wave-divider svg { display: block; width: 100%; height: 60px; }
+
+    /* ── LOADING CARDS ── */
+    .card-skeleton {
+      border-radius: 24px;
+      height: 220px;
+      background: linear-gradient(90deg, rgba(26,58,46,.30) 25%, rgba(46,78,66,.30) 50%, rgba(26,58,46,.30) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Folhas decorativas -->
+<svg class="leaf-deco tl" width="320" height="320" viewBox="0 0 200 200">
+  <path fill="rgba(93,232,160,1)" d="M100,10 C140,10 190,50 190,100 C190,150 150,190 100,190 C60,150 10,110 10,70 C10,30 60,10 100,10Z"/>
+</svg>
+<svg class="leaf-deco tr" width="280" height="280" viewBox="0 0 200 200">
+  <path fill="rgba(40,151,196,1)" d="M50,5 C100,5 195,50 195,110 C195,160 150,195 90,195 C40,170 5,130 5,80 C5,35 20,5 50,5Z"/>
+</svg>
+<svg class="leaf-deco bl" width="250" height="250" viewBox="0 0 200 200">
+  <path fill="rgba(93,232,160,1)" d="M100,5 C155,5 195,45 195,100 C195,155 155,195 100,195 C55,180 5,150 5,100 C5,50 45,5 100,5Z"/>
+</svg>
+<svg class="leaf-deco br" width="300" height="300" viewBox="0 0 200 200">
+  <path fill="rgba(201,168,76,1)" d="M30,10 C80,10 190,60 190,120 C190,165 145,190 90,190 C40,190 10,155 10,100 C10,55 10,10 30,10Z"/>
+</svg>
+
+<!-- Fundo -->
+<div class="bg-amazonia"></div>
+
+<!-- ══════ HERO ══════ -->
+<div class="hero">
+  <img src="assets/porto-futuro.jpg" alt="Complexo Porto Futuro" class="hero-img" />
+  <div class="hero-overlay"></div>
+  <div class="hero-bottom-fade"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" color="rgba(93,232,160,.9)">
+          <path d="M3 18 C5 12, 10 8, 12 4 C14 8, 19 12, 21 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <path d="M6 18 C7 15, 9.5 13, 12 11 C14.5 13, 17 15, 18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <div class="name">Complexo Porto Futuro</div>
+        <div class="sub">Totem Interativo • Belém / PA</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" id="btnHome">🌿 Início</button>
+    </div>
+  </header>
+
+  <!-- Hero Content -->
+  <section class="hero-content">
+    <div class="hero-inner-grid">
+      <!-- Texto -->
+      <div>
+        <div class="hero-eyebrow">
+          <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="currentColor" opacity=".7"/><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg>
+          Belém do Pará
+        </div>
+        <h1>
+          <em>Gastronomia</em> e<br>
+          <span class="agua-word">Lazer</span> à beira-rio
+        </h1>
+        <p class="hero-sub">
+          Explore restaurantes, quiosques, áreas de convivência e a bela orla do Complexo Porto Futuro. Toque para descobrir.
+        </p>
+
+        <div class="tabs">
+          <button class="tab-btn active" id="tabTudo">⭐ Ver tudo</button>
+          <button class="tab-btn" id="tabGastro">🍽️ Gastronomia</button>
+          <button class="tab-btn" id="tabLazer">🌿 Lazer</button>
+        </div>
+
+        <p style="margin-top:14px;font-size:14px;color:rgba(245,234,214,.45);">
+          Toque em um cartão para ver detalhes e localização.
+        </p>
+      </div>
+
+      <!-- Quadrado Avatar 3D (iframe embed) -->
+      <div class="hero-avatar-box">
+        <iframe
+          id="avatarViewer"
+          src="/?mode=avatar-only&frameZoom=65&frameY=5&bgColor=transparent"
+          style="width:100%;height:100%;border:none;border-radius:22px;background:transparent;"
+          allowtransparency="true"
+          loading="lazy"
+        ></iframe>
+      </div>
+
+      <!-- Detalhes laterais -->
+      <div class="hero-details-col">
+        <div class="hero-detail-card">
+          <div class="hero-detail-icon">🌿</div>
+          <div class="hero-detail-label">Ambiente</div>
+          <div class="hero-detail-value">Área aberta, beira-rio</div>
+        </div>
+        <div class="hero-detail-card">
+          <div class="hero-detail-icon">⏰</div>
+          <div class="hero-detail-label">Funcionamento</div>
+          <div class="hero-detail-value">10:00 – 22:00</div>
+        </div>
+        <div class="hero-detail-card">
+          <div class="hero-detail-icon">🍽️</div>
+          <div class="hero-detail-label">Gastronomia</div>
+          <div class="hero-detail-value">6 estabelecimentos</div>
+        </div>
+        <div class="hero-detail-card">
+          <div class="hero-detail-icon">🌊</div>
+          <div class="hero-detail-label">Lazer</div>
+          <div class="hero-detail-value">2 espaços</div>
+        </div>
+        <div class="hero-detail-card">
+          <div class="hero-detail-icon">📍</div>
+          <div class="hero-detail-label">Localização</div>
+          <div class="hero-detail-value">Belém, Pará</div>
+        </div>
+        <div class="hero-detail-card hero-detail-card--highlight">
+          <div class="hero-detail-icon">🅿️</div>
+          <div class="hero-detail-label">Estacionamento</div>
+          <div class="hero-detail-value">Disponível</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════ STICKY SEARCH BAR ══════ -->
+<div class="stickybar" id="stickybar">
+  <div class="search-panel glass">
+    <div class="search-row">
+      <div>
+        <div class="field-label">Buscar</div>
+        <div style="position:relative">
+          <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:rgba(245,234,214,.35);font-size:18px;">🔍</span>
+          <input id="q" class="search-input" style="padding-left:46px" placeholder="açaí, mirante, praça…" />
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Categoria</div>
+        <div class="select-wrap">
+          <select id="segmento" class="search-select"></select>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Área</div>
+        <div class="select-wrap">
+          <select id="area" class="search-select"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-direction:column;padding-bottom:0">
+        <button class="btn btn-primary" id="btnReset" style="padding:14px 18px">Resetar</button>
+      </div>
+    </div>
+    <div class="result-bar">
+      <div class="result-count">
+        Mostrando <strong id="count">0</strong> local(is)
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MAIN ══════ -->
+<main class="main-layout">
+  <!-- Cards -->
+  <section>
+    <div class="section-title">Locais</div>
+    <div class="cards-grid" id="grid"></div>
+    <div class="empty-state" id="empty">
+      <div class="empty-emoji">🌿</div>
+      <div class="empty-title">Nenhum resultado encontrado</div>
+      <p class="empty-sub">Tente outros termos ou limpe os filtros.</p>
+      <button class="btn btn-primary" id="btnEmptyReset" style="margin-top:24px">Resetar filtros</button>
+    </div>
+  </section>
+
+
+</main>
+
+<!-- ══════ MODAL ══════ -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-wrap">
+    <div class="modal-header">
+      <div>
+        <div id="mTitle" class="modal-title"></div>
+        <div class="modal-meta">
+          <span id="mBadge"></span>
+          <span class="dot"></span>
+          <span id="mMetaArea"></span>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btnCloseModal" style="flex-shrink:0">✕ Fechar</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Esquerda: descrição -->
+      <div>
+        <div class="modal-desc-box">
+          <div class="modal-desc-label">Sobre este local</div>
+          <p id="mDesc" class="modal-desc-text"></p>
+
+          <div class="modal-info-grid">
+            <div class="modal-info-item">
+              <div class="lbl">⏰ Horário</div>
+              <div id="mHorario" class="val"></div>
+            </div>
+            <div class="modal-info-item">
+              <div class="lbl">📞 Contato</div>
+              <div id="mContato" class="val"></div>
+            </div>
+          </div>
+
+          <div class="modal-tags" id="mTags"></div>
+        </div>
+
+        <button class="btn btn-primary" id="btnAction" style="margin-top:16px;width:100%;padding:16px">
+          Ver mais da mesma categoria
+        </button>
+      </div>
+
+      <!-- Direita: foto do local -->
+      <div class="modal-map-box">
+        <div class="modal-map-label">📸 Foto do Local</div>
+
+        <div class="modal-photo-wrap">
+          <img id="mPhoto" src="" alt="" />
+          <div class="modal-photo-placeholder" id="mPhotoPlaceholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(93,232,160,.35)" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            <span>Imagem do local</span>
+            <span style="font-size:12px;color:rgba(245,234,214,.30);">assets/fotos/id-do-local.jpg</span>
+          </div>
+        </div>
+        <div id="mLocal" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="modal-footer-note">Inatividade: retorno automático à tela inicial.</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" id="btnVoltarLista">← Voltar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TELA ATTRACT (inatividade) ══════ -->
+<div class="attract-overlay" id="attractOverlay">
+  <div class="attract-leaves" id="attractLeaves"></div>
+  <div style="position:relative;z-index:2;text-align:center;">
+    <div style="font-size:52px;margin-bottom:12px">🌿</div>
+    <div class="attract-logo">Porto <em>Futuro</em> II</div>
+    <div class="attract-sub">Gastronomia e Lazer à beira-rio • Belém, PA</div>
+    <button class="attract-cta" id="btnAttractStart">Toque para explorar →</button>
+  </div>
+</div>
+
+<!-- model-viewer -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+<script>
+  // ── DADOS ──
+  const POIS = [
+    {
+      id: "pf2-003",
+      nome: "Praça de Alimentação",
+      subtitulo: "Food Hall",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "Um amplo espaço gastronômico com culinária regional paraense e opções internacionais. Mesas generosas, boa ventilação e um ambiente perfeito para compartilhar refeições com a família.",
+      tags: ["comida", "restaurantes", "regional", "família"],
+      img: "assets/fotos/praca-alimentacao.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-010",
+      nome: "Doceria Bella Florença",
+      subtitulo: "Doces & Confeitaria",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "Uma encantadora doceria com sabores artesanais inspirados na tradição italiana e no charme amazônico. Bolos, tortas, bombons e cafés especiais para adoçar seu passeio no Complexo Porto Futuro.",
+      tags: ["doces", "confeitaria", "café", "bolo", "sobremesa"],
+      img: "assets/fotos/doceria-bella-florenca.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-012",
+      nome: "GAUDENS Chocolate",
+      subtitulo: "Chocolateria Fina",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "Descubra a GAUDENS Chocolate, uma celebração de criatividade, exclusividade e sustentabilidade no coração da Amazônia. Fundada em Belém por Fabio Sicilia, Chef Master formado no ICIF e especializado em chocolateria pela Lênotre de Paris, a GAUDENS se destaca pela produção de chocolates finos com ingredientes locais.",
+      tags: ["chocolate", "confeitaria", "artesanal", "amazônia", "gourmet"],
+      img: "assets/fotos/gaudens-chocolate.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-013",
+      nome: "Muamba Bar",
+      subtitulo: "Bar & Petiscos",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "O Muamba Bar é o ponto de encontro perfeito para quem quer relaxar com uma bebida gelada à beira-rio. Com um cardápio animado de drinques tropicais, caipirinhas, cervejas artesanais e petiscos regionais, o bar mistura o calor da hospitalidade paraense com o frescor da brisa do rio. Ideal para o happy hour ou para curtir o fim de tarde com amigos.",
+      tags: ["bar", "drinques", "petiscos", "happy hour", "caipirinhas"],
+      img: "assets/fotos/muamba-bar.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-014",
+      nome: "Restaurante Picuí",
+      subtitulo: "Culinária Nordestina & Paraense",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "O Picuí traz para a orla de Belém o melhor da fusão entre a culinária nordestina e os sabores autênticos do Pará. Pratos generosos com carnes nobres, moquecas, caldos e receitas da vovó preparados com tempero de raiz. Um convite para sentar, relaxar e se reconectar com a comida de verdade.",
+      tags: ["restaurante", "nordestino", "paraense", "moqueca", "almoço"],
+      img: "assets/fotos/restaurante-picui.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-015",
+      nome: "Restaurante Amazônia",
+      subtitulo: "Alta Gastronomia Regional",
+      segmento: "Gastronomia",
+      area: "Área B",
+      areaFull: "Área B (Boulevard)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "O Restaurante Amazônia celebra a riqueza da floresta em cada prato. Com um cardápio inspirado nos ingredientes nativos da Amazônia — tucupi, jambu, açaí, pirarucu e muito mais — o restaurante oferece uma experiência gastronômica única que une tradição indígena, técnicas contemporâneas e o sabor inconfundível do Pará. Mais do que uma refeição, é uma jornada pelos sabores da maior floresta do mundo.",
+      tags: ["restaurante", "amazônico", "regional", "tucupi", "pirarucu", "gourmet"],
+      img: "assets/fotos/restaurante-amazonia.jpg",
+      pin: { x: 270, y: 70 }
+    },
+    {
+      id: "pf2-005",
+      nome: "Orla • Mirante",
+      subtitulo: "Vista para o Rio",
+      segmento: "Lazer",
+      area: "Área C",
+      areaFull: "Área C (Orla)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "Contemple a imensidão do rio com a brisa fresca e o pôr do sol belenense. Espaço aberto para caminhadas, descanso e fotografia. O lugar ideal para sentir a alma amazônica de Belém.",
+      tags: ["orla", "vista", "passeio", "natureza", "pôr do sol"],
+      img: "assets/fotos/orla-mirante.jpg",
+      pin: { x: 90, y: 213 }
+    },
+    {
+      id: "pf2-011",
+      nome: "Praça Central",
+      subtitulo: "Área de Convivência",
+      segmento: "Lazer",
+      area: "Área D",
+      areaFull: "Área D (Praça)",
+      horario: "10:00 – 22:00",
+      contato: "—",
+      descricao: "O coração do Complexo Porto Futuro. Praça arborizada para descanso, encontros e eventos culturais abertos. Bancos, sombra e uma atmosfera tranquila para toda a família curtir.",
+      tags: ["praça", "descanso", "convivência", "eventos", "família"],
+      img: "assets/fotos/praca-central.jpg",
+      pin: { x: 270, y: 213 }
+    }
+  ];
+
+  const state = {
+    q: "", segmento: "Todos", area: "Todas",
+    inactivityMs: 90_000,
+    inactivityTimer: null,
+    lastOpen: null,
+    isAttracting: false
+  };
+
+  const $ = id => document.getElementById(id);
+  const normalize = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const uniq = arr => [...new Set(arr)].filter(Boolean);
+
+  // ── FILTROS ──
+  function renderFilters() {
+    const segs = ["Todos", ...uniq(POIS.map(p => p.segmento)).sort()];
+    const areas = ["Todas", ...uniq(POIS.map(p => p.area)).sort()];
+    $("segmento").innerHTML = segs.map(s => `<option value="${s}">${s === "Todos" ? "Todas categorias" : s}</option>`).join('');
+    $("area").innerHTML = areas.map(a => `<option value="${a}">${a === "Todas" ? "Todas as áreas" : a}</option>`).join('');
+  }
+
+  // ── GRID ──
+  function getFiltered() {
+    const nq = normalize(state.q);
+    return POIS.filter(p => {
+      if (state.segmento !== "Todos" && p.segmento !== state.segmento) return false;
+      if (state.area !== "Todas" && p.area !== state.area) return false;
+      if (nq) {
+        const hay = normalize([p.nome, p.subtitulo, p.segmento, p.area, p.descricao, ...(p.tags||[])].join(' '));
+        if (!hay.includes(nq)) return false;
+      }
+      return true;
+    }).sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+
+  function badgeHtml(seg) {
+    if (seg === 'Gastronomia') return `<span class="badge badge-gastro">🍽️ ${seg}</span>`;
+    if (seg === 'Lazer')       return `<span class="badge badge-lazer">🌿 ${seg}</span>`;
+    return `<span class="badge" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15)">${seg}</span>`;
+  }
+
+  function renderGrid() {
+    const list = getFiltered();
+    $("count").textContent = list.length;
+
+    // chips
+    const chips = [];
+    if (state.q) chips.push({ k: "Busca", v: state.q });
+    if (state.segmento !== "Todos") chips.push({ k: "Categoria", v: state.segmento });
+    if (state.area !== "Todas") chips.push({ k: "Área", v: state.area });
+    $("chips").innerHTML = chips.map(c => `<span class="chip"><span>${c.k}:</span> ${c.v}</span>`).join('');
+
+    if (list.length === 0) {
+      $("grid").innerHTML = '';
+      $("empty").style.display = 'block';
+      return;
+    }
+    $("empty").style.display = 'none';
+
+    $("grid").innerHTML = list.map(p => `
+      <button class="card" onclick="openModal('${p.id}')">
+        <div class="card-header">
+          <div>
+            <div class="card-name">${p.nome}</div>
+            <div style="font-size:13px;color:rgba(245,234,214,.45);margin-top:3px;font-style:italic">${p.subtitulo}</div>
+          </div>
+          ${badgeHtml(p.segmento)}
+        </div>
+        <div class="card-area">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${p.areaFull}
+        </div>
+        <div class="card-desc">${p.descricao}</div>
+        <div class="card-footer">
+          <span class="card-horario">⏰ ${p.horario}</span>
+          <span class="card-cta">Detalhes <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+        </div>
+      </button>
+    `).join('');
+  }
+
+  // ── MODAL ──
+  window.openModal = function(id) {
+    const item = POIS.find(p => p.id === id);
+    if (!item) return;
+    state.lastOpen = item;
+
+    $("mTitle").textContent = item.nome;
+    $("mBadge").innerHTML = badgeHtml(item.segmento);
+    $("mMetaArea").textContent = item.areaFull;
+    $("mDesc").textContent = item.descricao;
+    $("mHorario").textContent = item.horario || "—";
+    $("mContato").textContent = item.contato || "—";
+    $("mLocal").textContent = item.areaFull;
+    $("mTags").innerHTML = (item.tags||[]).map(t => `<span class="modal-tag">🏷️ ${t}</span>`).join('');
+
+    // Foto do local
+    const imgEl = $("mPhoto");
+    const placeholder = $("mPhotoPlaceholder");
+    imgEl.classList.remove("loaded");
+    placeholder.classList.remove("hidden");
+    if (item.img) {
+      imgEl.src = item.img;
+      imgEl.alt = item.nome;
+      imgEl.onload = () => {
+        imgEl.classList.add("loaded");
+        placeholder.classList.add("hidden");
+      };
+      imgEl.onerror = () => {
+        imgEl.classList.remove("loaded");
+        placeholder.classList.remove("hidden");
+      };
+    }
+
+    $("modalBackdrop").classList.add("open");
+    resetInactivity();
+  };
+
+  function closeModal() {
+    $("modalBackdrop").classList.remove("open");
+    resetInactivity();
+  }
+
+  function goHome() {
+    closeModal();
+    state.q = ""; state.segmento = "Todos"; state.area = "Todas";
+    $("q").value = "";
+    $("segmento").value = "Todos";
+    $("area").value = "Todas";
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    $("tabTudo").classList.add("active");
+    renderGrid();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ── INATIVIDADE ──
+  function showAttract() {
+    state.isAttracting = true;
+    $("attractOverlay").classList.add("show");
+    spawnLeaves();
+  }
+
+  function hideAttract() {
+    state.isAttracting = false;
+    $("attractOverlay").classList.remove("show");
+    goHome();
+    resetInactivity();
+  }
+
+  function resetInactivity() {
+    if (state.inactivityTimer) clearTimeout(state.inactivityTimer);
+    state.inactivityTimer = setTimeout(showAttract, state.inactivityMs);
+  }
+
+  // Folhas flutuantes na tela attract
+  function spawnLeaves() {
+    const container = $("attractLeaves");
+    container.innerHTML = '';
+    const leafSVGs = ['🌿','🍃','🌱','🌾'];
+    for (let i = 0; i < 14; i++) {
+      const el = document.createElement('div');
+      el.className = 'leaf-float';
+      el.textContent = leafSVGs[i % leafSVGs.length];
+      el.style.left = `${Math.random()*95}%`;
+      el.style.fontSize = `${20 + Math.random()*30}px`;
+      el.style.animationDuration = `${6 + Math.random()*8}s`;
+      el.style.animationDelay = `${Math.random()*5}s`;
+      container.appendChild(el);
+    }
+  }
+
+  // ── TABS ──
+  function setActiveTab(btn) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  // ── AVATAR ──
+  function wireAvatar() {
+    const mv = $("avatarViewer");
+    if (!mv) return;
+    mv.addEventListener("error", () => console.warn("Erro ao carregar GLB."));
+  }
+
+  // ── STICKY SHADOW ──
+  window.addEventListener("scroll", () => {
+    $("stickybar").classList.toggle("scrolled", window.scrollY > 20);
+  });
+
+  // ── WIRE ALL EVENTS ──
+  function wireEvents() {
+    ["click","touchstart","keydown","mousemove","scroll"].forEach(e =>
+      window.addEventListener(e, () => { if (!state.isAttracting) resetInactivity(); }, { passive: true })
+    );
+
+
+
+    $("btnHome").addEventListener("click", goHome);
+    $("btnReset").addEventListener("click", goHome);
+    $("btnEmptyReset").addEventListener("click", goHome);
+    $("btnCloseModal").addEventListener("click", closeModal);
+    $("btnVoltarLista").addEventListener("click", closeModal);
+    $("btnAttractStart").addEventListener("click", hideAttract);
+    $("attractOverlay").addEventListener("click", hideAttract);
+
+
+    $("q").addEventListener("input", e => { state.q = e.target.value; renderGrid(); });
+    $("segmento").addEventListener("change", e => { state.segmento = e.target.value; renderGrid(); });
+    $("area").addEventListener("change", e => { state.area = e.target.value; renderGrid(); });
+
+    $("modalBackdrop").addEventListener("click", e => { if (e.target === $("modalBackdrop")) closeModal(); });
+
+    $("btnAction").addEventListener("click", () => {
+      if (!state.lastOpen) return;
+      state.segmento = state.lastOpen.segmento;
+      $("segmento").value = state.segmento;
+      setActiveTab(state.lastOpen.segmento === "Gastronomia" ? $("tabGastro") : $("tabLazer"));
+      closeModal();
+      renderGrid();
+    });
+
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+    // Tabs
+    $("tabTudo").addEventListener("click", () => {
+      setActiveTab($("tabTudo")); state.segmento = "Todos"; $("segmento").value = "Todos"; renderGrid();
+    });
+    $("tabGastro").addEventListener("click", () => {
+      setActiveTab($("tabGastro")); state.segmento = "Gastronomia"; $("segmento").value = "Gastronomia"; renderGrid();
+    });
+    $("tabLazer").addEventListener("click", () => {
+      setActiveTab($("tabLazer")); state.segmento = "Lazer"; $("segmento").value = "Lazer"; renderGrid();
+    });
+  }
+
+  function init() {
+    renderFilters();
+    wireEvents();
+    wireAvatar();
+    renderGrid();
+    resetInactivity();
+  }
+
+  init();
+</script>
+</body>
+</html>
