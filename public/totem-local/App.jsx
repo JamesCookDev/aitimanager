@@ -208,7 +208,7 @@ function useFilteredElements(canvas, activeViewId) {
 // Renders only NON-fixed elements (inside the page transition wrapper)
 const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => {
   const sorted = useFilteredElements(canvas, activeViewId);
-  const normalElements = useMemo(() => sorted.filter(el => !(el.type === 'avatar' && el.props?.fixedOnScreen !== false)), [sorted]);
+  const normalElements = useMemo(() => sorted.filter(el => !(el.type === 'avatar' && el.props?.fixedOnScreen === true)), [sorted]);
 
   if (normalElements.length === 0) return null;
 
@@ -234,7 +234,7 @@ const FixedAvatarLayer = React.memo(({ canvas, activeViewId, onNavigate }) => {
   const allElements = useMemo(() => {
     if (!canvas?.elements) return [];
     return canvas.elements
-      .filter(el => el.visible !== false && el.type === 'avatar' && el.props?.fixedOnScreen !== false)
+      .filter(el => el.visible !== false && el.type === 'avatar' && el.props?.fixedOnScreen === true)
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
   }, [canvas?.elements]);
 
