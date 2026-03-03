@@ -1681,8 +1681,7 @@ function AvatarCanvasElement({ props: p }) {
     <div style={{
       width: "100%",
       height: "100%",
-      position: "absolute",
-      inset: 0,
+      position: "relative",
       pointerEvents: "none",
       background: isTransparent ? "transparent" : bgColor,
     }}>
@@ -1693,8 +1692,6 @@ function AvatarCanvasElement({ props: p }) {
         style={{
           width: "100%",
           height: "100%",
-          position: "absolute",
-          inset: 0,
           background: isTransparent ? "transparent" : bgColor,
         }}
       >
