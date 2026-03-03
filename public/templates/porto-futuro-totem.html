@@ -1055,14 +1055,17 @@
         </p>
       </div>
 
-      <!-- Quadrado Avatar 3D (iframe embed) -->
+      <!-- Quadrado Avatar -->
       <div class="hero-avatar-box">
         <iframe
           id="avatarViewer"
-          src="/?mode=avatar-only&frameZoom=65&frameY=5&bgColor=transparent"
+          data-avatar-embed="true"
+          data-zoom="65"
+          data-fy="5"
+          data-fx="0"
+          allow="microphone; autoplay"
           style="width:100%;height:100%;border:none;border-radius:22px;background:transparent;"
-          allowtransparency="true"
-          loading="lazy"
+          title="Avatar 3D"
         ></iframe>
       </div>
 
@@ -1237,8 +1240,18 @@
   </div>
 </div>
 
-<!-- model-viewer -->
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<!-- avatar-only iframe script -->
+<script>
+(function() {
+  var f = document.getElementById('avatarViewer');
+  if (!f) return;
+  var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+  var zoom = f.getAttribute('data-zoom') || '65';
+  var fy = f.getAttribute('data-fy') || '5';
+  var fx = f.getAttribute('data-fx') || '0';
+  f.src = origin + '/?mode=avatar-only&showChat=true&frameZoom=' + zoom + '&frameY=' + fy + '&frameX=' + fx + '&bgColor=transparent';
+})();
+</script>
 
 <script>
   // ── DADOS ──
@@ -1533,11 +1546,10 @@
     btn.classList.add("active");
   }
 
-  // ── AVATAR ──
+  // ── AVATAR (handled by iframe script above) ──
   function wireAvatar() {
-    const mv = $("avatarViewer");
-    if (!mv) return;
-    mv.addEventListener("error", () => console.warn("Erro ao carregar GLB."));
+    // Avatar is loaded via iframe pointing to /?mode=avatar-only
+    console.log('[Porto Futuro] Avatar iframe inicializado');
   }
 
   // ── STICKY SHADOW ──
