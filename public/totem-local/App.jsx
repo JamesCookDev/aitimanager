@@ -2913,6 +2913,22 @@ function AvatarOnlyEmbed({ params }) {
     return () => window.removeEventListener("message", handler);
   }, [speechCtx]);
 
+  // Force transparent background on body/root for avatar-only mode
+  useEffect(() => {
+    if (isTransparent) {
+      document.body.style.background = "transparent";
+      document.documentElement.style.background = "transparent";
+      const root = document.getElementById("root");
+      if (root) root.style.background = "transparent";
+    }
+    return () => {
+      document.body.style.background = "";
+      document.documentElement.style.background = "";
+      const root = document.getElementById("root");
+      if (root) root.style.background = "";
+    };
+  }, [isTransparent]);
+
   return (
     <div style={{
       width: "100vw", height: "100vh", position: "relative", overflow: "hidden",
