@@ -844,6 +844,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     var zoom = f.getAttribute('data-zoom') || '65';
     var fy = f.getAttribute('data-fy') || '5';
     var fx = f.getAttribute('data-fx') || '0';
+    f.allow = 'microphone; autoplay';
     f.src = origin + '/?mode=avatar-only&frameZoom=' + zoom + '&frameY=' + fy + '&frameX=' + fx + '&bgColor=transparent';
   });
 })();
@@ -871,6 +872,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
               }}
               scrolling={p.scrolling === false ? "no" : "yes"}
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              allow="microphone; autoplay"
               title="HTML embed"
             />
           </div>
