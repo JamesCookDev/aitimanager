@@ -3988,7 +3988,7 @@ const portoFuturo: CanvasState = (() => {
         bgColor: 'transparent',
         colors: { shirt: '#0d47a1', pants: '#374151', shoes: '#1a1a1a', skin: '#d4a088', hair: '#5a3825' },
         frameY: 0, frameZoom: 55, frameX: 0,
-        fixedOnScreen: true,
+        fixedOnScreen: false,
       }, { viewId: '__global__', name: 'Avatar 3D', zIndex: 10 }),
 
       // Duplicate iframe for Restaurantes page (same HTML, different active page)

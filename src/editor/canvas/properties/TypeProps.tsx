@@ -382,7 +382,7 @@ export function TypeProps({ type, props, onChange, views }: { type: string; prop
               <Label className="text-[11px]">📌 Fixar na tela</Label>
               <span className="text-[9px] text-muted-foreground block">Avatar fica fixo mesmo ao rolar o conteúdo</span>
             </div>
-            <Switch checked={props.fixedOnScreen !== false} onCheckedChange={set('fixedOnScreen')} />
+            <Switch checked={props.fixedOnScreen === true} onCheckedChange={set('fixedOnScreen')} />
           </div>
           <NavigationActionSection props={props} onChange={onChange} views={views} />
         </Section>
