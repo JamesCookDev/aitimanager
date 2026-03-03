@@ -43,7 +43,7 @@ export function useCMSConfig(options = {}) {
 
   // ──────────────────────────────────────────────────────────────────
   // 1. FETCH polling — busca a config completa na edge function
-  // ──────────────────────────────────────────────────────────────────
+  // ───────────��──────────────────────────────────────────────────────
   const fetchConfig = useCallback(async () => {
     if (!CMS_API_URL || !API_KEY) {
       console.warn('[CMS] VITE_CMS_API_URL ou VITE_TOTEM_API_KEY não configurados.');
