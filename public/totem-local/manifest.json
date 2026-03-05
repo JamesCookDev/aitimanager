@@ -19,8 +19,8 @@
       "critical": false
     },
     "hooks/useSpeech.jsx": {
-      "version": "2.3.0",
-      "description": "VAD, MediaRecorder, fila de mensagens do avatar, SpeechProvider, speakDirect para Chat IA",
+      "version": "2.4.0",
+      "description": "VAD, MediaRecorder, fila de mensagens do avatar, SpeechProvider, speakDirect, fallback seguro para R3F Canvas",
       "critical": true
     },
     "hooks/useCMSConfig.js": {
