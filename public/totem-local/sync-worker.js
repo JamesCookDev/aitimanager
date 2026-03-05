@@ -205,6 +205,24 @@ async function syncFiles() {
 
       ensureDir(localPath);
       backupFile(localPath);
+
+      // ── Cleanup: remover variantes com extensão diferente ──
+      // Ex: se o manifest tem Avatar.jsx, remove Avatar.js (e vice-versa)
+      const ext = path.extname(fileName);
+      const base = fileName.replace(ext, '');
+      const altExts = { '.jsx': ['.js', '.ts', '.tsx'], '.js': ['.jsx', '.ts', '.tsx'], '.ts': ['.js', '.jsx', '.tsx'], '.tsx': ['.js', '.jsx', '.ts'] };
+      for (const altExt of (altExts[ext] || [])) {
+        const altPath = path.join(LOCAL_DIR, base + altExt);
+        if (fs.existsSync(altPath)) {
+          log(`🧹 Removendo variante antiga: ${base + altExt}`);
+          backupFile(altPath);
+          fs.unlinkSync(altPath);
+          // Limpa do state também
+          const altKey = base + altExt;
+          if (state.files[altKey]) delete state.files[altKey];
+        }
+      }
+
       fs.writeFileSync(localPath, content, 'utf8');
 
       if (!state.files) state.files = {};
