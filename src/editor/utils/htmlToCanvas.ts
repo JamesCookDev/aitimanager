@@ -23,7 +23,6 @@ function normalizeColor(raw: string): string {
 function isDark(color: string): boolean {
   if (!color) return false;
   if (color.includes('rgba') || color.includes('hsla')) return false;
-  // Simple heuristic for hex colors
   if (color.startsWith('#')) {
     const hex = color.replace('#', '');
     if (hex.length >= 6) {
@@ -57,6 +56,8 @@ function getComputedStyles(el: HTMLElement) {
     opacity: parseFloat(cs.opacity) || 1,
     backgroundImage: cs.backgroundImage,
     padding: parseFloat(cs.padding) || 0,
+    display: cs.display,
+    gap: parseFloat(cs.gap) || 0,
   };
 }
 
@@ -93,12 +94,151 @@ function makeElement(
   };
 }
 
+/* ── List extractor (ul, ol, dl) ─────────────────────────────────── */
+
+function extractListItems(node: HTMLElement): { label: string; description?: string }[] {
+  const items: { label: string; description?: string }[] = [];
+  const tag = node.tagName.toLowerCase();
+
+  if (tag === 'dl') {
+    const children = Array.from(node.children);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child.tagName.toLowerCase() === 'dt') {
+        const dd = children[i + 1];
+        items.push({
+          label: child.textContent?.trim() || '',
+          description: dd?.tagName.toLowerCase() === 'dd' ? dd.textContent?.trim() : undefined,
+        });
+        if (dd?.tagName.toLowerCase() === 'dd') i++;
+      }
+    }
+  } else {
+    node.querySelectorAll(':scope > li').forEach(li => {
+      items.push({ label: li.textContent?.trim() || '' });
+    });
+  }
+  return items;
+}
+
+/* ── Table extractor ─────────────────────────────────────────────── */
+
+function extractTableData(table: HTMLElement): { headers: string[]; rows: string[][] } {
+  const headers: string[] = [];
+  const rows: string[][] = [];
+
+  table.querySelectorAll('thead th, thead td').forEach(th => {
+    headers.push(th.textContent?.trim() || '');
+  });
+
+  // If no thead, use first row as headers
+  const bodyRows = table.querySelectorAll('tbody tr, :scope > tr');
+  bodyRows.forEach((tr, idx) => {
+    const cells: string[] = [];
+    tr.querySelectorAll('td, th').forEach(td => cells.push(td.textContent?.trim() || ''));
+    if (idx === 0 && headers.length === 0) {
+      headers.push(...cells);
+    } else {
+      rows.push(cells);
+    }
+  });
+
+  return { headers, rows };
+}
+
+/* ── Form extractor ──────────────────────────────────────────────── */
+
+function extractFormFields(form: HTMLElement): { label: string; type: string; placeholder?: string; required?: boolean; options?: string[] }[] {
+  const fields: { label: string; type: string; placeholder?: string; required?: boolean; options?: string[] }[] = [];
+
+  const inputs = form.querySelectorAll('input, textarea, select');
+  inputs.forEach(input => {
+    const el = input as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const tag = el.tagName.toLowerCase();
+    const inputType = (el as HTMLInputElement).type || 'text';
+
+    // Skip hidden and submit inputs
+    if (inputType === 'hidden' || inputType === 'submit' || inputType === 'button') return;
+
+    // Try to find associated label
+    let labelText = '';
+    const id = el.id;
+    if (id) {
+      const labelEl = form.querySelector(`label[for="${id}"]`);
+      if (labelEl) labelText = labelEl.textContent?.trim() || '';
+    }
+    if (!labelText) {
+      const parent = el.closest('label');
+      if (parent) labelText = getDirectText(parent).trim();
+    }
+    if (!labelText) {
+      labelText = el.getAttribute('placeholder') || el.getAttribute('name') || inputType;
+    }
+
+    const field: typeof fields[0] = {
+      label: labelText,
+      type: tag === 'textarea' ? 'textarea' : tag === 'select' ? 'select' : inputType,
+      placeholder: el.getAttribute('placeholder') || undefined,
+      required: el.hasAttribute('required'),
+    };
+
+    if (tag === 'select') {
+      field.options = Array.from((el as HTMLSelectElement).options).map(o => o.textContent?.trim() || o.value);
+    }
+
+    fields.push(field);
+  });
+
+  return fields;
+}
+
+/* ── Nav link extractor ──────────────────────────────────────────── */
+
+function extractNavLinks(nav: HTMLElement): { label: string; icon?: string }[] {
+  const links: { label: string; icon?: string }[] = [];
+  nav.querySelectorAll('a, button, [role="menuitem"]').forEach(el => {
+    const text = el.textContent?.trim();
+    if (text && text.length < 50) {
+      links.push({ label: text });
+    }
+  });
+  return links;
+}
+
+/* ── Progress bar detector ───────────────────────────────────────── */
+
+function isProgressBar(node: HTMLElement, cs: ReturnType<typeof getComputedStyles>): number | null {
+  // Check for role="progressbar" or <progress>
+  const tag = node.tagName.toLowerCase();
+  if (tag === 'progress') {
+    return parseFloat(node.getAttribute('value') || '0') / parseFloat(node.getAttribute('max') || '100') * 100;
+  }
+  if (node.getAttribute('role') === 'progressbar') {
+    const val = node.getAttribute('aria-valuenow');
+    const max = node.getAttribute('aria-valuemax') || '100';
+    if (val) return (parseFloat(val) / parseFloat(max)) * 100;
+  }
+  // Heuristic: narrow tall-colored child inside a wider container
+  if (node.children.length === 1) {
+    const child = node.children[0] as HTMLElement;
+    const childCs = getComputedStyles(child);
+    const parentRect = node.getBoundingClientRect();
+    const childRect = child.getBoundingClientRect();
+    if (parentRect.height < 30 && parentRect.width > 60
+        && childCs.bgColor && childCs.bgColor !== 'rgba(0, 0, 0, 0)'
+        && childRect.width < parentRect.width
+        && childRect.height >= parentRect.height * 0.6) {
+      return Math.round((childRect.width / parentRect.width) * 100);
+    }
+  }
+  return null;
+}
+
 /* ── Main parser ─────────────────────────────────────────────────── */
 
 export function parseHTMLToCanvas(htmlString: string): ParsedHTML {
   const trimmed = htmlString.trim();
 
-  // Create an invisible container to render the HTML
   const container = document.createElement('div');
   container.style.cssText = `
     position: fixed; top: -9999px; left: -9999px;
@@ -118,7 +258,6 @@ export function parseHTMLToCanvas(htmlString: string): ParsedHTML {
       const styleEl = document.createElement('style');
       styleEl.textContent = tag.textContent || '';
       document.head.appendChild(styleEl);
-      // Clean up later
       setTimeout(() => styleEl.remove(), 100);
     });
 
@@ -149,7 +288,7 @@ export function parseHTMLToCanvas(htmlString: string): ParsedHTML {
 
     // Walk the DOM tree
     function processElement(node: HTMLElement, depth = 0) {
-      if (depth > 20) return; // Safety limit
+      if (depth > 20) return;
 
       const tag = node.tagName?.toLowerCase();
       if (!tag) return;
@@ -217,6 +356,148 @@ export function parseHTMLToCanvas(htmlString: string): ParsedHTML {
           color: cs.color,
         }, 'Ícone', scaleX, scaleY, originX, originY, cs.opacity));
         return;
+      }
+
+      // ── PROGRESS / progressbar → animated-number ──
+      const progressValue = isProgressBar(node, cs);
+      if (progressValue !== null) {
+        elements.push(makeElement('animated-number', box, {
+          value: progressValue,
+          max: 100,
+          suffix: '%',
+          prefix: '',
+          duration: 1.5,
+          color: cs.bgColor || cs.color || '#6366f1',
+          fontSize: Math.max(16, Math.round(cs.fontSize * scaleX)),
+        }, `Progresso: ${progressValue}%`, scaleX, scaleY, originX, originY, cs.opacity));
+        return;
+      }
+
+      // ── TABLE → list element (rows as items) ──
+      if (tag === 'table') {
+        const { headers, rows } = extractTableData(node);
+        if (headers.length > 0) {
+          const items = rows.map(row => {
+            const obj: Record<string, string> = {};
+            headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+            return { label: Object.values(obj).join(' • '), description: '' };
+          });
+          elements.push(makeElement('list', box, {
+            items: items.length > 0 ? items : headers.map(h => ({ label: h, description: '' })),
+            layout: 'list',
+            columns: 1,
+            gap: 4,
+            showBorder: true,
+            borderColor: cs.borderColor || 'rgba(255,255,255,0.1)',
+            bgColor: cs.bgColor || 'transparent',
+            textColor: cs.color || '#ffffff',
+            fontSize: Math.max(12, Math.round(cs.fontSize * scaleX)),
+            headerText: headers.join(' | '),
+            showHeader: true,
+          }, `Tabela: ${headers.length} colunas`, scaleX, scaleY, originX, originY, cs.opacity));
+        }
+        return;
+      }
+
+      // ── UL / OL / DL → list element ──
+      if (tag === 'ul' || tag === 'ol' || tag === 'dl') {
+        const items = extractListItems(node);
+        if (items.length > 0) {
+          elements.push(makeElement('list', box, {
+            items,
+            layout: 'list',
+            columns: 1,
+            gap: 4,
+            showBorder: false,
+            bgColor: cs.bgColor || 'transparent',
+            textColor: cs.color || '#ffffff',
+            fontSize: Math.max(12, Math.round(cs.fontSize * scaleX)),
+            ordered: tag === 'ol',
+          }, `Lista: ${items.length} itens`, scaleX, scaleY, originX, originY, cs.opacity));
+        }
+        return;
+      }
+
+      // ── FORM → form element ──
+      if (tag === 'form') {
+        const fields = extractFormFields(node);
+        if (fields.length > 0) {
+          // Try to find form title
+          const heading = node.querySelector('h1, h2, h3, h4, legend');
+          const title = heading?.textContent?.trim() || 'Formulário';
+          const submitBtn = node.querySelector('button[type="submit"], input[type="submit"]');
+          const submitLabel = submitBtn?.textContent?.trim() || submitBtn?.getAttribute('value') || 'Enviar';
+
+          elements.push(makeElement('form', box, {
+            title,
+            fields: fields.map(f => ({
+              id: `field_${uid()}`,
+              label: f.label,
+              type: f.type === 'email' ? 'email' : f.type === 'tel' ? 'phone' : f.type === 'number' ? 'number' : f.type === 'textarea' ? 'textarea' : f.type === 'select' ? 'select' : 'text',
+              placeholder: f.placeholder || '',
+              required: f.required || false,
+              options: f.options,
+            })),
+            submitLabel,
+            bgColor: cs.bgColor || 'transparent',
+            textColor: cs.color || '#ffffff',
+            accentColor: '#6366f1',
+            borderRadius: Math.round(cs.borderRadius * scaleX),
+          }, `Formulário: ${title}`, scaleX, scaleY, originX, originY, cs.opacity));
+        }
+        return;
+      }
+
+      // ── NAV → list of navigation items ──
+      if (tag === 'nav') {
+        const links = extractNavLinks(node);
+        if (links.length > 0) {
+          elements.push(makeElement('list', box, {
+            items: links.map(l => ({ label: l.label, description: '' })),
+            layout: 'horizontal',
+            columns: links.length,
+            gap: 8,
+            showBorder: false,
+            bgColor: cs.bgColor || 'transparent',
+            textColor: cs.color || '#ffffff',
+            fontSize: Math.max(12, Math.round(cs.fontSize * scaleX)),
+          }, `Nav: ${links.length} links`, scaleX, scaleY, originX, originY, cs.opacity));
+        }
+        return;
+      }
+
+      // ── INPUT / SELECT / TEXTAREA (standalone, not inside a form) ──
+      if ((tag === 'input' || tag === 'select' || tag === 'textarea') && !node.closest('form')) {
+        const inputType = (node as HTMLInputElement).type || 'text';
+        if (inputType !== 'hidden' && inputType !== 'submit' && inputType !== 'button') {
+          const placeholder = node.getAttribute('placeholder') || node.getAttribute('name') || '';
+          // Find label
+          let labelText = '';
+          const id = node.id;
+          if (id) {
+            const labelEl = container.querySelector(`label[for="${id}"]`);
+            if (labelEl) labelText = labelEl.textContent?.trim() || '';
+          }
+          if (!labelText) labelText = placeholder || inputType;
+
+          elements.push(makeElement('form', box, {
+            title: '',
+            fields: [{
+              id: `field_${uid()}`,
+              label: labelText,
+              type: inputType === 'email' ? 'email' : inputType === 'tel' ? 'phone' : inputType === 'number' ? 'number' : tag === 'textarea' ? 'textarea' : tag === 'select' ? 'select' : 'text',
+              placeholder: placeholder,
+              required: node.hasAttribute('required'),
+              options: tag === 'select' ? Array.from((node as HTMLSelectElement).options).map(o => o.textContent?.trim() || o.value) : undefined,
+            }],
+            submitLabel: 'Enviar',
+            bgColor: 'transparent',
+            textColor: cs.color || '#ffffff',
+            accentColor: '#6366f1',
+            borderRadius: Math.round(cs.borderRadius * scaleX),
+          }, `Campo: ${labelText}`, scaleX, scaleY, originX, originY, cs.opacity));
+          return;
+        }
       }
 
       // ── Text-only nodes (leaf elements with text content) ──
@@ -338,7 +619,6 @@ function getDirectText(node: HTMLElement): string {
       text += child.textContent || '';
     } else if (child.nodeType === Node.ELEMENT_NODE) {
       const tag = (child as HTMLElement).tagName?.toLowerCase();
-      // Include inline elements' text
       if (['span', 'strong', 'em', 'b', 'i', 'u', 'a', 'mark', 'small', 'sub', 'sup', 'br'].includes(tag)) {
         text += child.textContent || '';
       }
