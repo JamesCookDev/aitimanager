@@ -183,6 +183,7 @@ export type Database = {
           created_at: string
           current_version_id: string | null
           description: string | null
+          hardware_id: string | null
           id: string
           is_speaking: boolean | null
           last_interaction: string | null
@@ -204,6 +205,7 @@ export type Database = {
           created_at?: string
           current_version_id?: string | null
           description?: string | null
+          hardware_id?: string | null
           id?: string
           is_speaking?: boolean | null
           last_interaction?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           created_at?: string
           current_version_id?: string | null
           description?: string | null
+          hardware_id?: string | null
           id?: string
           is_speaking?: boolean | null
           last_interaction?: string | null

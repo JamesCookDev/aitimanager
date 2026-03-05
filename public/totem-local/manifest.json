@@ -1,11 +1,11 @@
 {
-  "hub_version": "4.22.0",
-  "updated_at": "2026-03-03",
+  "hub_version": "4.23.0",
+  "updated_at": "2026-03-05",
   "description": "Manifesto de versões dos arquivos do totem local. Mantido automaticamente pelo Hub.",
   "files": {
     "App.jsx": {
-      "version": "4.22.0",
-      "description": "Aplicação principal — renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge, avatar-only embed mode",
+      "version": "4.23.0",
+      "description": "Aplicação principal — auto-registro por hardware_id, renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge",
       "critical": true
     },
     "main.jsx": {
