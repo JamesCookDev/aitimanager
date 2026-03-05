@@ -91,15 +91,20 @@ function useConfigPoller(onUpdate) {
   const fetchLatest = useCallback(async () => {
     try {
       const apiUrl = import.meta.env.VITE_CMS_API_URL;
+      const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || "";
       const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-      if (!apiUrl || !apiKey) return;
+      if (!apiUrl || (!deviceId && !apiKey)) return;
 
-      const res = await fetch(`${apiUrl}/totem-config`, {
-        headers: {
-          "x-totem-api-key": apiKey,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
-        },
-      });
+      const headers = {
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+      };
+      if (deviceId) {
+        headers["x-totem-device-id"] = deviceId;
+      } else {
+        headers["x-totem-api-key"] = apiKey;
+      }
+
+      const res = await fetch(`${apiUrl}/totem-config`, { headers });
       if (!res.ok) return;
 
       const json = await res.json();
@@ -144,16 +149,23 @@ function useHeartbeat() {
   const sendHeartbeat = useCallback(async () => {
     try {
       const apiUrl = import.meta.env.VITE_CMS_API_URL;
+      const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || "";
       const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-      if (!apiUrl || !apiKey) return;
+      if (!apiUrl || (!deviceId && !apiKey)) return;
+
+      const headers = {
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+        "Content-Type": "application/json",
+      };
+      if (deviceId) {
+        headers["x-totem-device-id"] = deviceId;
+      } else {
+        headers["x-totem-api-key"] = apiKey;
+      }
 
       const res = await fetch(`${apiUrl}/totem-heartbeat`, {
         method: "POST",
-        headers: {
-          "x-totem-api-key": apiKey,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           is_speaking: false,
           status_details: {

@@ -13,8 +13,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const CMS_API_URL    = import.meta.env.VITE_CMS_API_URL    || '';
 const API_KEY        = import.meta.env.VITE_TOTEM_API_KEY  || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const DEVICE_ID      = import.meta.env.VITE_TOTEM_DEVICE_ID || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const POLL_INTERVAL  = parseInt(import.meta.env.VITE_CMS_POLL_INTERVAL) || 15000;
 
 // Extrair URL base do Supabase a partir da URL da edge function
@@ -45,8 +45,8 @@ export function useCMSConfig(options = {}) {
   // 1. FETCH polling — busca a config completa na edge function
   // ───────────��──────────────────────────────────────────────────────
   const fetchConfig = useCallback(async () => {
-    if (!CMS_API_URL || !API_KEY) {
-      console.warn('[CMS] VITE_CMS_API_URL ou VITE_TOTEM_API_KEY não configurados.');
+    if (!CMS_API_URL || (!DEVICE_ID && !API_KEY)) {
+      console.warn('[CMS] VITE_CMS_API_URL ou VITE_TOTEM_DEVICE_ID não configurados.');
       setLoading(false);
       return;
     }
@@ -55,13 +55,19 @@ export function useCMSConfig(options = {}) {
     abortRef.current = new AbortController();
 
     try {
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      };
+      if (DEVICE_ID) {
+        headers['x-totem-device-id'] = DEVICE_ID;
+      } else {
+        headers['x-totem-api-key'] = API_KEY;
+      }
+
       const res = await fetch(`${CMS_API_URL}/totem-config`, {
         method: 'GET',
-        headers: {
-          'x-totem-api-key': API_KEY,
-          'apikey': SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
+        headers,
         signal: abortRef.current.signal,
       });
 

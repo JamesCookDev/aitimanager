@@ -2,23 +2,21 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key, x-totem-device-id',
 }
 
-/**
- * Endpoint exclusivo para o sync-worker buscar comandos pendentes
- * SEM atualizar last_ping (não interfere no status online/offline do totem)
- */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const deviceId = req.headers.get('x-totem-device-id')
     const apiKey = req.headers.get('x-totem-api-key')
-    if (!apiKey) {
+
+    if (!deviceId && !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key obrigatória' }),
+        JSON.stringify({ error: 'Device ID ou API key obrigatória' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -28,12 +26,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Busca apenas o pending_command, sem tocar em last_ping
-    const { data: device, error } = await supabase
+    let query = supabase
       .from('devices')
       .select('id, pending_command')
-      .eq('api_key', apiKey)
-      .single()
+
+    if (deviceId) {
+      query = query.eq('id', deviceId)
+    } else {
+      query = query.eq('api_key', apiKey!)
+    }
+
+    const { data: device, error } = await query.single()
 
     if (error || !device) {
       return new Response(
@@ -44,15 +47,12 @@ Deno.serve(async (req) => {
 
     const command = device.pending_command || null
 
-    // Se houver comando, limpa sem alterar last_ping e registra no audit log
     if (command) {
-      // Clear pending command
       await supabase
         .from('devices')
         .update({ pending_command: null, command_sent_at: null })
         .eq('id', device.id)
 
-      // Mark matching command_logs as 'delivered'
       await supabase
         .from('command_logs')
         .update({ status: 'delivered', executed_at: new Date().toISOString() })
