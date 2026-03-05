@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef, useState, useEffect, DragEvent } from 
 import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
-  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2,
+  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,6 +30,7 @@ import { PageVariablesProvider } from './PageVariablesContext';
 import { TotemFrame } from './TotemFrame';
 import { ZoneGuides } from './ZoneGuides';
 import { SVGImportDialog } from './SVGImportDialog';
+import { SavedLayoutsDialog } from './SavedLayoutsDialog';
 import { applyFieldOverrides } from '../utils/htmlEditableFields';
 import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
 
@@ -155,6 +156,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
   const [showSvgImport, setShowSvgImport] = useState(false);
+  const [showSavedLayouts, setShowSavedLayouts] = useState(false);
   const [selectedNavElement, setSelectedNavElement] = useState<{
     selector: string; tag: string; text: string; currentNavigate: string; elementId: string;
   } | null>(null);
@@ -436,6 +438,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-xs gap-2.5">
                   <FileCode2 className="w-3.5 h-3.5" /> Importar Design (HTML/SVG)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-xs gap-2.5">
+                  <FolderOpen className="w-3.5 h-3.5" /> Layouts Salvos
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
@@ -820,6 +825,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: imported.bgColor });
         }
       }}
+    />
+
+    <SavedLayoutsDialog
+      open={showSavedLayouts}
+      onOpenChange={setShowSavedLayouts}
+      currentState={state}
+      onLoad={(loaded) => dispatch({ type: 'LOAD', state: loaded })}
     />
     </PageVariablesProvider>
   );
