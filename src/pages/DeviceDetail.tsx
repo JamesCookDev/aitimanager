@@ -333,8 +333,8 @@ export default function DeviceDetail() {
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Criado em</p>
-                  <p className="text-foreground text-sm">{format(new Date(device.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Primeiro Boot</p>
+                  <p className="text-foreground text-sm">{format(new Date(device.created_at), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
                 </div>
               </CardContent>
             </Card>

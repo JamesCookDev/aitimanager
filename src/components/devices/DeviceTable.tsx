@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Table,
@@ -128,6 +128,9 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
               Localização
             </TableHead>
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
+              Primeiro Boot
+            </TableHead>
+            <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider">
               Último Ping
             </TableHead>
             <TableHead className="text-muted-foreground font-semibold uppercase text-xs tracking-wider text-right">
@@ -198,6 +201,11 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(device.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <span
