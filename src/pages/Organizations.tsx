@@ -54,6 +54,7 @@ import {
   ExternalLink,
   RotateCcw,
   Settings,
+  Copy,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -324,6 +325,23 @@ export default function Organizations() {
                             <code className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded hidden sm:inline">
                               {org.slug}
                             </code>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <code className="text-[10px] font-mono text-muted-foreground/70 bg-muted/40 px-1.5 py-0.5 rounded select-all">
+                              {org.id}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(org.id);
+                                toast.success('ORG_ID copiado!');
+                              }}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
