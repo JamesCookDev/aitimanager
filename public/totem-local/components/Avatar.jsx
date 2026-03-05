@@ -150,25 +150,13 @@ export function Avatar(props) {
     });
   }, [scene, colors, defaultRoughness, defaultMetalness]);
 
-  // ── Log animações disponíveis ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (actions) {
-      const names = Object.keys(actions);
-      console.log('[Avatar] Animações disponíveis:', names);
-    }
-  }, [actions]);
-
   // ── Animação de corpo ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!actions) return;
-    const names = Object.keys(actions);
     const anim = message ? (message.animation || talkingAnimation) : idleAnimation;
-    // Usa a animação configurada; fallback para a primeira disponível
-    const finalAnim = actions[anim] ? anim : (names[0] || null);
-    if (finalAnim && actions[finalAnim]) {
-      console.log(`[Avatar] Tocando animação: "${finalAnim}" (solicitada: "${anim}")`);
-      actions[finalAnim].reset().fadeIn(0.5).play();
-      return () => actions[finalAnim]?.fadeOut(0.5);
+    if (actions[anim]) {
+      actions[anim].reset().fadeIn(0.5).play();
+      return () => actions[anim]?.fadeOut(0.5);
     }
   }, [message, actions, idleAnimation, talkingAnimation]);
 
@@ -189,14 +177,6 @@ export function Avatar(props) {
   useEffect(() => {
     if (!message) {
       audioRef.current?.pause();
-      audioRef.current = null;
-      return;
-    }
-
-    // _browserTTS messages: audio handled externally by Web Speech API
-    // Avatar just animates (talking animation is already triggered above)
-    if (message._browserTTS) {
-      setLipsync(null); // No lipsync data — avatar will just animate
       audioRef.current = null;
       return;
     }

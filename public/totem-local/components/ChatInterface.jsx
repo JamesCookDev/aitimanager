@@ -161,7 +161,7 @@ export function ChatInterface(p) {
               <span style={{ fontSize: '1.2em' }}>{p.ctaIcon || '💬'}</span>
               {p.ctaButtonText || 'Iniciar Conversa'}
               <span style={{ opacity: 0.8, fontSize: '0.9em', marginLeft: '8px' }}>
-                {dropOpen ? '▲' : '▾'}
+                {dropOpen ? '���' : '▾'}
               </span>
             </button>
           </div>
