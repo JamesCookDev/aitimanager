@@ -2,21 +2,21 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key, x-totem-device-id',
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const deviceId = req.headers.get('x-totem-device-id')
     const apiKey = req.headers.get('x-totem-api-key')
     
-    if (!apiKey) {
+    if (!deviceId && !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key obrigatória' }),
+        JSON.stringify({ error: 'Device ID ou API key obrigatória' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -40,12 +40,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Buscar e atualizar dispositivo pela API key
-    const { data: device, error: fetchError } = await supabase
+    let query = supabase
       .from('devices')
       .select('id, name, avatar_config, model_3d_url, current_version_id, pending_command, ai_prompt')
-      .eq('api_key', apiKey)
-      .single()
+
+    if (deviceId) {
+      query = query.eq('id', deviceId)
+    } else {
+      query = query.eq('api_key', apiKey!)
+    }
+
+    const { data: device, error: fetchError } = await query.single()
 
     if (fetchError || !device) {
       return new Response(
@@ -54,10 +59,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Capturar comando pendente antes de limpar
     const command = device.pending_command || null
 
-    // Atualizar last_ping, status e limpar comando pendente
     const { error: updateError } = await supabase
       .from('devices')
       .update({ 
@@ -74,7 +77,6 @@ Deno.serve(async (req) => {
       console.error('Erro ao atualizar dispositivo:', updateError)
     }
 
-    // Marcar comando como executado no log
     if (command) {
       const { error: logError } = await supabase
         .from('command_logs')
@@ -87,7 +89,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Buscar versão atual do modelo se existir
     let modelUrl = device.model_3d_url
     if (device.current_version_id) {
       const { data: version } = await supabase
@@ -101,7 +102,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Retornar configurações atuais + comando pendente
     return new Response(
       JSON.stringify({
         success: true,

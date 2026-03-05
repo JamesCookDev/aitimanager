@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key, x-totem-device-id',
 }
 
 Deno.serve(async (req) => {
@@ -11,11 +11,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const deviceId = req.headers.get('x-totem-device-id')
     const apiKey = req.headers.get('x-totem-api-key')
     
-    if (!apiKey) {
+    if (!deviceId && !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key obrigatória' }),
+        JSON.stringify({ error: 'Device ID ou API key obrigatória' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { data: device, error: fetchError } = await supabase
+    let query = supabase
       .from('devices')
       .select(`
         id, 
@@ -38,11 +39,17 @@ Deno.serve(async (req) => {
         org_id,
         organization:organizations(name)
       `)
-      .eq('api_key', apiKey)
-      .single()
+
+    if (deviceId) {
+      query = query.eq('id', deviceId)
+    } else {
+      query = query.eq('api_key', apiKey!)
+    }
+
+    const { data: device, error: fetchError } = await query.single()
 
     if (fetchError || !device) {
-      console.warn(`[totem-config] Dispositivo não encontrado para api_key: ${apiKey?.slice(0, 8)}...`)
+      console.warn(`[totem-config] Dispositivo não encontrado — id:${deviceId} / key:${apiKey?.slice(0, 8)}...`)
       return new Response(
         JSON.stringify({ error: 'Dispositivo não encontrado' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -103,7 +110,6 @@ Deno.serve(async (req) => {
     let mergedUi: any
 
     if (storedUi.canvas && storedUi.components) {
-      // New modular format
       const avatarStored = storedUi.components?.avatar || {}
       const avatarDef = defaultConfig.components.avatar
       const models = { ...avatarDef.models, ...(avatarStored.models || {}) }
@@ -142,13 +148,9 @@ Deno.serve(async (req) => {
             },
           },
         },
-        // ── FREE CANVAS: serve the raw free_canvas JSON directly ──
-        // This is the new format from the Page Builder (react-rnd)
-        // Structure: { bgColor: string, elements: Array<{ id, type, x, y, width, height, rotation, zIndex, opacity, visible, props }> }
         free_canvas: storedUi.free_canvas || null,
       }
     } else {
-      // Legacy format
       const layout = storedUi.layout || {}
       mergedUi = {
         canvas: {
@@ -198,10 +200,9 @@ Deno.serve(async (req) => {
     const elementCount = mergedUi.free_canvas?.elements?.length || 0
     console.log(`[totem-config] free_canvas elements: ${elementCount}`)
 
-    // ── AI CONFIG: buscar config de IA (device > org > default) ──
+    // ── AI CONFIG ──
     let aiConfigResult: any = null
 
-    // 1. Config específica do dispositivo
     const { data: deviceAiConfig } = await supabase
       .from('ai_configs')
       .select('*')
@@ -214,7 +215,6 @@ Deno.serve(async (req) => {
     if (deviceAiConfig) {
       aiConfigResult = deviceAiConfig
     } else {
-      // 2. Fallback: config geral da org
       const { data: orgAiConfig } = await supabase
         .from('ai_configs')
         .select('*')

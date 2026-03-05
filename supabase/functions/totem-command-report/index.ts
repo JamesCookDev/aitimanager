@@ -2,23 +2,21 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key, x-totem-device-id',
 }
 
-/**
- * Endpoint para o worker reportar resultado de execução de comandos.
- * POST { command: string, status: 'executed' | 'failed', error?: string }
- */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const deviceIdHeader = req.headers.get('x-totem-device-id')
     const apiKey = req.headers.get('x-totem-api-key')
-    if (!apiKey) {
+
+    if (!deviceIdHeader && !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key obrigatória' }),
+        JSON.stringify({ error: 'Device ID ou API key obrigatória' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -28,11 +26,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { data: device, error: fetchErr } = await supabase
+    let query = supabase
       .from('devices')
       .select('id')
-      .eq('api_key', apiKey)
-      .single()
+
+    if (deviceIdHeader) {
+      query = query.eq('id', deviceIdHeader)
+    } else {
+      query = query.eq('api_key', apiKey!)
+    }
+
+    const { data: device, error: fetchErr } = await query.single()
 
     if (fetchErr || !device) {
       return new Response(
@@ -51,7 +55,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Update the most recent matching log entry
     const { error: updateErr } = await supabase
       .from('command_logs')
       .update({
