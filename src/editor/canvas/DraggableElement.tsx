@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
   const style: React.CSSProperties = {};
 
+  // Gradient
   if (props.gradientDirection && props.gradientDirection !== 'none' && props.gradientFrom && props.gradientTo) {
     if (props.gradientDirection === 'circle') {
       style.background = `radial-gradient(circle, ${props.gradientFrom}, ${props.gradientTo})`;
@@ -18,38 +19,100 @@ function buildVisualStyles(props: Record<string, any>): React.CSSProperties {
     }
   }
 
+  // Shadow
   const shadowMap: Record<string, string> = {
     sm: '0 2px 8px rgba(0,0,0,0.15)',
     md: '0 4px 16px rgba(0,0,0,0.25)',
     lg: '0 8px 32px rgba(0,0,0,0.35)',
+    xl: '0 16px 48px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.2)',
+    inner: 'inset 0 2px 8px rgba(0,0,0,0.3)',
     glow: `0 0 20px 4px ${props.shadowColor || '#6366f1'}80`,
     neon: `0 0 10px ${props.shadowColor || '#6366f1'}, 0 0 30px ${props.shadowColor || '#6366f1'}80, 0 0 60px ${props.shadowColor || '#6366f1'}40`,
+    colored: `0 8px 32px ${props.shadowColor || '#6366f1'}60, 0 2px 8px ${props.shadowColor || '#6366f1'}30`,
+    layered: '0 1px 2px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1), 0 16px 32px rgba(0,0,0,0.15)',
   };
   if (props.shadowPreset && props.shadowPreset !== 'none') {
     style.boxShadow = shadowMap[props.shadowPreset] || 'none';
   }
 
+  // Border
   if (props.borderWidth && props.borderWidth > 0) {
-    style.border = `${props.borderWidth}px solid ${props.borderColor || '#ffffff'}`;
+    style.border = `${props.borderWidth}px ${props.borderStyle || 'solid'} ${props.borderColor || '#ffffff'}`;
+  }
+  if (props.borderRadius != null && props.borderRadius > 0) {
+    style.borderRadius = `${props.borderRadius}px`;
   }
 
+  // Glassmorphism
+  const glassMap: Record<string, { bg: string; blur: number; border: string }> = {
+    subtle: { bg: 'rgba(255,255,255,0.05)', blur: 8, border: 'rgba(255,255,255,0.1)' },
+    medium: { bg: 'rgba(255,255,255,0.1)', blur: 16, border: 'rgba(255,255,255,0.15)' },
+    strong: { bg: 'rgba(255,255,255,0.15)', blur: 24, border: 'rgba(255,255,255,0.2)' },
+    frosted: { bg: 'rgba(255,255,255,0.2)', blur: 32, border: 'rgba(255,255,255,0.25)' },
+  };
+  if (props.glassEffect && props.glassEffect !== 'none' && glassMap[props.glassEffect]) {
+    const glass = glassMap[props.glassEffect];
+    if (!style.background) style.background = glass.bg;
+    style.backdropFilter = `blur(${glass.blur}px)`;
+    style.WebkitBackdropFilter = `blur(${glass.blur}px)`;
+    if (!style.border) style.border = `1px solid ${glass.border}`;
+  }
+
+  // Backdrop blur (manual)
+  if (props.backdropBlur && props.backdropBlur > 0 && !props.glassEffect) {
+    style.backdropFilter = `blur(${props.backdropBlur}px)`;
+    style.WebkitBackdropFilter = `blur(${props.backdropBlur}px)`;
+  }
+
+  // Text shadow
+  const textShadowMap: Record<string, string> = {
+    subtle: '0 1px 3px rgba(0,0,0,0.3)',
+    medium: '0 2px 6px rgba(0,0,0,0.5)',
+    strong: '0 4px 12px rgba(0,0,0,0.7)',
+    glow: `0 0 10px ${props.textShadowColor || '#6366f1'}, 0 0 20px ${props.textShadowColor || '#6366f1'}80`,
+    neon: `0 0 5px ${props.textShadowColor || '#6366f1'}, 0 0 15px ${props.textShadowColor || '#6366f1'}, 0 0 30px ${props.textShadowColor || '#6366f1'}80`,
+    outline: '-1px -1px 0 rgba(0,0,0,0.5), 1px -1px 0 rgba(0,0,0,0.5), -1px 1px 0 rgba(0,0,0,0.5), 1px 1px 0 rgba(0,0,0,0.5)',
+  };
+  if (props.textShadow && props.textShadow !== 'none') {
+    style.textShadow = textShadowMap[props.textShadow] || 'none';
+  }
+
+  // Filters
   const filters: string[] = [];
   if (props.filterBlur) filters.push(`blur(${props.filterBlur}px)`);
   if (props.filterBrightness != null && props.filterBrightness !== 100) filters.push(`brightness(${props.filterBrightness}%)`);
   if (props.filterSaturation != null && props.filterSaturation !== 100) filters.push(`saturate(${props.filterSaturation}%)`);
   if (props.filterGrayscale) filters.push(`grayscale(${props.filterGrayscale}%)`);
+  if (props.filterContrast != null && props.filterContrast !== 100) filters.push(`contrast(${props.filterContrast}%)`);
+  if (props.filterHueRotate) filters.push(`hue-rotate(${props.filterHueRotate}deg)`);
   if (filters.length > 0) style.filter = filters.join(' ');
 
+  // Transform
+  const transforms: string[] = [];
+  if (props.transformRotate) transforms.push(`rotate(${props.transformRotate}deg)`);
+  if (props.transformScale != null && props.transformScale !== 100) transforms.push(`scale(${props.transformScale / 100})`);
+  if (props.transformSkewX) transforms.push(`skewX(${props.transformSkewX}deg)`);
+  if (transforms.length > 0) style.transform = transforms.join(' ');
+
+  // Animation
   if (props.entranceAnimation && props.entranceAnimation !== 'none') {
     const delay = props.entranceDelay || 0;
+    const duration = (props.entranceDuration || 600) / 1000;
     const animMap: Record<string, string> = {
-      fadeIn: 'fadeIn 0.6s ease-out both',
-      slideUp: 'slideUp 0.6s ease-out both',
-      slideLeft: 'slideLeft 0.6s ease-out both',
-      slideRight: 'slideRight 0.6s ease-out both',
-      scaleUp: 'scaleUp 0.5s ease-out both',
-      bounce: 'bounce 0.8s ease-out both',
+      fadeIn: `fadeIn ${duration}s ease-out both`,
+      slideUp: `slideUp ${duration}s ease-out both`,
+      slideDown: `slideDown ${duration}s ease-out both`,
+      slideLeft: `slideLeft ${duration}s ease-out both`,
+      slideRight: `slideRight ${duration}s ease-out both`,
+      scaleUp: `scaleUp ${duration}s ease-out both`,
+      scaleDown: `scaleDown ${duration}s ease-out both`,
+      bounce: `bounce ${duration}s ease-out both`,
       pulse: 'pulse 2s ease-in-out infinite',
+      shake: `shake ${duration}s ease-out both`,
+      flip: `flip ${duration}s ease-out both`,
+      rotate: `rotateIn ${duration}s ease-out both`,
+      float: 'float 3s ease-in-out infinite',
+      'glow-pulse': 'glowPulse 2s ease-in-out infinite',
     };
     style.animation = animMap[props.entranceAnimation] || 'none';
     if (delay > 0) style.animationDelay = `${delay}ms`;

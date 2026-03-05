@@ -56,10 +56,30 @@ const transitionVariants: Record<PageTransition, { initial: any; animate: any; e
     animate: { y: 0, opacity: 1 },
     exit: { y: '-100%', opacity: 0 },
   },
+  'slide-down': {
+    initial: { y: '-100%', opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '100%', opacity: 0 },
+  },
   zoom: {
     initial: { scale: 0.8, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
     exit: { scale: 1.2, opacity: 0 },
+  },
+  flip: {
+    initial: { rotateY: 90, opacity: 0 },
+    animate: { rotateY: 0, opacity: 1 },
+    exit: { rotateY: -90, opacity: 0 },
+  },
+  rotate: {
+    initial: { rotate: -180, scale: 0.5, opacity: 0 },
+    animate: { rotate: 0, scale: 1, opacity: 1 },
+    exit: { rotate: 180, scale: 0.5, opacity: 0 },
+  },
+  blur: {
+    initial: { opacity: 0, filter: 'blur(20px)' },
+    animate: { opacity: 1, filter: 'blur(0px)' },
+    exit: { opacity: 0, filter: 'blur(20px)' },
   },
 };
 

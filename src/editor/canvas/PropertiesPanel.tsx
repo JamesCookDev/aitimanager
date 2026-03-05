@@ -310,6 +310,22 @@ function CollapsibleSection({ title, icon: Icon, defaultOpen = true, children }:
   );
 }
 
+/* ── Gradient Presets ──────────────── */
+const GRADIENT_PRESETS = [
+  { name: 'Sunset', from: '#f97316', to: '#ef4444', dir: 'to bottom' },
+  { name: 'Ocean', from: '#06b6d4', to: '#3b82f6', dir: '135deg' },
+  { name: 'Forest', from: '#22c55e', to: '#059669', dir: 'to bottom' },
+  { name: 'Purple', from: '#a855f7', to: '#6366f1', dir: '135deg' },
+  { name: 'Rose', from: '#f43f5e', to: '#ec4899', dir: 'to right' },
+  { name: 'Gold', from: '#eab308', to: '#f97316', dir: 'to right' },
+  { name: 'Neon Blue', from: '#06b6d4', to: '#8b5cf6', dir: '135deg' },
+  { name: 'Fire', from: '#ef4444', to: '#f59e0b', dir: 'to bottom' },
+  { name: 'Night', from: '#1e293b', to: '#0f172a', dir: 'to bottom' },
+  { name: 'Aurora', from: '#22d3ee', to: '#a855f7', dir: '135deg' },
+  { name: 'Emerald', from: '#10b981', to: '#14b8a6', dir: 'to right' },
+  { name: 'Pink Sky', from: '#f472b6', to: '#c084fc', dir: '135deg' },
+];
+
 /* ── Advanced Visual Props ──────────────── */
 
 function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
@@ -317,17 +333,41 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
 
   return (
     <CollapsibleSection title="Efeitos Visuais" icon={Wand2} defaultOpen={false}>
-      {/* Gradient */}
+      {/* Quick Gradient Presets */}
+      <div className="space-y-1.5">
+        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Gradientes Rápidos</Label>
+        <div className="grid grid-cols-6 gap-1">
+          {GRADIENT_PRESETS.map((g) => (
+            <button
+              key={g.name}
+              title={g.name}
+              onClick={() => onChange({ gradientFrom: g.from, gradientTo: g.to, gradientDirection: g.dir })}
+              className="w-full aspect-square rounded-md border border-border/40 hover:scale-110 transition-transform cursor-pointer"
+              style={{ background: `linear-gradient(${g.dir}, ${g.from}, ${g.to})` }}
+            />
+          ))}
+        </div>
+        {props.gradientDirection && props.gradientDirection !== 'none' && (
+          <button
+            onClick={() => onChange({ gradientDirection: 'none', gradientFrom: '', gradientTo: '' })}
+            className="text-[8px] text-destructive hover:underline cursor-pointer"
+          >
+            ✕ Remover gradiente
+          </button>
+        )}
+      </div>
+
+      {/* Custom Gradient */}
       <div className="space-y-1">
-        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Gradiente</Label>
+        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Gradiente Personalizado</Label>
         <div className="grid grid-cols-2 gap-1.5">
           <div>
             <Label className="text-[9px]">Cor 1</Label>
-            <input type="color" value={props.gradientFrom || ''} onChange={(e) => set('gradientFrom')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
+            <input type="color" value={props.gradientFrom || '#6366f1'} onChange={(e) => set('gradientFrom')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
           </div>
           <div>
             <Label className="text-[9px]">Cor 2</Label>
-            <input type="color" value={props.gradientTo || ''} onChange={(e) => set('gradientTo')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
+            <input type="color" value={props.gradientTo || '#ec4899'} onChange={(e) => set('gradientTo')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
           </div>
         </div>
         <Select value={props.gradientDirection || 'none'} onValueChange={set('gradientDirection')}>
@@ -338,9 +378,37 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
             <SelectItem value="to bottom">↓ Vertical</SelectItem>
             <SelectItem value="135deg">↘ Diagonal</SelectItem>
             <SelectItem value="to top right">↗ Diagonal inv.</SelectItem>
+            <SelectItem value="45deg">↗ 45°</SelectItem>
             <SelectItem value="circle">◉ Radial</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Glassmorphism */}
+      <div className="space-y-1">
+        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Glassmorphism</Label>
+        <div className="flex gap-1.5">
+          {[
+            { value: 'none', label: 'Off' },
+            { value: 'subtle', label: 'Suave' },
+            { value: 'medium', label: 'Médio' },
+            { value: 'strong', label: 'Forte' },
+            { value: 'frosted', label: 'Fosco' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => set('glassEffect')(opt.value)}
+              className={cn(
+                'flex-1 py-1 rounded-md text-[8px] font-medium transition-all border',
+                (props.glassEffect || 'none') === opt.value
+                  ? 'bg-primary/15 border-primary/40 text-primary'
+                  : 'border-border/40 text-muted-foreground hover:border-primary/30'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Shadow */}
@@ -353,13 +421,17 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
             <SelectItem value="sm">Suave</SelectItem>
             <SelectItem value="md">Média</SelectItem>
             <SelectItem value="lg">Grande</SelectItem>
+            <SelectItem value="xl">Extra Grande</SelectItem>
+            <SelectItem value="inner">Interna</SelectItem>
             <SelectItem value="glow">✨ Glow</SelectItem>
             <SelectItem value="neon">💡 Neon</SelectItem>
+            <SelectItem value="colored">🎨 Colorida</SelectItem>
+            <SelectItem value="layered">📐 Multi-camada</SelectItem>
           </SelectContent>
         </Select>
-        {(props.shadowPreset === 'glow' || props.shadowPreset === 'neon') && (
+        {['glow', 'neon', 'colored'].includes(props.shadowPreset) && (
           <div>
-            <Label className="text-[9px]">Cor</Label>
+            <Label className="text-[9px]">Cor da sombra</Label>
             <input type="color" value={props.shadowColor || '#6366f1'} onChange={(e) => set('shadowColor')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
           </div>
         )}
@@ -378,6 +450,45 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
             <input type="color" value={props.borderColor || '#ffffff'} onChange={(e) => set('borderColor')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
           </div>
         </div>
+        <Select value={props.borderStyle || 'solid'} onValueChange={set('borderStyle')}>
+          <SelectTrigger className="h-6 text-[9px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="solid">Sólida</SelectItem>
+            <SelectItem value="dashed">Tracejada</SelectItem>
+            <SelectItem value="dotted">Pontilhada</SelectItem>
+            <SelectItem value="double">Dupla</SelectItem>
+          </SelectContent>
+        </Select>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Arredondamento</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.borderRadius ?? 0}px</span>
+          </div>
+          <Slider value={[props.borderRadius ?? 0]} onValueChange={([v]) => set('borderRadius')(v)} min={0} max={100} step={1} />
+        </div>
+      </div>
+
+      {/* Text Shadow */}
+      <div className="space-y-1">
+        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Sombra de Texto</Label>
+        <Select value={props.textShadow || 'none'} onValueChange={set('textShadow')}>
+          <SelectTrigger className="h-6 text-[9px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            <SelectItem value="subtle">Suave</SelectItem>
+            <SelectItem value="medium">Média</SelectItem>
+            <SelectItem value="strong">Forte</SelectItem>
+            <SelectItem value="glow">✨ Glow</SelectItem>
+            <SelectItem value="neon">💡 Neon</SelectItem>
+            <SelectItem value="outline">Contorno</SelectItem>
+          </SelectContent>
+        </Select>
+        {['glow', 'neon'].includes(props.textShadow) && (
+          <div>
+            <Label className="text-[9px]">Cor</Label>
+            <input type="color" value={props.textShadowColor || '#6366f1'} onChange={(e) => set('textShadowColor')(e.target.value)} className="w-full h-5 rounded cursor-pointer border-0 bg-transparent" />
+          </div>
+        )}
       </div>
 
       {/* Animation */}
@@ -389,19 +500,58 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
             <SelectItem value="none">Nenhuma</SelectItem>
             <SelectItem value="fadeIn">Fade In</SelectItem>
             <SelectItem value="slideUp">Slide ↑</SelectItem>
+            <SelectItem value="slideDown">Slide ↓</SelectItem>
             <SelectItem value="slideLeft">Slide ←</SelectItem>
             <SelectItem value="slideRight">Slide →</SelectItem>
             <SelectItem value="scaleUp">Zoom In</SelectItem>
+            <SelectItem value="scaleDown">Zoom Out</SelectItem>
             <SelectItem value="bounce">Bounce</SelectItem>
             <SelectItem value="pulse">Pulsar</SelectItem>
+            <SelectItem value="shake">Vibrar</SelectItem>
+            <SelectItem value="flip">Flip</SelectItem>
+            <SelectItem value="rotate">Rotacionar</SelectItem>
+            <SelectItem value="float">Flutuar</SelectItem>
+            <SelectItem value="glow-pulse">Glow Pulse</SelectItem>
           </SelectContent>
         </Select>
         {props.entranceAnimation && props.entranceAnimation !== 'none' && (
-          <div>
-            <Label className="text-[9px]">Atraso (ms)</Label>
-            <Input type="number" value={props.entranceDelay || 0} onChange={(e) => set('entranceDelay')(Number(e.target.value))} className="h-6 text-[9px]" step={100} />
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <Label className="text-[9px]">Atraso (ms)</Label>
+              <Input type="number" value={props.entranceDelay || 0} onChange={(e) => set('entranceDelay')(Number(e.target.value))} className="h-6 text-[9px]" step={100} />
+            </div>
+            <div>
+              <Label className="text-[9px]">Duração (ms)</Label>
+              <Input type="number" value={props.entranceDuration || 600} onChange={(e) => set('entranceDuration')(Number(e.target.value))} className="h-6 text-[9px]" step={100} />
+            </div>
           </div>
         )}
+      </div>
+
+      {/* Transform */}
+      <div className="space-y-1.5">
+        <Label className="text-[9px] font-semibold text-muted-foreground/60 uppercase">Transformação</Label>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Rotação</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.transformRotate ?? 0}°</span>
+          </div>
+          <Slider value={[props.transformRotate ?? 0]} onValueChange={([v]) => set('transformRotate')(v)} min={-180} max={180} step={1} />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Escala</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.transformScale ?? 100}%</span>
+          </div>
+          <Slider value={[props.transformScale ?? 100]} onValueChange={([v]) => set('transformScale')(v)} min={10} max={200} step={5} />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Skew X</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.transformSkewX ?? 0}°</span>
+          </div>
+          <Slider value={[props.transformSkewX ?? 0]} onValueChange={([v]) => set('transformSkewX')(v)} min={-45} max={45} step={1} />
+        </div>
       </div>
 
       {/* Filters */}
@@ -416,6 +566,13 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
         </div>
         <div>
           <div className="flex justify-between">
+            <Label className="text-[9px]">Backdrop Blur</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.backdropBlur || 0}px</span>
+          </div>
+          <Slider value={[props.backdropBlur || 0]} onValueChange={([v]) => set('backdropBlur')(v)} min={0} max={30} step={1} />
+        </div>
+        <div>
+          <div className="flex justify-between">
             <Label className="text-[9px]">Brilho</Label>
             <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.filterBrightness ?? 100}%</span>
           </div>
@@ -427,6 +584,27 @@ function AdvancedVisualProps({ props, onChange }: { props: Record<string, any>; 
             <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.filterSaturation ?? 100}%</span>
           </div>
           <Slider value={[props.filterSaturation ?? 100]} onValueChange={([v]) => set('filterSaturation')(v)} min={0} max={200} step={5} />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Contraste</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.filterContrast ?? 100}%</span>
+          </div>
+          <Slider value={[props.filterContrast ?? 100]} onValueChange={([v]) => set('filterContrast')(v)} min={0} max={200} step={5} />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Escala de cinza</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.filterGrayscale ?? 0}%</span>
+          </div>
+          <Slider value={[props.filterGrayscale ?? 0]} onValueChange={([v]) => set('filterGrayscale')(v)} min={0} max={100} step={5} />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Label className="text-[9px]">Hue Rotate</Label>
+            <span className="text-[8px] text-muted-foreground/40 tabular-nums">{props.filterHueRotate ?? 0}°</span>
+          </div>
+          <Slider value={[props.filterHueRotate ?? 0]} onValueChange={([v]) => set('filterHueRotate')(v)} min={0} max={360} step={5} />
         </div>
       </div>
     </CollapsibleSection>
