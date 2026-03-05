@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useRef, useState, useEffect } from 'react';
+import { useReducer, useCallback, useRef, useState, useEffect, DragEvent } from 'react';
 import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
@@ -31,6 +31,7 @@ import { TotemFrame } from './TotemFrame';
 import { ZoneGuides } from './ZoneGuides';
 import { SVGImportDialog } from './SVGImportDialog';
 import { applyFieldOverrides } from '../utils/htmlEditableFields';
+import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -137,6 +138,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [selectedNavElement, setSelectedNavElement] = useState<{
     selector: string; tag: string; text: string; currentNavigate: string; elementId: string;
   } | null>(null);
+  const [dragOverCanvas, setDragOverCanvas] = useState(false);
+
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
     const rect = viewportRef.current.getBoundingClientRect();
@@ -171,9 +174,50 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
   const activePage = views.find(v => v.id === activeViewId);
 
+  /* ── HTML file/text drop handler ── */
+  const handleCanvasDrop = useCallback(async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverCanvas(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+      const html = await file.text();
+      const result = parseHTMLToCanvas(html);
+      if (result.elements.length === 0) { toast.error('Nenhum elemento reconhecido no HTML'); return; }
+      result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
+      dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
+      toast.success(`${result.elements.length} elementos importados do arquivo`);
+      return;
+    }
+
+    const htmlData = e.dataTransfer.getData('text/html') || e.dataTransfer.getData('text/plain');
+    if (htmlData && htmlData.includes('<') && htmlData.includes('>')) {
+      const result = parseHTMLToCanvas(htmlData);
+      if (result.elements.length === 0) { toast.error('Nenhum elemento reconhecido no HTML'); return; }
+      result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
+      if (result.bgColor !== '#0f172a') dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
+      toast.success(`${result.elements.length} elementos importados`);
+    }
+  }, [dispatch, activeViewId]);
+
+  const handleCanvasDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const hasHtml = Array.from(e.dataTransfer.types).some(t => t === 'Files' || t === 'text/html' || t === 'text/plain');
+    if (hasHtml) setDragOverCanvas(true);
+  }, []);
+
+  const handleCanvasDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX <= rect.left || clientX >= rect.right || clientY <= rect.top || clientY >= rect.bottom) {
+      setDragOverCanvas(false);
+    }
+  }, []);
+
   const handleNavigateToPage = useCallback((targetViewId: string, transition: PageTransition = 'fade') => {
     if (!targetViewId || targetViewId === activeViewId) return;
-    // Try matching by ID first, then by name
     let target = views.find(v => v.id === targetViewId);
     if (!target) {
       target = views.find(v => v.name.toLowerCase() === targetViewId.toLowerCase());
@@ -532,7 +576,20 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               backgroundColor: 'hsl(var(--background))',
             }}
             onClick={() => dispatch({ type: 'SELECT', id: null })}
+            onDrop={handleCanvasDrop}
+            onDragOver={handleCanvasDragOver}
+            onDragLeave={handleCanvasDragLeave}
           >
+            {/* Drop overlay */}
+            {dragOverCanvas && (
+              <div className="absolute inset-0 z-50 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center pointer-events-none">
+                <div className="bg-card/90 backdrop-blur-sm rounded-xl px-6 py-4 shadow-xl border border-primary/30 text-center">
+                  <Upload className="w-8 h-8 text-primary mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-foreground">Solte o arquivo HTML aqui</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cada elemento será separado e editável individualmente</p>
+                </div>
+              </div>
+            )}
             <div
               style={{
                 position: 'absolute',
