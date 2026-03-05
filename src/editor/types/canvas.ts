@@ -48,7 +48,7 @@ export interface CanvasView {
 export const DEFAULT_VIEW: CanvasView = { id: '__default__', name: 'Home', isDefault: true };
 
 export type ButtonActionType = 'prompt' | 'url' | 'navigate';
-export type PageTransition = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom';
+export type PageTransition = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'slide-down' | 'zoom' | 'flip' | 'rotate' | 'blur';
 
 export interface CanvasElement {
   id: string;
