@@ -84,25 +84,96 @@ function useLivePreview(deviceId, onLiveUpdate) {
 
   return isLive;
 }
+// ─────────────────────────────────────────────
+// 🆔 AUTO-REGISTRO — registra o totem automaticamente no primeiro boot
+// Usa hardware_id (hostname ou UUID persistido em localStorage)
+// Precisa apenas de VITE_ORG_ID no .env (compartilhado por org)
+// ─────────────────────────────────────────────
+function getHardwareId() {
+  // Tenta hostname do OS (Electron) ou gera UUID persistido
+  try {
+    const os = window.require?.("os");
+    if (os?.hostname) return os.hostname();
+  } catch (_) {}
+  // Fallback: UUID persistido em localStorage
+  let hwid = localStorage.getItem("totem_hardware_id");
+  if (!hwid) {
+    hwid = crypto.randomUUID?.() || `totem-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem("totem_hardware_id", hwid);
+  }
+  return hwid;
+}
 
-function useConfigPoller(onUpdate) {
+function useAutoRegister() {
+  const [deviceId, setDeviceId] = useState(() => {
+    return import.meta.env.VITE_TOTEM_DEVICE_ID || localStorage.getItem("totem_device_id") || null;
+  });
+  const [registering, setRegistering] = useState(false);
+
+  useEffect(() => {
+    if (deviceId) return; // Já tem ID
+
+    const apiUrl = import.meta.env.VITE_CMS_API_URL;
+    const orgId = import.meta.env.VITE_ORG_ID;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+    if (!apiUrl || !orgId) {
+      console.warn("[AutoRegister] VITE_CMS_API_URL e VITE_ORG_ID são necessários para auto-registro.");
+      return;
+    }
+
+    const register = async () => {
+      setRegistering(true);
+      try {
+        const hardwareId = getHardwareId();
+        console.log(`[AutoRegister] Registrando hardware: ${hardwareId}`);
+
+        const res = await fetch(`${apiUrl}/totem-register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: anonKey },
+          body: JSON.stringify({
+            hardware_id: hardwareId,
+            org_id: orgId,
+            name: import.meta.env.VITE_TOTEM_NAME || undefined,
+            location: import.meta.env.VITE_TOTEM_LOCATION || undefined,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data.device?.id) {
+          localStorage.setItem("totem_device_id", data.device.id);
+          setDeviceId(data.device.id);
+          console.log(`[AutoRegister] ✅ ${data.registered ? "Novo dispositivo" : "Dispositivo existente"}: ${data.device.name} (${data.device.id})`);
+        }
+      } catch (err) {
+        console.error("[AutoRegister] ❌ Falha:", err.message);
+        // Retry after 30s
+        setTimeout(register, 30_000);
+      } finally {
+        setRegistering(false);
+      }
+    };
+
+    register();
+  }, [deviceId]);
+
+  return { deviceId, registering };
+}
+
+function useConfigPoller(deviceId, onUpdate) {
   const lastHashRef = useRef("");
 
   const fetchLatest = useCallback(async () => {
     try {
       const apiUrl = import.meta.env.VITE_CMS_API_URL;
-      const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || "";
-      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-      if (!apiUrl || (!deviceId && !apiKey)) return;
+      if (!apiUrl || !deviceId) return;
 
       const headers = {
         apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+        "x-totem-device-id": deviceId,
       };
-      if (deviceId) {
-        headers["x-totem-device-id"] = deviceId;
-      } else {
-        headers["x-totem-api-key"] = apiKey;
-      }
 
       const res = await fetch(`${apiUrl}/totem-config`, { headers });
       if (!res.ok) return;
@@ -119,13 +190,14 @@ function useConfigPoller(onUpdate) {
     } catch (err) {
       console.warn("[Poller] Falha ao buscar config:", err.message);
     }
-  }, [onUpdate]);
+  }, [deviceId, onUpdate]);
 
   useEffect(() => {
+    if (!deviceId) return;
     fetchLatest();
     const id = setInterval(fetchLatest, POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [fetchLatest]);
+  }, [fetchLatest, deviceId]);
 }
 
 // ─────────────────────────────────────────────
@@ -145,23 +217,17 @@ const LOCAL_FILE_VERSIONS = {
 // ─────────────────────────────────────────────
 // 🔄 HEARTBEAT WORKER
 // ─────────────────────────────────────────────
-function useHeartbeat() {
+function useHeartbeat(deviceId) {
   const sendHeartbeat = useCallback(async () => {
     try {
       const apiUrl = import.meta.env.VITE_CMS_API_URL;
-      const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || "";
-      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-      if (!apiUrl || (!deviceId && !apiKey)) return;
+      if (!apiUrl || !deviceId) return;
 
       const headers = {
         "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
         "Content-Type": "application/json",
+        "x-totem-device-id": deviceId,
       };
-      if (deviceId) {
-        headers["x-totem-device-id"] = deviceId;
-      } else {
-        headers["x-totem-api-key"] = apiKey;
-      }
 
       const res = await fetch(`${apiUrl}/totem-heartbeat`, {
         method: "POST",
@@ -190,13 +256,14 @@ function useHeartbeat() {
     } catch (err) {
       console.error("[Heartbeat] ❌ Erro:", err.message);
     }
-  }, []);
+  }, [deviceId]);
 
   useEffect(() => {
+    if (!deviceId) return;
     sendHeartbeat();
     const id = setInterval(sendHeartbeat, 30_000);
     return () => clearInterval(id);
-  }, [sendHeartbeat]);
+  }, [sendHeartbeat, deviceId]);
 }
 
 // ─────────────────────────────────────────────
@@ -3094,7 +3161,7 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speechCtx?.sendMessage]);
 
-  const deviceId = import.meta.env.VITE_TOTEM_DEVICE_ID || null;
+  const { deviceId, registering } = useAutoRegister();
 
   const handleConfigUpdate = useCallback((newUi) => {
     setLiveUi(newUi);
@@ -3105,8 +3172,8 @@ export default function App() {
     setLiveUi(newUi);
   }, []);
 
-  useConfigPoller(handleConfigUpdate);
-  useHeartbeat();
+  useConfigPoller(deviceId, handleConfigUpdate);
+  useHeartbeat(deviceId);
   const isLive = useLivePreview(deviceId, handleLiveUpdate);
 
   const ui = liveUi || initialUi;
