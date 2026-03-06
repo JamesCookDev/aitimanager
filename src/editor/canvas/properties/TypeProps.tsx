@@ -967,12 +967,12 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
       {isHtmlMode && (
         <>
           {/* ── Friendly header ── */}
-          <div className="px-3 pt-3 pb-2 space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Pencil className="w-4 h-4 text-primary" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-xs font-bold text-foreground">Editor de Conteúdo</h3>
                 <p className="text-[9px] text-muted-foreground/60">Edite textos, imagens e cores abaixo</p>
               </div>
@@ -1014,21 +1014,17 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
 
           {/* ── Search & Filter ── */}
           {editableFields.length > 0 && (
-            <div className="px-3 space-y-2">
-              {/* Search */}
+            <div className="space-y-2">
               {editableFields.length > 5 && (
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="🔍 Buscar campo..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-8 rounded-lg border border-border/50 bg-muted/30 px-3 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder="🔍 Buscar campo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-8 rounded-lg border border-border/50 bg-muted/30 px-3 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
               )}
 
-              {/* Filter tabs */}
               <div className="flex flex-wrap gap-1">
                 {filterTabs.map(tab => (
                   <button
@@ -1052,7 +1048,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
           )}
 
           {/* ── Editable Fields ── */}
-          <div className="px-3 pb-3 space-y-2 mt-2">
+          <div className="space-y-2">
             {filteredFields.map((field) => (
               <SimpleFieldCard
                 key={field.id}
@@ -1081,55 +1077,51 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
           </div>
 
           {/* ── Advanced: raw HTML code ── */}
-          <div className="px-3 pb-3">
-            <Collapsible open={showCode} onOpenChange={setShowCode}>
-              <CollapsibleTrigger className="w-full">
-                <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
-                  <Code2 className="w-3 h-3 text-muted-foreground/40" />
-                  <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">Código HTML (avançado)</span>
-                  <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <textarea
-                  value={props.htmlContent || ''}
-                  onChange={(e) => set('htmlContent')(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary mt-1"
-                  placeholder="<div>Seu HTML aqui...</div>"
-                  spellCheck={false}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+          <Collapsible open={showCode} onOpenChange={setShowCode}>
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
+                <Code2 className="w-3 h-3 text-muted-foreground/40" />
+                <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">Código HTML (avançado)</span>
+                <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <textarea
+                value={props.htmlContent || ''}
+                onChange={(e) => set('htmlContent')(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary mt-1"
+                placeholder="<div>Seu HTML aqui...</div>"
+                spellCheck={false}
+              />
+            </CollapsibleContent>
+          </Collapsible>
 
-          {/* Mode toggle hidden in collapsible */}
-          <div className="px-3 pb-2">
-            <Collapsible>
-              <CollapsibleTrigger className="w-full">
-                <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
-                  <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">⚙️ Configurações</span>
-                  <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 pt-1">
-                <div>
-                  <Label className="text-[10px]">Modo</Label>
-                  <Select value="html" onValueChange={(v) => onChange({ _iframeMode: v })}>
-                    <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="url">🔗 URL externa</SelectItem>
-                      <SelectItem value="html">📝 HTML personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <PropInput label="Arredondamento" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
-                <div className="flex items-center justify-between">
-                  <Label className="text-[10px]">Rolagem</Label>
-                  <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+          {/* Settings */}
+          <Collapsible>
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
+                <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">⚙️ Configurações</span>
+                <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-1">
+              <div>
+                <Label className="text-[10px]">Modo</Label>
+                <Select value="html" onValueChange={(v) => onChange({ _iframeMode: v })}>
+                  <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="url">🔗 URL externa</SelectItem>
+                    <SelectItem value="html">📝 HTML personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <PropInput label="Arredondamento" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px]">Rolagem</Label>
+                <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </>
       )}
 
