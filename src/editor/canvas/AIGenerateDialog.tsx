@@ -17,13 +17,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CanvasView } from '../types/canvas';
 
+interface GeneratedPage {
+  name: string;
+  html: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerated: (html: string) => void;
   views?: CanvasView[];
   activeViewId?: string;
-  onGenerateForView?: (viewId: string, html: string) => void;
+  /** Called for multi-page: creates a new view and adds the html element to it */
+  onGenerateMultiPage?: (pages: GeneratedPage[]) => void;
   /** HTML of the currently selected element for refinement */
   existingHtml?: string;
   onRefined?: (html: string) => void;
@@ -45,6 +51,8 @@ const MULTI_PAGE_SUGGESTIONS = [
   '🏨 Hotel: Recepção + Quartos + Restaurante + Spa + Eventos',
   '🏥 Hospital: Recepção + Especialidades + Exames + Emergência',
   '🍽️ Restaurante: Cardápio + Bebidas + Sobremesas + Promoções',
+  '🏋️ Academia: Home + Aulas + Planos + Personal + Horários',
+  '🐾 Pet Shop: Home + Serviços + Produtos + Banho & Tosa',
 ];
 
 const REFINEMENT_SUGGESTIONS = [
@@ -76,20 +84,22 @@ async function callRefine(existingHtml: string, refinementPrompt: string): Promi
   return data.html;
 }
 
-export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activeViewId, onGenerateForView, existingHtml, onRefined }: Props) {
+export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activeViewId, onGenerateMultiPage, existingHtml, onRefined }: Props) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<string>(existingHtml ? 'refine' : 'single');
   const [multiPrompt, setMultiPrompt] = useState('');
   const [refinePrompt, setRefinePrompt] = useState('');
   const [progress, setProgress] = useState('');
+  const [generatedCount, setGeneratedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const hasExisting = !!existingHtml;
 
   const generateSingle = async () => {
     if (!prompt.trim()) { toast.error('Descreva o que deseja gerar'); return; }
     setLoading(true);
-    setProgress('Gerando layout...');
+    setProgress('Gerando layout para totem...');
     try {
       const html = await callGenerate(prompt);
       onGenerated(html);
@@ -107,34 +117,55 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
 
   const generateMultiPage = async () => {
     if (!multiPrompt.trim()) { toast.error('Descreva as páginas que deseja gerar'); return; }
-    if (!onGenerateForView || !views) {
-      toast.error('Sistema de páginas não disponível');
-      return;
-    }
+    
     setLoading(true);
     const lines = multiPrompt.split('\n').map(l => l.trim()).filter(Boolean);
+    setTotalCount(lines.length);
+    setGeneratedCount(0);
+
+    const pages: GeneratedPage[] = [];
+
     try {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const pageName = line.split(':')[0]?.replace(/^[-•*\d.)\s]+/, '').trim() || `Página ${i + 1}`;
-        setProgress(`Gerando ${pageName} (${i + 1}/${lines.length})...`);
+        setProgress(`Gerando "${pageName}" (${i + 1}/${lines.length})...`);
+        setGeneratedCount(i);
+
         const html = await callGenerate(line);
-        if (i === 0 && activeViewId) {
-          onGenerateForView(activeViewId, html);
-        } else {
-          onGenerated(html);
+        pages.push({ name: pageName, html });
+
+        // Delay between requests to avoid rate limiting
+        if (i < lines.length - 1) {
+          await new Promise(r => setTimeout(r, 2000));
         }
-        if (i < lines.length - 1) await new Promise(r => setTimeout(r, 1500));
       }
+
+      setGeneratedCount(lines.length);
+
+      if (onGenerateMultiPage) {
+        onGenerateMultiPage(pages);
+      } else {
+        // Fallback: add all to current view
+        pages.forEach(p => onGenerated(p.html));
+      }
+
       onOpenChange(false);
       setMultiPrompt('');
-      toast.success(`${lines.length} páginas geradas com IA!`);
+      toast.success(`${pages.length} páginas geradas com IA!`);
     } catch (e: any) {
       console.error('Multi-page generation error:', e);
       toast.error(e.message || 'Erro ao gerar páginas');
+      // Still add pages that were generated successfully
+      if (pages.length > 0 && onGenerateMultiPage) {
+        onGenerateMultiPage(pages);
+        toast.info(`${pages.length} página(s) foram geradas antes do erro.`);
+      }
     } finally {
       setLoading(false);
       setProgress('');
+      setGeneratedCount(0);
+      setTotalCount(0);
     }
   };
 
@@ -172,7 +203,7 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-xl">
+      <AlertDialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20">
@@ -183,8 +214,10 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
           </AlertDialogTitle>
           <AlertDialogDescription>
             {tab === 'refine'
-              ? 'Descreva os ajustes que deseja aplicar ao layout atual. A IA vai modificar apenas o que você pedir.'
-              : 'A IA gera HTML puro editável que é importado diretamente no canvas como layout completo.'}
+              ? 'Descreva os ajustes que deseja aplicar ao layout atual.'
+              : tab === 'multi'
+              ? 'Cada linha gera uma página separada no canvas. A IA cria automaticamente as páginas/views.'
+              : 'A IA gera HTML puro otimizado para tela de totem vertical (1080×1920px).'}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -196,7 +229,7 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
             </TabsTrigger>
             <TabsTrigger value="multi" className="text-xs gap-1.5">
               <Layers className="w-3 h-3" />
-              Múltiplas
+              Múltiplas Páginas
             </TabsTrigger>
             {hasExisting && (
               <TabsTrigger value="refine" className="text-xs gap-1.5">
@@ -229,21 +262,31 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
           </TabsContent>
 
           <TabsContent value="multi" className="space-y-3 mt-3">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-[11px] text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">📄 Como funciona:</p>
+              <p>• Escreva <strong>uma página por linha</strong> no formato <code className="bg-muted px-1 rounded">Nome: Descrição</code></p>
+              <p>• Cada linha será gerada como uma <strong>página/view separada</strong> no canvas</p>
+              <p>• A primeira página substitui a view ativa, as demais criam novas views</p>
+            </div>
+
             <Textarea
-              placeholder={"Escreva uma página por linha:\nHome: Tela principal do shopping com logo e horários\nLojas: Diretório de lojas por categoria\nAlimentação: Praça de alimentação com cardápio"}
+              placeholder={"Home: Tela principal com logo, horário e destaques\nCardápio: Lista de pratos com categorias e preços\nBebidas: Menu de drinks e sucos com fotos\nSobremesas: Vitrine de doces e sobremesas\nContato: Informações, QR Code e redes sociais"}
               value={multiPrompt}
               onChange={e => setMultiPrompt(e.target.value)}
               className="min-h-[160px] resize-none text-sm font-mono"
               disabled={loading}
             />
+
             <div className="space-y-1.5">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Templates multi-página</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Templates prontos</p>
               <div className="flex flex-wrap gap-1.5">
                 {MULTI_PAGE_SUGGESTIONS.map(s => (
                   <button key={s} onClick={() => {
                     const parts = s.split(':')[1]?.split('+').map(p => p.trim()) || [];
                     const context = s.split(':')[0]?.replace(/^[^\s]+\s/, '').trim() || '';
-                    const lines = parts.map(p => `${p}: Tela de ${p.toLowerCase()} para ${context.toLowerCase()}`);
+                    const lines = parts.map(p =>
+                      `${p}: Tela de ${p.toLowerCase()} para ${context.toLowerCase()} — layout premium para totem vertical`
+                    );
                     setMultiPrompt(lines.join('\n'));
                   }} disabled={loading}
                     className="text-[11px] px-2.5 py-1 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-border/40">
@@ -288,16 +331,28 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
         </Tabs>
 
         {progress && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            {progress}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {progress}
+            </div>
+            {totalCount > 1 && (
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(generatedCount / totalCount) * 100}%` }}
+                />
+              </div>
+            )}
           </div>
         )}
 
         <p className="text-[10px] text-muted-foreground">
           💡 {tab === 'refine'
-            ? 'A IA vai manter a estrutura do layout e aplicar apenas os ajustes solicitados.'
-            : 'O HTML gerado é importado como layout completo editável. Duplo-clique para editar textos e imagens no canvas.'}
+            ? 'A IA mantém a estrutura e aplica apenas os ajustes solicitados.'
+            : tab === 'multi'
+            ? 'Cada página é gerada individualmente com layout premium otimizado para totem 1080×1920.'
+            : 'HTML otimizado para totem vertical 1080×1920px. Duplo-clique para editar no canvas.'}
         </p>
 
         <AlertDialogFooter>
@@ -307,8 +362,10 @@ export function AIGenerateDialog({ open, onOpenChange, onGenerated, views, activ
               <><Loader2 className="w-4 h-4 animate-spin" />Gerando...</>
             ) : tab === 'refine' ? (
               <><RefreshCw className="w-4 h-4" />Refinar Layout</>
+            ) : tab === 'multi' ? (
+              <><Layers className="w-4 h-4" />Gerar {multiPrompt.split('\n').filter(l => l.trim()).length || ''} Páginas</>
             ) : (
-              <><Wand2 className="w-4 h-4" />{tab === 'single' ? 'Gerar Layout' : 'Gerar Páginas'}</>
+              <><Wand2 className="w-4 h-4" />Gerar Layout</>
             )}
           </Button>
         </AlertDialogFooter>
