@@ -858,18 +858,32 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       }}
       views={state.views}
       activeViewId={activeViewId}
-      onGenerateForView={(viewId, html) => {
-        const el = createElement('iframe');
-        el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
-        el.props = {
-          ...el.props,
-          _iframeMode: 'html',
-          htmlContent: html,
-          borderRadius: 0,
-          scrolling: false,
-        };
-        el.viewId = viewId;
-        dispatch({ type: 'ADD_ELEMENT', payload: el });
+      onGenerateMultiPage={(pages) => {
+        pages.forEach((page, i) => {
+          let targetViewId: string;
+
+          if (i === 0) {
+            // First page goes to active view
+            targetViewId = activeViewId;
+          } else {
+            // Create a new view for subsequent pages
+            const newViewId = viewUid();
+            dispatch({ type: 'ADD_VIEW', view: { id: newViewId, name: page.name, isDefault: false } });
+            targetViewId = newViewId;
+          }
+
+          const el = createElement('iframe');
+          el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
+          el.props = {
+            ...el.props,
+            _iframeMode: 'html',
+            htmlContent: page.html,
+            borderRadius: 0,
+            scrolling: false,
+          };
+          el.viewId = targetViewId;
+          dispatch({ type: 'ADD_ELEMENT', payload: el });
+        });
       }}
       existingHtml={selectedElement?.props?._iframeMode === 'html' ? selectedElement.props.htmlContent : undefined}
       onRefined={(html) => {
