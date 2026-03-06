@@ -873,6 +873,7 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
   const [showCode, setShowCode] = useState(false);
   const [expandedHtml, setExpandedHtml] = useState<string | null>(null);
   const [fieldFilter, setFieldFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const editableFields = useMemo(() => {
     if (!props.htmlContent) return [];
@@ -899,7 +900,6 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
           onChange({ htmlContent: currentHtml.replace(oldHtml, newValue) });
           return;
         }
-        // Fallback: try trimmed match
         const trimmedOld = oldHtml.trim();
         if (currentHtml.includes(trimmedOld)) {
           onChange({ htmlContent: currentHtml.replace(trimmedOld, newValue) });
@@ -914,7 +914,6 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
       if (updatedHtml !== currentHtml) {
         onChange({ htmlContent: updatedHtml });
       } else {
-        // Fallback: store as override
         const updated = { ...overrides, [fieldId]: newValue };
         onChange({ fieldOverrides: updated });
       }
@@ -931,136 +930,131 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
   const colorFields = editableFields.filter(f => f.type === 'color');
 
   const filterTabs = [
-    { id: 'all', label: 'Todos', icon: '📋', count: editableFields.length },
-    { id: 'button', label: 'Botões', icon: '🔘', count: buttonFields.length },
-    { id: 'text', label: 'Textos', icon: '✏️', count: textFields.length },
-    { id: 'image', label: 'Imagens', icon: '🖼️', count: imageFields.length },
-    { id: 'link', label: 'Links', icon: '🔗', count: linkFields.length },
-    { id: 'color', label: 'Cores', icon: '🎨', count: colorFields.length },
+    { id: 'all', label: 'Todos', emoji: '📋', count: editableFields.length },
+    { id: 'text', label: 'Textos', emoji: '✏️', count: textFields.length },
+    { id: 'image', label: 'Imagens', emoji: '🖼️', count: imageFields.length },
+    { id: 'button', label: 'Botões', emoji: '🔘', count: buttonFields.length },
+    { id: 'link', label: 'Links', emoji: '🔗', count: linkFields.length },
+    { id: 'color', label: 'Cores', emoji: '🎨', count: colorFields.length },
   ].filter(t => t.count > 0 || t.id === 'all');
 
-  const filteredFields = fieldFilter === 'all' ? editableFields : editableFields.filter(f => f.type === fieldFilter);
+  let filteredFields = fieldFilter === 'all' ? editableFields : editableFields.filter(f => f.type === fieldFilter);
+  if (searchTerm) {
+    const q = searchTerm.toLowerCase();
+    filteredFields = filteredFields.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q));
+  }
 
   return (
     <>
-      {/* Mode toggle */}
-      <Section title="Iframe / HTML">
-        <div>
-          <Label className="text-[11px]">Modo</Label>
-          <Select value={isHtmlMode ? 'html' : 'url'} onValueChange={(v) => {
-            onChange({ _iframeMode: v });
-          }}>
-            <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="url">🔗 URL externa</SelectItem>
-              <SelectItem value="html">📝 HTML puro</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Mode toggle — simplified */}
+      {!isHtmlMode && (
+        <Section title="Configuração">
+          <div>
+            <Label className="text-[11px]">Modo</Label>
+            <Select value="url" onValueChange={(v) => onChange({ _iframeMode: v })}>
+              <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="url">🔗 URL externa</SelectItem>
+                <SelectItem value="html">📝 HTML personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PropInput label="URL do site" value={props.url} onChange={set('url')} />
+          <PropInput label="Arredondamento" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+        </Section>
+      )}
 
-        {!isHtmlMode && (
-          <>
-            <PropInput label="URL do site" value={props.url} onChange={set('url')} />
-            <p className="text-[9px] text-muted-foreground -mt-1">Cole o endereço completo (https://...)</p>
-          </>
-        )}
+      {isHtmlMode && (
+        <>
+          {/* ── Friendly header ── */}
+          <div className="px-3 pt-3 pb-2 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Pencil className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-foreground">Editor de Conteúdo</h3>
+                <p className="text-[9px] text-muted-foreground/60">Edite textos, imagens e cores abaixo</p>
+              </div>
+            </div>
 
-        <PropInput label="Border Radius" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
-        <div className="flex items-center justify-between">
-          <Label className="text-[11px]">Scrolling</Label>
-          <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
-        </div>
+            {/* Quick stats */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { label: 'Textos', count: textFields.length, emoji: '✏️', color: 'bg-indigo-500/10 text-indigo-400' },
+                { label: 'Imagens', count: imageFields.length, emoji: '🖼️', color: 'bg-emerald-500/10 text-emerald-400' },
+                { label: 'Botões', count: buttonFields.length, emoji: '🔘', color: 'bg-amber-500/10 text-amber-400' },
+              ].filter(s => s.count > 0).map(s => (
+                <div key={s.label} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg ${s.color}`}>
+                  <span className="text-sm">{s.emoji}</span>
+                  <div>
+                    <p className="text-[11px] font-bold">{s.count}</p>
+                    <p className="text-[8px] opacity-70">{s.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        {isHtmlMode && props.htmlContent && (
-          <div className="space-y-2 pt-1">
+            {/* Advanced edit on canvas button */}
             <button
               onClick={() => {
                 const entering = !props.editMode;
                 onChange({ editMode: entering, _activeTool: entering ? 'text' : 'off' });
               }}
-              className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all ${
                 props.editMode
-                  ? 'bg-indigo-500 text-white ring-2 ring-indigo-400/50 shadow-lg shadow-indigo-500/25 animate-pulse'
-                  : 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20'
+                  ? 'bg-primary text-primary-foreground ring-2 ring-primary/30 shadow-lg'
+                  : 'bg-muted/50 hover:bg-muted text-muted-foreground border border-border/50'
               }`}
             >
-              <Pencil className="w-4 h-4" />
-              {props.editMode ? 'Sair do modo edição' : '✨ Editar HTML no canvas'}
+              <Move className="w-3.5 h-3.5" />
+              {props.editMode ? '✓ Editando no canvas — clique para sair' : 'Edição avançada no canvas'}
             </button>
-            {!props.editMode && (
-              <p className="text-[9px] text-muted-foreground/60 text-center">
-                Ou dê <span className="font-bold text-foreground/70">duplo-clique</span> no elemento
-              </p>
-            )}
-            {props.editMode && (
-              <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 p-2.5 space-y-2">
-                <p className="text-[9px] text-indigo-300 font-semibold text-center">
-                  🎯 Use a barra de ferramentas no topo do canvas
-                </p>
-                <div className="grid grid-cols-5 gap-1">
-                  {[
-                    { tool: 'layout', icon: Move, label: 'Layout', color: 'bg-blue-500' },
-                    { tool: 'text', icon: Pencil, label: 'Texto', color: 'bg-indigo-500' },
-                    { tool: 'style', icon: Paintbrush, label: 'CSS', color: 'bg-pink-500' },
-                    { tool: 'navigate', icon: Link2, label: 'Links', color: 'bg-amber-500' },
-                    { tool: 'inspect', icon: Eye, label: 'DOM', color: 'bg-emerald-500' },
-                  ].map(({ tool, icon: Icon, label, color }) => (
-                    <button
-                      key={tool}
-                      onClick={() => {
-                        const currentTool = props._activeTool || 'off';
-                        onChange({ _activeTool: currentTool === tool ? 'off' : tool });
-                      }}
-                      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-[8px] font-bold transition-all ${
-                        props._activeTool === tool
-                          ? `${color} text-white ring-1 ring-white/30 shadow-md`
-                          : 'bg-muted/30 hover:bg-muted/50 text-muted-foreground'
-                      }`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      <span>{label}</span>
-                    </button>
-                  ))}
+          </div>
+
+          {/* ── Search & Filter ── */}
+          {editableFields.length > 0 && (
+            <div className="px-3 space-y-2">
+              {/* Search */}
+              {editableFields.length > 5 && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="🔍 Buscar campo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full h-8 rounded-lg border border-border/50 bg-muted/30 px-3 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  />
                 </div>
-                <p className="text-[8px] text-muted-foreground/50 text-center">
-                  Pressione <kbd className="bg-muted/30 px-1 rounded font-mono">Esc</kbd> para sair
-                </p>
+              )}
+
+              {/* Filter tabs */}
+              <div className="flex flex-wrap gap-1">
+                {filterTabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFieldFilter(tab.id)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                      fieldFilter === tab.id
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-muted/40 text-muted-foreground hover:bg-muted/70'
+                    }`}
+                  >
+                    <span>{tab.emoji}</span>
+                    <span>{tab.label}</span>
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
+                      fieldFilter === tab.id ? 'bg-primary-foreground/20' : 'bg-muted-foreground/10'
+                    }`}>{tab.count}</span>
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
-        )}
-      </Section>
-
-      {/* ── Organized Editable Fields with Filter Tabs ── */}
-      {isHtmlMode && editableFields.length > 0 && (
-        <div className="space-y-2">
-          {/* Filter chips */}
-          <div className="px-1 pt-1">
-            <div className="flex flex-wrap gap-1">
-              {filterTabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFieldFilter(tab.id)}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-semibold transition-all ${
-                    fieldFilter === tab.id
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  <span>{tab.label}</span>
-                  <span className={`text-[8px] px-1 rounded-full ${
-                    fieldFilter === tab.id ? 'bg-primary-foreground/20' : 'bg-muted-foreground/10'
-                  }`}>{tab.count}</span>
-                </button>
-              ))}
             </div>
-          </div>
+          )}
 
-          {/* Filtered fields list */}
-          <div className="space-y-1.5 px-1">
+          {/* ── Editable Fields ── */}
+          <div className="px-3 pb-3 space-y-2 mt-2">
             {filteredFields.map((field) => (
-              <HtmlFieldCard
+              <SimpleFieldCard
                 key={field.id}
                 field={field}
                 overrides={overrides}
@@ -1070,35 +1064,73 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
                 views={views}
               />
             ))}
-            {filteredFields.length === 0 && (
-              <p className="text-[10px] text-muted-foreground/50 text-center py-4">
-                Nenhum campo encontrado nesta categoria
-              </p>
+            {filteredFields.length === 0 && editableFields.length > 0 && (
+              <div className="text-center py-6">
+                <p className="text-[11px] text-muted-foreground/50">Nenhum campo encontrado</p>
+                <button onClick={() => { setFieldFilter('all'); setSearchTerm(''); }} className="text-[10px] text-primary hover:underline mt-1">
+                  Ver todos
+                </button>
+              </div>
+            )}
+            {editableFields.length === 0 && (
+              <div className="text-center py-8 space-y-2">
+                <span className="text-2xl">📄</span>
+                <p className="text-[11px] text-muted-foreground/50">Cole ou importe um HTML para começar a editar</p>
+              </div>
             )}
           </div>
-        </div>
-      )}
 
-      {/* Show/hide raw code */}
-      {isHtmlMode && (
-        <Collapsible open={showCode} onOpenChange={setShowCode}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center gap-1.5 py-1.5 px-1 group cursor-pointer">
-              <Code2 className="w-3 h-3 text-muted-foreground/50" />
-              <span className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider flex-1 text-left">Código HTML completo</span>
-              <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform group-data-[state=open]:rotate-180" />
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <textarea
-              value={props.htmlContent || ''}
-              onChange={(e) => set('htmlContent')(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="<div>Seu HTML aqui...</div>"
-              spellCheck={false}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+          {/* ── Advanced: raw HTML code ── */}
+          <div className="px-3 pb-3">
+            <Collapsible open={showCode} onOpenChange={setShowCode}>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
+                  <Code2 className="w-3 h-3 text-muted-foreground/40" />
+                  <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">Código HTML (avançado)</span>
+                  <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <textarea
+                  value={props.htmlContent || ''}
+                  onChange={(e) => set('htmlContent')(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-[10px] font-mono min-h-[160px] resize-y focus:outline-none focus:ring-1 focus:ring-primary mt-1"
+                  placeholder="<div>Seu HTML aqui...</div>"
+                  spellCheck={false}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          {/* Mode toggle hidden in collapsible */}
+          <div className="px-3 pb-2">
+            <Collapsible>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
+                  <span className="text-[9px] font-semibold text-muted-foreground/50 flex-1 text-left">⚙️ Configurações</span>
+                  <ChevronDown className="w-3 h-3 text-muted-foreground/30 transition-transform data-[state=open]:rotate-180" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-1">
+                <div>
+                  <Label className="text-[10px]">Modo</Label>
+                  <Select value="html" onValueChange={(v) => onChange({ _iframeMode: v })}>
+                    <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="url">🔗 URL externa</SelectItem>
+                      <SelectItem value="html">📝 HTML personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <PropInput label="Arredondamento" value={props.borderRadius} onChange={set('borderRadius')} type="number" />
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px]">Rolagem</Label>
+                  <Switch checked={props.scrolling !== false} onCheckedChange={set('scrolling')} />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </>
       )}
 
       <NavigationActionSection props={props} onChange={onChange} views={views} />
@@ -1106,8 +1138,8 @@ function IframePropsPanel({ props, onChange, views }: { props: Record<string, an
   );
 }
 
-/* ── Unified HTML Field Card ── */
-function HtmlFieldCard({ field, overrides, expandedHtml, setExpandedHtml, onChange, views }: {
+/* ── Simplified HTML Field Card — User-friendly ── */
+function SimpleFieldCard({ field, overrides, expandedHtml, setExpandedHtml, onChange, views }: {
   field: import('../../utils/htmlEditableFields').EditableField;
   overrides: Record<string, string>;
   expandedHtml: string | null;
@@ -1115,182 +1147,183 @@ function HtmlFieldCard({ field, overrides, expandedHtml, setExpandedHtml, onChan
   onChange: (fieldId: string, value: string) => void;
   views?: CanvasView[];
 }) {
-  const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
-    button: { icon: <MousePointerClick className="w-2.5 h-2.5" />, color: 'border-l-amber-500' },
-    text: { icon: <Type className="w-2.5 h-2.5" />, color: 'border-l-indigo-500' },
-    image: { icon: <ImageIcon className="w-2.5 h-2.5" />, color: 'border-l-emerald-500' },
-    link: { icon: <Link2 className="w-2.5 h-2.5" />, color: 'border-l-blue-500' },
-    color: { icon: <Palette className="w-2.5 h-2.5" />, color: 'border-l-pink-500' },
+  const typeConfig: Record<string, { emoji: string; color: string; bgColor: string; actionLabel: string }> = {
+    button: { emoji: '🔘', color: 'border-l-amber-500', bgColor: 'bg-amber-500/5', actionLabel: 'Editar botão' },
+    text: { emoji: '✏️', color: 'border-l-indigo-500', bgColor: 'bg-indigo-500/5', actionLabel: 'Editar texto' },
+    image: { emoji: '🖼️', color: 'border-l-emerald-500', bgColor: 'bg-emerald-500/5', actionLabel: 'Trocar imagem' },
+    link: { emoji: '🔗', color: 'border-l-blue-500', bgColor: 'bg-blue-500/5', actionLabel: 'Editar link' },
+    color: { emoji: '🎨', color: 'border-l-pink-500', bgColor: 'bg-pink-500/5', actionLabel: 'Trocar cor' },
   };
 
-  const config = typeConfig[field.type] || { icon: <Code2 className="w-2.5 h-2.5" />, color: 'border-l-muted' };
+  const config = typeConfig[field.type] || { emoji: '📄', color: 'border-l-muted', bgColor: 'bg-muted/5', actionLabel: 'Editar' };
+
+  // Friendly label — remove tag info, just show content
+  const friendlyLabel = field.type === 'text'
+    ? `"${(overrides[field.id] || field.value).slice(0, 40)}${(overrides[field.id] || field.value).length > 40 ? '…' : ''}"`
+    : field.label;
 
   return (
-    <div className={`space-y-1.5 p-2 rounded-md border border-border/50 border-l-2 ${config.color} bg-muted/10`}>
+    <div className={`rounded-xl border border-border/40 border-l-[3px] ${config.color} ${config.bgColor} overflow-hidden transition-all hover:border-border/60`}>
       {/* Header */}
-      <div className="flex items-center gap-1.5">
-        {config.icon}
-        <span className="text-[9px] font-semibold text-muted-foreground/70 uppercase tracking-wide truncate flex-1">
-          {field.label}
-        </span>
-        <span className="text-[7px] font-mono text-muted-foreground/40 bg-muted/40 px-1 rounded">
-          {field.tag}
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="text-sm">{config.emoji}</span>
+        <span className="text-[10px] font-semibold text-foreground/80 truncate flex-1">
+          {friendlyLabel}
         </span>
       </div>
 
-      {/* Type-specific fields */}
-      {field.type === 'text' && (
-        <>
-          <Label className="text-[8px] text-muted-foreground/50">Conteúdo</Label>
-          {(overrides[field.id] || field.value).length > 60 ? (
+      {/* Content area */}
+      <div className="px-3 pb-2.5 space-y-2">
+        {/* TEXT */}
+        {field.type === 'text' && (
+          (overrides[field.id] || field.value).length > 60 ? (
             <textarea
               value={overrides[field.id] ?? field.value}
               onChange={(e) => onChange(field.id, e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-2 py-1 text-[10px] min-h-[50px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-[11px] min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
+              placeholder="Digite o texto..."
             />
           ) : (
             <input
               type="text"
               value={overrides[field.id] ?? field.value}
               onChange={(e) => onChange(field.id, e.target.value)}
-              className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full h-9 rounded-lg border border-border/50 bg-background px-3 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
+              placeholder="Digite o texto..."
             />
-          )}
-        </>
-      )}
+          )
+        )}
 
-      {field.type === 'button' && (
-        <>
-          <div>
-            <Label className="text-[8px] text-muted-foreground/50">Texto do botão</Label>
+        {/* BUTTON */}
+        {field.type === 'button' && (
+          <>
+            <div>
+              <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 block">Texto do botão</label>
+              <input
+                type="text"
+                value={overrides[field.id] ?? field.value}
+                onChange={(e) => onChange(field.id, e.target.value)}
+                className="w-full h-9 rounded-lg border border-border/50 bg-background px-3 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Texto do botão..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 block">Cor do fundo</label>
+                <div className="flex gap-1.5 items-center">
+                  <input type="color" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '#333333')} onChange={(e) => onChange(`${field.id}__bgColor`, e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer border border-border/30" />
+                  <input type="text" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '')} onChange={(e) => onChange(`${field.id}__bgColor`, e.target.value)} className="flex-1 h-7 rounded-lg border border-border/50 bg-background px-2 text-[9px] font-mono focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 block">Cor do texto</label>
+                <div className="flex gap-1.5 items-center">
+                  <input type="color" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '#ffffff')} onChange={(e) => onChange(`${field.id}__textColor`, e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer border border-border/30" />
+                  <input type="text" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '')} onChange={(e) => onChange(`${field.id}__textColor`, e.target.value)} className="flex-1 h-7 rounded-lg border border-border/50 bg-background px-2 text-[9px] font-mono focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                </div>
+              </div>
+            </div>
+            {views && views.length > 0 && (
+              <div>
+                <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 flex items-center gap-1 block">
+                  🔗 Ao clicar, ir para:
+                </label>
+                <Select
+                  value={overrides[`${field.id}__navigate`] || '__none__'}
+                  onValueChange={(v) => onChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}
+                >
+                  <SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Nenhuma página" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {views.map(v => (<SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* LINK */}
+        {field.type === 'link' && (
+          <>
+            <div>
+              <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 block">Texto do link</label>
+              <input type="text" value={overrides[`${field.id}__text`] ?? (field.extras?.text || '')} onChange={(e) => onChange(`${field.id}__text`, e.target.value)} className="w-full h-9 rounded-lg border border-border/50 bg-background px-3 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Texto do link..." />
+            </div>
+            <div>
+              <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 block">Endereço (URL)</label>
+              <input type="text" value={overrides[field.id] ?? field.value} onChange={(e) => onChange(field.id, e.target.value)} className="w-full h-9 rounded-lg border border-border/50 bg-background px-3 text-[11px] font-mono focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="https://..." />
+            </div>
+            {views && views.length > 0 && (
+              <div>
+                <label className="text-[9px] font-medium text-muted-foreground/70 mb-0.5 flex items-center gap-1 block">🔗 Ao clicar, ir para:</label>
+                <Select value={overrides[`${field.id}__navigate`] || '__none__'} onValueChange={(v) => onChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}>
+                  <SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {views.map(v => (<SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* IMAGE */}
+        {field.type === 'image' && (
+          <>
+            {(overrides[field.id] || field.value) && (
+              <div className="w-full h-20 rounded-lg border border-border/40 overflow-hidden bg-muted/20">
+                <img
+                  src={overrides[field.id] ?? field.value}
+                  alt={field.label}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+            )}
+            <ImageUploadField value={overrides[field.id] ?? field.value} onChange={(v) => onChange(field.id, v)} />
+          </>
+        )}
+
+        {/* COLOR */}
+        {field.type === 'color' && (
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={overrides[field.id] ?? field.value}
+              onChange={(e) => onChange(field.id, e.target.value)}
+              className="w-10 h-10 rounded-lg cursor-pointer border border-border/30"
+            />
             <input
               type="text"
               value={overrides[field.id] ?? field.value}
               onChange={(e) => onChange(field.id, e.target.value)}
-              className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 h-9 rounded-lg border border-border/50 bg-background px-3 text-[11px] font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="#000000"
             />
           </div>
-          <div>
-            <Label className="text-[8px] text-muted-foreground/50 flex items-center gap-1">
-              <Link2 className="w-2 h-2" /> Navegar para página
-            </Label>
-            {views && views.length > 0 ? (
-              <Select
-                value={overrides[`${field.id}__navigate`] || '__none__'}
-                onValueChange={(v) => onChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}
-              >
-                <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {views.map(v => (
-                    <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <input type="text" value={overrides[`${field.id}__navigate`] ?? ''} onChange={(e) => onChange(`${field.id}__navigate`, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Nome da página" />
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-1">
-            <div>
-              <Label className="text-[8px] text-muted-foreground/50">Cor fundo</Label>
-              <div className="flex gap-1">
-                <input type="color" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '#333333')} onChange={(e) => onChange(`${field.id}__bgColor`, e.target.value)} className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
-                <input type="text" value={overrides[`${field.id}__bgColor`] ?? (field.extras?.bgColor || '')} onChange={(e) => onChange(`${field.id}__bgColor`, e.target.value)} className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono" />
-              </div>
+        )}
+
+        {/* HTML code — hidden by default, for advanced users */}
+        <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors">
+              <Code2 className="w-2.5 h-2.5" />
+              <span>Código HTML</span>
+              <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
             </div>
-            <div>
-              <Label className="text-[8px] text-muted-foreground/50">Cor texto</Label>
-              <div className="flex gap-1">
-                <input type="color" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '#ffffff')} onChange={(e) => onChange(`${field.id}__textColor`, e.target.value)} className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
-                <input type="text" value={overrides[`${field.id}__textColor`] ?? (field.extras?.textColor || '')} onChange={(e) => onChange(`${field.id}__textColor`, e.target.value)} className="flex-1 h-6 rounded border border-border bg-background px-1 text-[9px] font-mono" />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {field.type === 'link' && (
-        <>
-          <div>
-            <Label className="text-[8px] text-muted-foreground/50">Texto</Label>
-            <input type="text" value={overrides[`${field.id}__text`] ?? (field.extras?.text || '')} onChange={(e) => onChange(`${field.id}__text`, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-          <div>
-            <Label className="text-[8px] text-muted-foreground/50">URL (href)</Label>
-            <input type="text" value={overrides[field.id] ?? field.value} onChange={(e) => onChange(field.id, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-          <div>
-            <Label className="text-[8px] text-muted-foreground/50 flex items-center gap-1">
-              <MousePointerClick className="w-2 h-2" /> Navegar para página
-            </Label>
-            {views && views.length > 0 ? (
-              <Select value={overrides[`${field.id}__navigate`] || '__none__'} onValueChange={(v) => onChange(`${field.id}__navigate`, v === '__none__' ? '' : v)}>
-                <SelectTrigger className="h-7 text-[10px] mt-0.5"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {views.map(v => (<SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <input type="text" value={overrides[`${field.id}__navigate`] ?? ''} onChange={(e) => onChange(`${field.id}__navigate`, e.target.value)} className="w-full h-7 rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Nome da página" />
-            )}
-          </div>
-        </>
-      )}
-
-      {field.type === 'image' && (
-        <>
-          {(overrides[field.id] || field.value) && (
-            <div className="w-full h-16 rounded border border-border overflow-hidden bg-muted/30">
-              <img
-                src={overrides[field.id] ?? field.value}
-                alt={field.label}
-                className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            </div>
-          )}
-          <ImageUploadField value={overrides[field.id] ?? field.value} onChange={(v) => onChange(field.id, v)} />
-        </>
-      )}
-
-      {field.type === 'color' && (
-        <div className="flex gap-1.5">
-          <input
-            type="color"
-            value={overrides[field.id] ?? field.value}
-            onChange={(e) => onChange(field.id, e.target.value)}
-            className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent"
-          />
-          <input
-            type="text"
-            value={overrides[field.id] ?? field.value}
-            onChange={(e) => onChange(field.id, e.target.value)}
-            className="flex-1 h-7 rounded border border-border bg-background px-2 text-[9px] font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      )}
-
-      {/* HTML code editor — always available */}
-      <Collapsible open={expandedHtml === field.id} onOpenChange={(open) => setExpandedHtml(open ? field.id : null)}>
-        <CollapsibleTrigger className="w-full">
-          <div className="flex items-center gap-1 py-0.5 cursor-pointer text-[8px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">
-            <Code2 className="w-2.5 h-2.5" />
-            <span>Editar HTML</span>
-            <ChevronDown className="w-2 h-2 ml-auto transition-transform data-[state=open]:rotate-180" />
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <textarea
-            value={field.html || ''}
-            onChange={(e) => onChange(`${field.id}__html`, e.target.value)}
-            className="w-full rounded border border-border bg-background px-1.5 py-1 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary"
-            spellCheck={false}
-          />
-          <p className="text-[7px] text-muted-foreground/40 mt-0.5">Edite o HTML e as alterações serão aplicadas ao código completo</p>
-        </CollapsibleContent>
-      </Collapsible>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <textarea
+              value={field.html || ''}
+              onChange={(e) => onChange(`${field.id}__html`, e.target.value)}
+              className="w-full rounded-lg border border-border/50 bg-background px-2 py-1.5 text-[9px] font-mono min-h-[60px] resize-y focus:outline-none focus:ring-1 focus:ring-primary/30 mt-1"
+              spellCheck={false}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
   );
 }

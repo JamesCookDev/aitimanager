@@ -44,6 +44,7 @@ export function IframePlaceholder(props: IframeProps) {
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   // Freeze the srcDoc while editing so iframe doesn't reload on every change
   const frozenHtmlRef = useRef<string | null>(null);
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -795,15 +796,20 @@ export function IframePlaceholder(props: IframeProps) {
   const isActive = activeTool !== 'off';
 
   if (activeMode === 'html' && finalHtml) {
-    const tools: { id: EditTool; icon: typeof Pencil; label: string; shortLabel: string; color: string; hint: string }[] = [
-      { id: 'layout', icon: Move, label: 'Layout', shortLabel: '🏗️', color: 'bg-blue-500', hint: 'Selecione → Mova / Duplique / Delete' },
-      { id: 'text', icon: Pencil, label: 'Textos', shortLabel: '✏️', color: 'bg-indigo-500', hint: 'Clique em textos ou imagens para editar' },
-      { id: 'style', icon: Paintbrush, label: 'Estilos', shortLabel: '🎨', color: 'bg-pink-500', hint: 'Clique em qualquer elemento → CSS' },
-      { id: 'navigate', icon: Link2, label: 'Links', shortLabel: '🔗', color: 'bg-amber-500', hint: 'Vincule elementos a páginas' },
-      { id: 'inspect', icon: Eye, label: 'DOM', shortLabel: '🔍', color: 'bg-emerald-500', hint: 'Inspecione a estrutura HTML' },
+    // Simplified tools — hide technical ones by default
+    const mainTools: { id: EditTool; icon: typeof Pencil; label: string; color: string; hint: string }[] = [
+      { id: 'text', icon: Pencil, label: 'Editar', color: 'bg-indigo-500', hint: 'Clique em textos ou imagens para editar' },
+      { id: 'layout', icon: Move, label: 'Mover', color: 'bg-blue-500', hint: 'Arraste elementos para reposicionar' },
+      { id: 'navigate', icon: Link2, label: 'Links', color: 'bg-amber-500', hint: 'Vincule botões a páginas' },
     ];
 
-    const activeToolData = tools.find(t => t.id === activeTool);
+    const advancedTools: { id: EditTool; icon: typeof Pencil; label: string; color: string; hint: string }[] = [
+      { id: 'style', icon: Paintbrush, label: 'CSS', color: 'bg-pink-500', hint: 'Edite estilos visuais' },
+      { id: 'inspect', icon: Eye, label: 'DOM', color: 'bg-emerald-500', hint: 'Inspecione a estrutura' },
+    ];
+
+    const allVisibleTools = showAdvancedTools ? [...mainTools, ...advancedTools] : mainTools;
+    const activeToolData = [...mainTools, ...advancedTools].find(t => t.id === activeTool);
 
     return (
       <div ref={containerRef} className="w-full h-full relative overflow-hidden" style={{ borderRadius: props.borderRadius || 0 }}>
@@ -837,12 +843,12 @@ export function IframePlaceholder(props: IframeProps) {
           }}
         />
 
-        {/* ── Always-visible floating toolbar ── */}
+        {/* ── Simplified floating toolbar ── */}
         <div
           className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl shadow-2xl backdrop-blur-lg transition-all bg-black/85 border border-white/10 p-1.5"
           style={{ pointerEvents: 'auto' }}
         >
-          {tools.map(({ id, icon: Icon, label, color }) => (
+          {allVisibleTools.map(({ id, icon: Icon, label, color }) => (
             <button
               key={id}
               onClick={(e) => { e.stopPropagation(); setTool(activeTool === id ? 'off' : id); }}
@@ -857,6 +863,18 @@ export function IframePlaceholder(props: IframeProps) {
               <span>{label}</span>
             </button>
           ))}
+
+          {/* Toggle advanced tools */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowAdvancedTools(!showAdvancedTools); }}
+            className={`px-2 py-2 rounded-lg text-[11px] font-bold transition-all ${
+              showAdvancedTools ? 'text-white/80 bg-white/10' : 'text-white/30 hover:text-white/60'
+            }`}
+            title={showAdvancedTools ? 'Ocultar avançados' : 'Mais ferramentas'}
+          >
+            ⋯
+          </button>
+
           {isActive && (
             <>
               <div className="w-px h-6 bg-white/20 mx-0.5" />
@@ -877,21 +895,19 @@ export function IframePlaceholder(props: IframeProps) {
             className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl shadow-xl backdrop-blur-md border border-white/10 bg-black/75 pointer-events-none"
           >
             <activeToolData.icon className="w-4 h-4 text-white/80 shrink-0" />
-            <span className="text-white/90 text-[11px] font-medium">
-              {activeToolData.hint}
-            </span>
+            <span className="text-white/90 text-[11px] font-medium">{activeToolData.hint}</span>
             <span className="text-white/40 text-[10px] ml-2">Esc para sair</span>
           </div>
         )}
 
-        {/* ── "Duplo-clique para editar" hint when NOT editing ── */}
+        {/* ── Hint when NOT editing ── */}
         {!isActive && !props.editMode && (
           <div
             className="absolute inset-0 z-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           >
             <div className="bg-black/70 backdrop-blur-sm text-white/90 text-xs font-semibold px-4 py-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-2">
               <Pencil className="w-4 h-4" />
-              Duplo-clique para editar HTML
+              Duplo-clique para editar no canvas
             </div>
           </div>
         )}
