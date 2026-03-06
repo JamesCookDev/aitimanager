@@ -51,8 +51,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { prompt } = await req.json();
-    if (!prompt || typeof prompt !== "string") {
+    const { prompt, existingHtml, refinementPrompt } = await req.json();
+    const isRefinement = !!(existingHtml && refinementPrompt);
+    if (!isRefinement && (!prompt || typeof prompt !== "string")) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,7 +63,23 @@ serve(async (req) => {
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is not configured");
 
-    const userPrompt = `Create a premium digital signage layout for a vertical totem (1080x1920px).
+    const userPrompt = isRefinement
+      ? `Here is an existing HTML layout for a vertical digital totem (1080x1920px):
+
+\`\`\`html
+${existingHtml}
+\`\`\`
+
+The user wants these changes: ${refinementPrompt}
+
+MANDATORY:
+- Keep the SAME overall structure and design, only apply the requested changes.
+- body must remain exactly 1080px × 1920px with margin:0; overflow:hidden
+- Use px units only (never vh/vw/em/rem/%)
+- ALL text elements and ALL images MUST have data-editable="true"
+- Content in Brazilian Portuguese — NO Lorem Ipsum
+- Return the COMPLETE modified HTML. Start with <!DOCTYPE html>. No markdown, no backticks.`
+      : `Create a premium digital signage layout for a vertical totem (1080x1920px).
 
 The client wants: ${prompt}
 
