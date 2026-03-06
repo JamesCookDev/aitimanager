@@ -843,7 +843,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       open={showAIGenerate}
       onOpenChange={setShowAIGenerate}
       onGenerated={(html) => {
-        // Always import as a full-screen HTML Puro iframe to preserve design integrity
         const el = createElement('iframe');
         el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
         el.props = {
@@ -871,6 +870,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         };
         el.viewId = viewId;
         dispatch({ type: 'ADD_ELEMENT', payload: el });
+      }}
+      existingHtml={selectedElement?.props?._iframeMode === 'html' ? selectedElement.props.htmlContent : undefined}
+      onRefined={(html) => {
+        if (state.selectedId) {
+          dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props: { htmlContent: html } });
+          toast.success('Layout refinado com sucesso!');
+        }
       }}
     />
     </PageVariablesProvider>
