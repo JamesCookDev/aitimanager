@@ -833,7 +833,7 @@ export function IframePlaceholder(props: IframeProps) {
             border: 'none',
             transformOrigin: 'top left',
             transform: `scale(${iframeScale})`,
-            pointerEvents: (isActive || props.onNavigatePage) ? 'auto' : 'none',
+            pointerEvents: isActive ? 'auto' : 'none',
           }}
         />
 
