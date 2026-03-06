@@ -496,27 +496,25 @@ export default function UsersPage() {
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditing(u)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
                             {!isSelf && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => startEditing(u)}
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => {
-                                    setSelectedUser(u);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             )}
                           </div>
                         )}
