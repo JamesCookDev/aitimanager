@@ -365,6 +365,10 @@ export default function Organizations() {
                     </CollapsibleTrigger>
 
                     <div className="flex items-center gap-1 ml-3">
+                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/dashboard/users?org=${org.id}`)}>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Usuário</span>
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(org)}>
                         <Pencil className="w-4 h-4" />
                       </Button>
