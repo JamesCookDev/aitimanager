@@ -843,21 +843,34 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       open={showAIGenerate}
       onOpenChange={setShowAIGenerate}
       onGenerated={(html) => {
-        const result = parseHTMLToCanvas(html);
-        if (result.elements.length === 0) {
-          // Fallback: inject as single full-screen iframe element
-          const el = createElement('iframe');
-          el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
-          el.props = { ...el.props, srcDoc: html };
-          el.viewId = activeViewId;
-          dispatch({ type: 'ADD_ELEMENT', payload: el });
-        } else {
-          result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
-          if (result.bgColor && result.bgColor !== '#0f172a') {
-            dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
-          }
-        }
-        toast.success(`Layout gerado com ${result.elements.length || 1} elementos!`);
+        // Always import as a full-screen HTML Puro iframe to preserve design integrity
+        const el = createElement('iframe');
+        el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
+        el.props = {
+          ...el.props,
+          _iframeMode: 'html',
+          htmlContent: html,
+          borderRadius: 0,
+          scrolling: false,
+        };
+        el.viewId = activeViewId;
+        dispatch({ type: 'ADD_ELEMENT', payload: el });
+        toast.success('Layout HTML importado no canvas!');
+      }}
+      views={state.views}
+      activeViewId={activeViewId}
+      onGenerateForView={(viewId, html) => {
+        const el = createElement('iframe');
+        el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
+        el.props = {
+          ...el.props,
+          _iframeMode: 'html',
+          htmlContent: html,
+          borderRadius: 0,
+          scrolling: false,
+        };
+        el.viewId = viewId;
+        dispatch({ type: 'ADD_ELEMENT', payload: el });
       }}
     />
     </PageVariablesProvider>
