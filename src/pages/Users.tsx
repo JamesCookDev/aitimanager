@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Organization } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -98,6 +99,17 @@ export default function UsersPage() {
   const [editSaving, setEditSaving] = useState(false);
 
   const isSuperAdmin = role === 'super_admin';
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open invite dialog when navigated with ?org= parameter
+  useEffect(() => {
+    const orgParam = searchParams.get('org');
+    if (orgParam && isSuperAdmin) {
+      setFormOrgId(orgParam);
+      setInviteDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, isSuperAdmin]);
 
   useEffect(() => {
     if (isSuperAdmin) {
