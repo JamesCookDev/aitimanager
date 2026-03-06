@@ -678,10 +678,14 @@ function PropsContent({
         {/* Advanced Visual */}
         <AdvancedVisualProps props={element.props} onChange={onUpdateProps} />
 
-        {/* Type-specific props */}
-        <CollapsibleSection title="Conteúdo" icon={Sparkles} defaultOpen={true}>
+        {/* Type-specific props — iframe has its own layout, skip collapsible */}
+        {element.type === 'iframe' ? (
           <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} views={views} />
-        </CollapsibleSection>
+        ) : (
+          <CollapsibleSection title="Conteúdo" icon={Sparkles} defaultOpen={true}>
+            <TypeProps type={element.type} props={element.props} onChange={onUpdateProps} views={views} />
+          </CollapsibleSection>
+        )}
 
         {/* Page assignment */}
         {views && views.length > 0 && onAssignView && (
