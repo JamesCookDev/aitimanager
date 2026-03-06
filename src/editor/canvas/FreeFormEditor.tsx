@@ -33,6 +33,7 @@ import { SVGImportDialog } from './SVGImportDialog';
 import { SavedLayoutsDialog } from './SavedLayoutsDialog';
 import { applyFieldOverrides } from '../utils/htmlEditableFields';
 import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
+import { AIGenerateDialog } from './AIGenerateDialog';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -161,6 +162,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     selector: string; tag: string; text: string; currentNavigate: string; elementId: string;
   } | null>(null);
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
+  const [showAIGenerate, setShowAIGenerate] = useState(false);
 
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
@@ -428,6 +430,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <Ruler className="w-3.5 h-3.5" />
                   <span className="flex-1">Guias de Zona</span>
                   {showZones && <span className="text-[10px] text-primary">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAIGenerate(true)} className="text-xs gap-2.5">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-500" /> Gerar com IA ✨
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExport} className="text-xs gap-2.5">
@@ -832,6 +837,28 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       onOpenChange={setShowSavedLayouts}
       currentState={state}
       onLoad={(loaded) => dispatch({ type: 'LOAD', state: loaded })}
+    />
+
+    <AIGenerateDialog
+      open={showAIGenerate}
+      onOpenChange={setShowAIGenerate}
+      onGenerated={(html) => {
+        const result = parseHTMLToCanvas(html);
+        if (result.elements.length === 0) {
+          // Fallback: inject as single full-screen iframe element
+          const el = createElement('iframe');
+          el.x = 0; el.y = 0; el.width = 1080; el.height = 1920;
+          el.props = { ...el.props, srcDoc: html };
+          el.viewId = activeViewId;
+          dispatch({ type: 'ADD_ELEMENT', payload: el });
+        } else {
+          result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
+          if (result.bgColor && result.bgColor !== '#0f172a') {
+            dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
+          }
+        }
+        toast.success(`Layout gerado com ${result.elements.length || 1} elementos!`);
+      }}
     />
     </PageVariablesProvider>
   );
