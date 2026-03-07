@@ -46,10 +46,12 @@ const POLL_INTERVAL = 15_000;
 // ─────────────────────────────────────────────
 // 📡 LIVE PREVIEW via Supabase Realtime
 // ─────────────────────────────────────────────
-function useLivePreview(deviceId, onLiveUpdate) {
+function useLivePreview(deviceId, onLiveUpdate, onReloadSignal) {
   const [isLive, setIsLive] = useState(false);
   const onLiveUpdateRef = useRef(onLiveUpdate);
+  const onReloadRef = useRef(onReloadSignal);
   useEffect(() => { onLiveUpdateRef.current = onLiveUpdate; }, [onLiveUpdate]);
+  useEffect(() => { onReloadRef.current = onReloadSignal; }, [onReloadSignal]);
 
   useEffect(() => {
     if (!deviceId) return;
@@ -60,11 +62,16 @@ function useLivePreview(deviceId, onLiveUpdate) {
 
     channel
       .on("broadcast", { event: "ui-update" }, ({ payload }) => {
-        // New format: free_canvas (replaces craft_blocks)
+        // Lightweight reload signal — fetch fresh config via polling
+        if (payload?.reload) {
+          console.info("[LivePreview] Reload signal received — fetching latest config...");
+          onReloadRef.current?.();
+          return;
+        }
+        // Full payload (legacy/small payloads)
         if (payload?.free_canvas) {
           onLiveUpdateRef.current({ free_canvas: payload.free_canvas, _liveTs: payload.ts });
         }
-        // Legacy fallback
         if (payload?.craft_blocks) {
           onLiveUpdateRef.current({ craft_blocks: payload.craft_blocks, _liveTs: payload.ts });
         }
