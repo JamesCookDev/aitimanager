@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
     // ── Build merged UI config ──
     let mergedUi: any
 
+    // Extract free_canvas early — it may exist regardless of old/new format
+    const freeCanvas = storedUi.free_canvas || null
+
     if (storedUi.canvas && storedUi.components) {
       const avatarStored = storedUi.components?.avatar || {}
       const avatarDef = defaultConfig.components.avatar
