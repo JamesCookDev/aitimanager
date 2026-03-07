@@ -120,13 +120,17 @@ export default function PageEditorPage() {
     await handleSave(state);
     toast.success('Layout publicado no dispositivo!');
 
-    // Broadcast via realtime for instant preview
+    // Broadcast a lightweight reload signal (full state is too large for Realtime)
     if (selectedDeviceId) {
-      await supabase.channel(`live-preview:${selectedDeviceId}`).send({
-        type: 'broadcast',
-        event: 'ui-update',
-        payload: { free_canvas: state, ts: Date.now() },
-      });
+      try {
+        await supabase.channel(`live-preview:${selectedDeviceId}`).send({
+          type: 'broadcast',
+          event: 'ui-update',
+          payload: { reload: true, ts: Date.now() },
+        });
+      } catch (err) {
+        console.warn('Broadcast falhou, totem usará polling:', err);
+      }
     }
   };
 
