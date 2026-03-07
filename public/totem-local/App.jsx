@@ -46,12 +46,10 @@ const POLL_INTERVAL = 15_000;
 // ─────────────────────────────────────────────
 // 📡 LIVE PREVIEW via Supabase Realtime
 // ─────────────────────────────────────────────
-function useLivePreview(deviceId, onLiveUpdate, fetchLatest) {
+function useLivePreview(deviceId, onLiveUpdate) {
   const [isLive, setIsLive] = useState(false);
   const onLiveUpdateRef = useRef(onLiveUpdate);
-  const fetchLatestRef = useRef(fetchLatest);
   useEffect(() => { onLiveUpdateRef.current = onLiveUpdate; }, [onLiveUpdate]);
-  useEffect(() => { fetchLatestRef.current = fetchLatest; }, [fetchLatest]);
 
   useEffect(() => {
     if (!deviceId) return;
@@ -62,18 +60,11 @@ function useLivePreview(deviceId, onLiveUpdate, fetchLatest) {
 
     channel
       .on("broadcast", { event: "ui-update" }, ({ payload }) => {
-        // Lightweight reload signal — fetch full config from API
-        if (payload?.reload) {
-          console.info("[LivePreview] 🔄 Sinal de reload recebido — buscando config atualizada...");
-          if (fetchLatestRef.current) {
-            fetchLatestRef.current();
-          }
-          return;
-        }
-        // Direct payload (legacy)
+        // New format: free_canvas (replaces craft_blocks)
         if (payload?.free_canvas) {
           onLiveUpdateRef.current({ free_canvas: payload.free_canvas, _liveTs: payload.ts });
         }
+        // Legacy fallback
         if (payload?.craft_blocks) {
           onLiveUpdateRef.current({ craft_blocks: payload.craft_blocks, _liveTs: payload.ts });
         }
@@ -207,8 +198,6 @@ function useConfigPoller(deviceId, onUpdate) {
     const id = setInterval(fetchLatest, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [fetchLatest, deviceId]);
-
-  return fetchLatest;
 }
 
 // ─────────────────────────────────────────────
@@ -3183,9 +3172,9 @@ export default function App() {
     setLiveUi(newUi);
   }, []);
 
-  const fetchLatest = useConfigPoller(deviceId, handleConfigUpdate);
+  useConfigPoller(deviceId, handleConfigUpdate);
   useHeartbeat(deviceId);
-  const isLive = useLivePreview(deviceId, handleLiveUpdate, fetchLatest);
+  const isLive = useLivePreview(deviceId, handleLiveUpdate);
 
   const ui = liveUi || initialUi;
 
