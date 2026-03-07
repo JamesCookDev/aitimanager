@@ -3183,9 +3183,9 @@ export default function App() {
     setLiveUi(newUi);
   }, []);
 
-  useConfigPoller(deviceId, handleConfigUpdate);
+  const fetchLatest = useConfigPoller(deviceId, handleConfigUpdate);
   useHeartbeat(deviceId);
-  const isLive = useLivePreview(deviceId, handleLiveUpdate);
+  const isLive = useLivePreview(deviceId, handleLiveUpdate, fetchLatest);
 
   const ui = liveUi || initialUi;
 
