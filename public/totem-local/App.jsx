@@ -205,6 +205,8 @@ function useConfigPoller(deviceId, onUpdate) {
     const id = setInterval(fetchLatest, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [fetchLatest, deviceId]);
+
+  return fetchLatest;
 }
 
 // ─────────────────────────────────────────────
