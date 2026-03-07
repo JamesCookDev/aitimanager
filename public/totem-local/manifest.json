@@ -1,11 +1,11 @@
 {
-  "hub_version": "5.1.0",
-  "updated_at": "2026-03-05",
-  "description": "Manifesto de versões dos arquivos do totem local. Mantido automaticamente pelo Hub. v5.1: sync-worker com cleanup de extensões.",
+  "hub_version": "5.2.0",
+  "updated_at": "2026-03-07",
+  "description": "Manifesto de versões dos arquivos do totem local. v5.2: useLivePreview aceita sinal reload e busca config via API.",
   "files": {
     "App.jsx": {
-      "version": "5.1.0",
-      "description": "Aplicação principal — auto-registro por hardware_id, renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge",
+      "version": "5.2.0",
+      "description": "Aplicação principal — live preview com reload signal, polling, heartbeat, auto-registro, renderizadores de canvas",
       "critical": true
     },
     "main.jsx": {
