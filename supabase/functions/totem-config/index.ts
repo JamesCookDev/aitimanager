@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
     // ── Build merged UI config ──
     let mergedUi: any
 
+    // Extract free_canvas early — it may exist regardless of old/new format
+    const freeCanvas = storedUi.free_canvas || null
+
     if (storedUi.canvas && storedUi.components) {
       const avatarStored = storedUi.components?.avatar || {}
       const avatarDef = defaultConfig.components.avatar
@@ -148,7 +151,7 @@ Deno.serve(async (req) => {
             },
           },
         },
-        free_canvas: storedUi.free_canvas || null,
+        free_canvas: freeCanvas,
       }
     } else {
       const layout = storedUi.layout || {}
@@ -190,7 +193,7 @@ Deno.serve(async (req) => {
             },
           },
         },
-        free_canvas: null,
+        free_canvas: freeCanvas,
       }
       if (mergedUi.components.chat_interface.menu.categories.length === 0) {
         mergedUi.components.chat_interface.menu.categories = defaultConfig.components.chat_interface.menu.categories
