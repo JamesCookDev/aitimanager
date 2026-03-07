@@ -93,41 +93,58 @@ export default function PageEditorPage() {
   const handleSave = async (state: CanvasState) => {
     if (!selectedDeviceId) return;
 
-    // Load existing ui_config first to preserve other settings
-    const { data: existing } = await supabase
-      .from('devices')
-      .select('ui_config')
-      .eq('id', selectedDeviceId)
-      .single();
+    try {
+      // Use a lightweight RPC-style update to avoid loading the full ui_config
+      const { data: existing } = await supabase
+        .from('devices')
+        .select('ui_config')
+        .eq('id', selectedDeviceId)
+        .single();
 
-    const currentConfig = (existing?.ui_config as Record<string, any>) || {};
+      const currentConfig = (existing?.ui_config as Record<string, any>) || {};
+      
+      // Only update free_canvas, keep other keys
+      const updatedConfig = { ...currentConfig, free_canvas: state };
 
-    const { error } = await supabase
-      .from('devices')
-      .update({
-        ui_config: { ...currentConfig, free_canvas: state } as any,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', selectedDeviceId);
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          ui_config: updatedConfig as any,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedDeviceId);
 
-    if (error) {
-      toast.error('Erro ao salvar');
-      console.error(error);
+      if (error) {
+        toast.error('Erro ao salvar: ' + error.message);
+        console.error(error);
+        throw error;
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+      throw err;
     }
   };
 
   const handlePublish = async (state: CanvasState) => {
-    await handleSave(state);
+    try {
+      await handleSave(state);
+    } catch {
+      toast.error('Falha ao salvar — publicação cancelada');
+      return;
+    }
+
     toast.success('Layout publicado no dispositivo!');
 
-    // Broadcast a lightweight reload signal (full state is too large for Realtime)
+    // Broadcast a lightweight reload signal
     if (selectedDeviceId) {
       try {
-        await supabase.channel(`live-preview:${selectedDeviceId}`).send({
+        const channel = supabase.channel(`live-preview:${selectedDeviceId}`);
+        await channel.send({
           type: 'broadcast',
           event: 'ui-update',
           payload: { reload: true, ts: Date.now() },
         });
+        supabase.removeChannel(channel);
       } catch (err) {
         console.warn('Broadcast falhou, totem usará polling:', err);
       }
