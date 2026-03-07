@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
             },
           },
         },
-        free_canvas: storedUi.free_canvas || null,
+        free_canvas: freeCanvas,
       }
     } else {
       const layout = storedUi.layout || {}
