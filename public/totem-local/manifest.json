@@ -4,7 +4,7 @@
   "description": "Manifesto de versões dos arquivos do totem local. Mantido automaticamente pelo Hub. v5.1: sync-worker com cleanup de extensões.",
   "files": {
     "App.jsx": {
-      "version": "5.0.0",
+      "version": "5.1.0",
       "description": "Aplicação principal — auto-registro por hardware_id, renderizadores de blocos, polling, heartbeat, live preview, chat→avatar bridge",
       "critical": true
     },
