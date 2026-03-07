@@ -126,17 +126,25 @@ export default function PageEditorPage() {
   };
 
   const handlePublish = async (state: CanvasState) => {
-    await handleSave(state);
+    try {
+      await handleSave(state);
+    } catch {
+      toast.error('Falha ao salvar — publicação cancelada');
+      return;
+    }
+
     toast.success('Layout publicado no dispositivo!');
 
-    // Broadcast a lightweight reload signal (full state is too large for Realtime)
+    // Broadcast a lightweight reload signal
     if (selectedDeviceId) {
       try {
-        await supabase.channel(`live-preview:${selectedDeviceId}`).send({
+        const channel = supabase.channel(`live-preview:${selectedDeviceId}`);
+        await channel.send({
           type: 'broadcast',
           event: 'ui-update',
           payload: { reload: true, ts: Date.now() },
         });
+        supabase.removeChannel(channel);
       } catch (err) {
         console.warn('Broadcast falhou, totem usará polling:', err);
       }
