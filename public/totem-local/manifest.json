@@ -1,11 +1,11 @@
 {
-  "hub_version": "5.2.0",
+  "hub_version": "5.3.0",
   "updated_at": "2026-03-07",
-  "description": "Manifesto de versões dos arquivos do totem local. v5.2: useLivePreview aceita sinal reload e busca config via API.",
+  "description": "Manifesto de versões dos arquivos do totem local. v5.3: Restauração do App.jsx original (App-9) com polling + broadcast direto.",
   "files": {
     "App.jsx": {
-      "version": "5.2.0",
-      "description": "Aplicação principal — live preview com reload signal, polling, heartbeat, auto-registro, renderizadores de canvas",
+      "version": "5.3.0",
+      "description": "Aplicação principal — free canvas renderer, polling, heartbeat, auto-registro, broadcast direto de free_canvas",
       "critical": true
     },
     "main.jsx": {
