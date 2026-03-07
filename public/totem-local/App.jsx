@@ -3443,9 +3443,15 @@ export default function App() {
     setLiveUi(newUi);
   }, []);
 
-  useConfigPoller(deviceId, handleConfigUpdate);
+  const fetchNow = useConfigPoller(deviceId, handleConfigUpdate);
   useHeartbeat(deviceId);
-  const isLive = useLivePreview(deviceId, handleLiveUpdate);
+
+  // On reload signal from Hub, immediately re-fetch config
+  const handleReloadSignal = useCallback(() => {
+    if (fetchNow) fetchNow();
+  }, [fetchNow]);
+
+  const isLive = useLivePreview(deviceId, handleLiveUpdate, handleReloadSignal);
 
   const ui = liveUi || initialUi;
 
