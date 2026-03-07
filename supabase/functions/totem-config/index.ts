@@ -151,7 +151,9 @@ Deno.serve(async (req) => {
             },
           },
         },
-        free_canvas: freeCanvasse {
+        free_canvas: freeCanvas,
+      }
+    } else {
       const layout = storedUi.layout || {}
       mergedUi = {
         canvas: {
@@ -191,9 +193,9 @@ Deno.serve(async (req) => {
             },
           },
         },
-        free_canvas: null,
+        free_canvas: freeCanvas,
       }
-    freeCanvas (mergedUi.components.chat_interface.menu.categories.length === 0) {
+      if (mergedUi.components.chat_interface.menu.categories.length === 0) {
         mergedUi.components.chat_interface.menu.categories = defaultConfig.components.chat_interface.menu.categories
       }
     }
