@@ -1,8 +1,19 @@
 {
-  "hub_version": "5.3.0",
-  "updated_at": "2026-03-07",
-  "description": "Manifesto de versões dos arquivos do totem local. v5.3: Restauração do App.jsx original (App-9) com polling + broadcast direto.",
+  "hub_version": "6.0.0",
+  "updated_at": "2026-03-09",
+  "description": "Manifesto v6: Inclui package.json e vite.config.js para instalação automática de dependências via sync-worker.",
   "files": {
+    "package.json": {
+      "version": "1.0.0",
+      "description": "Dependências do projeto — sync-worker roda 'yarn install' automaticamente ao detectar mudanças",
+      "critical": true,
+      "install": true
+    },
+    "vite.config.js": {
+      "version": "1.0.0",
+      "description": "Configuração do Vite",
+      "critical": true
+    },
     "App.jsx": {
       "version": "5.3.0",
       "description": "Aplicação principal — free canvas renderer, polling, heartbeat, auto-registro, broadcast direto de free_canvas",
