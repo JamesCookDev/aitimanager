@@ -1,7 +1,7 @@
 {
-  "hub_version": "7.0.0",
+  "hub_version": "7.1.0",
   "updated_at": "2026-03-09",
-  "description": "Manifesto v7: sync-worker v3.0 com setup automático completo (env, sync, install, dev server).",
+  "description": "Manifesto v7.1: sync-worker v3.1 convertido para ESM (compatível com package.json type:module).",
   "files": {
     "package.json": {
       "version": "1.0.0",
