@@ -121,10 +121,26 @@ function ensureDir(filePath) {
 }
 
 // ─── Detectar gerenciador de pacotes ─────────────────────────
+function isCommandAvailable(cmd) {
+  try {
+    const { execSync } = require('child_process');
+    execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 5000 });
+    return true;
+  } catch { return false; }
+}
+
 function detectPackageManager() {
-  if (FORCED_PM) return FORCED_PM;
-  if (fs.existsSync(path.join(LOCAL_DIR, 'yarn.lock'))) return 'yarn';
-  if (fs.existsSync(path.join(LOCAL_DIR, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (FORCED_PM) {
+    if (isCommandAvailable(FORCED_PM)) return FORCED_PM;
+    warn(`${FORCED_PM} não encontrado! Usando npm como fallback.`);
+    return 'npm';
+  }
+  if (fs.existsSync(path.join(LOCAL_DIR, 'yarn.lock')) && isCommandAvailable('yarn')) return 'yarn';
+  if (fs.existsSync(path.join(LOCAL_DIR, 'pnpm-lock.yaml')) && isCommandAvailable('pnpm')) return 'pnpm';
+  if (!isCommandAvailable('npm')) {
+    error('npm não encontrado! Instale o Node.js: https://nodejs.org');
+    return null;
+  }
   return 'npm';
 }
 
@@ -132,6 +148,8 @@ function detectPackageManager() {
 function installDependencies() {
   return new Promise((resolve) => {
     const pm = detectPackageManager();
+    if (!pm) { resolve(false); return; }
+
     const cmd = pm === 'yarn' ? 'yarn install --frozen-lockfile || yarn install'
               : pm === 'pnpm' ? 'pnpm install --frozen-lockfile || pnpm install'
               : 'npm ci || npm install';
