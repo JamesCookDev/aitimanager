@@ -56,7 +56,13 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log(`[totem-config] Device: ${device.id} (${device.name}) requisitou configuração`)
+    console.info(`[totem-config] 📡 ${device.name} (${device.id.substring(0, 8)}…) requisitou configuração`)
+
+    // Atualiza last_ping no config poll também (mantém status online sincronizado)
+    await supabase
+      .from('devices')
+      .update({ last_ping: new Date().toISOString() })
+      .eq('id', device.id)
 
     let modelData = null
     if (device.current_version_id) {
