@@ -106,12 +106,32 @@ function getHardwareId() {
 
 function useAutoRegister() {
   const [deviceId, setDeviceId] = useState(() => {
-    return import.meta.env.VITE_TOTEM_DEVICE_ID || localStorage.getItem("totem_device_id") || null;
+    // Se tem device_id fixo no .env, usa direto
+    const envDeviceId = import.meta.env.VITE_TOTEM_DEVICE_ID;
+    if (envDeviceId) return envDeviceId;
+
+    // Verifica se o device_id cacheado pertence à org atual
+    const cachedId = localStorage.getItem("totem_device_id");
+    const cachedOrg = localStorage.getItem("totem_org_id");
+    const currentOrg = import.meta.env.VITE_ORG_ID || "";
+
+    if (cachedId && cachedOrg && cachedOrg !== currentOrg) {
+      // Org mudou — limpa cache para forçar novo auto-registro
+      console.warn("[AutoRegister] ORG_ID mudou — limpando cache para novo registro.");
+      localStorage.removeItem("totem_device_id");
+      localStorage.removeItem("totem_hardware_id");
+      return null;
+    }
+
+    return cachedId || null;
   });
   const [registering, setRegistering] = useState(false);
 
   useEffect(() => {
-    if (deviceId) return; // Já tem ID
+    if (deviceId) {
+      console.log(`[AutoRegister] Device ID ativo: ${deviceId}`);
+      return;
+    }
 
     const apiUrl = import.meta.env.VITE_CMS_API_URL;
     const orgId = import.meta.env.VITE_ORG_ID;
@@ -126,7 +146,7 @@ function useAutoRegister() {
       setRegistering(true);
       try {
         const hardwareId = getHardwareId();
-        console.log(`[AutoRegister] Registrando hardware: ${hardwareId}`);
+        console.log(`[AutoRegister] Registrando hardware: ${hardwareId} na org: ${orgId}`);
 
         const res = await fetch(`${apiUrl}/totem-register`, {
           method: "POST",
@@ -144,12 +164,12 @@ function useAutoRegister() {
 
         if (data.device?.id) {
           localStorage.setItem("totem_device_id", data.device.id);
+          localStorage.setItem("totem_org_id", orgId);
           setDeviceId(data.device.id);
           console.log(`[AutoRegister] ✅ ${data.registered ? "Novo dispositivo" : "Dispositivo existente"}: ${data.device.name} (${data.device.id})`);
         }
       } catch (err) {
         console.error("[AutoRegister] ❌ Falha:", err.message);
-        // Retry after 30s
         setTimeout(register, 30_000);
       } finally {
         setRegistering(false);
