@@ -15,8 +15,8 @@
       "critical": true
     },
     "App.jsx": {
-      "version": "5.3.0",
-      "description": "Aplicação principal — free canvas renderer, polling, heartbeat, auto-registro, broadcast direto de free_canvas",
+      "version": "5.4.0",
+      "description": "Aplicação principal — auto-registro com validação de org_id, limpa cache ao trocar organização",
       "critical": true
     },
     "main.jsx": {
