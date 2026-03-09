@@ -53,11 +53,14 @@ Deno.serve(async (req) => {
     const { data: device, error: fetchError } = await query.single()
 
     if (fetchError || !device) {
+      console.warn(`[Heartbeat] ❌ Dispositivo não encontrado — id: ${deviceId || 'N/A'}, apiKey: ${apiKey ? apiKey.substring(0, 8) + '...' : 'N/A'}`)
       return new Response(
         JSON.stringify({ error: 'Dispositivo não encontrado' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.info(`[Heartbeat] 📡 ${device.name} (${device.id.substring(0, 8)}…) — speaking: ${isSpeaking}`)
 
     const command = device.pending_command || null
 
