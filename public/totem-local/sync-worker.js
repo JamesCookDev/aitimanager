@@ -148,6 +148,8 @@ function detectPackageManager() {
 function installDependencies() {
   return new Promise((resolve) => {
     const pm = detectPackageManager();
+    if (!pm) { resolve(false); return; }
+
     const cmd = pm === 'yarn' ? 'yarn install --frozen-lockfile || yarn install'
               : pm === 'pnpm' ? 'pnpm install --frozen-lockfile || pnpm install'
               : 'npm ci || npm install';
