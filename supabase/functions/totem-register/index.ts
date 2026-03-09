@@ -44,11 +44,12 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Buscar dispositivo existente por hardware_id
+      // Buscar dispositivo existente por hardware_id + org_id (mesma máquina pode estar em orgs diferentes)
       const { data: existing } = await supabaseAdmin
         .from('devices')
         .select('id, name, api_key')
         .eq('hardware_id', hardware_id)
+        .eq('org_id', org_id)
         .single()
 
       if (existing) {
