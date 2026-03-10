@@ -12,7 +12,7 @@
  *  ─ Interação: chat, map, iframe, store
  * ══════════════════════════════════════════════════════════════
  */
-import './index.css';
+import "./index.css";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSpeech } from "./hooks/useSpeech";
 import { createClient } from "@supabase/supabase-js";
@@ -24,10 +24,7 @@ import { useCMSConfig } from "./hooks/useCMSConfig";
 import { ChatInterface } from "./components/ChatInterface";
 
 // ─── Supabase client (live preview) ───────────
-const _supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || "",
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ""
-);
+const _supabase = createClient(import.meta.env.VITE_SUPABASE_URL || "", import.meta.env.VITE_SUPABASE_ANON_KEY || "");
 
 // ─────────────────────────────────────────────
 // 🔧 UTILITÁRIOS
@@ -49,7 +46,9 @@ const POLL_INTERVAL = 15_000;
 function useLivePreview(deviceId, onLiveUpdate) {
   const [isLive, setIsLive] = useState(false);
   const onLiveUpdateRef = useRef(onLiveUpdate);
-  useEffect(() => { onLiveUpdateRef.current = onLiveUpdate; }, [onLiveUpdate]);
+  useEffect(() => {
+    onLiveUpdateRef.current = onLiveUpdate;
+  }, [onLiveUpdate]);
 
   useEffect(() => {
     if (!deviceId) return;
@@ -166,7 +165,9 @@ function useAutoRegister() {
           localStorage.setItem("totem_device_id", data.device.id);
           localStorage.setItem("totem_org_id", orgId);
           setDeviceId(data.device.id);
-          console.log(`[AutoRegister] ✅ ${data.registered ? "Novo dispositivo" : "Dispositivo existente"}: ${data.device.name} (${data.device.id})`);
+          console.log(
+            `[AutoRegister] ✅ ${data.registered ? "Novo dispositivo" : "Dispositivo existente"}: ${data.device.name} (${data.device.id})`,
+          );
         }
       } catch (err) {
         console.error("[AutoRegister] ❌ Falha:", err.message);
@@ -244,7 +245,7 @@ function useHeartbeat(deviceId) {
       if (!apiUrl || !deviceId) return;
 
       const headers = {
-        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
         "Content-Type": "application/json",
         "x-totem-device-id": deviceId,
       };
@@ -295,9 +296,9 @@ function useFilteredElements(canvas, activeViewId) {
   return useMemo(() => {
     if (!canvas?.elements) return [];
     return [...canvas.elements]
-      .filter(el => {
+      .filter((el) => {
         if (el.visible === false) return false;
-        if (!el.viewId || el.viewId === '__global__') return true;
+        if (!el.viewId || el.viewId === "__global__") return true;
         return el.viewId === activeViewId;
       })
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
@@ -307,20 +308,25 @@ function useFilteredElements(canvas, activeViewId) {
 // Renders only NON-fixed elements (inside the page transition wrapper)
 const FreeCanvasRenderer = React.memo(({ canvas, activeViewId, onNavigate }) => {
   const sorted = useFilteredElements(canvas, activeViewId);
-  const normalElements = useMemo(() => sorted.filter(el => !(el.type === 'avatar' && el.props?.fixedOnScreen === true)), [sorted]);
+  const normalElements = useMemo(
+    () => sorted.filter((el) => !(el.type === "avatar" && el.props?.fixedOnScreen === true)),
+    [sorted],
+  );
 
   if (normalElements.length === 0) return null;
 
   return (
-    <div style={{
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-      pointerEvents: "none",
-    }}>
-      {normalElements.map(el => (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}
+    >
+      {normalElements.map((el) => (
         <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
       ))}
     </div>
@@ -333,23 +339,25 @@ const FixedAvatarLayer = React.memo(({ canvas, activeViewId, onNavigate }) => {
   const allElements = useMemo(() => {
     if (!canvas?.elements) return [];
     return canvas.elements
-      .filter(el => el.visible !== false && el.type === 'avatar' && el.props?.fixedOnScreen === true)
+      .filter((el) => el.visible !== false && el.type === "avatar" && el.props?.fixedOnScreen === true)
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
   }, [canvas?.elements]);
 
   if (allElements.length === 0) return null;
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      width: "100vw",
-      height: "100vh",
-      overflow: "visible",
-      pointerEvents: "none",
-      zIndex: 9000,
-    }}>
-      {allElements.map(el => (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100vh",
+        overflow: "visible",
+        pointerEvents: "none",
+        zIndex: 9000,
+      }}
+    >
+      {allElements.map((el) => (
         <FreeCanvasElement key={el.id} element={el} onNavigate={onNavigate} />
       ))}
     </div>
@@ -377,16 +385,36 @@ function FreeCanvasElement({ element, onNavigate }) {
     return () => ro.disconnect();
   }, [width, height]);
 
-  const isInteractive = ["button","chat","social","qrcode","iframe","store","numpad","form","ticket","bigcta","qrpix","catalog","list","gallery","carousel","map","feed"].includes(type);
+  const isInteractive = [
+    "button",
+    "chat",
+    "social",
+    "qrcode",
+    "iframe",
+    "store",
+    "numpad",
+    "form",
+    "ticket",
+    "bigcta",
+    "qrpix",
+    "catalog",
+    "list",
+    "gallery",
+    "carousel",
+    "map",
+    "feed",
+  ].includes(type);
   // Any element with a navigation action should be interactive
   const hasNavAction = props?.actionType === "navigate" && props?.navigateTarget;
 
   // Handle generic navigation action (for text, image, shape, icon, etc.)
-  const handleGenericClick = hasNavAction ? () => {
-    if (window.__totemNavigatePage) {
-      window.__totemNavigatePage(props.navigateTarget, props.navigateTransition || "fade");
-    }
-  } : undefined;
+  const handleGenericClick = hasNavAction
+    ? () => {
+        if (window.__totemNavigatePage) {
+          window.__totemNavigatePage(props.navigateTarget, props.navigateTransition || "fade");
+        }
+      }
+    : undefined;
 
   // Outer container: percentage-based positioning
   const outerStyle = {
@@ -398,7 +426,7 @@ function FreeCanvasElement({ element, onNavigate }) {
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     opacity: opacity ?? 1,
     zIndex: element.zIndex || 1,
-    pointerEvents: (isInteractive || hasNavAction) ? "auto" : "none",
+    pointerEvents: isInteractive || hasNavAction ? "auto" : "none",
     overflow: type === "social" ? "visible" : "hidden",
     borderRadius: props?.borderRadius ? px(props.borderRadius) : undefined,
     cursor: hasNavAction ? "pointer" : undefined,
@@ -448,24 +476,40 @@ function FreeCanvasElement({ element, onNavigate }) {
 // 🎨 SOCIAL SVG ICONS — ícones de marca embutidos
 // ─────────────────────────────────────────────
 const SOCIAL_SVG_PATHS = {
-  instagram: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z",
-  facebook: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
-  whatsapp: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z",
-  twitter: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
+  instagram:
+    "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z",
+  facebook:
+    "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
+  whatsapp:
+    "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z",
+  twitter:
+    "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
   x: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
-  tiktok: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
-  youtube: "M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
-  linkedin: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
-  telegram: "M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z",
-  email: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z",
-  website: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z",
-  phone: "M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z",
+  tiktok:
+    "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+  youtube:
+    "M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+  linkedin:
+    "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
+  telegram:
+    "M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z",
+  email:
+    "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z",
+  website:
+    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z",
+  phone:
+    "M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z",
   maps: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-  spotify: "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z",
-  pinterest: "M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.017 24c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641 0 12.017 0z",
-  threads: "M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.19.408-2.285 1.33-3.082.88-.762 2.078-1.19 3.462-1.242 1.028-.038 1.98.065 2.86.275-.11-.58-.315-1.048-.608-1.394-.486-.573-1.264-.862-2.314-.862h-.05c-.802.007-1.532.241-2.11.677l-1.325-1.632c.868-.704 1.969-1.091 3.186-1.12h.079c1.588 0 2.823.528 3.672 1.563.72.874 1.14 2.044 1.265 3.502.469.163.907.374 1.306.634 1.078.703 1.893 1.673 2.36 2.808.737 1.794.829 4.58-1.263 6.622-1.89 1.844-4.207 2.648-7.508 2.672zM8.89 16.932c.052.947.608 1.775 2.086 2.478.717.124 1.378.164 1.985.13 1.022-.056 1.797-.434 2.373-1.15.425-.53.728-1.238.879-2.1-.997-.253-2.07-.376-3.178-.335-.977.036-1.754.296-2.318.768-.552.463-.844 1.12-.827 1.71v.5z",
-  discord: "M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z",
-  github: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
+  spotify:
+    "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z",
+  pinterest:
+    "M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.017 24c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641 0 12.017 0z",
+  threads:
+    "M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.19.408-2.285 1.33-3.082.88-.762 2.078-1.19 3.462-1.242 1.028-.038 1.98.065 2.86.275-.11-.58-.315-1.048-.608-1.394-.486-.573-1.264-.862-2.314-.862h-.05c-.802.007-1.532.241-2.11.677l-1.325-1.632c.868-.704 1.969-1.091 3.186-1.12h.079c1.588 0 2.823.528 3.672 1.563.72.874 1.14 2.044 1.265 3.502.469.163.907.374 1.306.634 1.078.703 1.893 1.673 2.36 2.808.737 1.794.829 4.58-1.263 6.622-1.89 1.844-4.207 2.648-7.508 2.672zM8.89 16.932c.052.947.608 1.775 2.086 2.478.717.124 1.378.164 1.985.13 1.022-.056 1.797-.434 2.373-1.15.425-.53.728-1.238.879-2.1-.997-.253-2.07-.376-3.178-.335-.977.036-1.754.296-2.318.768-.552.463-.844 1.12-.827 1.71v.5z",
+  discord:
+    "M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z",
+  github:
+    "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
 };
 
 function SocialSVGIcon({ platform, size = 24, color = "#fff" }) {
@@ -490,21 +534,25 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "text": {
       const color = p.color || "#fff";
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          display: "flex", alignItems: "center",
-          padding: "2%",
-          color,
-          fontSize: fs(p.fontSize || 24),
-          fontWeight: p.fontWeight || "normal",
-          textAlign: p.align || "left",
-          fontFamily: p.fontFamily || "'Inter', sans-serif",
-          justifyContent: p.align === "center" ? "center" : p.align === "right" ? "flex-end" : "flex-start",
-          lineHeight: 1.25,
-          wordBreak: "break-word",
-          textShadow: `0 2px 8px ${color}30, 0 1px 2px rgba(0,0,0,0.4)`,
-          letterSpacing: "-0.01em",
-        }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            padding: "2%",
+            color,
+            fontSize: fs(p.fontSize || 24),
+            fontWeight: p.fontWeight || "normal",
+            textAlign: p.align || "left",
+            fontFamily: p.fontFamily || "'Inter', sans-serif",
+            justifyContent: p.align === "center" ? "center" : p.align === "right" ? "flex-end" : "flex-start",
+            lineHeight: 1.25,
+            wordBreak: "break-word",
+            textShadow: `0 2px 8px ${color}30, 0 1px 2px rgba(0,0,0,0.4)`,
+            letterSpacing: "-0.01em",
+          }}
+        >
           {p.text || "Texto"}
         </div>
       );
@@ -516,21 +564,35 @@ function ElementRenderer({ type, props: p, onNavigate }) {
         return <PremiumPlaceholder emoji="🖼️" label="Imagem" />;
       }
       return (
-        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: p.borderRadius || 0,
+          }}
+        >
           <img
-            src={p.src} alt=""
+            src={p.src}
+            alt=""
             style={{
-              width: "100%", height: "100%",
+              width: "100%",
+              height: "100%",
               objectFit: p.fit || "cover",
               pointerEvents: "none",
               transition: "transform 0.6s ease",
             }}
           />
           {/* Subtle vignette overlay */}
-          <div style={{
-            position: "absolute", inset: 0, pointerEvents: "none",
-            background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.25) 100%)",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.25) 100%)",
+            }}
+          />
         </div>
       );
     }
@@ -541,13 +603,23 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const textColor = p.textColor || "#fff";
       const borderRadius = p.borderRadius ?? 14;
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "4%" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "4%",
+          }}
+        >
           <button
             type="button"
             onClick={() => {
               const actionType = p.actionType || "prompt";
               if (actionType === "navigate" && p.navigateTarget) {
-                if (window.__totemNavigatePage) window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade");
+                if (window.__totemNavigatePage)
+                  window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade");
                 else if (onNavigate) onNavigate(p.navigateTarget);
               } else if (actionType === "url" && p.action) {
                 if (typeof window.__totemOpenUrl === "function") window.__totemOpenUrl(p.action);
@@ -560,8 +632,12 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             }}
             className="totem-btn-3d"
             style={{
-              width: "100%", height: "100%",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
               background: bgColor,
               color: textColor,
               fontSize: fs(p.fontSize || 18),
@@ -579,9 +655,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             }}
           >
             {p.icon && <span style={{ position: "relative", zIndex: 1, fontSize: "1.1em" }}>{p.icon}</span>}
-            <span style={{ position: "relative", zIndex: 1 }}>
-              {p.label || "Botão"}
-            </span>
+            <span style={{ position: "relative", zIndex: 1 }}>{p.label || "Botão"}</span>
           </button>
         </div>
       );
@@ -592,23 +666,30 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const fill = p.fill || "#3b82f6";
       const isCircle = p.shapeType === "circle";
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          position: "relative",
-          background: `linear-gradient(135deg, ${fill}, ${fill}cc)`,
-          borderRadius: isCircle ? "50%" : (p.borderRadius || 0),
-          border: p.borderWidth
-            ? `${p.borderWidth}px solid ${p.borderColor || "rgba(255,255,255,0.15)"}`
-            : "1px solid rgba(255,255,255,0.08)",
-          boxShadow: `0 8px 32px ${fill}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
-          animation: "totem-shape-breathe 4s ease-in-out infinite",
-          overflow: "hidden",
-        }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            background: `linear-gradient(135deg, ${fill}, ${fill}cc)`,
+            borderRadius: isCircle ? "50%" : p.borderRadius || 0,
+            border: p.borderWidth
+              ? `${p.borderWidth}px solid ${p.borderColor || "rgba(255,255,255,0.15)"}`
+              : "1px solid rgba(255,255,255,0.08)",
+            boxShadow: `0 8px 32px ${fill}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
+            animation: "totem-shape-breathe 4s ease-in-out infinite",
+            overflow: "hidden",
+          }}
+        >
           {/* Inner glow */}
-          <div style={{
-            position: "absolute", inset: 0, pointerEvents: "none",
-            background: "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              background: "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)",
+            }}
+          />
         </div>
       );
     }
@@ -617,14 +698,19 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     case "icon": {
       const iconColor = p.color || "#fff";
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: iconColor,
-          fontSize: fs(p.size || 48),
-          filter: `drop-shadow(0 0 8px ${iconColor}40)`,
-          animation: "totem-icon-glow 3s ease-in-out infinite",
-        }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: iconColor,
+            fontSize: fs(p.size || 48),
+            filter: `drop-shadow(0 0 8px ${iconColor}40)`,
+            animation: "totem-icon-glow 3s ease-in-out infinite",
+          }}
+        >
           {p.icon || "⭐"}
         </div>
       );
@@ -638,19 +724,46 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       let finalSrc = vidSrc;
       if (isYt && !vidSrc.includes("embed")) {
         const videoId = vidSrc.match(/(?:v=|youtu\.be\/)([\w-]+)/)?.[1];
-        if (videoId) finalSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&mute=${p.muted ? 1 : 0}&loop=${p.loop ? 1 : 0}`;
+        if (videoId)
+          finalSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&mute=${p.muted ? 1 : 0}&loop=${p.loop ? 1 : 0}`;
       }
       if (isMp4) {
         return (
-          <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
-            <video src={finalSrc} autoPlay={!!p.autoplay} loop={!!p.loop} muted={!!p.muted || !!p.autoplay} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(180deg, transparent 70%, rgba(0,0,0,0.4) 100%)" }} />
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: p.borderRadius || 0,
+            }}
+          >
+            <video
+              src={finalSrc}
+              autoPlay={!!p.autoplay}
+              loop={!!p.loop}
+              muted={!!p.muted || !!p.autoplay}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                background: "linear-gradient(180deg, transparent 70%, rgba(0,0,0,0.4) 100%)",
+              }}
+            />
           </div>
         );
       }
       return (
         <div style={{ width: "100%", height: "100%", borderRadius: p.borderRadius || 0, overflow: "hidden" }}>
-          <iframe src={finalSrc} style={{ width: "100%", height: "100%", border: "none" }} allow="autoplay; fullscreen; encrypted-media" allowFullScreen />
+          <iframe
+            src={finalSrc}
+            style={{ width: "100%", height: "100%", border: "none" }}
+            allow="autoplay; fullscreen; encrypted-media"
+            allowFullScreen
+          />
         </div>
       );
     }
@@ -663,36 +776,53 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrContent)}&color=${cleanFg}&bgcolor=${cleanBg}`;
       const accentColor = p.fgColor || "#3b82f6";
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "4%", position: "relative",
-        }}>
-          {/* Animated glow ring */}
-          <div style={{
-            position: "absolute",
-            width: "75%", height: "75%",
-            borderRadius: 20,
-            background: `conic-gradient(from 0deg, ${accentColor}, ${accentColor}44, ${accentColor})`,
-            animation: "totem-qr-ring 4s linear infinite",
-            opacity: 0.3,
-            filter: "blur(8px)",
-          }} />
-          {/* Glass card */}
-          <div style={{
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "4%",
             position: "relative",
-            padding: 16,
-            borderRadius: 16,
-            background: "rgba(255,255,255,0.06)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 20px ${accentColor}15`,
-          }}>
-            <img src={qrUrl} alt="QR Code" style={{
-              maxWidth: "100%", maxHeight: "100%",
-              objectFit: "contain", imageRendering: "pixelated",
-              borderRadius: 8,
-            }} />
+          }}
+        >
+          {/* Animated glow ring */}
+          <div
+            style={{
+              position: "absolute",
+              width: "75%",
+              height: "75%",
+              borderRadius: 20,
+              background: `conic-gradient(from 0deg, ${accentColor}, ${accentColor}44, ${accentColor})`,
+              animation: "totem-qr-ring 4s linear infinite",
+              opacity: 0.3,
+              filter: "blur(8px)",
+            }}
+          />
+          {/* Glass card */}
+          <div
+            style={{
+              position: "relative",
+              padding: 16,
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 20px ${accentColor}15`,
+            }}
+          >
+            <img
+              src={qrUrl}
+              alt="QR Code"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                imageRendering: "pixelated",
+                borderRadius: 8,
+              }}
+            />
           </div>
         </div>
       );
@@ -709,20 +839,33 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const span = 0.01 / (mZoom / 15);
       const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${mLng - span},${mLat - span * 0.6},${mLng + span},${mLat + span * 0.6}&layer=mapnik&marker=${mLat},${mLng}`;
       return (
-        <div style={{
-          width: "100%", height: "100%", display: "flex", flexDirection: "column",
-          overflow: "hidden", borderRadius: mRadius,
-          border: "1px solid rgba(255,255,255,0.1)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-        }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: mRadius,
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          }}
+        >
           <iframe src={mapSrc} title="Mapa" style={{ flex: 1, width: "100%", border: "none", pointerEvents: "auto" }} />
           {mLabel && (
-            <div style={{
-              flexShrink: 0, padding: "6px 12px", textAlign: "center",
-              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-            }}>
-              <span style={{ color: mLabelColor, fontSize: fs(mLabelSize), fontWeight: 600, letterSpacing: "0.02em" }}>{mLabel}</span>
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "6px 12px",
+                textAlign: "center",
+                background: "rgba(0,0,0,0.7)",
+                backdropFilter: "blur(8px)",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <span style={{ color: mLabelColor, fontSize: fs(mLabelSize), fontWeight: 600, letterSpacing: "0.02em" }}>
+                {mLabel}
+              </span>
             </div>
           )}
         </div>
@@ -741,21 +884,38 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const borderRadius = p.borderRadius || 16;
       const padding = p.padding || 12;
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 4 }}>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap",
-            flexDirection: layout === "vertical" ? "column" : "row",
-            gap, padding,
-            backgroundColor: bgEnabled ? bgColor : "transparent",
-            borderRadius: bgEnabled ? borderRadius : 0,
-            backdropFilter: bgEnabled ? "blur(12px)" : undefined,
-            border: bgEnabled ? "1px solid rgba(255,255,255,0.1)" : undefined,
-            boxShadow: bgEnabled ? "0 8px 32px rgba(0,0,0,0.2)" : undefined,
-          }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 4,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              flexDirection: layout === "vertical" ? "column" : "row",
+              gap,
+              padding,
+              backgroundColor: bgEnabled ? bgColor : "transparent",
+              borderRadius: bgEnabled ? borderRadius : 0,
+              backdropFilter: bgEnabled ? "blur(12px)" : undefined,
+              border: bgEnabled ? "1px solid rgba(255,255,255,0.1)" : undefined,
+              boxShadow: bgEnabled ? "0 8px 32px rgba(0,0,0,0.2)" : undefined,
+            }}
+          >
             {links.map((l, i) => {
               const color = l.color || "#3b82f6";
               return (
-                <button key={l.id || i} type="button"
+                <button
+                  key={l.id || i}
+                  type="button"
                   onClick={() => {
                     const url = l.url || "";
                     if (url && url !== "#") {
@@ -764,28 +924,50 @@ function ElementRenderer({ type, props: p, onNavigate }) {
                     }
                   }}
                   style={{
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                    display: "flex", alignItems: "center",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
                     flexDirection: layout === "vertical" ? "row" : "column",
                     gap: showLabels ? 6 : 0,
                     transition: "transform 0.2s ease",
-                  }}>
-                  <div style={{
-                    width: iconSize, height: iconSize,
-                    backgroundColor: color + "18", border: `1.5px solid ${color}44`,
-                    borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.25s ease",
-                    boxShadow: `0 4px 16px ${color}25`,
-                    backdropFilter: "blur(4px)",
-                  }}>
-                    <SocialSVGIcon platform={l.platform || l.label?.toLowerCase() || ""} size={iconSize * 0.55} color={color} />
+                  }}
+                >
+                  <div
+                    style={{
+                      width: iconSize,
+                      height: iconSize,
+                      backgroundColor: color + "18",
+                      border: `1.5px solid ${color}44`,
+                      borderRadius: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.25s ease",
+                      boxShadow: `0 4px 16px ${color}25`,
+                      backdropFilter: "blur(4px)",
+                    }}
+                  >
+                    <SocialSVGIcon
+                      platform={l.platform || l.label?.toLowerCase() || ""}
+                      size={iconSize * 0.55}
+                      color={color}
+                    />
                   </div>
                   {showLabels && (
-                    <span style={{
-                      fontSize: Math.max(9, iconSize * 0.28),
-                      color: "rgba(255,255,255,0.65)", fontWeight: 600,
-                      textAlign: "center", letterSpacing: "0.02em",
-                    }}>{l.label || l.platform}</span>
+                    <span
+                      style={{
+                        fontSize: Math.max(9, iconSize * 0.28),
+                        color: "rgba(255,255,255,0.65)",
+                        fontWeight: 600,
+                        textAlign: "center",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {l.label || l.platform}
+                    </span>
                   )}
                 </button>
               );
@@ -812,7 +994,15 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
     // ── COUNTDOWN: Glass segments ──
     case "countdown":
-      return <PremiumCountdown targetDate={p.targetDate} label={p.label} color={p.color} fontSize={p.fontSize} accentColor={p.accentColor} />;
+      return (
+        <PremiumCountdown
+          targetDate={p.targetDate}
+          label={p.label}
+          color={p.color}
+          fontSize={p.fontSize}
+          accentColor={p.accentColor}
+        />
+      );
 
     case "iframe": {
       const url = p.url || "";
@@ -853,17 +1043,17 @@ function ElementRenderer({ type, props: p, onNavigate }) {
           // Legacy: Re-extract text/image fields for matching
           const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
           let tIdx = 0;
-          textEls.forEach(el => {
+          textEls.forEach((el) => {
             const directText = Array.from(el.childNodes)
-              .filter(n => n.nodeType === 3)
-              .map(n => n.textContent?.trim())
+              .filter((n) => n.nodeType === 3)
+              .map((n) => n.textContent?.trim())
               .filter(Boolean)
               .join(" ");
             if (directText) {
               tIdx++;
               const key = "text_" + tIdx;
               if (p.fieldOverrides[key] !== undefined && p.fieldOverrides[key] !== directText) {
-                Array.from(el.childNodes).forEach(node => {
+                Array.from(el.childNodes).forEach((node) => {
                   if (node.nodeType === 3 && node.textContent?.trim() === directText) {
                     node.textContent = p.fieldOverrides[key];
                   }
@@ -872,7 +1062,7 @@ function ElementRenderer({ type, props: p, onNavigate }) {
             }
           });
           let iIdx = 0;
-          doc.body.querySelectorAll("img").forEach(img => {
+          doc.body.querySelectorAll("img").forEach((img) => {
             iIdx++;
             const key = "img_" + iIdx;
             if (p.fieldOverrides[key] !== undefined) {
@@ -898,7 +1088,10 @@ function ElementRenderer({ type, props: p, onNavigate }) {
               } else if (k.startsWith("__nav_")) {
                 const sel = k.slice(6);
                 const el = doc.body.querySelector(sel);
-                if (el) { if (v) el.setAttribute("data-navigate", v); else el.removeAttribute("data-navigate"); }
+                if (el) {
+                  if (v) el.setAttribute("data-navigate", v);
+                  else el.removeAttribute("data-navigate");
+                }
               } else if (k.startsWith("__style_")) {
                 const rest = k.slice(8);
                 const lastDunder = rest.lastIndexOf("__");
@@ -909,17 +1102,21 @@ function ElementRenderer({ type, props: p, onNavigate }) {
                   if (el) el.style[prop] = v;
                 }
               }
-            } catch(e) {}
+            } catch (e) {}
           });
 
           const head = doc.head.innerHTML;
           const body = doc.body.innerHTML;
-          const bodyAttrs = Array.from(doc.body.attributes).map(a => a.name + '="' + a.value + '"').join(" ");
-          finalHtml = "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
+          const bodyAttrs = Array.from(doc.body.attributes)
+            .map((a) => a.name + '="' + a.value + '"')
+            .join(" ");
+          finalHtml =
+            "<!DOCTYPE html><html><head>" + head + "</head><body " + bodyAttrs + ">" + body + "</body></html>";
         }
 
         // Inject active page script if _activeDataPage is set
-        const activePageScript = p._activeDataPage ? `<script>
+        const activePageScript = p._activeDataPage
+          ? `<script>
 (function(){
   var targetPage = '${p._activeDataPage}';
   document.querySelectorAll('[data-page]').forEach(function(pg) {
@@ -930,7 +1127,8 @@ function ElementRenderer({ type, props: p, onNavigate }) {
     b.classList.toggle('active', b.getAttribute('data-navigate') === targetPage);
   });
 })();
-</script>` : '';
+</script>`
+          : "";
 
         // Avatar embed script — resolves data-avatar-embed iframes with correct origin
         const AVATAR_EMBED_SCRIPT = `<script>
@@ -950,12 +1148,20 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 </script>`;
 
         // Always inject the navigation bridge script + avatar embed
-        const htmlWithBridge = finalHtml.includes('</body>')
-          ? finalHtml.replace('</body>', NAV_BRIDGE + activePageScript + AVATAR_EMBED_SCRIPT + '</body>')
+        const htmlWithBridge = finalHtml.includes("</body>")
+          ? finalHtml.replace("</body>", NAV_BRIDGE + activePageScript + AVATAR_EMBED_SCRIPT + "</body>")
           : finalHtml + NAV_BRIDGE + activePageScript + AVATAR_EMBED_SCRIPT;
 
         return (
-          <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: p.borderRadius || 0,
+            }}
+          >
             <iframe
               srcDoc={htmlWithBridge}
               style={{
@@ -980,7 +1186,15 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
       if (!url) return <PremiumPlaceholder emoji="🌐" label="Iframe — configure a URL" />;
       return (
-        <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: p.borderRadius || 0 }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: p.borderRadius || 0,
+          }}
+        >
           <iframe
             src={url}
             style={{
@@ -1006,7 +1220,16 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 
     // ── CAROUSEL: Premium with vignette + ken burns ──
     case "carousel":
-      return <PremiumCarousel images={p.images} autoplay={p.autoplay} interval={p.interval} transition={p.transition} borderRadius={p.borderRadius} objectFit={p.objectFit} />;
+      return (
+        <PremiumCarousel
+          images={p.images}
+          autoplay={p.autoplay}
+          interval={p.interval}
+          transition={p.transition}
+          borderRadius={p.borderRadius}
+          objectFit={p.objectFit}
+        />
+      );
 
     case "store":
       return <PremiumStoreDirectory props={p} />;
@@ -1028,36 +1251,123 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const showPrice = p.showPrice !== false;
       const tSize = p.titleSize || 18;
       return (
-        <div style={{
-          width: "100%", height: "100%", overflow: "auto",
-          background: `linear-gradient(160deg, ${listBg}, rgba(0,0,0,0.55))`,
-          borderRadius: p.borderRadius ?? 16, padding: 16,
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}>
-          {p.listTitle && <p style={{ color: titleColor, fontSize: tSize + 4, fontWeight: 700, marginBottom: 14, letterSpacing: "-0.01em" }}>{p.listTitle}</p>}
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto",
+            background: `linear-gradient(160deg, ${listBg}, rgba(0,0,0,0.55))`,
+            borderRadius: p.borderRadius ?? 16,
+            padding: 16,
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          {p.listTitle && (
+            <p
+              style={{
+                color: titleColor,
+                fontSize: tSize + 4,
+                fontWeight: 700,
+                marginBottom: 14,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {p.listTitle}
+            </p>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {items.map((item, i) => (
               <div key={item.id}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "12px",
-                  borderRadius: 12, background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.04)",
-                }}>
-                  {showIcon && (
-                    item.image
-                      ? <img src={item.image} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)" }} />
-                      : <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(255,255,255,0.06)", fontSize: 26 }}>{item.icon || "•"}</div>
-                  )}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.04)",
+                  }}
+                >
+                  {showIcon &&
+                    (item.image ? (
+                      <img
+                        src={item.image}
+                        alt=""
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          objectFit: "cover",
+                          flexShrink: 0,
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          background: "rgba(255,255,255,0.06)",
+                          fontSize: 26,
+                        }}
+                      >
+                        {item.icon || "•"}
+                      </div>
+                    ))}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: titleColor, fontSize: tSize, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                    {item.subtitle && <p style={{ color: subtitleColor, fontSize: tSize - 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.subtitle}</p>}
+                    <p
+                      style={{
+                        color: titleColor,
+                        fontSize: tSize,
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {item.title}
+                    </p>
+                    {item.subtitle && (
+                      <p
+                        style={{
+                          color: subtitleColor,
+                          fontSize: tSize - 4,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.subtitle}
+                      </p>
+                    )}
                   </div>
                   {showPrice && item.price && (
-                    <span style={{ color: priceColor, fontSize: tSize, fontWeight: 700, flexShrink: 0, padding: "4px 12px", borderRadius: 8, background: `${priceColor}12`, border: `1px solid ${priceColor}22` }}>{item.price}</span>
+                    <span
+                      style={{
+                        color: priceColor,
+                        fontSize: tSize,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        padding: "4px 12px",
+                        borderRadius: 8,
+                        background: `${priceColor}12`,
+                        border: `1px solid ${priceColor}22`,
+                      }}
+                    >
+                      {item.price}
+                    </span>
                   )}
                 </div>
-                {showDivider && i < items.length - 1 && <div style={{ height: 1, background: dividerColor, margin: "0 12px" }} />}
+                {showDivider && i < items.length - 1 && (
+                  <div style={{ height: 1, background: dividerColor, margin: "0 12px" }} />
+                )}
               </div>
             ))}
           </div>
@@ -1077,12 +1387,47 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const gGap = p.gap ?? 8;
       const gBr = p.borderRadius ?? 12;
       return (
-        <div style={{ width: "100%", height: "100%", overflow: "hidden", background: p.bgColor || "transparent", borderRadius: gBr, padding: gGap, boxSizing: "border-box" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${gCols}, 1fr)`, gap: gGap, width: "100%", height: "100%", gridAutoRows: "1fr" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            background: p.bgColor || "transparent",
+            borderRadius: gBr,
+            padding: gGap,
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${gCols}, 1fr)`,
+              gap: gGap,
+              width: "100%",
+              height: "100%",
+              gridAutoRows: "1fr",
+            }}
+          >
             {gImages.map((src, i) => (
-              <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: gBr / 2, border: "1px solid rgba(255,255,255,0.06)", minHeight: 0 }}>
+              <div
+                key={i}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: gBr / 2,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  minHeight: 0,
+                }}
+              >
                 <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.3) 100%)", pointerEvents: "none" }} />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.3) 100%)",
+                    pointerEvents: "none",
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -1104,43 +1449,123 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const catAccent = p.accentColor || "#3b82f6";
       const catPriceColor = p.priceColor || "#22c55e";
       return (
-        <div style={{
-          width: "100%", height: "100%", overflow: "auto", display: "flex", flexDirection: "column",
-          background: p.bgColor || "rgba(0,0,0,0.5)", borderRadius: p.borderRadius || 16, padding: 16,
-        }}>
-          {p.title && <h2 style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 24, fontWeight: 700, marginBottom: 12 }}>{p.title}</h2>}
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${catCols}, 1fr)`, gap: catGap, flex: 1, overflow: "auto" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+            background: p.bgColor || "rgba(0,0,0,0.5)",
+            borderRadius: p.borderRadius || 16,
+            padding: 16,
+          }}
+        >
+          {p.title && (
+            <h2
+              style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 24, fontWeight: 700, marginBottom: 12 }}
+            >
+              {p.title}
+            </h2>
+          )}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${catCols}, 1fr)`,
+              gap: catGap,
+              flex: 1,
+              overflow: "auto",
+            }}
+          >
             {catItems.map((item, i) => (
-              <div key={item.id || i} style={{
-                background: catCardBg, borderRadius: catCardBr, overflow: "hidden",
-                display: "flex", flexDirection: "column", position: "relative",
-                animation: `fadeIn 0.3s ease-out ${i * 60}ms both`,
-              }}
+              <div
+                key={item.id || i}
+                style={{
+                  background: catCardBg,
+                  borderRadius: catCardBr,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  position: "relative",
+                  animation: `fadeIn 0.3s ease-out ${i * 60}ms both`,
+                }}
                 onClick={() => {
                   if (p.itemNavigateTarget && window.__totemNavigatePage) {
                     window.__totemNavigatePage(p.itemNavigateTarget, p.itemNavigateTransition || "fade", {
-                      item_name: item.name, item_description: item.description,
-                      item_price: item.price, item_image: item.image, item_category: item.category,
+                      item_name: item.name,
+                      item_description: item.description,
+                      item_price: item.price,
+                      item_image: item.image,
+                      item_category: item.category,
                     });
                   }
                 }}
               >
-                {item.badge && <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: "#fff", background: item.badgeColor || catAccent }}>{item.badge}</div>}
-                {item.image
-                  ? <div style={{ aspectRatio: p.imageAspect || "4/3", width: "100%", overflow: "hidden" }}><img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-                  : <div style={{ aspectRatio: p.imageAspect || "4/3", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)" }}><span style={{ fontSize: 32, opacity: 0.2 }}>📦</span></div>
-                }
+                {item.badge && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      zIndex: 10,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#fff",
+                      background: item.badgeColor || catAccent,
+                    }}
+                  >
+                    {item.badge}
+                  </div>
+                )}
+                {item.image ? (
+                  <div style={{ aspectRatio: p.imageAspect || "4/3", width: "100%", overflow: "hidden" }}>
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      aspectRatio: p.imageAspect || "4/3",
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span style={{ fontSize: 32, opacity: 0.2 }}>📦</span>
+                  </div>
+                )}
                 <div style={{ padding: 12, display: "flex", flexDirection: "column", flex: 1 }}>
-                  <h3 style={{ color: "#fff", fontSize: p.nameSize || 14, fontWeight: 600, lineHeight: 1.3 }}>{item.name}</h3>
-                  {item.description && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4 }}>{item.description}</p>}
-                  {p.showCategory !== false && item.category && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 4 }}>{item.category}</span>}
+                  <h3 style={{ color: "#fff", fontSize: p.nameSize || 14, fontWeight: 600, lineHeight: 1.3 }}>
+                    {item.name}
+                  </h3>
+                  {item.description && (
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4 }}>{item.description}</p>
+                  )}
+                  {p.showCategory !== false && item.category && (
+                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 4 }}>{item.category}</span>
+                  )}
                   <div style={{ flex: 1 }} />
-                  {p.showPrice !== false && item.price && <p style={{ color: catPriceColor, fontSize: p.priceSize || 16, fontWeight: 700, marginTop: 8 }}>{item.price}</p>}
+                  {p.showPrice !== false && item.price && (
+                    <p style={{ color: catPriceColor, fontSize: p.priceSize || 16, fontWeight: 700, marginTop: 8 }}>
+                      {item.price}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-          {catItems.length === 0 && <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center", padding: 32 }}>Nenhum produto</p>}
+          {catItems.length === 0 && (
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center", padding: 32 }}>
+              Nenhum produto
+            </p>
+          )}
         </div>
       );
     }
@@ -1161,32 +1586,115 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const pixRecipient = p.recipientName || "Empresa LTDA";
       const pixLabel = p.label || "Pague com Pix";
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          background: `linear-gradient(145deg, ${p.bgColor || "rgba(0,0,0,0.5)"}, rgba(0,0,0,0.7))`,
-          borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center", gap: 14, padding: 20,
-          backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)",
-          position: "relative", overflow: "hidden",
-        }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            background: `linear-gradient(145deg, ${p.bgColor || "rgba(0,0,0,0.5)"}, rgba(0,0,0,0.7))`,
+            borderRadius: p.borderRadius || 20,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+            padding: 20,
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
           <style>{`
             @keyframes pix-glow { 0%, 100% { box-shadow: 0 0 20px ${pixAccent}30; } 50% { box-shadow: 0 0 30px ${pixAccent}50; } }
           `}</style>
-          <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${pixAccent}20 0%, transparent 70%)`, borderRadius: "50%", pointerEvents: "none" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", background: `${pixAccent}18`, borderRadius: 999, border: `1px solid ${pixAccent}33` }}>
+          <div
+            style={{
+              position: "absolute",
+              top: -40,
+              right: -40,
+              width: 120,
+              height: 120,
+              background: `radial-gradient(circle, ${pixAccent}20 0%, transparent 70%)`,
+              borderRadius: "50%",
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 16px",
+              background: `${pixAccent}18`,
+              borderRadius: 999,
+              border: `1px solid ${pixAccent}33`,
+            }}
+          >
             <span style={{ fontSize: 20 }}>💠</span>
             <span style={{ color: pixAccent, fontSize: 16, fontWeight: 700 }}>{pixLabel}</span>
           </div>
-          <div style={{ position: "relative", width: "55%", aspectRatio: "1/1", maxWidth: 200, animation: "pix-glow 3s ease-in-out infinite", borderRadius: 16, padding: 3, background: `conic-gradient(from 0deg, ${pixAccent}, ${pixAccent}44, ${pixAccent})` }}>
-            <div style={{ width: "100%", height: "100%", backgroundColor: "#fff", borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", padding: 10 }}>
-              <div style={{ width: "100%", height: "100%", background: "repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 10px 10px", borderRadius: 4, opacity: 0.35 }} />
+          <div
+            style={{
+              position: "relative",
+              width: "55%",
+              aspectRatio: "1/1",
+              maxWidth: 200,
+              animation: "pix-glow 3s ease-in-out infinite",
+              borderRadius: 16,
+              padding: 3,
+              background: `conic-gradient(from 0deg, ${pixAccent}, ${pixAccent}44, ${pixAccent})`,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                backgroundColor: "#fff",
+                borderRadius: 13,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 10px 10px",
+                  borderRadius: 4,
+                  opacity: 0.35,
+                }}
+              />
             </div>
           </div>
-          <span style={{ color: `${p.textColor || "#fff"}88`, fontSize: 13, textAlign: "center", fontWeight: 500 }}>{pixRecipient}</span>
-          {p.showAmount !== false && <div style={{ padding: "8px 24px", background: `linear-gradient(135deg, ${pixAccent}22, ${pixAccent}11)`, borderRadius: 12, border: `1px solid ${pixAccent}33` }}>
-            <span style={{ color: pixAccent, fontSize: 30, fontWeight: 800 }}>{pixAmount}</span>
-          </div>}
-          <span style={{ color: `${p.textColor || "#fff"}40`, fontSize: 10, fontFamily: "monospace", padding: "3px 10px", background: "rgba(255,255,255,0.04)", borderRadius: 6 }}>Chave: {pixKey}</span>
+          <span style={{ color: `${p.textColor || "#fff"}88`, fontSize: 13, textAlign: "center", fontWeight: 500 }}>
+            {pixRecipient}
+          </span>
+          {p.showAmount !== false && (
+            <div
+              style={{
+                padding: "8px 24px",
+                background: `linear-gradient(135deg, ${pixAccent}22, ${pixAccent}11)`,
+                borderRadius: 12,
+                border: `1px solid ${pixAccent}33`,
+              }}
+            >
+              <span style={{ color: pixAccent, fontSize: 30, fontWeight: 800 }}>{pixAmount}</span>
+            </div>
+          )}
+          <span
+            style={{
+              color: `${p.textColor || "#fff"}40`,
+              fontSize: 10,
+              fontFamily: "monospace",
+              padding: "3px 10px",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: 6,
+            }}
+          >
+            Chave: {pixKey}
+          </span>
         </div>
       );
     }
@@ -1202,15 +1710,23 @@ function ElementRenderer({ type, props: p, onNavigate }) {
       const ctaFontSize = p.fontSize || 26;
       const ctaPulse = p.pulse !== false;
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          background: ctaBg,
-          borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
-          boxShadow: `0 6px 28px ${ctaBg}40, inset 0 1px 0 rgba(255,255,255,0.12)`,
-          animation: ctaPulse ? "kiosk-breathe 2.5s ease-in-out infinite" : "none",
-          position: "relative", overflow: "hidden",
-        }}
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            background: ctaBg,
+            borderRadius: p.borderRadius || 20,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            cursor: "pointer",
+            boxShadow: `0 6px 28px ${ctaBg}40, inset 0 1px 0 rgba(255,255,255,0.12)`,
+            animation: ctaPulse ? "kiosk-breathe 2.5s ease-in-out infinite" : "none",
+            position: "relative",
+            overflow: "hidden",
+          }}
           onClick={() => {
             if (p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
               window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade");
@@ -1218,8 +1734,32 @@ function ElementRenderer({ type, props: p, onNavigate }) {
           }}
         >
           {p.icon && <span style={{ fontSize: ctaFontSize * 1.2, position: "relative", zIndex: 1 }}>{p.icon}</span>}
-          <span style={{ color: ctaText, fontSize: ctaFontSize, fontWeight: 700, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 1 }}>{p.label || "Toque para começar"}</span>
-          {p.sublabel && <span style={{ color: `${ctaText}77`, fontSize: p.sublabelSize || 13, textAlign: "center", position: "relative", zIndex: 1 }}>{p.sublabel}</span>}
+          <span
+            style={{
+              color: ctaText,
+              fontSize: ctaFontSize,
+              fontWeight: 700,
+              textAlign: "center",
+              lineHeight: 1.2,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {p.label || "Toque para começar"}
+          </span>
+          {p.sublabel && (
+            <span
+              style={{
+                color: `${ctaText}77`,
+                fontSize: p.sublabelSize || 13,
+                textAlign: "center",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {p.sublabel}
+            </span>
+          )}
         </div>
       );
     }
@@ -1238,19 +1778,31 @@ function ElementRenderer({ type, props: p, onNavigate }) {
 // ─────────────────────────────────────────────
 function PremiumPlaceholder({ emoji, label }) {
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 8,
-      background: "rgba(255,255,255,0.03)",
-      borderRadius: 12,
-      border: "1px dashed rgba(255,255,255,0.1)",
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        background: "rgba(255,255,255,0.03)",
+        borderRadius: 12,
+        border: "1px dashed rgba(255,255,255,0.1)",
+      }}
+    >
       <span style={{ fontSize: 28, opacity: 0.6 }}>{emoji}</span>
-      <span style={{
-        fontSize: 11, color: "rgba(255,255,255,0.3)",
-        fontWeight: 500, letterSpacing: "0.04em",
-      }}>{label}</span>
+      <span
+        style={{
+          fontSize: 11,
+          color: "rgba(255,255,255,0.3)",
+          fontWeight: 500,
+          letterSpacing: "0.04em",
+        }}
+      >
+        {label}
+      </span>
     </div>
   );
 }
@@ -1285,16 +1837,18 @@ function PremiumStoreDirectory({ props: p }) {
   const [expandedId, setExpandedId] = useState(null);
 
   const categories = useMemo(() => {
-    const cats = stores.map(s => s.category).filter(Boolean);
+    const cats = stores.map((s) => s.category).filter(Boolean);
     return [...new Set(cats)];
   }, [stores]);
 
   const filtered = useMemo(() => {
     let result = stores;
-    if (activeCategory) result = result.filter(s => s.category === activeCategory);
+    if (activeCategory) result = result.filter((s) => s.category === activeCategory);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      result = result.filter(s => (s.name || "").toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
+      result = result.filter(
+        (s) => (s.name || "").toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q),
+      );
     }
     return result;
   }, [stores, activeCategory, search]);
@@ -1302,120 +1856,198 @@ function PremiumStoreDirectory({ props: p }) {
   if (stores.length === 0) return <PremiumPlaceholder emoji="🏬" label="Diretório de Lojas" />;
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
-      background: bgColor,
-      backdropFilter: "blur(16px)",
-      borderRadius,
-      padding: 16,
-      border: "1px solid rgba(255,255,255,0.08)",
-      boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        background: bgColor,
+        backdropFilter: "blur(16px)",
+        borderRadius,
+        padding: 16,
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+      }}
+    >
       {/* Title with accent bar */}
       <div style={{ flexShrink: 0, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{
-          width: 4, height: 28, borderRadius: 2,
-          background: `linear-gradient(180deg, ${accentColor}, ${accentColor}66)`,
-          boxShadow: `0 0 12px ${accentColor}40`,
-        }} />
-        <span style={{
-          color: titleColor,
-          fontSize: `clamp(16px, ${titleSize / CANVAS_W * 100}vw, ${titleSize * 1.5}px)`,
-          fontWeight: 800, letterSpacing: "-0.02em",
-          textShadow: "0 2px 8px rgba(0,0,0,0.4)",
-        }}>{title}</span>
+        <div
+          style={{
+            width: 4,
+            height: 28,
+            borderRadius: 2,
+            background: `linear-gradient(180deg, ${accentColor}, ${accentColor}66)`,
+            boxShadow: `0 0 12px ${accentColor}40`,
+          }}
+        />
+        <span
+          style={{
+            color: titleColor,
+            fontSize: `clamp(16px, ${(titleSize / CANVAS_W) * 100}vw, ${titleSize * 1.5}px)`,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            textShadow: "0 2px 8px rgba(0,0,0,0.4)",
+          }}
+        >
+          {title}
+        </span>
       </div>
 
       {/* Search bar — glass style */}
       {showSearch && stores.length > 2 && (
         <div style={{ flexShrink: 0, marginBottom: 10, position: "relative" }}>
           <input
-            type="text" value={search}
+            type="text"
+            value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="🔍 Buscar loja..."
             style={{
-              width: "100%", height: 40, borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.1)", outline: "none",
+              width: "100%",
+              height: 40,
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.1)",
+              outline: "none",
               padding: "0 36px 0 14px",
               background: "rgba(255,255,255,0.06)",
               backdropFilter: "blur(8px)",
-              color: "#fff", fontSize: 13,
+              color: "#fff",
+              fontSize: 13,
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => e.target.style.borderColor = `${accentColor}66`}
-            onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+            onFocus={(e) => (e.target.style.borderColor = `${accentColor}66`)}
+            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
           />
           {search && (
-            <button type="button" onClick={() => setSearch("")} style={{
-              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-              background: "none", border: "none", cursor: "pointer",
-              color: "rgba(255,255,255,0.4)", fontSize: 16,
-            }}>✕</button>
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "rgba(255,255,255,0.4)",
+                fontSize: 16,
+              }}
+            >
+              ✕
+            </button>
           )}
         </div>
       )}
 
       {/* Category pills — glass chips */}
       {showFilter && categories.length > 1 && (
-        <div style={{
-          flexShrink: 0, display: "flex", gap: 8, marginBottom: 10,
-          overflowX: "auto", paddingBottom: 4,
-          scrollbarWidth: "none", msOverflowStyle: "none",
-        }}>
-          <button type="button" onClick={() => setActiveCategory(null)} style={{
-            flexShrink: 0, padding: "6px 14px", borderRadius: 999,
-            fontSize: 12, fontWeight: 700,
-            background: !activeCategory ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : "rgba(255,255,255,0.06)",
-            color: !activeCategory ? "#fff" : "rgba(255,255,255,0.6)",
-            border: `1px solid ${!activeCategory ? accentColor : "rgba(255,255,255,0.1)"}`,
-            cursor: "pointer", transition: "all 0.25s",
-            boxShadow: !activeCategory ? `0 4px 16px ${accentColor}40` : "none",
-          }}>Todas</button>
-          {categories.map(cat => (
-            <button key={cat} type="button" onClick={() => setActiveCategory(activeCategory === cat ? null : cat)} style={{
-              flexShrink: 0, padding: "6px 14px", borderRadius: 999,
-              fontSize: 12, fontWeight: 700,
-              background: activeCategory === cat ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : "rgba(255,255,255,0.06)",
-              color: activeCategory === cat ? "#fff" : "rgba(255,255,255,0.6)",
-              border: `1px solid ${activeCategory === cat ? accentColor : "rgba(255,255,255,0.1)"}`,
-              cursor: "pointer", transition: "all 0.25s",
-              boxShadow: activeCategory === cat ? `0 4px 16px ${accentColor}40` : "none",
-            }}>{cat}</button>
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            gap: 8,
+            marginBottom: 10,
+            overflowX: "auto",
+            paddingBottom: 4,
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveCategory(null)}
+            style={{
+              flexShrink: 0,
+              padding: "6px 14px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 700,
+              background: !activeCategory
+                ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`
+                : "rgba(255,255,255,0.06)",
+              color: !activeCategory ? "#fff" : "rgba(255,255,255,0.6)",
+              border: `1px solid ${!activeCategory ? accentColor : "rgba(255,255,255,0.1)"}`,
+              cursor: "pointer",
+              transition: "all 0.25s",
+              boxShadow: !activeCategory ? `0 4px 16px ${accentColor}40` : "none",
+            }}
+          >
+            Todas
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+              style={{
+                flexShrink: 0,
+                padding: "6px 14px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                background:
+                  activeCategory === cat
+                    ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`
+                    : "rgba(255,255,255,0.06)",
+                color: activeCategory === cat ? "#fff" : "rgba(255,255,255,0.6)",
+                border: `1px solid ${activeCategory === cat ? accentColor : "rgba(255,255,255,0.1)"}`,
+                cursor: "pointer",
+                transition: "all 0.25s",
+                boxShadow: activeCategory === cat ? `0 4px 16px ${accentColor}40` : "none",
+              }}
+            >
+              {cat}
+            </button>
           ))}
         </div>
       )}
 
       {/* Store cards — glass cards */}
-      <div className="totem-smooth-scroll" style={{
-        flex: 1, overflowY: "auto",
-        display: "grid",
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap, alignContent: "start",
-      }}>
+      <div
+        className="totem-smooth-scroll"
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          display: "grid",
+          gridTemplateColumns: `repeat(${columns}, 1fr)`,
+          gap,
+          alignContent: "start",
+        }}
+      >
         {filtered.map((store, sIdx) => (
-          <div key={store.id || sIdx} style={{
-            display: "flex", flexDirection: "column",
-            background: cardBgColor,
-            backdropFilter: "blur(8px)",
-            borderRadius: cardBorderRadius,
-            border: "1px solid rgba(255,255,255,0.08)",
-            transition: "all 0.25s ease",
-            animation: `totem-store-card-in 0.3s ease-out ${sIdx * 50}ms both`,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-          }}>
+          <div
+            key={store.id || sIdx}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              background: cardBgColor,
+              backdropFilter: "blur(8px)",
+              borderRadius: cardBorderRadius,
+              border: "1px solid rgba(255,255,255,0.08)",
+              transition: "all 0.25s ease",
+              animation: `totem-store-card-in 0.3s ease-out ${sIdx * 50}ms both`,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            }}
+          >
             <div style={{ display: "flex", gap: 12, padding: 14 }}>
               {/* Logo with glass background */}
-              <div style={{
-                flexShrink: 0, width: 52, height: 52,
-                borderRadius: 14, display: "flex",
-                alignItems: "center", justifyContent: "center",
-                overflow: "hidden",
-                background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}08)`,
-                border: `1px solid ${accentColor}30`,
-                boxShadow: `0 4px 12px ${accentColor}15`,
-              }}>
+              <div
+                style={{
+                  flexShrink: 0,
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}08)`,
+                  border: `1px solid ${accentColor}30`,
+                  boxShadow: `0 4px 12px ${accentColor}15`,
+                }}
+              >
                 {store.logo ? (
                   <img src={store.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
@@ -1424,24 +2056,41 @@ function PremiumStoreDirectory({ props: p }) {
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  color: "#fff", fontWeight: 700,
-                  fontSize: 15, lineHeight: 1.2,
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  textShadow: "0 1px 4px rgba(0,0,0,0.3)",
-                }}>{store.name || "Loja"}</div>
+                <div
+                  style={{
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 15,
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                  }}
+                >
+                  {store.name || "Loja"}
+                </div>
 
                 {store.description && expandedId !== store.id && (
-                  <div style={{
-                    color: "rgba(255,255,255,0.5)", fontSize: 12,
-                    marginTop: 3,
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  }}>{store.description}</div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.5)",
+                      fontSize: 12,
+                      marginTop: 3,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {store.description}
+                  </div>
                 )}
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 6 }}>
                   {showFloor && store.floor && (
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>📍 {store.floor}</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
+                      📍 {store.floor}
+                    </span>
                   )}
                   {showCategory && store.category && (
                     <span style={{ fontSize: 11, color: accentColor, fontWeight: 600 }}>🏷️ {store.category}</span>
@@ -1449,41 +2098,72 @@ function PremiumStoreDirectory({ props: p }) {
                 </div>
               </div>
 
-              <button type="button" onClick={() => setExpandedId(expandedId === store.id ? null : store.id)} style={{
-                flexShrink: 0, alignSelf: "flex-start",
-                padding: "5px 12px", borderRadius: 10,
-                fontSize: 11, fontWeight: 700,
-                background: expandedId === store.id ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` : `${accentColor}18`,
-                color: expandedId === store.id ? "#fff" : accentColor,
-                border: `1px solid ${accentColor}44`,
-                cursor: "pointer", transition: "all 0.25s",
-                boxShadow: expandedId === store.id ? `0 4px 12px ${accentColor}40` : "none",
-              }}>
+              <button
+                type="button"
+                onClick={() => setExpandedId(expandedId === store.id ? null : store.id)}
+                style={{
+                  flexShrink: 0,
+                  alignSelf: "flex-start",
+                  padding: "5px 12px",
+                  borderRadius: 10,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background:
+                    expandedId === store.id
+                      ? `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`
+                      : `${accentColor}18`,
+                  color: expandedId === store.id ? "#fff" : accentColor,
+                  border: `1px solid ${accentColor}44`,
+                  cursor: "pointer",
+                  transition: "all 0.25s",
+                  boxShadow: expandedId === store.id ? `0 4px 12px ${accentColor}40` : "none",
+                }}
+              >
                 {expandedId === store.id ? "✕" : "Detalhes"}
               </button>
             </div>
 
             {expandedId === store.id && (
-              <div style={{
-                padding: "0 14px 14px",
-                borderTop: "1px solid rgba(255,255,255,0.06)",
-                animation: "totem-store-card-in 0.2s ease-out both",
-              }}>
+              <div
+                style={{
+                  padding: "0 14px 14px",
+                  borderTop: "1px solid rgba(255,255,255,0.06)",
+                  animation: "totem-store-card-in 0.2s ease-out both",
+                }}
+              >
                 {store.description && (
-                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 10, lineHeight: 1.6 }}>{store.description}</div>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 10, lineHeight: 1.6 }}>
+                    {store.description}
+                  </div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 10 }}>
-                  {store.hours && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>🕐 {store.hours}</span>}
-                  {store.phone && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📞 {store.phone}</span>}
-                  {store.floor && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>}
-                  {store.category && <span style={{ fontSize: 11, color: accentColor, fontWeight: 600 }}>🏷️ {store.category}</span>}
+                  {store.hours && (
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>🕐 {store.hours}</span>
+                  )}
+                  {store.phone && (
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📞 {store.phone}</span>
+                  )}
+                  {store.floor && (
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>📍 {store.floor}</span>
+                  )}
+                  {store.category && (
+                    <span style={{ fontSize: 11, color: accentColor, fontWeight: 600 }}>🏷️ {store.category}</span>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ))}
         {filtered.length === 0 && (
-          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "24px 0",
+            }}
+          >
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Nenhuma loja nesta categoria</span>
           </div>
         )}
@@ -1493,7 +2173,9 @@ function PremiumStoreDirectory({ props: p }) {
 }
 
 // Backward compat
-function StoreDirectory({ props }) { return <PremiumStoreDirectory props={props} />; }
+function StoreDirectory({ props }) {
+  return <PremiumStoreDirectory props={props} />;
+}
 
 // ─────────────────────────────────────────────
 // 💬 CHAT IA ELEMENT — dual-mode: backend local (Ollama/Kokoro) ou cloud (Gemini)
@@ -1525,123 +2207,132 @@ function ChatElement({ props: p, deviceId }) {
   }, [messages]);
 
   // ─── Modo LOCAL: usa backend Express (Ollama + Kokoro + LipSync) ───
-  const sendLocal = useCallback(async (text, allMsgs) => {
-    try {
-      const tenantId = import.meta.env.VITE_TENANT_ID || null;
-      const resp = await fetch(`${LOCAL_API_URL}/text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, tenantId }),
-      });
+  const sendLocal = useCallback(
+    async (text, allMsgs) => {
+      try {
+        const tenantId = import.meta.env.VITE_TENANT_ID || null;
+        const resp = await fetch(`${LOCAL_API_URL}/text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, tenantId }),
+        });
 
-      if (!resp.ok) throw new Error(`Erro backend local: ${resp.status}`);
-      const data = await resp.json();
+        if (!resp.ok) throw new Error(`Erro backend local: ${resp.status}`);
+        const data = await resp.json();
 
-      if (data.messages && data.messages.length > 0) {
-        // Extrai texto da resposta do backend local
-        const fullText = data.messages.map(m => m.text).join(" ");
-        setMessages(prev => [...prev, { role: "assistant", content: fullText }]);
+        if (data.messages && data.messages.length > 0) {
+          // Extrai texto da resposta do backend local
+          const fullText = data.messages.map((m) => m.text).join(" ");
+          setMessages((prev) => [...prev, { role: "assistant", content: fullText }]);
 
-        // 🗣️ Envia para o avatar com áudio e lipsync do backend local
-        if (speakResponse && data.messages.length > 0) {
-          data.messages.forEach(msg => {
-            if (typeof window.__totemPlayMessage === "function") {
-              // Pipeline completo: usa áudio do Kokoro + LipSync do Rhubarb
-              window.__totemPlayMessage(msg);
-            } else if (typeof window.__totemSpeakAvatar === "function") {
-              // Fallback: usa Web Speech API
-              window.__totemSpeakAvatar(msg.text);
-            }
-          });
-        }
-      } else {
-        setMessages(prev => [...prev, { role: "assistant", content: "Não consegui gerar uma resposta." }]);
-      }
-    } catch (err) {
-      console.error("[Chat Local] Erro:", err);
-      // Fallback para cloud se backend local falhar
-      if (mode === "local") {
-        console.warn("[Chat] Backend local falhou, tentando cloud...");
-        setMode("cloud");
-        await sendCloud(text, allMsgs);
-      } else {
-        throw err;
-      }
-    }
-  }, [speakResponse, mode]);
-
-  // ─── Modo CLOUD: usa Edge Function totem-chat (Gemini streaming) ───
-  const sendCloud = useCallback(async (text, allMsgs) => {
-    let assistantSoFar = "";
-    const cmsUrl = import.meta.env.VITE_CMS_API_URL;
-    const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-    if (!cmsUrl) throw new Error("VITE_CMS_API_URL não configurada");
-
-    const resp = await fetch(`${cmsUrl}/totem-chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": anonKey,
-        "x-totem-api-key": apiKey || "",
-      },
-      body: JSON.stringify({
-        messages: allMsgs,
-        device_id: deviceId || undefined,
-      }),
-    });
-
-    if (!resp.ok || !resp.body) {
-      const errData = await resp.json().catch(() => ({}));
-      throw new Error(errData.error || `Erro ${resp.status}`);
-    }
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let textBuffer = "";
-    let streamDone = false;
-
-    while (!streamDone) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      textBuffer += decoder.decode(value, { stream: true });
-
-      let newlineIndex;
-      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-        let line = textBuffer.slice(0, newlineIndex);
-        textBuffer = textBuffer.slice(newlineIndex + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") { streamDone = true; break; }
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            assistantSoFar += content;
-            const snapshot = assistantSoFar;
-            setMessages(prev => {
-              const last = prev[prev.length - 1];
-              if (last?.role === "assistant") {
-                return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
+          // 🗣️ Envia para o avatar com áudio e lipsync do backend local
+          if (speakResponse && data.messages.length > 0) {
+            data.messages.forEach((msg) => {
+              if (typeof window.__totemPlayMessage === "function") {
+                // Pipeline completo: usa áudio do Kokoro + LipSync do Rhubarb
+                window.__totemPlayMessage(msg);
+              } else if (typeof window.__totemSpeakAvatar === "function") {
+                // Fallback: usa Web Speech API
+                window.__totemSpeakAvatar(msg.text);
               }
-              return [...prev, { role: "assistant", content: snapshot }];
             });
           }
-        } catch {
-          textBuffer = line + "\n" + textBuffer;
-          break;
+        } else {
+          setMessages((prev) => [...prev, { role: "assistant", content: "Não consegui gerar uma resposta." }]);
+        }
+      } catch (err) {
+        console.error("[Chat Local] Erro:", err);
+        // Fallback para cloud se backend local falhar
+        if (mode === "local") {
+          console.warn("[Chat] Backend local falhou, tentando cloud...");
+          setMode("cloud");
+          await sendCloud(text, allMsgs);
+        } else {
+          throw err;
         }
       }
-    }
+    },
+    [speakResponse, mode],
+  );
 
-    // 🗣️ Cloud mode: fala via Web Speech API (sem áudio do backend)
-    if (assistantSoFar && speakResponse && typeof window.__totemSpeakAvatar === "function") {
-      window.__totemSpeakAvatar(assistantSoFar);
-    }
-  }, [deviceId, speakResponse]);
+  // ─── Modo CLOUD: usa Edge Function totem-chat (Gemini streaming) ───
+  const sendCloud = useCallback(
+    async (text, allMsgs) => {
+      let assistantSoFar = "";
+      const cmsUrl = import.meta.env.VITE_CMS_API_URL;
+      const apiKey = import.meta.env.VITE_TOTEM_API_KEY || import.meta.env.TOTEM_API_KEY;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+      if (!cmsUrl) throw new Error("VITE_CMS_API_URL não configurada");
+
+      const resp = await fetch(`${cmsUrl}/totem-chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          "x-totem-api-key": apiKey || "",
+        },
+        body: JSON.stringify({
+          messages: allMsgs,
+          device_id: deviceId || undefined,
+        }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || `Erro ${resp.status}`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantSoFar += content;
+              const snapshot = assistantSoFar;
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: snapshot } : m));
+                }
+                return [...prev, { role: "assistant", content: snapshot }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // 🗣️ Cloud mode: fala via Web Speech API (sem áudio do backend)
+      if (assistantSoFar && speakResponse && typeof window.__totemSpeakAvatar === "function") {
+        window.__totemSpeakAvatar(assistantSoFar);
+      }
+    },
+    [deviceId, speakResponse],
+  );
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -1660,79 +2351,118 @@ function ChatElement({ props: p, deviceId }) {
         await sendCloud(text, allMsgs);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: "assistant", content: `❌ ${err.message || "Erro desconhecido"}` }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: `❌ ${err.message || "Erro desconhecido"}` }]);
     } finally {
       setLoading(false);
     }
   }, [input, loading, messages, mode, sendLocal, sendCloud]);
 
-  const fs = (base) => `clamp(${base * 0.7}px, ${base / CANVAS_W * 100}vw, ${base * 1.3}px)`;
+  const fs = (base) => `clamp(${base * 0.7}px, ${(base / CANVAS_W) * 100}vw, ${base * 1.3}px)`;
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      overflow: "hidden", borderRadius,
-      background: bgMain,
-      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        borderRadius,
+        background: bgMain,
+        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
+      }}
+    >
       {/* Header */}
-      <div style={{
-        flexShrink: 0, padding: "8px 12px",
-        display: "flex", alignItems: "center", gap: 8,
-        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
-      }}>
-        <div style={{ width: 8, height: 8, borderRadius: 999, background: "#4ade80", animation: "pulse 2s infinite" }} />
+      <div
+        style={{
+          flexShrink: 0,
+          padding: "8px 12px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+        }}
+      >
+        <div
+          style={{ width: 8, height: 8, borderRadius: 999, background: "#4ade80", animation: "pulse 2s infinite" }}
+        />
         <span style={{ color: textColor, fontSize: fs(14), fontWeight: 600 }}>Chat IA</span>
         {messages.length > 0 && (
-          <button type="button" onClick={() => setMessages([])} style={{
-            marginLeft: "auto", color: mutedColor, fontSize: fs(11),
-            background: "none", border: "none", cursor: "pointer",
-          }}>Limpar</button>
+          <button
+            type="button"
+            onClick={() => setMessages([])}
+            style={{
+              marginLeft: "auto",
+              color: mutedColor,
+              fontSize: fs(11),
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Limpar
+          </button>
         )}
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} style={{
-        flex: 1, overflowY: "auto", padding: "8px 12px",
-        display: "flex", flexDirection: "column", gap: 8,
-        scrollbarWidth: "thin",
-      }}>
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "8px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          scrollbarWidth: "thin",
+        }}
+      >
         {messages.length === 0 && (
-          <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 8,
-          }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
             <span style={{ fontSize: 32 }}>💬</span>
             <span style={{ color: mutedColor, fontSize: fs(12) }}>Envie uma mensagem para começar</span>
           </div>
         )}
         {messages.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth: "80%",
-              padding: "8px 12px",
-              borderRadius: msg.role === "user" ? "14px 14px 2px 14px" : "14px 14px 14px 2px",
-              background: msg.role === "user" ? bubbleBgUser : bubbleBgBot,
-              color: msg.role === "user" ? "#fff" : textColor,
-              fontSize: fs(13),
-              lineHeight: 1.5,
-              wordBreak: "break-word",
-              whiteSpace: "pre-wrap",
-            }}>
+            <div
+              style={{
+                maxWidth: "80%",
+                padding: "8px 12px",
+                borderRadius: msg.role === "user" ? "14px 14px 2px 14px" : "14px 14px 14px 2px",
+                background: msg.role === "user" ? bubbleBgUser : bubbleBgBot,
+                color: msg.role === "user" ? "#fff" : textColor,
+                fontSize: fs(13),
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+                whiteSpace: "pre-wrap",
+              }}
+            >
               {msg.content}
             </div>
           </div>
         ))}
         {loading && messages[messages.length - 1]?.role !== "assistant" && (
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <div style={{
-              padding: "8px 12px",
-              borderRadius: "14px 14px 14px 2px",
-              background: bubbleBgBot,
-              color: mutedColor,
-              fontSize: fs(13),
-            }}>
+            <div
+              style={{
+                padding: "8px 12px",
+                borderRadius: "14px 14px 14px 2px",
+                background: bubbleBgBot,
+                color: mutedColor,
+                fontSize: fs(13),
+              }}
+            >
               <span style={{ animation: "pulse 1.5s infinite" }}>●●●</span>
             </div>
           </div>
@@ -1748,10 +2478,14 @@ function ChatElement({ props: p, deviceId }) {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder={placeholder}
           style={{
-            flex: 1, height: 40, borderRadius: 12,
-            border: "none", outline: "none",
+            flex: 1,
+            height: 40,
+            borderRadius: 12,
+            border: "none",
+            outline: "none",
             padding: "0 14px",
-            background: inputBg, color: textColor,
+            background: inputBg,
+            color: textColor,
             fontSize: fs(13),
           }}
         />
@@ -1760,16 +2494,24 @@ function ChatElement({ props: p, deviceId }) {
           onClick={send}
           disabled={loading || !input.trim()}
           style={{
-            flexShrink: 0, width: 40, height: 40,
-            borderRadius: 12, border: "none",
-            background: bubbleBgUser, color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            border: "none",
+            background: bubbleBgUser,
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             cursor: loading || !input.trim() ? "default" : "pointer",
             opacity: loading || !input.trim() ? 0.4 : 1,
             transition: "opacity 0.2s",
             fontSize: 16,
           }}
-        >▶</button>
+        >
+          ▶
+        </button>
       </div>
     </div>
   );
@@ -1791,17 +2533,19 @@ function AvatarCanvasElement({ props: p }) {
   const camX = (frameX / 100) * 3;
   const targetY = 1.0 + (frameY / 100) * 1.2;
 
-  const bgColor = p.bgColor || 'transparent';
-  const isTransparent = !bgColor || bgColor === 'transparent' || bgColor === '';
+  const bgColor = p.bgColor || "transparent";
+  const isTransparent = !bgColor || bgColor === "transparent" || bgColor === "";
 
   return (
-    <div style={{
-      width: "100%",
-      height: "100%",
-      position: "relative",
-      pointerEvents: "none",
-      background: isTransparent ? "transparent" : bgColor,
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        pointerEvents: "none",
+        background: isTransparent ? "transparent" : bgColor,
+      }}
+    >
       <Canvas
         shadows
         camera={{ position: [camX, camY, camZ], fov: 30 }}
@@ -1812,38 +2556,40 @@ function AvatarCanvasElement({ props: p }) {
           background: isTransparent ? "transparent" : bgColor,
         }}
       >
-        <Scenario uiOverride={{
-          components: {
-            avatar: {
-              enabled: true,
-              position: "center",
-              scale: p.scale || 1.5,
-              animation: p.animation || "idle",
-              colors: p.colors || { shirt: "#1E3A8A", pants: "#1F2937", shoes: "#000000" },
-              models: {
-                avatar_url: p.avatarUrl || "/models/avatar.glb",
-                animations_url: p.animationsUrl || "/models/animations.glb",
-              },
-              animations: { idle: "Idle", talking: "TalkingOne" },
-              materials: { roughness: 0.5, metalness: 0.0 },
-            },
-          },
-          canvas: {
-            camera: {
-              initial_look_at: {
-                position: [camX, camY, camZ],
-                target: [camX, targetY, 0],
-                smooth: false,
-              },
-              controls: {
-                minDistance: camZ,
-                maxDistance: camZ,
-                minPolarAngle: Math.PI / 2,
-                maxPolarAngle: Math.PI / 2,
+        <Scenario
+          uiOverride={{
+            components: {
+              avatar: {
+                enabled: true,
+                position: "center",
+                scale: p.scale || 1.5,
+                animation: p.animation || "idle",
+                colors: p.colors || { shirt: "#1E3A8A", pants: "#1F2937", shoes: "#000000" },
+                models: {
+                  avatar_url: p.avatarUrl || "/models/avatar.glb",
+                  animations_url: p.animationsUrl || "/models/animations.glb",
+                },
+                animations: { idle: "Idle", talking: "TalkingOne" },
+                materials: { roughness: 0.5, metalness: 0.0 },
               },
             },
-          },
-        }} />
+            canvas: {
+              camera: {
+                initial_look_at: {
+                  position: [camX, camY, camZ],
+                  target: [camX, targetY, 0],
+                  smooth: false,
+                },
+                controls: {
+                  minDistance: camZ,
+                  maxDistance: camZ,
+                  minPolarAngle: Math.PI / 2,
+                  maxPolarAngle: Math.PI / 2,
+                },
+              },
+            },
+          }}
+        />
       </Canvas>
     </div>
   );
@@ -1872,14 +2618,17 @@ function ScaledIframe({ url, scrolling, borderRadius }) {
   }, []);
 
   return (
-    <div ref={containerRef} style={{
-      width: "100%",
-      height: "100%",
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: borderRadius || 0,
-      background: "#fff",
-    }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: borderRadius || 0,
+        background: "#fff",
+      }}
+    >
       <iframe
         src={url}
         style={{
@@ -1905,16 +2654,26 @@ function ScaledIframe({ url, scrolling, borderRadius }) {
 // ─────────────────────────────────────────────
 // 🎠 LIVE CAROUSEL — Carrossel de imagens funcional
 // ─────────────────────────────────────────────
-function LiveCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0, objectFit = "contain" }) {
+function LiveCarousel({
+  images = [],
+  autoplay = true,
+  interval = 5,
+  transition = "fade",
+  borderRadius = 0,
+  objectFit = "contain",
+}) {
   const [current, setCurrent] = useState(0);
   const filtered = useMemo(() => (images || []).filter(Boolean), [images]);
   const len = filtered.length;
 
   useEffect(() => {
     if (!autoplay || len <= 1) return;
-    const id = setInterval(() => {
-      setCurrent((c) => (c + 1) % len);
-    }, (interval || 5) * 1000);
+    const id = setInterval(
+      () => {
+        setCurrent((c) => (c + 1) % len);
+      },
+      (interval || 5) * 1000,
+    );
     return () => clearInterval(id);
   }, [autoplay, interval, len]);
 
@@ -1953,27 +2712,39 @@ function LiveCarousel({ images = [], autoplay = true, interval = 5, transition =
             <img
               src={src}
               alt=""
-              style={isContain ? {
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-                objectPosition: "center",
-              } : {
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center",
-              }}
+              style={
+                isContain
+                  ? {
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                    }
+                  : {
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                    }
+              }
             />
           </div>
         );
       })}
       {/* Dots indicator */}
       {len > 1 && (
-        <div style={{
-          position: "absolute", bottom: 12, left: 0, right: 0,
-          display: "flex", justifyContent: "center", gap: 6, zIndex: 10,
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 12,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            gap: 6,
+            zIndex: 10,
+          }}
+        >
           {filtered.map((_, i) => (
             <div
               key={i}
@@ -2008,36 +2779,49 @@ const PremiumClock = React.memo(({ color, fontSize }) => {
   const secs = String(now.getSeconds()).padStart(2, "0");
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      position: "relative",
-    }}>
-      <div style={{
-        position: "absolute", width: "70%", height: "50%",
-        background: `radial-gradient(ellipse, ${c}12 0%, transparent 70%)`,
-        pointerEvents: "none",
-      }} />
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          width: "70%",
+          height: "50%",
+          background: `radial-gradient(ellipse, ${c}12 0%, transparent 70%)`,
+          pointerEvents: "none",
+        }}
+      />
       <div style={{ display: "flex", alignItems: "baseline", gap: 4, position: "relative" }}>
-        <span style={{
-          color: c,
-          fontSize: `clamp(20px, ${fz / CANVAS_W * 100}vw, ${fz * 1.5}px)`,
-          fontFamily: "'Orbitron', monospace",
-          fontWeight: "800",
-          letterSpacing: "0.04em",
-          textShadow: `0 0 30px ${c}35, 0 2px 8px rgba(0,0,0,0.4)`,
-        }}>
+        <span
+          style={{
+            color: c,
+            fontSize: `clamp(20px, ${(fz / CANVAS_W) * 100}vw, ${fz * 1.5}px)`,
+            fontFamily: "'Orbitron', monospace",
+            fontWeight: "800",
+            letterSpacing: "0.04em",
+            textShadow: `0 0 30px ${c}35, 0 2px 8px rgba(0,0,0,0.4)`,
+          }}
+        >
           {hours}
         </span>
-        <span style={{
-          color: c,
-          fontSize: `clamp(12px, ${(fz * 0.4) / CANVAS_W * 100}vw, ${fz * 0.6}px)`,
-          fontFamily: "'Orbitron', monospace",
-          fontWeight: "600",
-          opacity: 0.5,
-          animation: "totem-colon-blink 1s step-end infinite",
-        }}>
+        <span
+          style={{
+            color: c,
+            fontSize: `clamp(12px, ${((fz * 0.4) / CANVAS_W) * 100}vw, ${fz * 0.6}px)`,
+            fontFamily: "'Orbitron', monospace",
+            fontWeight: "600",
+            opacity: 0.5,
+            animation: "totem-colon-blink 1s step-end infinite",
+          }}
+        >
           {secs}
         </span>
       </div>
@@ -2069,41 +2853,70 @@ const PremiumCountdown = React.memo(({ targetDate, label, color, fontSize, accen
   const fz = fontSize || 28;
 
   const Segment = ({ value, unit }) => (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-      padding: "8px 12px",
-      background: "rgba(255,255,255,0.05)",
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,0.08)",
-      backdropFilter: "blur(8px)",
-      minWidth: 48,
-    }}>
-      <span style={{
-        color: c,
-        fontSize: `clamp(16px, ${fz / CANVAS_W * 100}vw, ${fz * 1.5}px)`,
-        fontFamily: "'Orbitron', monospace",
-        fontWeight: "800",
-        textShadow: `0 0 20px ${accent}40`,
-      }}>{String(value).padStart(2, "0")}</span>
-      <span style={{
-        color: "rgba(255,255,255,0.4)",
-        fontSize: 9, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: "0.1em",
-      }}>{unit}</span>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        padding: "8px 12px",
+        background: "rgba(255,255,255,0.05)",
+        borderRadius: 12,
+        border: "1px solid rgba(255,255,255,0.08)",
+        backdropFilter: "blur(8px)",
+        minWidth: 48,
+      }}
+    >
+      <span
+        style={{
+          color: c,
+          fontSize: `clamp(16px, ${(fz / CANVAS_W) * 100}vw, ${fz * 1.5}px)`,
+          fontFamily: "'Orbitron', monospace",
+          fontWeight: "800",
+          textShadow: `0 0 20px ${accent}40`,
+        }}
+      >
+        {String(value).padStart(2, "0")}
+      </span>
+      <span
+        style={{
+          color: "rgba(255,255,255,0.4)",
+          fontSize: 9,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+        }}
+      >
+        {unit}
+      </span>
     </div>
   );
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 8,
-    }}>
-      {label && <span style={{
-        color: "rgba(255,255,255,0.5)",
-        fontSize: 11, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: "0.08em",
-      }}>{label}</span>}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+      }}
+    >
+      {label && (
+        <span
+          style={{
+            color: "rgba(255,255,255,0.5)",
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </span>
+      )}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {days > 0 && <Segment value={days} unit="dias" />}
         <Segment value={h} unit="hrs" />
@@ -2124,26 +2937,47 @@ const LiveCountdown = PremiumCountdown;
 function PremiumWeather({ city, color }) {
   const c = color || "#fff";
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 8,
-      position: "relative",
-    }}>
-      <div style={{
-        position: "absolute", width: "80%", height: "60%",
-        background: "radial-gradient(ellipse, rgba(250,204,21,0.08) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-      <span style={{
-        fontSize: 40,
-        animation: "totem-weather-float 3s ease-in-out infinite",
-        filter: "drop-shadow(0 4px 12px rgba(250,204,21,0.3))",
-      }}>🌤️</span>
-      <span style={{
-        color: c, fontSize: 13, fontWeight: 600,
-        opacity: 0.6, letterSpacing: "0.02em",
-      }}>{city || "São Paulo"}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          width: "80%",
+          height: "60%",
+          background: "radial-gradient(ellipse, rgba(250,204,21,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <span
+        style={{
+          fontSize: 40,
+          animation: "totem-weather-float 3s ease-in-out infinite",
+          filter: "drop-shadow(0 4px 12px rgba(250,204,21,0.3))",
+        }}
+      >
+        🌤️
+      </span>
+      <span
+        style={{
+          color: c,
+          fontSize: 13,
+          fontWeight: 600,
+          opacity: 0.6,
+          letterSpacing: "0.02em",
+        }}
+      >
+        {city || "São Paulo"}
+      </span>
     </div>
   );
 }
@@ -2151,7 +2985,14 @@ function PremiumWeather({ city, color }) {
 // ─────────────────────────────────────────────
 // 🎠 PREMIUM CAROUSEL — Vignette + ken-burns + glass dots
 // ─────────────────────────────────────────────
-function PremiumCarousel({ images = [], autoplay = true, interval = 5, transition = "fade", borderRadius = 0, objectFit = "contain" }) {
+function PremiumCarousel({
+  images = [],
+  autoplay = true,
+  interval = 5,
+  transition = "fade",
+  borderRadius = 0,
+  objectFit = "contain",
+}) {
   const [current, setCurrent] = useState(0);
   const filtered = useMemo(() => (images || []).filter(Boolean), [images]);
   const len = filtered.length;
@@ -2162,70 +3003,112 @@ function PremiumCarousel({ images = [], autoplay = true, interval = 5, transitio
     return () => clearInterval(id);
   }, [autoplay, interval, len]);
 
-  useEffect(() => { if (current >= len) setCurrent(0); }, [len, current]);
+  useEffect(() => {
+    if (current >= len) setCurrent(0);
+  }, [len, current]);
 
   if (len === 0) return <PremiumPlaceholder emoji="🎠" label="Carrossel" />;
 
   const isFade = transition !== "slide";
 
   return (
-    <div style={{
-      width: "100%", height: "100%", position: "relative", overflow: "hidden",
-      borderRadius, background: "#000",
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        overflow: "hidden",
+        borderRadius,
+        background: "#000",
+      }}
+    >
       {filtered.map((src, i) => {
         const fit = objectFit || "contain";
         const isContain = fit === "contain";
         return (
-          <div key={i} style={{
-            position: "absolute", inset: 0,
-            width: "100%", height: "100%",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            opacity: isFade ? (i === current ? 1 : 0) : 1,
-            transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
-            transition: "opacity 0.8s ease, transform 0.6s ease",
-            pointerEvents: "none",
-          }}>
-            <img src={src} alt="" style={isContain ? {
-              maxWidth: "100%", maxHeight: "100%",
-              objectFit: "contain", objectPosition: "center",
-              animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
-            } : {
-              width: "100%", height: "100%",
-              objectFit: "cover", objectPosition: "center",
-              animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
-            }} />
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: isFade ? (i === current ? 1 : 0) : 1,
+              transform: !isFade ? `translateX(${(i - current) * 100}%)` : undefined,
+              transition: "opacity 0.8s ease, transform 0.6s ease",
+              pointerEvents: "none",
+            }}
+          >
+            <img
+              src={src}
+              alt=""
+              style={
+                isContain
+                  ? {
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
+                    }
+                  : {
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      animation: i === current ? "totem-ken-burns 20s ease-in-out infinite" : undefined,
+                    }
+              }
+            />
           </div>
         );
       })}
 
       {/* Vignette */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.35) 100%)",
-      }} />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.35) 100%)",
+        }}
+      />
 
       {/* Glass dots */}
       {len > 1 && (
-        <div style={{
-          position: "absolute", bottom: 14, left: 0, right: 0,
-          display: "flex", justifyContent: "center", gap: 8, zIndex: 10,
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 14,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            gap: 8,
+            zIndex: 10,
+          }}
+        >
           {filtered.map((_, i) => (
-            <div key={i} style={{
-              width: i === current ? 22 : 8,
-              height: 8, borderRadius: 4,
-              background: i === current ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
-              boxShadow: i === current ? "0 0 12px rgba(255,255,255,0.4)" : "none",
-              transition: "all 0.4s ease",
-            }} />
+            <div
+              key={i}
+              style={{
+                width: i === current ? 22 : 8,
+                height: 8,
+                borderRadius: 4,
+                background: i === current ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+                boxShadow: i === current ? "0 0 12px rgba(255,255,255,0.4)" : "none",
+                transition: "all 0.4s ease",
+              }}
+            />
           ))}
         </div>
       )}
     </div>
   );
 }
-
 
 // ─────────────────────────────────────────────
 // 🔢 ANIMATED NUMBER
@@ -2255,18 +3138,65 @@ function LiveAnimatedNumber(p) {
       if (progress < 1) animRef.current = requestAnimationFrame(animate);
     }
     animRef.current = requestAnimationFrame(animate);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
   }, [targetValue, duration]);
 
   const formatted = p.useGrouping !== false ? displayValue.toLocaleString("pt-BR") : displayValue.toString();
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 16px", position: "relative" }}>
-      <div style={{ position: "absolute", width: "60%", height: "40%", background: `radial-gradient(ellipse, ${c}15 0%, transparent 70%)`, pointerEvents: "none" }} />
-      <p style={{ color: c, fontSize: fSize, fontWeight, lineHeight: 1.1, letterSpacing: "-0.03em", textShadow: `0 0 40px ${c}25, 0 2px 4px rgba(0,0,0,0.3)`, position: "relative" }}>
-        {prefix}{formatted}{suffix}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "0 16px",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          width: "60%",
+          height: "40%",
+          background: `radial-gradient(ellipse, ${c}15 0%, transparent 70%)`,
+          pointerEvents: "none",
+        }}
+      />
+      <p
+        style={{
+          color: c,
+          fontSize: fSize,
+          fontWeight,
+          lineHeight: 1.1,
+          letterSpacing: "-0.03em",
+          textShadow: `0 0 40px ${c}25, 0 2px 4px rgba(0,0,0,0.3)`,
+          position: "relative",
+        }}
+      >
+        {prefix}
+        {formatted}
+        {suffix}
       </p>
-      {label && <p style={{ color: labelColor, fontSize: labelSize, fontWeight: 500, marginTop: 10, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</p>}
+      {label && (
+        <p
+          style={{
+            color: labelColor,
+            fontSize: labelSize,
+            fontWeight: 500,
+            marginTop: 10,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </p>
+      )}
     </div>
   );
 }
@@ -2290,7 +3220,7 @@ function LiveForm({ props: p }) {
     if (p.navigateOnSubmit && window.__totemNavigatePage) {
       const vars = {};
       if (formRef.current) {
-        formRef.current.querySelectorAll("[data-var]").forEach(input => {
+        formRef.current.querySelectorAll("[data-var]").forEach((input) => {
           const v = input.getAttribute("data-var");
           if (v) vars[v] = input.type === "checkbox" ? (input.checked ? "sim" : "não") : input.value;
         });
@@ -2303,43 +3233,152 @@ function LiveForm({ props: p }) {
 
   if (submitted) {
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`, borderRadius: p.borderRadius || 16, backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+          borderRadius: p.borderRadius || 16,
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         <div style={{ textAlign: "center" }}>
           <span style={{ fontSize: 48 }}>✅</span>
-          <p style={{ color: p.titleColor || "#fff", fontSize: 18, fontWeight: 600, marginTop: 12 }}>{p.successMessage || "Enviado com sucesso!"}</p>
-          <button onClick={() => setSubmitted(false)} className="totem-btn-3d" style={{ marginTop: 16, padding: "8px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: `${submitBg}20`, color: submitBg, border: `1px solid ${submitBg}33`, cursor: "pointer" }}>Enviar outro</button>
+          <p style={{ color: p.titleColor || "#fff", fontSize: 18, fontWeight: 600, marginTop: 12 }}>
+            {p.successMessage || "Enviado com sucesso!"}
+          </p>
+          <button
+            onClick={() => setSubmitted(false)}
+            className="totem-btn-3d"
+            style={{
+              marginTop: 16,
+              padding: "8px 20px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 600,
+              background: `${submitBg}20`,
+              color: submitBg,
+              border: `1px solid ${submitBg}33`,
+              cursor: "pointer",
+            }}
+          >
+            Enviar outro
+          </button>
         </div>
       </div>
     );
   }
 
-  const fieldStyle = { background: `linear-gradient(135deg, ${fieldBg}, rgba(255,255,255,0.04))`, color: fieldText, border: "1px solid rgba(255,255,255,0.08)", width: "100%", height: 44, padding: "0 16px", borderRadius: 12, fontSize: 14, outline: "none" };
+  const fieldStyle = {
+    background: `linear-gradient(135deg, ${fieldBg}, rgba(255,255,255,0.04))`,
+    color: fieldText,
+    border: "1px solid rgba(255,255,255,0.08)",
+    width: "100%",
+    height: 44,
+    padding: "0 16px",
+    borderRadius: 12,
+    fontSize: 14,
+    outline: "none",
+  };
 
   return (
-    <div ref={formRef} style={{ width: "100%", height: "100%", overflow: "auto", display: "flex", flexDirection: "column", background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`, borderRadius: p.borderRadius || 16, padding: 20, backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
-      <h2 style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 22, fontWeight: 700, marginBottom: 20 }}>{title}</h2>
+    <div
+      ref={formRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        overflow: "auto",
+        display: "flex",
+        flexDirection: "column",
+        background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+        borderRadius: p.borderRadius || 16,
+        padding: 20,
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <h2 style={{ color: p.titleColor || "#fff", fontSize: p.titleSize || 22, fontWeight: 700, marginBottom: 20 }}>
+        {title}
+      </h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
-        {fields.map(field => {
+        {fields.map((field) => {
           const varName = field.variableName || field.label?.toLowerCase().replace(/\s+/g, "_");
           return (
             <div key={field.id} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ color: `${fieldText}88`, fontSize: 11, fontWeight: 600, letterSpacing: "0.03em", textTransform: "uppercase" }}>
-                {field.label}{field.required && <span style={{ color: "#ef4444" }}> *</span>}
+              <label
+                style={{
+                  color: `${fieldText}88`,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.03em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {field.label}
+                {field.required && <span style={{ color: "#ef4444" }}> *</span>}
               </label>
-              {(field.type === "text" || field.type === "email" || field.type === "phone") && <input type={field.type === "phone" ? "tel" : field.type} placeholder={field.placeholder || ""} data-var={varName} style={fieldStyle} />}
-              {field.type === "textarea" && <textarea placeholder={field.placeholder || ""} rows={3} data-var={varName} style={{ ...fieldStyle, height: "auto", padding: "12px 16px", resize: "none" }} />}
-              {field.type === "select" && <select data-var={varName} style={fieldStyle}><option value="">{field.placeholder || "Selecione..."}</option>{(field.options || "").split(",").filter(Boolean).map(o => <option key={o.trim()} value={o.trim()}>{o.trim()}</option>)}</select>}
-              {field.type === "checkbox" && <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", cursor: "pointer" }}><input type="checkbox" data-var={varName} style={{ width: 20, height: 20, accentColor: submitBg }} /><span style={{ color: fieldText, fontSize: 14 }}>{field.placeholder || field.label}</span></label>}
+              {(field.type === "text" || field.type === "email" || field.type === "phone") && (
+                <input
+                  type={field.type === "phone" ? "tel" : field.type}
+                  placeholder={field.placeholder || ""}
+                  data-var={varName}
+                  style={fieldStyle}
+                />
+              )}
+              {field.type === "textarea" && (
+                <textarea
+                  placeholder={field.placeholder || ""}
+                  rows={3}
+                  data-var={varName}
+                  style={{ ...fieldStyle, height: "auto", padding: "12px 16px", resize: "none" }}
+                />
+              )}
+              {field.type === "select" && (
+                <select data-var={varName} style={fieldStyle}>
+                  <option value="">{field.placeholder || "Selecione..."}</option>
+                  {(field.options || "")
+                    .split(",")
+                    .filter(Boolean)
+                    .map((o) => (
+                      <option key={o.trim()} value={o.trim()}>
+                        {o.trim()}
+                      </option>
+                    ))}
+                </select>
+              )}
+              {field.type === "checkbox" && (
+                <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", cursor: "pointer" }}>
+                  <input type="checkbox" data-var={varName} style={{ width: 20, height: 20, accentColor: submitBg }} />
+                  <span style={{ color: fieldText, fontSize: 14 }}>{field.placeholder || field.label}</span>
+                </label>
+              )}
             </div>
           );
         })}
       </div>
-      <button onClick={handleSubmit} className="totem-btn-3d" style={{
-        width: "100%", padding: "14px 24px", borderRadius: 16, fontWeight: 700, fontSize: 16, marginTop: 20,
-        background: `linear-gradient(135deg, ${submitBg}, ${submitBg}dd)`, color: submitText,
-        border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer",
-        boxShadow: `0 4px 24px ${submitBg}40`,
-      }}>{submitLabel}</button>
+      <button
+        onClick={handleSubmit}
+        className="totem-btn-3d"
+        style={{
+          width: "100%",
+          padding: "14px 24px",
+          borderRadius: 16,
+          fontWeight: 700,
+          fontSize: 16,
+          marginTop: 20,
+          background: `linear-gradient(135deg, ${submitBg}, ${submitBg}dd)`,
+          color: submitText,
+          border: "1px solid rgba(255,255,255,0.15)",
+          cursor: "pointer",
+          boxShadow: `0 4px 24px ${submitBg}40`,
+        }}
+      >
+        {submitLabel}
+      </button>
     </div>
   );
 }
@@ -2359,37 +3398,109 @@ function LiveTicket({ props: p }) {
 
   const handleClick = () => {
     setAnimating(true);
-    setNumber(n => n + 1);
+    setNumber((n) => n + 1);
     setTimeout(() => setAnimating(false), 600);
   };
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
-      borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 14, padding: 24,
-      backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)",
-      position: "relative", overflow: "hidden",
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+        borderRadius: p.borderRadius || 20,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        padding: 24,
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       <style>{`
         @keyframes ticket-pop { 0% { transform: scale(1); } 30% { transform: scale(1.15); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
         @keyframes ticket-glow { 0%, 100% { text-shadow: 0 0 20px ${accent}40; } 50% { text-shadow: 0 0 40px ${accent}60; } }
       `}</style>
-      <div style={{ position: "absolute", top: 12, left: 12, right: 12, bottom: 12, border: `2px dashed ${textColor}12`, borderRadius: (p.borderRadius || 20) - 8, pointerEvents: "none" }} />
-      <span style={{ color: `${textColor}88`, fontSize: p.labelSize || 16, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>{p.label || "Sua senha"}</span>
-      <div style={{ padding: "12px 28px", background: `linear-gradient(135deg, ${accent}15, ${accent}08)`, borderRadius: 16, border: `1px solid ${accent}30` }}>
-        <span style={{ color: accent, fontSize: fSize, fontWeight: 800, fontFamily: "monospace", letterSpacing: "0.08em", animation: animating ? "ticket-pop 0.6s ease-out" : "ticket-glow 3s ease-in-out infinite", display: "block" }}>{formatted}</span>
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          right: 12,
+          bottom: 12,
+          border: `2px dashed ${textColor}12`,
+          borderRadius: (p.borderRadius || 20) - 8,
+          pointerEvents: "none",
+        }}
+      />
+      <span
+        style={{
+          color: `${textColor}88`,
+          fontSize: p.labelSize || 16,
+          fontWeight: 500,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+      >
+        {p.label || "Sua senha"}
+      </span>
+      <div
+        style={{
+          padding: "12px 28px",
+          background: `linear-gradient(135deg, ${accent}15, ${accent}08)`,
+          borderRadius: 16,
+          border: `1px solid ${accent}30`,
+        }}
+      >
+        <span
+          style={{
+            color: accent,
+            fontSize: fSize,
+            fontWeight: 800,
+            fontFamily: "monospace",
+            letterSpacing: "0.08em",
+            animation: animating ? "ticket-pop 0.6s ease-out" : "ticket-glow 3s ease-in-out infinite",
+            display: "block",
+          }}
+        >
+          {formatted}
+        </span>
       </div>
       {p.showPrint !== false && (
-        <button onClick={handleClick} className="totem-btn-3d" style={{
-          marginTop: 4, padding: "14px 36px",
-          background: `linear-gradient(135deg, ${accent}, ${accent}dd)`, color: "#fff",
-          border: "none", borderRadius: 999, fontSize: 17, fontWeight: 700, cursor: "pointer",
-          boxShadow: `0 4px 24px ${accent}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
-          position: "relative", overflow: "hidden",
-        }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)", borderRadius: "999px 999px 0 0", pointerEvents: "none" }} />
+        <button
+          onClick={handleClick}
+          className="totem-btn-3d"
+          style={{
+            marginTop: 4,
+            padding: "14px 36px",
+            background: `linear-gradient(135deg, ${accent}, ${accent}dd)`,
+            color: "#fff",
+            border: "none",
+            borderRadius: 999,
+            fontSize: 17,
+            fontWeight: 700,
+            cursor: "pointer",
+            boxShadow: `0 4px 24px ${accent}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "50%",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)",
+              borderRadius: "999px 999px 0 0",
+              pointerEvents: "none",
+            }}
+          />
           <span style={{ position: "relative" }}>{p.printLabel || "🖨️ Retirar Senha"}</span>
         </button>
       )}
@@ -2412,7 +3523,11 @@ function LiveNumpad({ props: p }) {
 
   function applyMask(val, m) {
     const d = val.replace(/\D/g, "");
-    if (m === "cpf") return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    if (m === "cpf")
+      return d
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     if (m === "phone") return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
     return d;
   }
@@ -2422,66 +3537,110 @@ function LiveNumpad({ props: p }) {
     setPressedKey(key);
     setTimeout(() => setPressedKey(null), 150);
     if (key === "C") setValue("");
-    else if (key === "⌫") setValue(v => v.slice(0, -1));
-    else if (digits.length < maxLen) setValue(v => v + key);
+    else if (key === "⌫") setValue((v) => v.slice(0, -1));
+    else if (digits.length < maxLen) setValue((v) => v + key);
   };
 
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "⌫"];
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
-      borderRadius: p.borderRadius || 20, display: "flex", flexDirection: "column",
-      padding: 20, gap: 12, backdropFilter: "blur(12px)",
-      border: "1px solid rgba(255,255,255,0.08)",
-    }}>
-      <span style={{ color: `${textColor}99`, fontSize: 14, fontWeight: 600, textAlign: "center", letterSpacing: "0.02em" }}>{p.label || "Digite seu CPF"}</span>
-      <div style={{
-        padding: "14px 16px",
-        background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
-        borderRadius: 14, textAlign: "center", fontSize: 28, fontFamily: "monospace",
-        fontWeight: 700, color: digits.length > 0 ? textColor : `${textColor}30`,
-        letterSpacing: "0.06em", minHeight: 54, display: "flex", alignItems: "center", justifyContent: "center",
-        border: `1.5px solid ${digits.length > 0 ? accent + "44" : "rgba(255,255,255,0.06)"}`,
-        boxShadow: digits.length > 0 ? `0 0 20px ${accent}15` : "none",
-        transition: "border-color 0.3s, box-shadow 0.3s",
-      }}>{display || p.placeholder || "000.000.000-00"}</div>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: `linear-gradient(160deg, ${bg}, rgba(0,0,0,0.65))`,
+        borderRadius: p.borderRadius || 20,
+        display: "flex",
+        flexDirection: "column",
+        padding: 20,
+        gap: 12,
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      <span
+        style={{ color: `${textColor}99`, fontSize: 14, fontWeight: 600, textAlign: "center", letterSpacing: "0.02em" }}
+      >
+        {p.label || "Digite seu CPF"}
+      </span>
+      <div
+        style={{
+          padding: "14px 16px",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+          borderRadius: 14,
+          textAlign: "center",
+          fontSize: 28,
+          fontFamily: "monospace",
+          fontWeight: 700,
+          color: digits.length > 0 ? textColor : `${textColor}30`,
+          letterSpacing: "0.06em",
+          minHeight: 54,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: `1.5px solid ${digits.length > 0 ? accent + "44" : "rgba(255,255,255,0.06)"}`,
+          boxShadow: digits.length > 0 ? `0 0 20px ${accent}15` : "none",
+          transition: "border-color 0.3s, box-shadow 0.3s",
+        }}
+      >
+        {display || p.placeholder || "000.000.000-00"}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, flex: 1 }}>
-        {keys.map(key => {
+        {keys.map((key) => {
           const isPressed = pressedKey === key;
           return (
-            <button key={key} onClick={() => handleKey(key)} className="totem-btn-3d" style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: (key === "C" || key === "⌫") ? 18 : 26, fontWeight: 700,
-              color: key === "C" ? "#ef4444" : key === "⌫" ? "#f59e0b" : textColor,
-              background: isPressed ? `${accent}30` : "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
-              border: `1px solid ${isPressed ? accent + "44" : "rgba(255,255,255,0.08)"}`,
-              borderRadius: 14, cursor: "pointer", transition: "all 0.15s ease",
-              boxShadow: isPressed ? `0 0 16px ${accent}20` : "0 2px 8px rgba(0,0,0,0.2)",
-              transform: isPressed ? "scale(0.95)" : "scale(1)",
-            }}>{key}</button>
+            <button
+              key={key}
+              onClick={() => handleKey(key)}
+              className="totem-btn-3d"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: key === "C" || key === "⌫" ? 18 : 26,
+                fontWeight: 700,
+                color: key === "C" ? "#ef4444" : key === "⌫" ? "#f59e0b" : textColor,
+                background: isPressed
+                  ? `${accent}30`
+                  : "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+                border: `1px solid ${isPressed ? accent + "44" : "rgba(255,255,255,0.08)"}`,
+                borderRadius: 14,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                boxShadow: isPressed ? `0 0 16px ${accent}20` : "0 2px 8px rgba(0,0,0,0.2)",
+                transform: isPressed ? "scale(0.95)" : "scale(1)",
+              }}
+            >
+              {key}
+            </button>
           );
         })}
       </div>
-      <button onClick={() => {
-        if (digits.length >= 3 && p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
-          window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade", { numpad_value: display });
-        }
-      }} className="totem-btn-3d" style={{
-        padding: "14px 24px",
-        background: digits.length >= 3 ? `linear-gradient(135deg, ${accent}, ${accent}dd)` : "rgba(255,255,255,0.05)",
-        color: digits.length >= 3 ? "#ffffff" : `${textColor}40`,
-        border: digits.length >= 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.06)",
-        borderRadius: 999, fontSize: 18, fontWeight: 700,
-        cursor: digits.length >= 3 ? "pointer" : "default",
-        boxShadow: digits.length >= 3 ? `0 4px 24px ${accent}40` : "none",
-        transition: "all 0.3s ease",
-      }}>{p.buttonLabel || "Confirmar"}</button>
+      <button
+        onClick={() => {
+          if (digits.length >= 3 && p.actionType === "navigate" && p.navigateTarget && window.__totemNavigatePage) {
+            window.__totemNavigatePage(p.navigateTarget, p.navigateTransition || "fade", { numpad_value: display });
+          }
+        }}
+        className="totem-btn-3d"
+        style={{
+          padding: "14px 24px",
+          background: digits.length >= 3 ? `linear-gradient(135deg, ${accent}, ${accent}dd)` : "rgba(255,255,255,0.05)",
+          color: digits.length >= 3 ? "#ffffff" : `${textColor}40`,
+          border: digits.length >= 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 999,
+          fontSize: 18,
+          fontWeight: 700,
+          cursor: digits.length >= 3 ? "pointer" : "default",
+          boxShadow: digits.length >= 3 ? `0 4px 24px ${accent}40` : "none",
+          transition: "all 0.3s ease",
+        }}
+      >
+        {p.buttonLabel || "Confirmar"}
+      </button>
     </div>
   );
 }
-
 
 // ─────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -2535,12 +3694,12 @@ const GlobalStyles = () => (
 const IDLE_TIMEOUT_MS = 60_000;
 const IDLE_PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
-  x: `${10 + (i * 73 % 80)}%`,
+  x: `${10 + ((i * 73) % 80)}%`,
   delay: `${(i * 0.37) % 3.5}s`,
-  dur: `${2.8 + (i * 0.23) % 2.4}s`,
-  dx: `${-30 + (i * 17 % 60)}px`,
-  size: 3 + (i * 3 % 6),
-  color: i % 3 === 0 ? 'rgba(139,92,246,0.85)' : i % 3 === 1 ? 'rgba(99,102,241,0.8)' : 'rgba(236,72,153,0.75)',
+  dur: `${2.8 + ((i * 0.23) % 2.4)}s`,
+  dx: `${-30 + ((i * 17) % 60)}px`,
+  size: 3 + ((i * 3) % 6),
+  color: i % 3 === 0 ? "rgba(139,92,246,0.85)" : i % 3 === 1 ? "rgba(99,102,241,0.8)" : "rgba(236,72,153,0.75)",
 }));
 
 function IdleScreen({ visible, onWake, canvas }) {
@@ -2552,61 +3711,61 @@ function IdleScreen({ visible, onWake, canvas }) {
     if (!canvas?.elements) return [];
     const items = [];
 
-    canvas.elements.forEach(el => {
+    canvas.elements.forEach((el) => {
       // Extract from feed posts
-      if (el.type === 'feed' && el.props?.posts?.length) {
-        el.props.posts.forEach(post => {
+      if (el.type === "feed" && el.props?.posts?.length) {
+        el.props.posts.forEach((post) => {
           const img = post.images?.[0] || post.image || null;
           if (img) {
             items.push({
               image: img,
-              title: post.title || '',
-              category: post.category || post.badge || '',
-              description: post.description || '',
+              title: post.title || "",
+              category: post.category || post.badge || "",
+              description: post.description || "",
             });
           }
         });
       }
       // Extract from carousel images
-      if (el.type === 'carousel' && el.props?.images?.length) {
+      if (el.type === "carousel" && el.props?.images?.length) {
         el.props.images.forEach((img) => {
           if (img) {
-            items.push({ image: img, title: '', category: '', description: '' });
+            items.push({ image: img, title: "", category: "", description: "" });
           }
         });
       }
       // Extract from standalone image elements
-      if (el.type === 'image' && el.props?.src) {
+      if (el.type === "image" && el.props?.src) {
         items.push({
           image: el.props.src,
-          title: el.props.alt || el.props.label || '',
-          category: '',
-          description: '',
+          title: el.props.alt || el.props.label || "",
+          category: "",
+          description: "",
         });
       }
       // Extract from HTML Puro (iframe) elements — parse htmlContent with full override support
-      if (el.type === 'iframe' && el.props?.htmlContent) {
+      if (el.type === "iframe" && el.props?.htmlContent) {
         try {
           const parser = new DOMParser();
-          const doc = parser.parseFromString(el.props.htmlContent, 'text/html');
+          const doc = parser.parseFromString(el.props.htmlContent, "text/html");
 
           // ── Apply fieldOverrides using the SAME logic as the iframe renderer ──
           const ov = el.props.fieldOverrides;
           if (ov && Object.keys(ov).length > 0) {
             // 1) Legacy indexed text overrides (text_1, text_2, …)
-            const textEls = doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
+            const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
             let tIdx = 0;
-            textEls.forEach(tel => {
+            textEls.forEach((tel) => {
               const directText = Array.from(tel.childNodes)
-                .filter(n => n.nodeType === 3)
-                .map(n => n.textContent?.trim())
+                .filter((n) => n.nodeType === 3)
+                .map((n) => n.textContent?.trim())
                 .filter(Boolean)
-                .join(' ');
+                .join(" ");
               if (directText) {
                 tIdx++;
-                const key = 'text_' + tIdx;
+                const key = "text_" + tIdx;
                 if (ov[key] !== undefined && ov[key] !== directText) {
-                  Array.from(tel.childNodes).forEach(node => {
+                  Array.from(tel.childNodes).forEach((node) => {
                     if (node.nodeType === 3 && node.textContent?.trim() === directText) {
                       node.textContent = ov[key];
                     }
@@ -2616,38 +3775,38 @@ function IdleScreen({ visible, onWake, canvas }) {
             });
             // 2) Legacy indexed image overrides (img_1, img_2, …)
             let iIdx = 0;
-            doc.body.querySelectorAll('img').forEach(img => {
+            doc.body.querySelectorAll("img").forEach((img) => {
               iIdx++;
-              const key = 'img_' + iIdx;
-              if (ov[key] !== undefined) img.setAttribute('src', ov[key]);
+              const key = "img_" + iIdx;
+              if (ov[key] !== undefined) img.setAttribute("src", ov[key]);
             });
             // 3) Selector-based overrides (__text_, __img_, __style_, __delete_, __duplicate_)
             Object.entries(ov).forEach(([k, v]) => {
               try {
-                if (k.startsWith('__delete_') && v === 'true') {
+                if (k.startsWith("__delete_") && v === "true") {
                   const sel = k.slice(9);
                   const target = doc.body.querySelector(sel);
                   if (target) target.remove();
-                } else if (k.startsWith('__duplicate_') && v === 'true') {
+                } else if (k.startsWith("__duplicate_") && v === "true") {
                   const sel = k.slice(12);
                   const target = doc.body.querySelector(sel);
                   if (target && target.parentElement) {
                     target.parentElement.insertBefore(target.cloneNode(true), target.nextSibling);
                   }
-                } else if (k.startsWith('__text_')) {
+                } else if (k.startsWith("__text_")) {
                   const sel = k.slice(7);
                   const target = doc.body.querySelector(sel);
                   if (target) {
-                    const blocks = target.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article');
+                    const blocks = target.querySelectorAll("div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article");
                     if (blocks.length === 0) target.textContent = v;
                   }
-                } else if (k.startsWith('__img_')) {
+                } else if (k.startsWith("__img_")) {
                   const sel = k.slice(6);
                   const target = doc.body.querySelector(sel);
-                  if (target && target.tagName === 'IMG') target.setAttribute('src', v);
-                } else if (k.startsWith('__style_')) {
+                  if (target && target.tagName === "IMG") target.setAttribute("src", v);
+                } else if (k.startsWith("__style_")) {
                   const rest = k.slice(8);
-                  const lastDunder = rest.lastIndexOf('__');
+                  const lastDunder = rest.lastIndexOf("__");
                   if (lastDunder >= 0) {
                     const sel = rest.slice(0, lastDunder);
                     const prop = rest.slice(lastDunder + 2);
@@ -2671,48 +3830,52 @@ function IdleScreen({ visible, onWake, canvas }) {
           }
 
           // ── Extract images, titles, descriptions, categories from the OVERRIDDEN DOM ──
-          const imgs = doc.body.querySelectorAll('img[src]');
+          const imgs = doc.body.querySelectorAll("img[src]");
           const titles = [];
-          doc.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]').forEach(heading => {
-            const txt = (heading.textContent || '').trim();
-            if (txt.length > 2 && txt.length < 200) titles.push(txt);
-          });
+          doc
+            .querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]')
+            .forEach((heading) => {
+              const txt = (heading.textContent || "").trim();
+              if (txt.length > 2 && txt.length < 200) titles.push(txt);
+            });
           const descriptions = [];
-          doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach(p => {
-            const txt = (p.textContent || '').trim();
+          doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach((p) => {
+            const txt = (p.textContent || "").trim();
             if (txt.length > 10 && txt.length < 500) descriptions.push(txt);
           });
           const categories = [];
-          doc.querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]').forEach(badge => {
-            const txt = (badge.textContent || '').trim();
-            if (txt.length > 1 && txt.length < 60) categories.push(txt);
-          });
+          doc
+            .querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]')
+            .forEach((badge) => {
+              const txt = (badge.textContent || "").trim();
+              if (txt.length > 1 && txt.length < 60) categories.push(txt);
+            });
 
           imgs.forEach((img, idx) => {
-            const src = img.getAttribute('src') || '';
-            if (!src || src.startsWith('data:image/svg')) return;
-            const w = parseInt(img.getAttribute('width') || '999');
-            const h = parseInt(img.getAttribute('height') || '999');
+            const src = img.getAttribute("src") || "";
+            if (!src || src.startsWith("data:image/svg")) return;
+            const w = parseInt(img.getAttribute("width") || "999");
+            const h = parseInt(img.getAttribute("height") || "999");
             if (w < 40 || h < 40) return;
             items.push({
               image: src,
-              title: titles[idx] || titles[0] || img.getAttribute('alt') || '',
-              category: categories[idx] || categories[0] || '',
-              description: descriptions[idx] || descriptions[0] || '',
+              title: titles[idx] || titles[0] || img.getAttribute("alt") || "",
+              category: categories[idx] || categories[0] || "",
+              description: descriptions[idx] || descriptions[0] || "",
             });
           });
           if (imgs.length === 0 && titles.length > 0) {
             titles.forEach((title, idx) => {
               items.push({
-                image: '',
+                image: "",
                 title,
-                category: categories[idx] || categories[0] || '',
-                description: descriptions[idx] || descriptions[0] || '',
+                category: categories[idx] || categories[0] || "",
+                description: descriptions[idx] || descriptions[0] || "",
               });
             });
           }
         } catch (err) {
-          console.warn('[IdleScreen] Falha ao parsear HTML Puro:', err.message);
+          console.warn("[IdleScreen] Falha ao parsear HTML Puro:", err.message);
         }
       }
     });
@@ -2726,7 +3889,7 @@ function IdleScreen({ visible, onWake, canvas }) {
   React.useEffect(() => {
     if (!hasEvents || eventData.length <= 1) return;
     const id = setInterval(() => {
-      setCurrentSlide(c => (c + 1) % eventData.length);
+      setCurrentSlide((c) => (c + 1) % eventData.length);
     }, 6000);
     return () => clearInterval(id);
   }, [hasEvents, eventData.length]);
@@ -2754,8 +3917,11 @@ function IdleScreen({ visible, onWake, canvas }) {
       onTouchStart={onWake}
       className={phase === "out" ? "idle-screen-out" : "idle-screen-in"}
       style={{
-        position: "fixed", inset: 0, zIndex: 200,
-        display: "flex", flexDirection: "column",
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        display: "flex",
+        flexDirection: "column",
         background: "#0a0a0a",
         cursor: "pointer",
         userSelect: "none",
@@ -2766,73 +3932,124 @@ function IdleScreen({ visible, onWake, canvas }) {
       {hasEvents && (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
           {eventData.map((item, i) => (
-            <div key={i} style={{
-              position: "absolute", inset: 0,
-              opacity: i === currentSlide ? 1 : 0,
-              transition: "opacity 1.2s ease-in-out",
-            }}>
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                inset: 0,
+                opacity: i === currentSlide ? 1 : 0,
+                transition: "opacity 1.2s ease-in-out",
+              }}
+            >
               {item.image ? (
-                <img src={item.image} alt="" style={{
-                  width: "100%", height: "100%", objectFit: "cover",
-                  animation: i === currentSlide ? "totem-ken-burns 20s ease-in-out infinite" : "none",
-                }} />
+                <img
+                  src={item.image}
+                  alt=""
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    animation: i === currentSlide ? "totem-ken-burns 20s ease-in-out infinite" : "none",
+                  }}
+                />
               ) : (
-                <div style={{
-                  width: "100%", height: "100%",
-                  background: "linear-gradient(160deg, #1a1a3e 0%, #0f172a 60%, #1e1b4b 100%)",
-                }} />
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    background: "linear-gradient(160deg, #1a1a3e 0%, #0f172a 60%, #1e1b4b 100%)",
+                  }}
+                />
               )}
             </div>
           ))}
           {/* Gradient overlays */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.6) 100%)",
-            pointerEvents: "none",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.6) 100%)",
+              pointerEvents: "none",
+            }}
+          />
         </div>
       )}
 
       {/* Fallback when no events */}
       {!hasEvents && (
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(160deg, #050a18 0%, #0c1630 60%, #0a0e1f 100%)",
-        }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(160deg, #050a18 0%, #0c1630 60%, #0a0e1f 100%)",
+          }}
+        />
       )}
 
       {/* Content area */}
-      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 48px 0" }}>
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          padding: "0 48px 0",
+        }}
+      >
         {/* Current event title/category */}
         {hasEvents && eventData[currentSlide] && (
           <div style={{ marginBottom: 24 }}>
             {eventData[currentSlide].category && (
-              <div style={{
-                display: "inline-block", padding: "6px 16px", borderRadius: 4, marginBottom: 16,
-                background: "#e50914", color: "#fff",
-                fontSize: "clamp(10px, 1.2vw, 14px)", fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.1em",
-              }}>
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "6px 16px",
+                  borderRadius: 4,
+                  marginBottom: 16,
+                  background: "#e50914",
+                  color: "#fff",
+                  fontSize: "clamp(10px, 1.2vw, 14px)",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
                 {eventData[currentSlide].category}
               </div>
             )}
             {eventData[currentSlide].title && (
-              <h2 style={{
-                color: "#fff", fontSize: "clamp(28px, 5vw, 56px)",
-                fontWeight: 800, lineHeight: 1.1, margin: 0,
-                textShadow: "0 4px 20px rgba(0,0,0,0.8)",
-                maxWidth: "80%",
-              }}>
+              <h2
+                style={{
+                  color: "#fff",
+                  fontSize: "clamp(28px, 5vw, 56px)",
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                  margin: 0,
+                  textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+                  maxWidth: "80%",
+                }}
+              >
                 {eventData[currentSlide].title}
               </h2>
             )}
             {eventData[currentSlide].description && (
-              <p style={{
-                color: "rgba(255,255,255,0.7)", fontSize: "clamp(12px, 1.5vw, 18px)",
-                lineHeight: 1.5, marginTop: 12, maxWidth: "60%",
-                textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-                display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
-              }}>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: "clamp(12px, 1.5vw, 18px)",
+                  lineHeight: 1.5,
+                  marginTop: 12,
+                  maxWidth: "60%",
+                  textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
                 {eventData[currentSlide].description}
               </p>
             )}
@@ -2842,53 +4059,94 @@ function IdleScreen({ visible, onWake, canvas }) {
 
       {/* Netflix-style thumbnail strip */}
       {hasEvents && eventData.length > 1 && (
-        <div style={{
-          position: "relative", zIndex: 2, flexShrink: 0,
-          padding: "16px 48px 32px",
-        }}>
-          <p style={{
-            color: "rgba(255,255,255,0.5)", fontSize: "clamp(10px, 1.1vw, 13px)",
-            fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em",
-            marginBottom: 12,
-          }}>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 2,
+            flexShrink: 0,
+            padding: "16px 48px 32px",
+          }}
+        >
+          <p
+            style={{
+              color: "rgba(255,255,255,0.5)",
+              fontSize: "clamp(10px, 1.1vw, 13px)",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              marginBottom: 12,
+            }}
+          >
             Destaques
           </p>
-          <div style={{
-            display: "flex", gap: 10, overflowX: "auto",
-            scrollbarWidth: "none", msOverflowStyle: "none",
-          }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
             {eventData.map((item, i) => (
-              <div key={i} style={{
-                flexShrink: 0,
-                width: "clamp(120px, 18vw, 200px)",
-                aspectRatio: "16/9",
-                borderRadius: 6,
-                overflow: "hidden",
-                position: "relative",
-                border: i === currentSlide ? "2px solid #fff" : "2px solid transparent",
-                opacity: i === currentSlide ? 1 : 0.5,
-                transform: i === currentSlide ? "scale(1.05)" : "scale(1)",
-                transition: "all 0.4s ease",
-                boxShadow: i === currentSlide ? "0 4px 20px rgba(0,0,0,0.6)" : "none",
-              }}>
+              <div
+                key={i}
+                style={{
+                  flexShrink: 0,
+                  width: "clamp(120px, 18vw, 200px)",
+                  aspectRatio: "16/9",
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  position: "relative",
+                  border: i === currentSlide ? "2px solid #fff" : "2px solid transparent",
+                  opacity: i === currentSlide ? 1 : 0.5,
+                  transform: i === currentSlide ? "scale(1.05)" : "scale(1)",
+                  transition: "all 0.4s ease",
+                  boxShadow: i === currentSlide ? "0 4px 20px rgba(0,0,0,0.6)" : "none",
+                }}
+              >
                 {item.image ? (
                   <img src={item.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1e1b4b, #0f172a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>📄</div>
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      background: "linear-gradient(135deg, #1e1b4b, #0f172a)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 24,
+                    }}
+                  >
+                    📄
+                  </div>
                 )}
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
-                  pointerEvents: "none",
-                }} />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+                    pointerEvents: "none",
+                  }}
+                />
                 {item.title && (
-                  <p style={{
-                    position: "absolute", bottom: 6, left: 8, right: 8,
-                    color: "#fff", fontSize: "clamp(8px, 0.9vw, 11px)",
-                    fontWeight: 600, margin: 0,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                  }}>
+                  <p
+                    style={{
+                      position: "absolute",
+                      bottom: 6,
+                      left: 8,
+                      right: 8,
+                      color: "#fff",
+                      fontSize: "clamp(8px, 0.9vw, 11px)",
+                      fontWeight: 600,
+                      margin: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                    }}
+                  >
                     {item.title}
                   </p>
                 )}
@@ -2900,36 +4158,62 @@ function IdleScreen({ visible, onWake, canvas }) {
 
       {/* Progress bar */}
       {hasEvents && eventData.length > 1 && (
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: 3,
-          background: "rgba(255,255,255,0.1)", zIndex: 3,
-        }}>
-          <div style={{
-            height: "100%", background: "#e50914",
-            width: `${((currentSlide + 1) / eventData.length) * 100}%`,
-            transition: "width 0.5s ease",
-          }} />
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: "rgba(255,255,255,0.1)",
+            zIndex: 3,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              background: "#e50914",
+              width: `${((currentSlide + 1) / eventData.length) * 100}%`,
+              transition: "width 0.5s ease",
+            }}
+          />
         </div>
       )}
 
       {/* Touch hint */}
-      <div style={{
-        position: "absolute", top: 40, left: 0, right: 0,
-        display: "flex", justifyContent: "center", zIndex: 3,
-      }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "10px 24px", borderRadius: 999,
-          background: "rgba(255,255,255,0.08)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          animation: "idle-text-pulse 2.5s ease-in-out infinite",
-        }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 40,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          zIndex: 3,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 24px",
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.08)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            animation: "idle-text-pulse 2.5s ease-in-out infinite",
+          }}
+        >
           <span style={{ fontSize: 20 }}>👋</span>
-          <span style={{
-            color: "rgba(255,255,255,0.8)", fontSize: "clamp(12px, 1.4vw, 16px)",
-            fontWeight: 600, letterSpacing: "0.03em",
-          }}>
+          <span
+            style={{
+              color: "rgba(255,255,255,0.8)",
+              fontSize: "clamp(12px, 1.4vw, 16px)",
+              fontWeight: 600,
+              letterSpacing: "0.03em",
+            }}
+          >
             Toque para começar
           </span>
         </div>
@@ -2953,10 +4237,10 @@ function useIdleDetection(timeoutMs) {
 
   React.useEffect(() => {
     const events = ["mousemove", "mousedown", "touchstart", "keydown", "scroll", "click"];
-    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
     reset();
     return () => {
-      events.forEach(e => window.removeEventListener(e, reset));
+      events.forEach((e) => window.removeEventListener(e, reset));
       clearTimeout(timerRef.current);
     };
   }, [reset]);
@@ -2969,29 +4253,30 @@ function useIdleDetection(timeoutMs) {
 // ─────────────────────────────────────────────
 function LiveFeed({ props: p, onNavigate }) {
   const posts = p.posts || [];
-  const layout = p.layout || 'vertical';
+  const layout = p.layout || "vertical";
   const showLikes = p.showLikes !== false;
   const showComments = p.showComments !== false;
   const showAuthor = p.showAuthor !== false;
   const showSearch = p.showSearch !== false;
-  const cardBg = p.cardBgColor || 'rgba(0,0,0,0.6)';
-  const textColor = p.textColor || '#ffffff';
-  const accentColor = p.accentColor || '#ef4444';
+  const cardBg = p.cardBgColor || "rgba(0,0,0,0.6)";
+  const textColor = p.textColor || "#ffffff";
+  const accentColor = p.accentColor || "#ef4444";
   const borderRadius = p.borderRadius ?? 16;
   const gap = p.gap ?? 16;
   const cardRadius = p.cardBorderRadius ?? 12;
 
   const [selectedPost, setSelectedPost] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredPosts = useMemo(() => {
     if (!searchQuery.trim()) return posts;
     const q = searchQuery.toLowerCase();
-    return posts.filter(post =>
-      (post.title || '').toLowerCase().includes(q) ||
-      (post.category || '').toLowerCase().includes(q) ||
-      (post.author || '').toLowerCase().includes(q) ||
-      (post.tags || []).some(t => t.toLowerCase().includes(q))
+    return posts.filter(
+      (post) =>
+        (post.title || "").toLowerCase().includes(q) ||
+        (post.category || "").toLowerCase().includes(q) ||
+        (post.author || "").toLowerCase().includes(q) ||
+        (post.tags || []).some((t) => t.toLowerCase().includes(q)),
     );
   }, [posts, searchQuery]);
 
@@ -3000,83 +4285,165 @@ function LiveFeed({ props: p, onNavigate }) {
   }
 
   return (
-    <div style={{
-      width: "100%", height: "100%", display: "flex", flexDirection: "column",
-      overflow: "hidden", position: "relative", borderRadius,
-      background: p.bgColor || "transparent",
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        position: "relative",
+        borderRadius,
+        background: p.bgColor || "transparent",
+      }}
+    >
       {/* Search */}
       {showSearch && (
         <div style={{ flexShrink: 0, padding: "12px 12px 4px" }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
-            borderRadius: 12, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)",
-          }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 12px",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.08)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
             <span style={{ color: textColor, opacity: 0.5, fontSize: 14 }}>🔍</span>
             <input
-              type="text" placeholder="Buscar lojas..." value={searchQuery}
+              type="text"
+              placeholder="Buscar lojas..."
+              value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
-                background: "transparent", border: "none", outline: "none",
-                color: textColor, fontSize: 13, width: "100%", fontFamily: "inherit",
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                color: textColor,
+                fontSize: 13,
+                width: "100%",
+                fontFamily: "inherit",
               }}
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ background: "none", border: "none", color: textColor, opacity: 0.5, cursor: "pointer", fontSize: 14 }}>✕</button>
+              <button
+                onClick={() => setSearchQuery("")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: textColor,
+                  opacity: 0.5,
+                  cursor: "pointer",
+                  fontSize: 14,
+                }}
+              >
+                ✕
+              </button>
             )}
           </div>
           {searchQuery && (
             <p style={{ color: textColor, opacity: 0.4, fontSize: 10, marginTop: 4, paddingLeft: 4 }}>
-              {filteredPosts.length} resultado{filteredPosts.length !== 1 ? 's' : ''}
+              {filteredPosts.length} resultado{filteredPosts.length !== 1 ? "s" : ""}
             </p>
           )}
         </div>
       )}
 
       {/* Cards */}
-      <div style={{
-        flex: 1, overflow: "auto",
-        display: "flex",
-        flexDirection: layout === 'horizontal' ? 'row' : 'column',
-        overflowX: layout === 'horizontal' ? 'auto' : undefined,
-        overflowY: layout === 'horizontal' ? 'hidden' : 'auto',
-        gap, padding: gap / 2,
-      }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          display: "flex",
+          flexDirection: layout === "horizontal" ? "row" : "column",
+          overflowX: layout === "horizontal" ? "auto" : undefined,
+          overflowY: layout === "horizontal" ? "hidden" : "auto",
+          gap,
+          padding: gap / 2,
+        }}
+      >
         {filteredPosts.map((post) => {
           const allImages = post.images?.length ? post.images : post.image ? [post.image] : [];
           return (
-            <div key={post.id}
+            <div
+              key={post.id}
               onClick={() => setSelectedPost(post)}
               style={{
-                flexShrink: layout === 'horizontal' ? 0 : undefined,
-                width: layout === 'horizontal' ? '85%' : '100%',
-                minWidth: layout === 'horizontal' ? '85%' : undefined,
-                background: cardBg, borderRadius: cardRadius, overflow: "hidden",
-                cursor: "pointer", transition: "transform 0.15s",
-                display: "flex", flexDirection: "column",
+                flexShrink: layout === "horizontal" ? 0 : undefined,
+                width: layout === "horizontal" ? "85%" : "100%",
+                minWidth: layout === "horizontal" ? "85%" : undefined,
+                background: cardBg,
+                borderRadius: cardRadius,
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "transform 0.15s",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               {/* Author header */}
               {showAuthor && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-                    background: `linear-gradient(135deg, ${accentColor}, #ec4899, #8b5cf6)`, padding: 2,
-                  }}>
-                    <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: cardBg }}>
-                      {post.avatar
-                        ? <img src={post.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: textColor, fontSize: 12, fontWeight: 700 }}>{(post.author || 'L')[0].toUpperCase()}</div>
-                      }
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                      background: `linear-gradient(135deg, ${accentColor}, #ec4899, #8b5cf6)`,
+                      padding: 2,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        background: cardBg,
+                      }}
+                    >
+                      {post.avatar ? (
+                        <img src={post.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: textColor,
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {(post.author || "L")[0].toUpperCase()}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: textColor, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.author || 'Loja'}</p>
+                    <p
+                      style={{
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {post.author || "Loja"}
+                    </p>
                     {post.category && <p style={{ color: textColor, opacity: 0.6, fontSize: 9 }}>{post.category}</p>}
                   </div>
                   {post.rating > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <span style={{ color: '#facc15', fontSize: 12 }}>★</span>
+                      <span style={{ color: "#facc15", fontSize: 12 }}>★</span>
                       <span style={{ color: textColor, fontSize: 10, fontWeight: 500 }}>{post.rating}</span>
                     </div>
                   )}
@@ -3100,13 +4467,32 @@ function LiveFeed({ props: p, onNavigate }) {
               </div>
 
               {showLikes && (
-                <p style={{ padding: "0 12px", color: textColor, fontSize: 11, fontWeight: 600 }}>{post.likes || 0} curtidas</p>
+                <p style={{ padding: "0 12px", color: textColor, fontSize: 11, fontWeight: 600 }}>
+                  {post.likes || 0} curtidas
+                </p>
               )}
 
               <div style={{ padding: "4px 12px 12px" }}>
                 {post.title && <p style={{ color: textColor, fontSize: 12, fontWeight: 700 }}>{post.title}</p>}
-                {post.description && <p style={{ color: textColor, opacity: 0.7, fontSize: 11, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{post.description}</p>}
-                {post.address && <p style={{ color: textColor, opacity: 0.5, fontSize: 10, marginTop: 4 }}>📍 {post.address}</p>}
+                {post.description && (
+                  <p
+                    style={{
+                      color: textColor,
+                      opacity: 0.7,
+                      fontSize: 11,
+                      marginTop: 2,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {post.description}
+                  </p>
+                )}
+                {post.address && (
+                  <p style={{ color: textColor, opacity: 0.5, fontSize: 10, marginTop: 4 }}>📍 {post.address}</p>
+                )}
               </div>
             </div>
           );
@@ -3120,7 +4506,14 @@ function LiveFeed({ props: p, onNavigate }) {
 
       {/* Detail overlay */}
       {selectedPost && (
-        <FeedDetailOverlay post={selectedPost} cardBg={cardBg} textColor={textColor} accentColor={accentColor} cardRadius={cardRadius} onClose={() => setSelectedPost(null)} />
+        <FeedDetailOverlay
+          post={selectedPost}
+          cardBg={cardBg}
+          textColor={textColor}
+          accentColor={accentColor}
+          cardRadius={cardRadius}
+          onClose={() => setSelectedPost(null)}
+        />
       )}
     </div>
   );
@@ -3132,57 +4525,197 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
   const stars = post.rating ?? 0;
 
   return (
-    <div onClick={onClose} style={{
-      position: "absolute", inset: 0, zIndex: 50, display: "flex", flexDirection: "column",
-      overflow: "hidden", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)",
-      animation: "feedOverlayIn 0.25s ease-out",
-    }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 50,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        background: "rgba(0,0,0,0.85)",
+        backdropFilter: "blur(12px)",
+        animation: "feedOverlayIn 0.25s ease-out",
+      }}
+    >
       <style>{`
         @keyframes feedOverlayIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
       `}</style>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        position: "absolute", inset: 8, display: "flex", flexDirection: "column",
-        overflow: "hidden", background: cardBg, borderRadius: cardRadius + 4,
-        boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
-      }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "absolute",
+          inset: 8,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: cardBg,
+          borderRadius: cardRadius + 4,
+          boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+        }}
+      >
         {/* Close */}
-        <button onClick={onClose} style={{
-          position: "absolute", top: 12, right: 12, zIndex: 20,
-          width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
-          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)",
-          color: "#fff", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>✕</button>
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            zIndex: 20,
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "none",
+            cursor: "pointer",
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(8px)",
+            color: "#fff",
+            fontSize: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ✕
+        </button>
 
         {/* Images */}
         {allImages.length > 0 && (
           <div style={{ position: "relative", width: "100%", flexShrink: 0, height: "40%", minHeight: 140 }}>
             {allImages.map((src, i) => (
-              <img key={i} src={src} alt="" style={{
-                position: "absolute", inset: 0, width: "100%", height: "100%",
-                objectFit: "cover", transition: "opacity 0.3s", opacity: i === imgIdx ? 1 : 0,
-              }} />
+              <img
+                key={i}
+                src={src}
+                alt=""
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transition: "opacity 0.3s",
+                  opacity: i === imgIdx ? 1 : 0,
+                }}
+              />
             ))}
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${cardBg} 0%, transparent 60%)` }} />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: `linear-gradient(to top, ${cardBg} 0%, transparent 60%)`,
+              }}
+            />
             {allImages.length > 1 && (
               <>
-                <button onClick={() => setImgIdx(p => (p - 1 + allImages.length) % allImages.length)}
-                  style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", zIndex: 10, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.4)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-                <button onClick={() => setImgIdx(p => (p + 1) % allImages.length)}
-                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 10, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.4)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
-                <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                <button
+                  onClick={() => setImgIdx((p) => (p - 1 + allImages.length) % allImages.length)}
+                  style={{
+                    position: "absolute",
+                    left: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    zIndex: 10,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.4)",
+                    border: "none",
+                    color: "#fff",
+                    fontSize: 16,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={() => setImgIdx((p) => (p + 1) % allImages.length)}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    zIndex: 10,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.4)",
+                    border: "none",
+                    color: "#fff",
+                    fontSize: 16,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ›
+                </button>
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 6,
+                    zIndex: 10,
+                  }}
+                >
                   {allImages.map((_, i) => (
-                    <div key={i} onClick={() => setImgIdx(i)} style={{
-                      width: i === imgIdx ? 16 : 6, height: 6, borderRadius: 999, cursor: "pointer",
-                      background: i === imgIdx ? accentColor : "rgba(255,255,255,0.4)", transition: "all 0.2s",
-                    }} />
+                    <div
+                      key={i}
+                      onClick={() => setImgIdx(i)}
+                      style={{
+                        width: i === imgIdx ? 16 : 6,
+                        height: 6,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        background: i === imgIdx ? accentColor : "rgba(255,255,255,0.4)",
+                        transition: "all 0.2s",
+                      }}
+                    />
                   ))}
                 </div>
               </>
             )}
             {(post.category || post.badge) && (
               <div style={{ position: "absolute", top: 12, left: 12, zIndex: 10, display: "flex", gap: 6 }}>
-                {post.category && <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: accentColor, color: "#fff" }}>{post.category}</span>}
-                {post.badge && <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,0.15)", color: textColor, backdropFilter: "blur(4px)" }}>{post.badge}</span>}
+                {post.category && (
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      background: accentColor,
+                      color: "#fff",
+                    }}
+                  >
+                    {post.category}
+                  </span>
+                )}
+                {post.badge && (
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      background: "rgba(255,255,255,0.15)",
+                      color: textColor,
+                      backdropFilter: "blur(4px)",
+                    }}
+                  >
+                    {post.badge}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -3192,17 +4725,32 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
         <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 16px", marginTop: -8 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             {post.avatar && (
-              <div style={{ width: 48, height: 48, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `2px solid ${accentColor}` }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  border: `2px solid ${accentColor}`,
+                }}
+              >
                 <img src={post.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 style={{ color: textColor, fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>{post.title || post.author || 'Loja'}</h3>
-              {post.author && post.title && <p style={{ color: textColor, opacity: 0.6, fontSize: 11, marginTop: 2 }}>{post.author}</p>}
+              <h3 style={{ color: textColor, fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>
+                {post.title || post.author || "Loja"}
+              </h3>
+              {post.author && post.title && (
+                <p style={{ color: textColor, opacity: 0.6, fontSize: 11, marginTop: 2 }}>{post.author}</p>
+              )}
               {stars > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 4 }}>
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <span key={i} style={{ color: i < stars ? '#facc15' : 'rgba(255,255,255,0.2)', fontSize: 12 }}>{i < stars ? '★' : '☆'}</span>
+                    <span key={i} style={{ color: i < stars ? "#facc15" : "rgba(255,255,255,0.2)", fontSize: 12 }}>
+                      {i < stars ? "★" : "☆"}
+                    </span>
                   ))}
                   <span style={{ color: textColor, opacity: 0.5, fontSize: 10, marginLeft: 4 }}>{stars}/5</span>
                 </div>
@@ -3213,7 +4761,20 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
           {post.tags && post.tags.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
               {post.tags.map((tag, i) => (
-                <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 500, background: "rgba(255,255,255,0.08)", color: textColor }}>
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    fontSize: 9,
+                    fontWeight: 500,
+                    background: "rgba(255,255,255,0.08)",
+                    color: textColor,
+                  }}
+                >
                   🏷️ {tag}
                 </span>
               ))}
@@ -3221,7 +4782,9 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
           )}
 
           {(post.detailDescription || post.description) && (
-            <p style={{ color: textColor, opacity: 0.8, fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>{post.detailDescription || post.description}</p>
+            <p style={{ color: textColor, opacity: 0.8, fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>
+              {post.detailDescription || post.description}
+            </p>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
@@ -3232,11 +4795,22 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
           </div>
 
           {post.ctaLabel && (
-            <button style={{
-              width: "100%", marginTop: 12, padding: "10px 16px", borderRadius: 12,
-              border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-              background: accentColor, color: "#fff",
-            }}>{post.ctaLabel}</button>
+            <button
+              style={{
+                width: "100%",
+                marginTop: 12,
+                padding: "10px 16px",
+                borderRadius: 12,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                background: accentColor,
+                color: "#fff",
+              }}
+            >
+              {post.ctaLabel}
+            </button>
           )}
         </div>
       </div>
@@ -3246,7 +4820,16 @@ function FeedDetailOverlay({ post, cardBg, textColor, accentColor, cardRadius, o
 
 function FeedInfoRow({ icon, text, textColor }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "6px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        padding: "6px 10px",
+        borderRadius: 8,
+        background: "rgba(255,255,255,0.05)",
+      }}
+    >
       <span style={{ flexShrink: 0, fontSize: 12, marginTop: 1 }}>{icon}</span>
       <span style={{ color: textColor, fontSize: 11, lineHeight: 1.4 }}>{text}</span>
     </div>
@@ -3264,7 +4847,10 @@ function UpdateToast({ visible }) {
     setPhase("enter");
     const stayTimer = setTimeout(() => setPhase("exit"), 3200);
     const doneTimer = setTimeout(() => setPhase("idle"), 3650);
-    return () => { clearTimeout(stayTimer); clearTimeout(doneTimer); };
+    return () => {
+      clearTimeout(stayTimer);
+      clearTimeout(doneTimer);
+    };
   }, [visible]);
 
   if (phase === "idle") return null;
@@ -3273,31 +4859,60 @@ function UpdateToast({ visible }) {
     <div
       className={phase === "exit" ? "toast-exit" : "toast-enter"}
       style={{
-        position: "fixed", bottom: 24, right: 24, zIndex: 9999,
-        display: "flex", alignItems: "center", gap: 10,
+        position: "fixed",
+        bottom: 24,
+        right: 24,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
         background: "rgba(17, 24, 39, 0.92)",
         backdropFilter: "blur(16px)",
         border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 14, padding: "12px 16px",
+        borderRadius: 14,
+        padding: "12px 16px",
         boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        minWidth: 240, pointerEvents: "none", userSelect: "none",
+        minWidth: 240,
+        pointerEvents: "none",
+        userSelect: "none",
       }}
     >
-      <div style={{
-        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-        background: "rgba(59,130,246,0.15)",
-        border: "1px solid rgba(59,130,246,0.2)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-      }}>🔄</div>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          flexShrink: 0,
+          background: "rgba(59,130,246,0.15)",
+          border: "1px solid rgba(59,130,246,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 16,
+        }}
+      >
+        🔄
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.2 }}>
-          Configuração atualizada
-        </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-          Interface sincronizada
-        </div>
-        <div style={{ height: 2, borderRadius: 999, marginTop: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-          <div style={{ height: "100%", borderRadius: 999, background: "#3b82f6", animation: "toast-progress 3s linear forwards" }} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.2 }}>Configuração atualizada</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Interface sincronizada</div>
+        <div
+          style={{
+            height: 2,
+            borderRadius: 999,
+            marginTop: 6,
+            background: "rgba(255,255,255,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              borderRadius: 999,
+              background: "#3b82f6",
+              animation: "toast-progress 3s linear forwards",
+            }}
+          />
         </div>
       </div>
     </div>
@@ -3377,10 +4992,15 @@ function AvatarOnlyEmbed({ params }) {
   }, [isTransparent]);
 
   return (
-    <div style={{
-      width: "100vw", height: "100vh", position: "relative", overflow: "hidden",
-      background: isTransparent ? "transparent" : bgColor,
-    }}>
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        position: "relative",
+        overflow: "hidden",
+        background: isTransparent ? "transparent" : bgColor,
+      }}
+    >
       <Leva collapsed hidden />
       <Canvas
         shadows
@@ -3388,34 +5008,36 @@ function AvatarOnlyEmbed({ params }) {
         gl={{ preserveDrawingBuffer: true, alpha: true }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >
-        <Scenario uiOverride={{
-          components: {
-            avatar: {
-              enabled: true,
-              position: "center",
-              scale: 1.5,
-              colors: { shirt, pants, shoes },
-              models: { avatar_url: avatarUrl, animations_url: animationsUrl },
-              animations: { idle: "Idle", talking: "TalkingOne" },
-              materials: { roughness: 0.5, metalness: 0.0 },
-            },
-          },
-          canvas: {
-            camera: {
-              initial_look_at: {
-                position: [camX, camY, camZ],
-                target: [camX, targetY, 0],
-                smooth: false,
-              },
-              controls: {
-                minDistance: camZ,
-                maxDistance: camZ,
-                minPolarAngle: Math.PI / 2,
-                maxPolarAngle: Math.PI / 2,
+        <Scenario
+          uiOverride={{
+            components: {
+              avatar: {
+                enabled: true,
+                position: "center",
+                scale: 1.5,
+                colors: { shirt, pants, shoes },
+                models: { avatar_url: avatarUrl, animations_url: animationsUrl },
+                animations: { idle: "Idle", talking: "TalkingOne" },
+                materials: { roughness: 0.5, metalness: 0.0 },
               },
             },
-          },
-        }} />
+            canvas: {
+              camera: {
+                initial_look_at: {
+                  position: [camX, camY, camZ],
+                  target: [camX, targetY, 0],
+                  smooth: false,
+                },
+                controls: {
+                  minDistance: camZ,
+                  maxDistance: camZ,
+                  minPolarAngle: Math.PI / 2,
+                  maxPolarAngle: Math.PI / 2,
+                },
+              },
+            },
+          }}
+        />
       </Canvas>
     </div>
   );
@@ -3518,22 +5140,28 @@ export default function App() {
     if (typeof window.__totemOpenUrl !== "function") {
       window.__totemOpenUrl = (url) => {
         if (!url || url === "#") return;
-        if (window.electronAPI?.openExternal) { window.electronAPI.openExternal(url); return; }
+        if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal(url);
+          return;
+        }
         try {
           const { shell } = window.require?.("electron") || {};
-          if (shell?.openExternal) { shell.openExternal(url); return; }
+          if (shell?.openExternal) {
+            shell.openExternal(url);
+            return;
+          }
         } catch (_) {}
         window.open(url, "_blank", "noopener,noreferrer");
       };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speechCtx?.sendMessage]);
 
   const { deviceId, registering } = useAutoRegister();
 
   const handleConfigUpdate = useCallback((newUi) => {
     setLiveUi(newUi);
-    setToastKey(k => k + 1);
+    setToastKey((k) => k + 1);
   }, []);
 
   const handleLiveUpdate = useCallback((newUi) => {
@@ -3551,7 +5179,11 @@ export default function App() {
     const raw = ui?.free_canvas || null;
     if (!raw) return null;
     if (typeof raw === "string") {
-      try { return JSON.parse(raw); } catch { return null; }
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
     }
     return raw;
   }, [ui]);
@@ -3560,7 +5192,7 @@ export default function App() {
 
   // ── View navigation state ──
   const views = freeCanvas?.views || [];
-  const defaultViewId = views.find(v => v.isDefault)?.id || views[0]?.id || '__default__';
+  const defaultViewId = views.find((v) => v.isDefault)?.id || views[0]?.id || "__default__";
   const viewIdleTimeout = (freeCanvas?.viewIdleTimeout ?? 30) * 1000;
   const [activeViewId, setActiveViewId] = useState(defaultViewId);
   const [pageTransition, setPageTransition] = useState(null); // { type: 'fade'|'slide'|'zoom', phase: 'out'|'in' }
@@ -3576,37 +5208,44 @@ export default function App() {
     viewTimeoutRef.current = setTimeout(() => {
       setActiveViewId(defaultViewId);
     }, viewIdleTimeout);
-    return () => { if (viewTimeoutRef.current) clearTimeout(viewTimeoutRef.current); };
+    return () => {
+      if (viewTimeoutRef.current) clearTimeout(viewTimeoutRef.current);
+    };
   }, [activeViewId, defaultViewId, viewIdleTimeout]);
 
   // Reset to default view when config changes
-  useEffect(() => { setActiveViewId(defaultViewId); }, [defaultViewId]);
+  useEffect(() => {
+    setActiveViewId(defaultViewId);
+  }, [defaultViewId]);
 
-  const handleNavigate = useCallback((viewId, transition, variables) => {
-    if (variables && typeof variables === "object") {
-      window.__totemPageVariables = { ...(window.__totemPageVariables || {}), ...variables };
-    }
+  const handleNavigate = useCallback(
+    (viewId, transition, variables) => {
+      if (variables && typeof variables === "object") {
+        window.__totemPageVariables = { ...(window.__totemPageVariables || {}), ...variables };
+      }
 
-    const transType = transition || "fade";
-    const duration = 200; // ms per phase
+      const transType = transition || "fade";
+      const duration = 200; // ms per phase
 
-    // Phase 1: animate OUT
-    setPageTransition({ type: transType, phase: "out" });
+      // Phase 1: animate OUT
+      setPageTransition({ type: transType, phase: "out" });
 
-    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
-    transitionTimeoutRef.current = setTimeout(() => {
-      // Switch page
-      setActiveViewId(viewId);
-      // Phase 2: animate IN
-      setPageTransition({ type: transType, phase: "in" });
-
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
       transitionTimeoutRef.current = setTimeout(() => {
-        setPageTransition(null);
-      }, duration + 50);
-    }, duration);
+        // Switch page
+        setActiveViewId(viewId);
+        // Phase 2: animate IN
+        setPageTransition({ type: transType, phase: "in" });
 
-    wake?.();
-  }, [wake]);
+        transitionTimeoutRef.current = setTimeout(() => {
+          setPageTransition(null);
+        }, duration + 50);
+      }, duration);
+
+      wake?.();
+    },
+    [wake],
+  );
 
   // ── Register global navigation function for all elements ──
   useEffect(() => {
@@ -3616,15 +5255,15 @@ export default function App() {
 
     // Listen for postMessage from HTML Puro iframes (data-navigate bridge)
     const handleIframeMessage = (e) => {
-      if (e.data && e.data.type === 'totem-navigate' && e.data.target) {
-        handleNavigate(e.data.target, e.data.transition || 'fade');
+      if (e.data && e.data.type === "totem-navigate" && e.data.target) {
+        handleNavigate(e.data.target, e.data.transition || "fade");
       }
     };
-    window.addEventListener('message', handleIframeMessage);
+    window.addEventListener("message", handleIframeMessage);
 
     return () => {
       delete window.__totemNavigatePage;
-      window.removeEventListener('message', handleIframeMessage);
+      window.removeEventListener("message", handleIframeMessage);
     };
   }, [handleNavigate]);
 
@@ -3649,13 +5288,15 @@ export default function App() {
   // Avatar is now rendered as a free canvas element (type: 'avatar')
   // No longer a fixed background layer
 
-
   return (
     <>
       <GlobalStyles />
       <div
         style={{
-          width: "100vw", height: "100vh", position: "relative", overflow: "hidden",
+          width: "100vw",
+          height: "100vh",
+          position: "relative",
+          overflow: "hidden",
           userSelect: "none",
           ...bgStyle,
         }}
@@ -3665,22 +5306,36 @@ export default function App() {
 
         {/* 🖼️ Free Canvas — normal elements (page transitions apply) */}
         {hasFreeCanvas && (
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 30,
-            transition: "opacity 0.2s ease, transform 0.2s ease",
-            ...(pageTransition?.phase === "out" ? {
-              opacity: 0,
-              transform: pageTransition.type === "slide" ? "translateX(-8%)" : pageTransition.type === "zoom" ? "scale(0.92)" : "none",
-            } : pageTransition?.phase === "in" ? {
-              opacity: 1,
-              transform: "none",
-              animation: pageTransition.type === "slide"
-                ? "pageSlideIn 0.25s ease-out"
-                : pageTransition.type === "zoom"
-                ? "pageZoomIn 0.25s ease-out"
-                : "pageFadeIn 0.25s ease-out",
-            } : { opacity: 1, transform: "none" }),
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 30,
+              transition: "opacity 0.2s ease, transform 0.2s ease",
+              ...(pageTransition?.phase === "out"
+                ? {
+                    opacity: 0,
+                    transform:
+                      pageTransition.type === "slide"
+                        ? "translateX(-8%)"
+                        : pageTransition.type === "zoom"
+                          ? "scale(0.92)"
+                          : "none",
+                  }
+                : pageTransition?.phase === "in"
+                  ? {
+                      opacity: 1,
+                      transform: "none",
+                      animation:
+                        pageTransition.type === "slide"
+                          ? "pageSlideIn 0.25s ease-out"
+                          : pageTransition.type === "zoom"
+                            ? "pageZoomIn 0.25s ease-out"
+                            : "pageFadeIn 0.25s ease-out",
+                    }
+                  : { opacity: 1, transform: "none" }),
+            }}
+          >
             <FreeCanvasRenderer canvas={freeCanvas} activeViewId={activeViewId} onNavigate={handleNavigate} />
           </div>
         )}
@@ -3702,28 +5357,6 @@ export default function App() {
 
       {/* 🔔 Toast de atualização */}
       <UpdateToast key={toastKey} visible={toastKey > 0} />
-
-      {/* 📡 Badge "Ao Vivo" */}
-      {isLive && (
-        <div style={{
-          position: "fixed", top: 16, right: 16, zIndex: 9999,
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "6px 14px", borderRadius: 999,
-          background: "rgba(239,68,68,0.15)",
-          border: "1px solid rgba(239,68,68,0.4)",
-          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-          color: "#fca5a5", fontSize: 11, fontWeight: 700,
-          letterSpacing: "0.08em", textTransform: "uppercase",
-          boxShadow: "0 0 16px rgba(239,68,68,0.2)",
-        }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: "50%", background: "#ef4444",
-            animation: "live-pulse 1.2s ease-in-out infinite",
-            display: "inline-block", boxShadow: "0 0 6px #ef4444",
-          }} />
-          Ao Vivo
-        </div>
-      )}
 
       {/* 🌙 Tela idle */}
       <IdleScreen visible={isIdle} onWake={wake} canvas={freeCanvas} />
