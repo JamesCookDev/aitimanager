@@ -756,7 +756,10 @@ export function IframePlaceholder(props: IframeProps) {
         props.onInlineEdit({ [`__style_${e.data.selector}__${e.data.prop}`]: e.data.value });
       }
       if (e.data?.type === 'layout-delete' && props.onInlineEdit) {
-        props.onInlineEdit({ [`__style_${e.data.selector}__display`]: 'none' });
+        props.onInlineEdit({ [`__delete_${e.data.selector}`]: 'true' });
+      }
+      if (e.data?.type === 'layout-duplicate' && props.onInlineEdit) {
+        props.onInlineEdit({ [`__duplicate_${e.data.selector}`]: 'true' });
       }
     };
     window.addEventListener('message', handler);

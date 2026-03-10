@@ -388,6 +388,36 @@ export function applyFieldOverrides(
     } catch {}
   }
 
+  // Apply delete overrides (__delete_SELECTOR = 'true') — removes element from DOM
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__delete_')) continue;
+    if (value !== 'true') continue;
+    const selector = key.slice('__delete_'.length);
+    try {
+      const el = doc.body.querySelector(selector);
+      if (el) el.remove();
+    } catch {}
+  }
+
+  // Apply duplicate overrides (__duplicate_SELECTOR = 'true') — clones element after itself
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.startsWith('__duplicate_')) continue;
+    if (value !== 'true') continue;
+    const selector = key.slice('__duplicate_'.length);
+    try {
+      const el = doc.body.querySelector(selector);
+      if (el && el.parentElement) {
+        const clone = el.cloneNode(true) as HTMLElement;
+        // Remove any editor-specific attributes from clone
+        clone.removeAttribute('data-layout-selected');
+        clone.removeAttribute('data-layout-hover');
+        clone.removeAttribute('data-edit-highlight');
+        clone.removeAttribute('data-style-highlight');
+        el.parentElement.insertBefore(clone, el.nextSibling);
+      }
+    } catch {}
+  }
+
   // Reconstruct the full HTML preserving <head>
   const headContent = doc.head.innerHTML;
   const bodyContent = doc.body.innerHTML;
