@@ -61,7 +61,8 @@ export function IframePlaceholder(props: IframeProps) {
   useEffect(() => {
     if (props.editMode && !prevEditMode.current) {
       frozenHtmlRef.current = null;
-      setTimeout(() => setToolRef.current('text'), 0);
+      // Default to layout mode — click any element to see CRUD toolbar
+      setTimeout(() => setToolRef.current('layout'), 0);
     } else if (!props.editMode && prevEditMode.current) {
       frozenHtmlRef.current = null;
       setTimeout(() => setToolRef.current('off'), 0);
