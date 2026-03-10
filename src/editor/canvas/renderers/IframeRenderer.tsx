@@ -124,13 +124,17 @@ export function IframePlaceholder(props: IframeProps) {
     background: transparent; white-space: nowrap;
   }
   .layout-toolbar button:hover { background: rgba(255,255,255,0.1); }
-  .layout-toolbar .btn-delete { color: #f87171; }
-  .layout-toolbar .btn-delete:hover { background: rgba(248,113,113,0.2); }
-  .layout-toolbar .btn-bg { color: #a78bfa; }
-  .layout-toolbar .btn-move { color: #60a5fa; }
-  .layout-toolbar .btn-resize { color: #34d399; }
-  .layout-toolbar .btn-duplicate { color: #fbbf24; }
-  .layout-toolbar .btn-hide { color: #94a3b8; }
+   .layout-toolbar .btn-delete { color: #f87171; }
+   .layout-toolbar .btn-delete:hover { background: rgba(248,113,113,0.2); }
+   .layout-toolbar .btn-bg { color: #a78bfa; }
+   .layout-toolbar .btn-move { color: #60a5fa; }
+   .layout-toolbar .btn-resize { color: #34d399; }
+   .layout-toolbar .btn-duplicate { color: #fbbf24; }
+   .layout-toolbar .btn-hide { color: #94a3b8; }
+   .layout-toolbar .btn-edit-text { color: #818cf8; }
+   .layout-toolbar .btn-edit-text:hover { background: rgba(129,140,248,0.2); }
+   .layout-toolbar .btn-style { color: #ec4899; }
+   .layout-toolbar .btn-style:hover { background: rgba(236,72,153,0.2); }
   .layout-drag-ghost { position: absolute; z-index: 999990; pointer-events: none; opacity: 0.5; border: 2px dashed #3b82f6; }
   .style-panel {
     position: fixed; z-index: 999999; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
