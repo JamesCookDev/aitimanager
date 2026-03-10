@@ -854,6 +854,7 @@ export function IframePlaceholder(props: IframeProps) {
     : 1;
 
   const isActive = activeTool !== 'off';
+  const isInteractive = isActive || props.editMode;
 
   if (activeMode === 'html' && finalHtml) {
     // Simplified tools — hide technical ones by default
