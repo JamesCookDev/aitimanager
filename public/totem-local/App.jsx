@@ -4095,6 +4095,64 @@ function IdleScreen({ visible, onWake, canvas }) {
                 {eventData[currentSlide].title}
               </h2>
             )}
+            {/* Date/hour/partner info for events */}
+            {(eventData[currentSlide].date || eventData[currentSlide].hour || eventData[currentSlide].partner) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  marginTop: 14,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                {eventData[currentSlide].date && (
+                  <span style={{
+                    color: "rgba(255,255,255,0.85)",
+                    fontSize: "clamp(12px, 1.3vw, 16px)",
+                    fontWeight: 700,
+                    background: "rgba(255,255,255,0.12)",
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}>
+                    📅 {eventData[currentSlide].date}
+                  </span>
+                )}
+                {eventData[currentSlide].hour && (
+                  <span style={{
+                    color: "rgba(255,255,255,0.85)",
+                    fontSize: "clamp(12px, 1.3vw, 16px)",
+                    fontWeight: 700,
+                    background: "rgba(255,255,255,0.12)",
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}>
+                    ⏰ {eventData[currentSlide].hour}
+                  </span>
+                )}
+                {eventData[currentSlide].partner && (
+                  <span style={{
+                    color: "rgba(255,255,255,0.85)",
+                    fontSize: "clamp(12px, 1.3vw, 16px)",
+                    fontWeight: 700,
+                    background: "rgba(255,255,255,0.12)",
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}>
+                    🎤 {eventData[currentSlide].partner}
+                  </span>
+                )}
+              </div>
+            )}
             {eventData[currentSlide].description && (
               <p
                 style={{
