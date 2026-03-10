@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ══════════════════════════════════════════════════════════════
- *  TOTEM SYNC WORKER  —  sync-worker.js  v3.1.0
+ *  TOTEM SYNC WORKER  —  sync-worker.js  v4.0.0
  * ══════════════════════════════════════════════════════════════
  *
  *  Automatiza TODO o processo de setup e manutenção do totem:
@@ -11,18 +11,21 @@
  *     (solicita o ORG_ID interativamente)
  *  3. Sincroniza arquivos do Hub (manifest.json)
  *  4. Instala dependências automaticamente (npm install)
- *  5. Inicia o servidor de desenvolvimento (npm run dev)
- *  6. Mantém polling de sync + comandos remotos em background
+ *  5. Inicia AMBOS os servidores (frontend + backend)
+ *  6. Abre navegador em modo kiosk (opcional)
+ *  7. Mantém polling de sync + comandos remotos em background
  *
  *  Uso:
- *    node sync-worker.js           # Setup completo + dev server
- *    node sync-worker.js --no-dev  # Apenas sync (sem iniciar dev)
- *    node sync-worker.js --setup   # Apenas setup inicial (sem loop)
+ *    node sync-worker.js              # Setup completo + servidores + kiosk
+ *    node sync-worker.js --no-dev     # Apenas sync (sem iniciar servidores)
+ *    node sync-worker.js --setup      # Apenas setup inicial (sem loop)
+ *    node sync-worker.js --no-kiosk   # Tudo, mas sem abrir navegador
  *
  *  Variáveis de ambiente (.env):
- *    HUB_URL, LOCAL_DIR, SYNC_INTERVAL_MS, RESTART_COMMAND,
- *    BACKUP_FILES, VERBOSE, API_KEY, SUPABASE_URL,
- *    AUTO_INSTALL, PACKAGE_MANAGER, AUTO_DEV
+ *    HUB_URL, LOCAL_DIR, BACKEND_DIR, SYNC_INTERVAL_MS,
+ *    RESTART_COMMAND, BACKUP_FILES, VERBOSE, API_KEY,
+ *    SUPABASE_URL, AUTO_INSTALL, PACKAGE_MANAGER, AUTO_DEV,
+ *    KIOSK_URL, KIOSK_DELAY_MS, KIOSK_BROWSER
  *
  * ══════════════════════════════════════════════════════════════
  */
@@ -42,6 +45,7 @@ const __dirname  = path.dirname(__filename);
 const ARGS = process.argv.slice(2);
 const FLAG_NO_DEV  = ARGS.includes('--no-dev');
 const FLAG_SETUP   = ARGS.includes('--setup');
+const FLAG_NO_KIOSK = ARGS.includes('--no-kiosk');
 
 // ─── Carregar .env manualmente (sem dependência de dotenv) ───
 function loadEnv() {
@@ -64,7 +68,7 @@ const debug = (msg) => VERBOSE && console.log(`[Sync][debug] ${msg}`);
 const warn  = (msg) => console.warn(`[Sync] ⚠️  ${msg}`);
 const error = (msg) => console.error(`[Sync] ❌  ${msg}`);
 
-let VERBOSE = false; // será definido após loadEnv
+let VERBOSE = false;
 
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -146,7 +150,6 @@ async function ensureEnvFile() {
   const examplePath = path.join(__dirname, '.env.sync.example');
 
   if (fs.existsSync(envPath)) {
-    // Verificar se ORG_ID está preenchido
     const content = fs.readFileSync(envPath, 'utf8');
     if (content.includes('cole-o-uuid-da-organizacao-aqui')) {
       log('⚠️  VITE_ORG_ID não configurado no .env');
@@ -164,7 +167,6 @@ async function ensureEnvFile() {
     return;
   }
 
-  // Criar .env a partir do exemplo
   if (!fs.existsSync(examplePath)) {
     error('.env.sync.example não encontrado! Copie do Hub.');
     process.exit(1);
@@ -173,13 +175,11 @@ async function ensureEnvFile() {
   log('📄 Criando .env a partir de .env.sync.example...');
   let content = fs.readFileSync(examplePath, 'utf8');
 
-  // Ajustar LOCAL_DIR para o diretório atual
   content = content.replace(
     /LOCAL_DIR=.*/,
     `LOCAL_DIR=${__dirname}`
   );
 
-  // Pedir ORG_ID interativamente
   const orgId = await ask('\n📋 Cole o UUID da organização (encontre em Organizações no Hub): ');
   if (orgId && orgId.length > 10) {
     content = content.replace('cole-o-uuid-da-organizacao-aqui', orgId);
@@ -188,7 +188,6 @@ async function ensureEnvFile() {
     process.exit(1);
   }
 
-  // Perguntar nome do totem (opcional)
   const totemName = await ask('📛 Nome do totem (Enter para pular): ');
   if (totemName) {
     content = content.replace(
@@ -216,6 +215,7 @@ const LOCAL_STATE_PATH = () => path.join(LOCAL_DIR(), '.sync-state.json');
 
 // Configurações (lazy, carregadas após loadEnv)
 function LOCAL_DIR()      { return process.env.LOCAL_DIR || __dirname; }
+function BACKEND_DIR()    { return process.env.BACKEND_DIR || path.resolve(LOCAL_DIR(), '..', 'backend'); }
 function HUB_URL()        { return (process.env.HUB_URL || '').replace(/\/$/, ''); }
 function SYNC_INTERVAL()  { return parseInt(process.env.SYNC_INTERVAL_MS || '30000', 10); }
 function RESTART_CMD()    { return process.env.RESTART_COMMAND || null; }
@@ -225,6 +225,9 @@ function SUPABASE_URL()   { return (process.env.SUPABASE_URL || '').replace(/\/$
 function AUTO_INSTALL()   { return process.env.AUTO_INSTALL !== 'false'; }
 function FORCED_PM()      { return process.env.PACKAGE_MANAGER || null; }
 function AUTO_DEV()       { return process.env.AUTO_DEV !== 'false'; }
+function KIOSK_URL()      { return process.env.KIOSK_URL || 'http://localhost:5173'; }
+function KIOSK_DELAY()    { return parseInt(process.env.KIOSK_DELAY_MS || '8000', 10); }
+function KIOSK_BROWSER()  { return process.env.KIOSK_BROWSER || 'auto'; }
 
 function loadState() {
   try {
@@ -335,32 +338,31 @@ async function syncFiles() {
 // ══════════════════════════════════════════════════════════════
 //  FASE 4 — Instalar dependências
 // ══════════════════════════════════════════════════════════════
-function detectPackageManager() {
+function detectPackageManager(dir) {
   const forced = FORCED_PM();
-  const localDir = LOCAL_DIR();
   if (forced) return isCommandAvailable(forced) ? forced : 'npm';
-  if (fs.existsSync(path.join(localDir, 'yarn.lock')) && isCommandAvailable('yarn')) return 'yarn';
-  if (fs.existsSync(path.join(localDir, 'pnpm-lock.yaml')) && isCommandAvailable('pnpm')) return 'pnpm';
+  if (fs.existsSync(path.join(dir, 'yarn.lock')) && isCommandAvailable('yarn')) return 'yarn';
+  if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')) && isCommandAvailable('pnpm')) return 'pnpm';
   return 'npm';
 }
 
-async function installDependencies() {
+async function installDependencies(dir, label) {
   if (!AUTO_INSTALL()) { debug('AUTO_INSTALL desativado.'); return false; }
-  if (!fs.existsSync(path.join(LOCAL_DIR(), 'package.json'))) { debug('Sem package.json.'); return false; }
+  if (!fs.existsSync(path.join(dir, 'package.json'))) { debug(`Sem package.json em ${label}.`); return false; }
 
-  const pm = detectPackageManager();
+  const pm = detectPackageManager(dir);
   const cmd = pm === 'yarn' ? 'yarn install --frozen-lockfile || yarn install'
             : pm === 'pnpm' ? 'pnpm install --frozen-lockfile || pnpm install'
             : 'npm ci || npm install';
 
-  log(`📦 Instalando dependências com ${pm}...`);
+  log(`📦 [${label}] Instalando dependências com ${pm}...`);
 
   try {
-    await runCommand(cmd, LOCAL_DIR());
-    log(`✅ Dependências instaladas via ${pm}`);
+    await runCommand(cmd, dir);
+    log(`✅ [${label}] Dependências instaladas via ${pm}`);
     return true;
   } catch (err) {
-    error(`Falha na instalação: ${err.message}`);
+    error(`[${label}] Falha na instalação: ${err.message}`);
     return false;
   }
 }
@@ -368,73 +370,175 @@ async function installDependencies() {
 async function checkAndInstall(packageJsonUpdated) {
   if (!AUTO_INSTALL()) return;
 
-  const nodeModulesExists = fs.existsSync(path.join(LOCAL_DIR(), 'node_modules'));
-
-  if (!nodeModulesExists || packageJsonUpdated) {
-    const reason = !nodeModulesExists ? 'node_modules ausente' : 'package.json atualizado';
-    log(`📦 ${reason} — instalando...`);
-    const ok = await installDependencies();
+  // Frontend
+  const frontendDir = LOCAL_DIR();
+  const frontModulesExists = fs.existsSync(path.join(frontendDir, 'node_modules'));
+  if (!frontModulesExists || packageJsonUpdated) {
+    const reason = !frontModulesExists ? 'node_modules ausente' : 'package.json atualizado';
+    log(`📦 [Frontend] ${reason} — instalando...`);
+    const ok = await installDependencies(frontendDir, 'Frontend');
     if (ok) {
       const state = loadState();
       state.last_install = new Date().toISOString();
       saveState(state);
     }
   }
+
+  // Backend
+  const backendDir = BACKEND_DIR();
+  if (fs.existsSync(path.join(backendDir, 'package.json'))) {
+    const backModulesExists = fs.existsSync(path.join(backendDir, 'node_modules'));
+    if (!backModulesExists) {
+      log('📦 [Backend] node_modules ausente — instalando...');
+      await installDependencies(backendDir, 'Backend');
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 5 — Iniciar servidor de desenvolvimento
+//  FASE 5 — Iniciar servidores (frontend + backend)
 // ══════════════════════════════════════════════════════════════
-let devProcess = null;
+let frontendProcess = null;
+let backendProcess = null;
 
-function startDevServer() {
-  if (FLAG_NO_DEV || FLAG_SETUP) return;
-  if (!AUTO_DEV()) { log('AUTO_DEV desativado — inicie manualmente com: npm run dev'); return; }
-  if (!fs.existsSync(path.join(LOCAL_DIR(), 'package.json'))) return;
+function spawnServer(label, cmd, args, cwd) {
+  if (!fs.existsSync(path.join(cwd, 'package.json'))) {
+    warn(`[${label}] package.json não encontrado em ${cwd} — pulando`);
+    return null;
+  }
 
-  log('🚀 Iniciando servidor de desenvolvimento...');
+  log(`🚀 [${label}] Iniciando...`);
 
-  const pm = detectPackageManager();
-  const cmd = pm === 'npm' ? 'npm' : pm;
-  const args = pm === 'npm' ? ['run', 'dev'] : ['dev'];
-
-  devProcess = spawn(cmd, args, {
-    cwd: LOCAL_DIR(),
+  const proc = spawn(cmd, args, {
+    cwd,
     stdio: 'inherit',
     shell: true,
     env: { ...process.env }
   });
 
-  devProcess.on('error', (err) => {
-    error(`Dev server falhou: ${err.message}`);
+  proc.on('error', (err) => {
+    error(`[${label}] falhou: ${err.message}`);
   });
 
-  devProcess.on('exit', (code) => {
+  proc.on('exit', (code) => {
     if (code !== null && code !== 0) {
-      warn(`Dev server encerrou com código ${code}`);
+      warn(`[${label}] encerrou com código ${code}`);
     }
-    devProcess = null;
   });
 
-  log('✅ Dev server iniciado (logs abaixo são do Vite)');
+  log(`✅ [${label}] iniciado (PID: ${proc.pid})`);
+  return proc;
 }
 
-function restartDevServer() {
-  if (devProcess) {
-    log('🔃 Reiniciando dev server...');
-    devProcess.kill('SIGTERM');
-    setTimeout(startDevServer, 2000);
+function startServers() {
+  if (FLAG_NO_DEV || FLAG_SETUP) return;
+  if (!AUTO_DEV()) { log('AUTO_DEV desativado — inicie manualmente.'); return; }
+
+  const pm = detectPackageManager(LOCAL_DIR());
+  const cmd = pm === 'npm' ? 'npm' : pm;
+  const devArgs = pm === 'npm' ? ['run', 'dev'] : ['dev'];
+
+  // Frontend (Vite — porta 5173)
+  frontendProcess = spawnServer('Frontend', cmd, devArgs, LOCAL_DIR());
+
+  // Backend (Node — porta 3000)
+  const backendDir = BACKEND_DIR();
+  if (fs.existsSync(path.join(backendDir, 'package.json'))) {
+    const backPm = detectPackageManager(backendDir);
+    const backCmd = backPm === 'npm' ? 'npm' : backPm;
+    const backArgs = backPm === 'npm' ? ['run', 'dev'] : ['dev'];
+    backendProcess = spawnServer('Backend', backCmd, backArgs, backendDir);
+  } else {
+    warn('[Backend] Não encontrado — apenas frontend será iniciado');
   }
+
+  log('✅ Servidores iniciados');
+}
+
+function killProcess(proc, label) {
+  if (!proc) return;
+  try {
+    proc.kill('SIGTERM');
+    log(`🛑 [${label}] encerrado`);
+  } catch { /* already dead */ }
+}
+
+function restartServers() {
+  log('🔃 Reiniciando servidores...');
+  killProcess(frontendProcess, 'Frontend');
+  killProcess(backendProcess, 'Backend');
+  frontendProcess = null;
+  backendProcess = null;
+  setTimeout(startServers, 2000);
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 6 — Comandos remotos
+//  FASE 6 — Abrir navegador em modo kiosk
+// ══════════════════════════════════════════════════════════════
+function openKiosk() {
+  if (FLAG_NO_DEV || FLAG_SETUP || FLAG_NO_KIOSK) return;
+
+  const url = KIOSK_URL();
+  const delay = KIOSK_DELAY();
+  const browserPref = KIOSK_BROWSER();
+
+  log(`🖥️  Abrindo kiosk em ${delay / 1000}s → ${url}`);
+
+  setTimeout(() => {
+    const platform = process.platform;
+    let browserCmd = null;
+
+    if (browserPref !== 'auto') {
+      // Usar browser específico definido pelo usuário
+      browserCmd = `"${browserPref}" --kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required "${url}"`;
+    } else if (platform === 'win32') {
+      // Windows — tentar Edge primeiro, depois Chrome
+      const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+      const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+      const kioskFlags = '--kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required';
+
+      if (fs.existsSync(edgePath)) {
+        browserCmd = `"${edgePath}" ${kioskFlags} "${url}"`;
+      } else if (fs.existsSync(chromePath)) {
+        browserCmd = `"${chromePath}" ${kioskFlags} "${url}"`;
+      } else {
+        // Fallback: tentar msedge no PATH
+        browserCmd = `msedge ${kioskFlags} "${url}"`;
+      }
+    } else if (platform === 'linux') {
+      const kioskFlags = '--kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required';
+      // Linux — tentar chromium, depois google-chrome
+      if (isCommandAvailable('chromium-browser')) {
+        browserCmd = `chromium-browser ${kioskFlags} "${url}"`;
+      } else if (isCommandAvailable('chromium')) {
+        browserCmd = `chromium ${kioskFlags} "${url}"`;
+      } else if (isCommandAvailable('google-chrome')) {
+        browserCmd = `google-chrome ${kioskFlags} "${url}"`;
+      } else {
+        browserCmd = `xdg-open "${url}"`;
+      }
+    } else if (platform === 'darwin') {
+      browserCmd = `open -a "Google Chrome" --args --kiosk "${url}"`;
+    }
+
+    if (browserCmd) {
+      log(`🌐 Executando: ${browserCmd.substring(0, 80)}...`);
+      const browserProc = spawn(browserCmd, [], { shell: true, detached: true, stdio: 'ignore' });
+      browserProc.unref();
+      log('✅ Navegador kiosk aberto');
+    } else {
+      warn('Navegador não encontrado — abra manualmente: ' + url);
+    }
+  }, delay);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FASE 7 — Comandos remotos
 // ══════════════════════════════════════════════════════════════
 function triggerRestart() {
   const cmd = RESTART_CMD();
   if (!cmd) {
-    // Se temos dev server, reinicia ele
-    if (devProcess) { restartDevServer(); return; }
+    if (frontendProcess || backendProcess) { restartServers(); return; }
     warn('Configure RESTART_COMMAND no .env para reinício automático');
     return;
   }
@@ -522,7 +626,7 @@ async function handleRemoteCommand() {
         triggerRestart();
         break;
       case 'install':
-        await installDependencies();
+        await installDependencies(LOCAL_DIR(), 'Frontend');
         break;
       case 'reload_config':
         triggerRestart();
@@ -547,8 +651,8 @@ async function handleRemoteCommand() {
 async function main() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║         TOTEM SYNC WORKER  v3.1.0               ║');
-  console.log('║         Setup automático completo                ║');
+  console.log('║         TOTEM SYNC WORKER  v4.0.0               ║');
+  console.log('║         Setup automático + Kiosk                 ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
@@ -561,13 +665,16 @@ async function main() {
   VERBOSE = process.env.VERBOSE === 'true';
 
   const localDir = LOCAL_DIR();
+  const backendDir = BACKEND_DIR();
   const hubUrl = HUB_URL();
 
   log(`Hub URL      : ${hubUrl || '(não configurado!)'}`);
-  log(`Diretório    : ${localDir}`);
+  log(`Frontend     : ${localDir}`);
+  log(`Backend      : ${backendDir}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
   log(`Auto-install : ${AUTO_INSTALL() ? 'sim' : 'não'}`);
   log(`Auto-dev     : ${!FLAG_NO_DEV && !FLAG_SETUP && AUTO_DEV() ? 'sim' : 'não'}`);
+  log(`Kiosk        : ${!FLAG_NO_DEV && !FLAG_SETUP && !FLAG_NO_KIOSK ? KIOSK_URL() : 'desativado'}`);
   log(`Cmd remoto   : ${API_KEY() ? 'ativo' : 'inativo'}`);
   console.log('');
 
@@ -575,29 +682,32 @@ async function main() {
   log('━━━ FASE 1: Sincronizando arquivos do Hub ━━━');
   const { packageJsonUpdated } = await syncFiles();
 
-  // Fase 4 — Instalar dependências
+  // Fase 4 — Instalar dependências (front + back)
   log('━━━ FASE 2: Verificando dependências ━━━');
   await checkAndInstall(packageJsonUpdated);
 
   if (FLAG_SETUP) {
     log('');
     log('✅ Setup completo! Para iniciar o totem:');
-    log('   npm run dev');
+    log('   node sync-worker.js');
     return;
   }
 
-  // Fase 5 — Iniciar dev server
+  // Fase 5 — Iniciar servidores
   log('━━━ FASE 3: Iniciando aplicação ━━━');
-  startDevServer();
+  startServers();
 
-  // Fase 6 — Loop de sync em background
+  // Fase 6 — Abrir kiosk
+  openKiosk();
+
+  // Fase 7 — Loop de sync em background
   log('');
   log('━━━ Sync contínuo ativo ━━━');
   const syncInterval = setInterval(async () => {
     const result = await syncFiles();
     if (result.packageJsonUpdated) {
       await checkAndInstall(true);
-      if (devProcess) restartDevServer();
+      restartServers();
     }
   }, SYNC_INTERVAL());
 
@@ -613,12 +723,9 @@ async function main() {
     log('Encerrando...');
     clearInterval(syncInterval);
     if (cmdInterval) clearInterval(cmdInterval);
-    if (devProcess) {
-      devProcess.kill('SIGTERM');
-      setTimeout(() => process.exit(0), 1000);
-    } else {
-      process.exit(0);
-    }
+    killProcess(frontendProcess, 'Frontend');
+    killProcess(backendProcess, 'Backend');
+    setTimeout(() => process.exit(0), 1000);
   }
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

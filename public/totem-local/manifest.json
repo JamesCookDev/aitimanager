@@ -1,11 +1,11 @@
 {
-  "hub_version": "7.1.0",
-  "updated_at": "2026-03-09",
-  "description": "Manifesto v7.1: sync-worker v3.1 convertido para ESM (compatível com package.json type:module).",
+  "hub_version": "8.0.0",
+  "updated_at": "2026-03-10",
+  "description": "Manifesto v8.0: sync-worker v4.0 com suporte a frontend+backend, kiosk mode e scripts de inicialização.",
   "files": {
     "package.json": {
       "version": "1.0.0",
-      "description": "Dependências do projeto — sync-worker roda 'yarn install' automaticamente ao detectar mudanças",
+      "description": "Dependências do projeto — sync-worker roda 'npm install' automaticamente ao detectar mudanças",
       "critical": true,
       "install": true
     },
@@ -13,6 +13,26 @@
       "version": "1.0.0",
       "description": "Configuração do Vite",
       "critical": true
+    },
+    "sync-worker.js": {
+      "version": "4.0.0",
+      "description": "Worker de sincronização v4 — frontend+backend, kiosk mode",
+      "critical": true
+    },
+    "start-totem.bat": {
+      "version": "1.0.0",
+      "description": "Script de inicialização Windows — auto-restart + kiosk",
+      "critical": false
+    },
+    "start-totem.sh": {
+      "version": "1.0.0",
+      "description": "Script de inicialização Linux/macOS — auto-restart + kiosk + systemd",
+      "critical": false
+    },
+    ".env.sync.example": {
+      "version": "2.0.0",
+      "description": "Template de configuração com variáveis de kiosk e backend",
+      "critical": false
     },
     "App.jsx": {
       "version": "5.4.0",
