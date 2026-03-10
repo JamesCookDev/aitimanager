@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * ══════════════════════════════════════════════════════════════
- *  TOTEM SYNC WORKER  —  sync-worker.js  v4.0.0
+ *  TOTEM SYNC WORKER  —  sync-worker.js  v5.0.0
  * ══════════════════════════════════════════════════════════════
  *
  *  Automatiza TODO o processo de setup e manutenção do totem:
  *
+ *  0. Verifica/atualiza repositório Git (pull latest)
  *  1. Verifica pré-requisitos (Node.js, npm)
  *  2. Cria .env a partir de .env.sync.example se não existir
  *     (solicita o ORG_ID interativamente)
@@ -25,7 +26,8 @@
  *    HUB_URL, LOCAL_DIR, BACKEND_DIR, SYNC_INTERVAL_MS,
  *    RESTART_COMMAND, BACKUP_FILES, VERBOSE, API_KEY,
  *    SUPABASE_URL, AUTO_INSTALL, PACKAGE_MANAGER, AUTO_DEV,
- *    KIOSK_URL, KIOSK_DELAY_MS, KIOSK_BROWSER
+ *    KIOSK_URL, KIOSK_DELAY_MS, KIOSK_BROWSER,
+ *    GIT_REPO_URL, GIT_BRANCH, GIT_AUTO_PULL
  *
  * ══════════════════════════════════════════════════════════════
  */
@@ -122,6 +124,44 @@ function runCommand(cmd, cwd, timeoutMs = 300_000) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  FASE 0 — Git: verificar/atualizar repositório
+// ══════════════════════════════════════════════════════════════
+function GIT_REPO_URL()  { return process.env.GIT_REPO_URL || 'https://github.com/JamesCookDev/Avatar-AI.git'; }
+function GIT_BRANCH()    { return process.env.GIT_BRANCH || 'feat/escalavel'; }
+function GIT_AUTO_PULL() { return process.env.GIT_AUTO_PULL !== 'false'; }
+
+async function gitSync() {
+  if (!isCommandAvailable('git')) {
+    warn('Git não disponível — pulando sync do repositório');
+    return;
+  }
+
+  const gitDir = path.join(__dirname, '.git');
+  const repoUrl = GIT_REPO_URL();
+  const branch = GIT_BRANCH();
+
+  if (!fs.existsSync(gitDir)) {
+    // Não estamos dentro de um repositório git — verificar se é o start script que clona
+    log('📂 Diretório não é um repositório Git — sync via Hub apenas');
+    return;
+  }
+
+  if (!GIT_AUTO_PULL()) {
+    debug('GIT_AUTO_PULL desativado');
+    return;
+  }
+
+  log(`🔄 Git pull (branch: ${branch})...`);
+  try {
+    await runCommand(`git fetch origin ${branch}`, __dirname, 30_000);
+    await runCommand(`git reset --hard origin/${branch}`, __dirname, 15_000);
+    log('✅ Repositório atualizado via Git');
+  } catch (err) {
+    warn(`Git pull falhou: ${err.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  FASE 1 — Verificar pré-requisitos
 // ══════════════════════════════════════════════════════════════
 function checkPrerequisites() {
@@ -140,6 +180,13 @@ function checkPrerequisites() {
   const nodeVersion = execSync('node --version', { encoding: 'utf8' }).trim();
   const npmVersion  = execSync('npm --version', { encoding: 'utf8' }).trim();
   log(`✅ Node.js ${nodeVersion} / npm ${npmVersion}`);
+
+  if (isCommandAvailable('git')) {
+    const gitVersion = execSync('git --version', { encoding: 'utf8' }).trim();
+    log(`✅ ${gitVersion}`);
+  } else {
+    warn('Git não encontrado — atualizações automáticas do código desativadas');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -256,7 +303,7 @@ function ensureDir(filePath) {
 async function syncFiles() {
   const hubUrl = HUB_URL();
   if (!hubUrl) {
-    error('HUB_URL não configurado!');
+    debug('HUB_URL não configurado — sync via Hub desativado');
     return { updated: 0, packageJsonUpdated: false };
   }
 
@@ -631,6 +678,9 @@ async function handleRemoteCommand() {
       case 'reload_config':
         triggerRestart();
         break;
+      case 'git_pull':
+        await gitSync();
+        break;
       default:
         warn(`Comando desconhecido: "${command}"`);
         success = false;
@@ -651,8 +701,8 @@ async function handleRemoteCommand() {
 async function main() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║         TOTEM SYNC WORKER  v4.0.0               ║');
-  console.log('║         Setup automático + Kiosk                 ║');
+  console.log('║         TOTEM SYNC WORKER  v5.0.0               ║');
+  console.log('║         Git + Setup + Kiosk                      ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
@@ -668,9 +718,12 @@ async function main() {
   const backendDir = BACKEND_DIR();
   const hubUrl = HUB_URL();
 
-  log(`Hub URL      : ${hubUrl || '(não configurado!)'}`);
+  log(`Hub URL      : ${hubUrl || '(não configurado)'}`);
   log(`Frontend     : ${localDir}`);
   log(`Backend      : ${backendDir}`);
+  log(`Git repo     : ${GIT_REPO_URL()}`);
+  log(`Git branch   : ${GIT_BRANCH()}`);
+  log(`Git auto-pull: ${GIT_AUTO_PULL() ? 'sim' : 'não'}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
   log(`Auto-install : ${AUTO_INSTALL() ? 'sim' : 'não'}`);
   log(`Auto-dev     : ${!FLAG_NO_DEV && !FLAG_SETUP && AUTO_DEV() ? 'sim' : 'não'}`);
@@ -678,7 +731,11 @@ async function main() {
   log(`Cmd remoto   : ${API_KEY() ? 'ativo' : 'inativo'}`);
   console.log('');
 
-  // Fase 3 — Sync inicial
+  // Fase 0 — Git pull (se dentro de um repo)
+  log('━━━ FASE 0: Atualizando código via Git ━━━');
+  await gitSync();
+
+  // Fase 3 — Sync do Hub
   log('━━━ FASE 1: Sincronizando arquivos do Hub ━━━');
   const { packageJsonUpdated } = await syncFiles();
 
@@ -704,6 +761,9 @@ async function main() {
   log('');
   log('━━━ Sync contínuo ativo ━━━');
   const syncInterval = setInterval(async () => {
+    // Git pull periódico
+    if (GIT_AUTO_PULL()) await gitSync();
+    // Hub sync
     const result = await syncFiles();
     if (result.packageJsonUpdated) {
       await checkAndInstall(true);
