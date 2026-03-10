@@ -61,7 +61,8 @@ export function IframePlaceholder(props: IframeProps) {
   useEffect(() => {
     if (props.editMode && !prevEditMode.current) {
       frozenHtmlRef.current = null;
-      setTimeout(() => setToolRef.current('text'), 0);
+      // Default to layout mode — click any element to see CRUD toolbar
+      setTimeout(() => setToolRef.current('layout'), 0);
     } else if (!props.editMode && prevEditMode.current) {
       frozenHtmlRef.current = null;
       setTimeout(() => setToolRef.current('off'), 0);
@@ -123,13 +124,17 @@ export function IframePlaceholder(props: IframeProps) {
     background: transparent; white-space: nowrap;
   }
   .layout-toolbar button:hover { background: rgba(255,255,255,0.1); }
-  .layout-toolbar .btn-delete { color: #f87171; }
-  .layout-toolbar .btn-delete:hover { background: rgba(248,113,113,0.2); }
-  .layout-toolbar .btn-bg { color: #a78bfa; }
-  .layout-toolbar .btn-move { color: #60a5fa; }
-  .layout-toolbar .btn-resize { color: #34d399; }
-  .layout-toolbar .btn-duplicate { color: #fbbf24; }
-  .layout-toolbar .btn-hide { color: #94a3b8; }
+   .layout-toolbar .btn-delete { color: #f87171; }
+   .layout-toolbar .btn-delete:hover { background: rgba(248,113,113,0.2); }
+   .layout-toolbar .btn-bg { color: #a78bfa; }
+   .layout-toolbar .btn-move { color: #60a5fa; }
+   .layout-toolbar .btn-resize { color: #34d399; }
+   .layout-toolbar .btn-duplicate { color: #fbbf24; }
+   .layout-toolbar .btn-hide { color: #94a3b8; }
+   .layout-toolbar .btn-edit-text { color: #818cf8; }
+   .layout-toolbar .btn-edit-text:hover { background: rgba(129,140,248,0.2); }
+   .layout-toolbar .btn-style { color: #ec4899; }
+   .layout-toolbar .btn-style:hover { background: rgba(236,72,153,0.2); }
   .layout-drag-ghost { position: absolute; z-index: 999990; pointer-events: none; opacity: 0.5; border: 2px dashed #3b82f6; }
   .style-panel {
     position: fixed; z-index: 999999; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
@@ -540,20 +545,39 @@ export function IframePlaceholder(props: IframeProps) {
     toolbar.className = 'layout-toolbar';
 
     var rect = el.getBoundingClientRect();
-    toolbar.style.left = Math.max(0, Math.min(rect.left, window.innerWidth - 300)) + 'px';
+    toolbar.style.left = Math.max(0, Math.min(rect.left, window.innerWidth - 400)) + 'px';
     toolbar.style.top = Math.max(0, rect.top - 36) + 'px';
 
     var tag = el.tagName.toLowerCase();
     var isImg = tag === 'img';
+    var isTextEl = ['h1','h2','h3','h4','h5','h6','p','span','a','li','td','th','label','button'].indexOf(tag) >= 0;
     var hasBg = window.getComputedStyle(el).backgroundImage !== 'none';
 
-    toolbar.innerHTML = '<button class="btn-move" data-action="move" title="Arrastar (ou use setas do teclado)">↕ Mover</button>'
-      + (isImg ? '<button class="btn-bg" data-action="change-img" title="Trocar imagem">🖼 Imagem</button>' : '')
-      + (hasBg || !isImg ? '<button class="btn-bg" data-action="change-bg" title="Trocar imagem de fundo">🎨 Fundo</button>' : '')
-      + '<button class="btn-duplicate" data-action="duplicate" title="Duplicar elemento">⧉ Duplicar</button>'
-      + '<button class="btn-hide" data-action="hide" title="Ocultar elemento">👁 Ocultar</button>'
-      + '<button class="btn-delete" data-action="delete" title="Excluir elemento (Delete)">✕ Excluir</button>';
+    var buttons = '';
+    // Edit text — for text-containing elements
+    if (isTextEl) {
+      buttons += '<button class="btn-edit-text" data-action="edit-text" title="Editar texto deste elemento">✏️ Texto</button>';
+    }
+    // Change image
+    if (isImg) {
+      buttons += '<button class="btn-bg" data-action="change-img" title="Trocar imagem">🖼 Imagem</button>';
+    }
+    // Change background
+    if (hasBg || !isImg) {
+      buttons += '<button class="btn-bg" data-action="change-bg" title="Trocar imagem de fundo">🎨 Fundo</button>';
+    }
+    // Style panel
+    buttons += '<button class="btn-style" data-action="open-style" title="Editar estilos CSS">🎨 Estilos</button>';
+    // Move
+    buttons += '<button class="btn-move" data-action="move" title="Arrastar (ou use setas)">↕ Mover</button>';
+    // Duplicate
+    buttons += '<button class="btn-duplicate" data-action="duplicate" title="Duplicar elemento">⧉ Duplicar</button>';
+    // Hide
+    buttons += '<button class="btn-hide" data-action="hide" title="Ocultar elemento">👁 Ocultar</button>';
+    // Delete
+    buttons += '<button class="btn-delete" data-action="delete" title="Excluir (Delete)">✕ Excluir</button>';
 
+    toolbar.innerHTML = buttons;
     document.body.appendChild(toolbar);
     layoutToolbar = toolbar;
 
@@ -568,8 +592,41 @@ export function IframePlaceholder(props: IframeProps) {
         else if (action === 'change-bg') changeBackground();
         else if (action === 'duplicate') duplicateSelected();
         else if (action === 'move') startDrag(e);
+        else if (action === 'edit-text') editTextInline(el);
+        else if (action === 'open-style') openStyleForSelected(el);
       });
     });
+  }
+
+  function editTextInline(el) {
+    if (!el) return;
+    el.contentEditable = 'true';
+    el.focus();
+    el.style.outline = '2px solid #818cf8';
+    el.style.outlineOffset = '2px';
+    // Remove toolbar while editing text
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    el.addEventListener('blur', function onBlur() {
+      el.contentEditable = 'false';
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+      var sel = buildSel(el);
+      var newText = el.textContent.trim();
+      window.parent.postMessage({ type: 'inline-edit-text', selector: sel, text: newText }, '*');
+      // Re-show toolbar
+      if (layoutSelected === el) showLayoutToolbar(el);
+      el.removeEventListener('blur', onBlur);
+    });
+  }
+
+  function openStyleForSelected(el) {
+    if (!el) return;
+    // Remove layout toolbar, show style panel
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    styledEl = el;
+    el.setAttribute('data-style-highlight', '');
+    var rect = el.getBoundingClientRect();
+    showStylePanel(el, rect.left, rect.bottom + 8);
   }
 
   function deleteSelected() {
@@ -797,6 +854,7 @@ export function IframePlaceholder(props: IframeProps) {
     : 1;
 
   const isActive = activeTool !== 'off';
+  const isInteractive = isActive || props.editMode;
 
   if (activeMode === 'html' && finalHtml) {
     // Simplified tools — hide technical ones by default
@@ -842,7 +900,7 @@ export function IframePlaceholder(props: IframeProps) {
             border: 'none',
             transformOrigin: 'top left',
             transform: `scale(${iframeScale})`,
-            pointerEvents: isActive ? 'auto' : 'none',
+            pointerEvents: isInteractive ? 'auto' : 'none',
           }}
         />
 
@@ -904,13 +962,13 @@ export function IframePlaceholder(props: IframeProps) {
         )}
 
         {/* ── Hint when NOT editing ── */}
-        {!isActive && !props.editMode && (
+        {!isInteractive && (
           <div
             className="absolute inset-0 z-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           >
             <div className="bg-black/70 backdrop-blur-sm text-white/90 text-xs font-semibold px-4 py-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-2">
               <Pencil className="w-4 h-4" />
-              Duplo-clique para editar no canvas
+              Duplo-clique para editar — clique em qualquer elemento para opções
             </div>
           </div>
         )}
