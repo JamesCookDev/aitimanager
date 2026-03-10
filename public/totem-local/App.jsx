@@ -2543,12 +2543,63 @@ const IDLE_PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   color: i % 3 === 0 ? 'rgba(139,92,246,0.85)' : i % 3 === 1 ? 'rgba(99,102,241,0.8)' : 'rgba(236,72,153,0.75)',
 }));
 
-function IdleScreen({ visible, onWake }) {
+function IdleScreen({ visible, onWake, canvas }) {
   const [phase, setPhase] = React.useState("hidden");
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+
+  // Extract event data from feed and carousel elements
+  const eventData = React.useMemo(() => {
+    if (!canvas?.elements) return [];
+    const items = [];
+
+    canvas.elements.forEach(el => {
+      // Extract from feed posts
+      if (el.type === 'feed' && el.props?.posts?.length) {
+        el.props.posts.forEach(post => {
+          const img = post.images?.[0] || post.image || null;
+          if (img) {
+            items.push({
+              image: img,
+              title: post.title || '',
+              category: post.category || post.badge || '',
+              description: post.description || '',
+            });
+          }
+        });
+      }
+      // Extract from carousel images
+      if (el.type === 'carousel' && el.props?.images?.length) {
+        el.props.images.forEach((img, idx) => {
+          if (img) {
+            items.push({
+              image: img,
+              title: '',
+              category: '',
+              description: '',
+            });
+          }
+        });
+      }
+    });
+
+    return items;
+  }, [canvas?.elements]);
+
+  const hasEvents = eventData.length > 0;
+
+  // Auto-advance slides
+  React.useEffect(() => {
+    if (!hasEvents || eventData.length <= 1) return;
+    const id = setInterval(() => {
+      setCurrentSlide(c => (c + 1) % eventData.length);
+    }, 6000);
+    return () => clearInterval(id);
+  }, [hasEvents, eventData.length]);
 
   React.useEffect(() => {
     if (visible) {
       setPhase("in");
+      setCurrentSlide(0);
       const t = setTimeout(() => setPhase("visible"), 600);
       return () => clearTimeout(t);
     } else {
@@ -2561,6 +2612,7 @@ function IdleScreen({ visible, onWake }) {
 
   if (phase === "hidden") return null;
 
+  // ── Netflix-style idle screen with event carousel ──
   return (
     <div
       onClick={onWake}
@@ -2568,23 +2620,175 @@ function IdleScreen({ visible, onWake }) {
       className={phase === "out" ? "idle-screen-out" : "idle-screen-in"}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        background: "rgba(17, 24, 39, 0.95)",
+        display: "flex", flexDirection: "column",
+        background: "#0a0a0a",
         cursor: "pointer",
         userSelect: "none",
+        overflow: "hidden",
       }}
     >
-      <div style={{ fontSize: "clamp(48px, 7vw, 72px)", animation: "idle-float 3s ease-in-out infinite", marginBottom: 24 }}>
-        👋
+      {/* Background hero image with ken burns */}
+      {hasEvents && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          {eventData.map((item, i) => (
+            <div key={i} style={{
+              position: "absolute", inset: 0,
+              opacity: i === currentSlide ? 1 : 0,
+              transition: "opacity 1.2s ease-in-out",
+            }}>
+              <img src={item.image} alt="" style={{
+                width: "100%", height: "100%", objectFit: "cover",
+                animation: i === currentSlide ? "totem-ken-burns 20s ease-in-out infinite" : "none",
+              }} />
+            </div>
+          ))}
+          {/* Gradient overlays */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.6) 100%)",
+            pointerEvents: "none",
+          }} />
+        </div>
+      )}
+
+      {/* Fallback when no events */}
+      {!hasEvents && (
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(160deg, #050a18 0%, #0c1630 60%, #0a0e1f 100%)",
+        }} />
+      )}
+
+      {/* Content area */}
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 48px 0" }}>
+        {/* Current event title/category */}
+        {hasEvents && eventData[currentSlide] && (
+          <div style={{ marginBottom: 24 }}>
+            {eventData[currentSlide].category && (
+              <div style={{
+                display: "inline-block", padding: "6px 16px", borderRadius: 4, marginBottom: 16,
+                background: "#e50914", color: "#fff",
+                fontSize: "clamp(10px, 1.2vw, 14px)", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.1em",
+              }}>
+                {eventData[currentSlide].category}
+              </div>
+            )}
+            {eventData[currentSlide].title && (
+              <h2 style={{
+                color: "#fff", fontSize: "clamp(28px, 5vw, 56px)",
+                fontWeight: 800, lineHeight: 1.1, margin: 0,
+                textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+                maxWidth: "80%",
+              }}>
+                {eventData[currentSlide].title}
+              </h2>
+            )}
+            {eventData[currentSlide].description && (
+              <p style={{
+                color: "rgba(255,255,255,0.7)", fontSize: "clamp(12px, 1.5vw, 18px)",
+                lineHeight: 1.5, marginTop: 12, maxWidth: "60%",
+                textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+                display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
+              }}>
+                {eventData[currentSlide].description}
+              </p>
+            )}
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: "clamp(24px, 4vw, 44px)", fontWeight: 700, color: "#f1f5f9", textAlign: "center", lineHeight: 1.2, animation: "idle-text-pulse 2.5s ease-in-out infinite", marginBottom: 12, padding: "0 32px" }}>
-        Toque para começar
-      </div>
-      <div style={{ fontSize: "clamp(13px, 1.6vw, 18px)", color: "rgba(255,255,255,0.4)", textAlign: "center", padding: "0 40px", maxWidth: 440 }}>
-        Estou aqui para ajudar você
-      </div>
-      <div style={{ position: "absolute", bottom: 40, fontSize: "clamp(10px, 1.1vw, 13px)", color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>
-        Toque em qualquer lugar
+
+      {/* Netflix-style thumbnail strip */}
+      {hasEvents && eventData.length > 1 && (
+        <div style={{
+          position: "relative", zIndex: 2, flexShrink: 0,
+          padding: "16px 48px 32px",
+        }}>
+          <p style={{
+            color: "rgba(255,255,255,0.5)", fontSize: "clamp(10px, 1.1vw, 13px)",
+            fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em",
+            marginBottom: 12,
+          }}>
+            Destaques
+          </p>
+          <div style={{
+            display: "flex", gap: 10, overflowX: "auto",
+            scrollbarWidth: "none", msOverflowStyle: "none",
+          }}>
+            {eventData.map((item, i) => (
+              <div key={i} style={{
+                flexShrink: 0,
+                width: "clamp(120px, 18vw, 200px)",
+                aspectRatio: "16/9",
+                borderRadius: 6,
+                overflow: "hidden",
+                position: "relative",
+                border: i === currentSlide ? "2px solid #fff" : "2px solid transparent",
+                opacity: i === currentSlide ? 1 : 0.5,
+                transform: i === currentSlide ? "scale(1.05)" : "scale(1)",
+                transition: "all 0.4s ease",
+                boxShadow: i === currentSlide ? "0 4px 20px rgba(0,0,0,0.6)" : "none",
+              }}>
+                <img src={item.image} alt="" style={{
+                  width: "100%", height: "100%", objectFit: "cover",
+                }} />
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+                  pointerEvents: "none",
+                }} />
+                {item.title && (
+                  <p style={{
+                    position: "absolute", bottom: 6, left: 8, right: 8,
+                    color: "#fff", fontSize: "clamp(8px, 0.9vw, 11px)",
+                    fontWeight: 600, margin: 0,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                  }}>
+                    {item.title}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {hasEvents && eventData.length > 1 && (
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 3,
+          background: "rgba(255,255,255,0.1)", zIndex: 3,
+        }}>
+          <div style={{
+            height: "100%", background: "#e50914",
+            width: `${((currentSlide + 1) / eventData.length) * 100}%`,
+            transition: "width 0.5s ease",
+          }} />
+        </div>
+      )}
+
+      {/* Touch hint */}
+      <div style={{
+        position: "absolute", top: 40, left: 0, right: 0,
+        display: "flex", justifyContent: "center", zIndex: 3,
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 24px", borderRadius: 999,
+          background: "rgba(255,255,255,0.08)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          animation: "idle-text-pulse 2.5s ease-in-out infinite",
+        }}>
+          <span style={{ fontSize: 20 }}>👋</span>
+          <span style={{
+            color: "rgba(255,255,255,0.8)", fontSize: "clamp(12px, 1.4vw, 16px)",
+            fontWeight: 600, letterSpacing: "0.03em",
+          }}>
+            Toque para começar
+          </span>
+        </div>
       </div>
     </div>
   );
