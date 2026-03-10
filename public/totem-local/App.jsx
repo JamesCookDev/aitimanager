@@ -2547,7 +2547,7 @@ function IdleScreen({ visible, onWake, canvas }) {
   const [phase, setPhase] = React.useState("hidden");
   const [currentSlide, setCurrentSlide] = React.useState(0);
 
-  // Extract event data from feed and carousel elements
+  // Extract event data from feed, carousel, image elements AND HTML Puro content
   const eventData = React.useMemo(() => {
     if (!canvas?.elements) return [];
     const items = [];
@@ -2569,16 +2569,94 @@ function IdleScreen({ visible, onWake, canvas }) {
       }
       // Extract from carousel images
       if (el.type === 'carousel' && el.props?.images?.length) {
-        el.props.images.forEach((img, idx) => {
+        el.props.images.forEach((img) => {
           if (img) {
-            items.push({
-              image: img,
-              title: '',
-              category: '',
-              description: '',
-            });
+            items.push({ image: img, title: '', category: '', description: '' });
           }
         });
+      }
+      // Extract from standalone image elements
+      if (el.type === 'image' && el.props?.src) {
+        items.push({
+          image: el.props.src,
+          title: el.props.alt || el.props.label || '',
+          category: '',
+          description: '',
+        });
+      }
+      // Extract from HTML Puro (iframe) elements — parse htmlContent for images and titles
+      if (el.type === 'iframe' && el.props?.htmlContent) {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(el.props.htmlContent, 'text/html');
+          // Apply field overrides if any
+          if (el.props.fieldOverrides) {
+            Object.entries(el.props.fieldOverrides).forEach(([key, value]) => {
+              if (key.startsWith('__delete_') || key.startsWith('__duplicate_')) return;
+              try {
+                // Format: "img[selector]__src" or "selector__textContent"
+                const attrMatch = key.match(/^(.+)__(\w+)$/);
+                if (attrMatch) {
+                  const [, sel, attr] = attrMatch;
+                  const target = doc.querySelector(sel);
+                  if (target) {
+                    if (attr === 'src' || attr === 'href') target.setAttribute(attr, value);
+                    else if (attr === 'textContent') target.textContent = value;
+                    else if (attr === 'style') target.setAttribute('style', value);
+                  }
+                }
+              } catch (_) {}
+            });
+          }
+          // Extract images (skip tiny icons/logos < 50px specified in style)
+          const imgs = doc.querySelectorAll('img[src]');
+          const titles = [];
+          // Gather titles from headings
+          doc.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]').forEach(heading => {
+            const txt = (heading.textContent || '').trim();
+            if (txt.length > 2 && txt.length < 200) titles.push(txt);
+          });
+          // Gather descriptions
+          const descriptions = [];
+          doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach(p => {
+            const txt = (p.textContent || '').trim();
+            if (txt.length > 10 && txt.length < 500) descriptions.push(txt);
+          });
+          // Gather category/badge texts
+          const categories = [];
+          doc.querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]').forEach(badge => {
+            const txt = (badge.textContent || '').trim();
+            if (txt.length > 1 && txt.length < 60) categories.push(txt);
+          });
+
+          imgs.forEach((img, idx) => {
+            const src = img.getAttribute('src') || '';
+            if (!src || src.startsWith('data:image/svg')) return;
+            // Skip very small explicit images (likely icons)
+            const w = parseInt(img.getAttribute('width') || '999');
+            const h = parseInt(img.getAttribute('height') || '999');
+            if (w < 40 || h < 40) return;
+            items.push({
+              image: src,
+              title: titles[idx] || titles[0] || img.getAttribute('alt') || '',
+              category: categories[idx] || categories[0] || '',
+              description: descriptions[idx] || descriptions[0] || '',
+            });
+          });
+          // If no images found but has titles, still add as text-only slide
+          if (imgs.length === 0 && titles.length > 0) {
+            titles.forEach((title, idx) => {
+              items.push({
+                image: '',
+                title,
+                category: categories[idx] || categories[0] || '',
+                description: descriptions[idx] || descriptions[0] || '',
+              });
+            });
+          }
+        } catch (err) {
+          console.warn('[IdleScreen] Falha ao parsear HTML Puro:', err.message);
+        }
       }
     });
 
