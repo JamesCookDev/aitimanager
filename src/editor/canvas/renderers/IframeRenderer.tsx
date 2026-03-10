@@ -962,13 +962,13 @@ export function IframePlaceholder(props: IframeProps) {
         )}
 
         {/* ── Hint when NOT editing ── */}
-        {!isActive && !props.editMode && (
+        {!isInteractive && (
           <div
             className="absolute inset-0 z-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           >
             <div className="bg-black/70 backdrop-blur-sm text-white/90 text-xs font-semibold px-4 py-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-2">
               <Pencil className="w-4 h-4" />
-              Duplo-clique para editar no canvas
+              Duplo-clique para editar — clique em qualquer elemento para opções
             </div>
           </div>
         )}
