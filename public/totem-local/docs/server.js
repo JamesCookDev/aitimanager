@@ -520,12 +520,12 @@ if (CMS_URL && TOTEM_API_KEY) {
         }),
       });
 
+      const text = await response.text();
       if (response.ok) {
         const time = new Date().toLocaleTimeString();
         console.log(`[${time}] 💓 Heartbeat OK`);
       } else {
-        const err = await response.json();
-        console.error("❌ Heartbeat erro:", err.error);
+        console.error("❌ Heartbeat erro:", response.status, text);
       }
     } catch (err) {
       console.error("⚠️ Heartbeat falhou:", err.message);
