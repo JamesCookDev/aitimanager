@@ -1,7 +1,7 @@
 {
-  "hub_version": "8.0.0",
+  "hub_version": "9.0.0",
   "updated_at": "2026-03-10",
-  "description": "Manifesto v8.0: sync-worker v4.0 com suporte a frontend+backend, kiosk mode e scripts de inicialização.",
+  "description": "Manifesto v9.0: sync-worker v5.0 com Git clone/pull, auto-install Node/Git, kiosk mode",
   "files": {
     "package.json": {
       "version": "1.0.0",
@@ -15,23 +15,23 @@
       "critical": true
     },
     "sync-worker.js": {
-      "version": "4.0.0",
-      "description": "Worker de sincronização v4 — frontend+backend, kiosk mode",
+      "version": "5.0.0",
+      "description": "Worker v5 — Git sync, frontend+backend, kiosk mode",
       "critical": true
     },
     "start-totem.bat": {
-      "version": "1.0.0",
-      "description": "Script de inicialização Windows — auto-restart + kiosk",
+      "version": "2.0.0",
+      "description": "Script Windows — auto-install Node/Git, clone repo, kiosk",
       "critical": false
     },
     "start-totem.sh": {
-      "version": "1.0.0",
-      "description": "Script de inicialização Linux/macOS — auto-restart + kiosk + systemd",
+      "version": "2.0.0",
+      "description": "Script Linux/macOS — auto-install Node/Git, clone repo, kiosk + systemd",
       "critical": false
     },
     ".env.sync.example": {
-      "version": "2.0.0",
-      "description": "Template de configuração com variáveis de kiosk e backend",
+      "version": "3.0.0",
+      "description": "Template de configuração com Git, kiosk e backend",
       "critical": false
     },
     "App.jsx": {
