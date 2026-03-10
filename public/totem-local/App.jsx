@@ -2714,10 +2714,17 @@ function IdleScreen({ visible, onWake, canvas }) {
               opacity: i === currentSlide ? 1 : 0,
               transition: "opacity 1.2s ease-in-out",
             }}>
-              <img src={item.image} alt="" style={{
-                width: "100%", height: "100%", objectFit: "cover",
-                animation: i === currentSlide ? "totem-ken-burns 20s ease-in-out infinite" : "none",
-              }} />
+              {item.image ? (
+                <img src={item.image} alt="" style={{
+                  width: "100%", height: "100%", objectFit: "cover",
+                  animation: i === currentSlide ? "totem-ken-burns 20s ease-in-out infinite" : "none",
+                }} />
+              ) : (
+                <div style={{
+                  width: "100%", height: "100%",
+                  background: "linear-gradient(160deg, #1a1a3e 0%, #0f172a 60%, #1e1b4b 100%)",
+                }} />
+              )}
             </div>
           ))}
           {/* Gradient overlays */}
