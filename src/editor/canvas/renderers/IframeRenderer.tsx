@@ -900,7 +900,7 @@ export function IframePlaceholder(props: IframeProps) {
             border: 'none',
             transformOrigin: 'top left',
             transform: `scale(${iframeScale})`,
-            pointerEvents: isActive ? 'auto' : 'none',
+            pointerEvents: isInteractive ? 'auto' : 'none',
           }}
         />
 
