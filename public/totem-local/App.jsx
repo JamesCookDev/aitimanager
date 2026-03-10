@@ -3582,7 +3582,7 @@ export default function App() {
       )}
 
       {/* 🌙 Tela idle */}
-      <IdleScreen visible={isIdle} onWake={wake} />
+      <IdleScreen visible={isIdle} onWake={wake} canvas={freeCanvas} />
     </>
   );
 }
