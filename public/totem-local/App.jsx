@@ -2814,9 +2814,11 @@ function IdleScreen({ visible, onWake, canvas }) {
                 transition: "all 0.4s ease",
                 boxShadow: i === currentSlide ? "0 4px 20px rgba(0,0,0,0.6)" : "none",
               }}>
-                <img src={item.image} alt="" style={{
-                  width: "100%", height: "100%", objectFit: "cover",
-                }} />
+                {item.image ? (
+                  <img src={item.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1e1b4b, #0f172a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>📄</div>
+                )}
                 <div style={{
                   position: "absolute", inset: 0,
                   background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
