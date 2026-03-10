@@ -76,35 +76,38 @@ where git >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     echo [Setup] Git nao encontrado. Instalando...
     
+    REM Tentar winget primeiro
     where winget >nul 2>nul
     if %ERRORLEVEL% equ 0 (
         echo [Setup] Instalando Git via winget...
         winget install Git.Git --accept-source-agreements --accept-package-agreements -h
-        if %ERRORLEVEL% neq 0 (
-            echo [Setup] ERRO: Falha ao instalar Git via winget.
+    ) else (
+        echo [Setup] winget indisponivel. Baixando Git via PowerShell...
+        set "GIT_INSTALLER=%TEMP%\git-installer.exe"
+        powershell -Command "Write-Host '[Setup] Baixando Git 2.47.1...'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe' -OutFile '%TEMP%\git-installer.exe' -UseBasicParsing"
+        if not exist "%TEMP%\git-installer.exe" (
+            echo [Setup] ERRO: Falha ao baixar Git.
             echo [Setup] Instale manualmente: https://git-scm.com
             pause
             exit /b 1
         )
-        echo [Setup] Git instalado! Reiniciando para aplicar PATH...
-        call refreshenv >nul 2>nul
-        where git >nul 2>nul
-        if %ERRORLEVEL% neq 0 (
-            echo [Setup] PATH ainda nao atualizado.
-            echo [Setup] Feche e abra novamente este script, ou reinicie o PC.
-            pause
-            exit /b 0
-        )
-    ) else (
-        echo.
-        echo ╔══════════════════════════════════════════════════╗
-        echo ║  Git nao encontrado e winget indisponivel!      ║
-        echo ║  Instale manualmente: https://git-scm.com       ║
-        echo ╚══════════════════════════════════════════════════╝
-        echo.
-        pause
-        exit /b 1
+        echo [Setup] Instalando Git silenciosamente...
+        "%TEMP%\git-installer.exe" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+        del "%TEMP%\git-installer.exe" >nul 2>nul
     )
+    
+    REM Atualizar PATH para encontrar Git recem-instalado
+    set "PATH=%PATH%;C:\Program Files\Git\cmd;C:\Program Files (x86)\Git\cmd"
+    call refreshenv >nul 2>nul
+    
+    where git >nul 2>nul
+    if %ERRORLEVEL% neq 0 (
+        echo [Setup] Git instalado mas PATH nao atualizado.
+        echo [Setup] Feche e abra novamente este script.
+        pause
+        exit /b 0
+    )
+    echo [Setup] Git instalado com sucesso!
 )
 
 for /f "tokens=*" %%i in ('git --version') do set GIT_VER=%%i
