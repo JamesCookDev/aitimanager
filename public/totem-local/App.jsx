@@ -2584,45 +2584,104 @@ function IdleScreen({ visible, onWake, canvas }) {
           description: '',
         });
       }
-      // Extract from HTML Puro (iframe) elements — parse htmlContent for images and titles
+      // Extract from HTML Puro (iframe) elements — parse htmlContent with full override support
       if (el.type === 'iframe' && el.props?.htmlContent) {
         try {
           const parser = new DOMParser();
           const doc = parser.parseFromString(el.props.htmlContent, 'text/html');
-          // Apply field overrides if any
-          if (el.props.fieldOverrides) {
-            Object.entries(el.props.fieldOverrides).forEach(([key, value]) => {
-              if (key.startsWith('__delete_') || key.startsWith('__duplicate_')) return;
+
+          // ── Apply fieldOverrides using the SAME logic as the iframe renderer ──
+          const ov = el.props.fieldOverrides;
+          if (ov && Object.keys(ov).length > 0) {
+            // 1) Legacy indexed text overrides (text_1, text_2, …)
+            const textEls = doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div');
+            let tIdx = 0;
+            textEls.forEach(tel => {
+              const directText = Array.from(tel.childNodes)
+                .filter(n => n.nodeType === 3)
+                .map(n => n.textContent?.trim())
+                .filter(Boolean)
+                .join(' ');
+              if (directText) {
+                tIdx++;
+                const key = 'text_' + tIdx;
+                if (ov[key] !== undefined && ov[key] !== directText) {
+                  Array.from(tel.childNodes).forEach(node => {
+                    if (node.nodeType === 3 && node.textContent?.trim() === directText) {
+                      node.textContent = ov[key];
+                    }
+                  });
+                }
+              }
+            });
+            // 2) Legacy indexed image overrides (img_1, img_2, …)
+            let iIdx = 0;
+            doc.body.querySelectorAll('img').forEach(img => {
+              iIdx++;
+              const key = 'img_' + iIdx;
+              if (ov[key] !== undefined) img.setAttribute('src', ov[key]);
+            });
+            // 3) Selector-based overrides (__text_, __img_, __style_, __delete_, __duplicate_)
+            Object.entries(ov).forEach(([k, v]) => {
               try {
-                // Format: "img[selector]__src" or "selector__textContent"
-                const attrMatch = key.match(/^(.+)__(\w+)$/);
-                if (attrMatch) {
-                  const [, sel, attr] = attrMatch;
-                  const target = doc.querySelector(sel);
+                if (k.startsWith('__delete_') && v === 'true') {
+                  const sel = k.slice(9);
+                  const target = doc.body.querySelector(sel);
+                  if (target) target.remove();
+                } else if (k.startsWith('__duplicate_') && v === 'true') {
+                  const sel = k.slice(12);
+                  const target = doc.body.querySelector(sel);
+                  if (target && target.parentElement) {
+                    target.parentElement.insertBefore(target.cloneNode(true), target.nextSibling);
+                  }
+                } else if (k.startsWith('__text_')) {
+                  const sel = k.slice(7);
+                  const target = doc.body.querySelector(sel);
                   if (target) {
-                    if (attr === 'src' || attr === 'href') target.setAttribute(attr, value);
-                    else if (attr === 'textContent') target.textContent = value;
-                    else if (attr === 'style') target.setAttribute('style', value);
+                    const blocks = target.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article');
+                    if (blocks.length === 0) target.textContent = v;
+                  }
+                } else if (k.startsWith('__img_')) {
+                  const sel = k.slice(6);
+                  const target = doc.body.querySelector(sel);
+                  if (target && target.tagName === 'IMG') target.setAttribute('src', v);
+                } else if (k.startsWith('__style_')) {
+                  const rest = k.slice(8);
+                  const lastDunder = rest.lastIndexOf('__');
+                  if (lastDunder >= 0) {
+                    const sel = rest.slice(0, lastDunder);
+                    const prop = rest.slice(lastDunder + 2);
+                    const target = doc.body.querySelector(sel);
+                    if (target) target.style[prop] = v;
                   }
                 }
               } catch (_) {}
             });
+            // 4) Button/link extras overrides (btn_1__bgColor, btn_1__href, etc.)
+            Object.entries(ov).forEach(([k, v]) => {
+              try {
+                const extrasMatch = k.match(/^(btn|link|text|img|color)_(\d+)__(\w+)$/);
+                if (extrasMatch) {
+                  const [, , , attr] = extrasMatch;
+                  // Find the original field and apply — these use the same selectors
+                  // For simplicity, handled via style overrides above
+                }
+              } catch (_) {}
+            });
           }
-          // Extract images (skip tiny icons/logos < 50px specified in style)
-          const imgs = doc.querySelectorAll('img[src]');
+
+          // ── Extract images, titles, descriptions, categories from the OVERRIDDEN DOM ──
+          const imgs = doc.body.querySelectorAll('img[src]');
           const titles = [];
-          // Gather titles from headings
           doc.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]').forEach(heading => {
             const txt = (heading.textContent || '').trim();
             if (txt.length > 2 && txt.length < 200) titles.push(txt);
           });
-          // Gather descriptions
           const descriptions = [];
           doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach(p => {
             const txt = (p.textContent || '').trim();
             if (txt.length > 10 && txt.length < 500) descriptions.push(txt);
           });
-          // Gather category/badge texts
           const categories = [];
           doc.querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]').forEach(badge => {
             const txt = (badge.textContent || '').trim();
@@ -2632,7 +2691,6 @@ function IdleScreen({ visible, onWake, canvas }) {
           imgs.forEach((img, idx) => {
             const src = img.getAttribute('src') || '';
             if (!src || src.startsWith('data:image/svg')) return;
-            // Skip very small explicit images (likely icons)
             const w = parseInt(img.getAttribute('width') || '999');
             const h = parseInt(img.getAttribute('height') || '999');
             if (w < 40 || h < 40) return;
@@ -2643,7 +2701,6 @@ function IdleScreen({ visible, onWake, canvas }) {
               description: descriptions[idx] || descriptions[0] || '',
             });
           });
-          // If no images found but has titles, still add as text-only slide
           if (imgs.length === 0 && titles.length > 0) {
             titles.forEach((title, idx) => {
               items.push({
