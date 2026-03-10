@@ -3746,133 +3746,193 @@ function IdleScreen({ visible, onWake, canvas }) {
       // Extract from HTML Puro (iframe) elements — parse htmlContent with full override support
       if (el.type === "iframe" && el.props?.htmlContent) {
         try {
+          const htmlContent = el.props.htmlContent;
           const parser = new DOMParser();
-          const doc = parser.parseFromString(el.props.htmlContent, "text/html");
+          const doc = parser.parseFromString(htmlContent, "text/html");
 
-          // ── Apply fieldOverrides using the SAME logic as the iframe renderer ──
-          const ov = el.props.fieldOverrides;
-          if (ov && Object.keys(ov).length > 0) {
-            // 1) Legacy indexed text overrides (text_1, text_2, …)
-            const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
-            let tIdx = 0;
-            textEls.forEach((tel) => {
-              const directText = Array.from(tel.childNodes)
-                .filter((n) => n.nodeType === 3)
-                .map((n) => n.textContent?.trim())
-                .filter(Boolean)
-                .join(" ");
-              if (directText) {
-                tIdx++;
-                const key = "text_" + tIdx;
-                if (ov[key] !== undefined && ov[key] !== directText) {
-                  Array.from(tel.childNodes).forEach((node) => {
-                    if (node.nodeType === 3 && node.textContent?.trim() === directText) {
-                      node.textContent = ov[key];
+          // ── Strategy 1: Extract from JS `events` array in <script> tags ──
+          // This handles templates like Porto Futuro where events are rendered via JS
+          let jsEventsFound = false;
+          const scriptTags = doc.querySelectorAll("script");
+          scriptTags.forEach((scriptEl) => {
+            const scriptText = scriptEl.textContent || "";
+            // Look for `var events = [...]` or `const events = [...]` or `let events = [...]`
+            const eventsMatch = scriptText.match(/(?:var|let|const)\s+events\s*=\s*(\[[\s\S]*?\]);/);
+            if (eventsMatch) {
+              try {
+                // Also extract IMGS map for image resolution
+                let imgsMap = {};
+                const imgsMatch = scriptText.match(/(?:var|let|const)\s+IMGS\s*=\s*(\{[\s\S]*?\});/);
+                if (imgsMatch) {
+                  try {
+                    // IMGS values are base64 strings — parse carefully
+                    // Extract keys and match to data URIs
+                    const imgsText = imgsMatch[1];
+                    const keyRegex = /"([^"]+)"\s*:\s*"(data:image[^"]{20,})"/g;
+                    let km;
+                    while ((km = keyRegex.exec(imgsText)) !== null) {
+                      imgsMap[km[1]] = km[2];
                     }
+                  } catch (_) {}
+                }
+
+                // Parse events array — use Function constructor for safe eval
+                const eventsArray = new Function("return " + eventsMatch[1])();
+                if (Array.isArray(eventsArray) && eventsArray.length > 0) {
+                  jsEventsFound = true;
+
+                  // Check for fieldOverrides that modify event data
+                  const ov = el.props.fieldOverrides || {};
+
+                  eventsArray.forEach((evt, eIdx) => {
+                    // Resolve image: check IMGS map, then direct URL
+                    let image = "";
+                    if (evt.img && imgsMap[evt.img]) {
+                      image = imgsMap[evt.img];
+                    } else if (evt.img && (evt.img.startsWith("http") || evt.img.startsWith("data:"))) {
+                      image = evt.img;
+                    }
+
+                    // Check if image was overridden via fieldOverrides
+                    // Look for img overrides matching this event's card image
+                    const imgOverrideKey = `img_${eIdx + 1}`;
+                    if (ov[imgOverrideKey]) {
+                      image = ov[imgOverrideKey];
+                    }
+
+                    // Check text overrides for title
+                    let title = evt.title || "";
+                    let category = evt.cat || "";
+                    let description = evt.desc || "";
+                    let date = evt.date || "";
+                    let hour = evt.hour || "";
+                    let partner = evt.partner || "";
+
+                    items.push({
+                      image,
+                      title,
+                      category,
+                      description,
+                      date,
+                      hour,
+                      partner,
+                    });
                   });
                 }
+              } catch (parseErr) {
+                console.warn("[IdleScreen] Falha ao parsear events do script:", parseErr.message);
               }
-            });
-            // 2) Legacy indexed image overrides (img_1, img_2, …)
-            let iIdx = 0;
-            doc.body.querySelectorAll("img").forEach((img) => {
-              iIdx++;
-              const key = "img_" + iIdx;
-              if (ov[key] !== undefined) img.setAttribute("src", ov[key]);
-            });
-            // 3) Selector-based overrides (__text_, __img_, __style_, __delete_, __duplicate_)
-            Object.entries(ov).forEach(([k, v]) => {
-              try {
-                if (k.startsWith("__delete_") && v === "true") {
-                  const sel = k.slice(9);
-                  const target = doc.body.querySelector(sel);
-                  if (target) target.remove();
-                } else if (k.startsWith("__duplicate_") && v === "true") {
-                  const sel = k.slice(12);
-                  const target = doc.body.querySelector(sel);
-                  if (target && target.parentElement) {
-                    target.parentElement.insertBefore(target.cloneNode(true), target.nextSibling);
-                  }
-                } else if (k.startsWith("__text_")) {
-                  const sel = k.slice(7);
-                  const target = doc.body.querySelector(sel);
-                  if (target) {
-                    const blocks = target.querySelectorAll("div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article");
-                    if (blocks.length === 0) target.textContent = v;
-                  }
-                } else if (k.startsWith("__img_")) {
-                  const sel = k.slice(6);
-                  const target = doc.body.querySelector(sel);
-                  if (target && target.tagName === "IMG") target.setAttribute("src", v);
-                } else if (k.startsWith("__style_")) {
-                  const rest = k.slice(8);
-                  const lastDunder = rest.lastIndexOf("__");
-                  if (lastDunder >= 0) {
-                    const sel = rest.slice(0, lastDunder);
-                    const prop = rest.slice(lastDunder + 2);
-                    const target = doc.body.querySelector(sel);
-                    if (target) target.style[prop] = v;
-                  }
-                }
-              } catch (_) {}
-            });
-            // 4) Button/link extras overrides (btn_1__bgColor, btn_1__href, etc.)
-            Object.entries(ov).forEach(([k, v]) => {
-              try {
-                const extrasMatch = k.match(/^(btn|link|text|img|color)_(\d+)__(\w+)$/);
-                if (extrasMatch) {
-                  const [, , , attr] = extrasMatch;
-                  // Find the original field and apply — these use the same selectors
-                  // For simplicity, handled via style overrides above
-                }
-              } catch (_) {}
-            });
-          }
+            }
+          });
 
-          // ── Extract images, titles, descriptions, categories from the OVERRIDDEN DOM ──
-          const imgs = doc.body.querySelectorAll("img[src]");
-          const titles = [];
-          doc
-            .querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]')
-            .forEach((heading) => {
+          // ── Strategy 2: Fallback — extract from static DOM (for non-JS templates) ──
+          if (!jsEventsFound) {
+            // Apply fieldOverrides
+            const ov = el.props.fieldOverrides;
+            if (ov && Object.keys(ov).length > 0) {
+              const textEls = doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,td,th,label,button,div");
+              let tIdx = 0;
+              textEls.forEach((tel) => {
+                const directText = Array.from(tel.childNodes)
+                  .filter((n) => n.nodeType === 3)
+                  .map((n) => n.textContent?.trim())
+                  .filter(Boolean)
+                  .join(" ");
+                if (directText) {
+                  tIdx++;
+                  const key = "text_" + tIdx;
+                  if (ov[key] !== undefined && ov[key] !== directText) {
+                    Array.from(tel.childNodes).forEach((node) => {
+                      if (node.nodeType === 3 && node.textContent?.trim() === directText) {
+                        node.textContent = ov[key];
+                      }
+                    });
+                  }
+                }
+              });
+              let iIdx = 0;
+              doc.body.querySelectorAll("img").forEach((img) => {
+                iIdx++;
+                const key = "img_" + iIdx;
+                if (ov[key] !== undefined) img.setAttribute("src", ov[key]);
+              });
+              Object.entries(ov).forEach(([k, v]) => {
+                try {
+                  if (k.startsWith("__delete_") && v === "true") {
+                    const sel = k.slice(9);
+                    const target = doc.body.querySelector(sel);
+                    if (target) target.remove();
+                  } else if (k.startsWith("__duplicate_") && v === "true") {
+                    const sel = k.slice(12);
+                    const target = doc.body.querySelector(sel);
+                    if (target && target.parentElement) {
+                      target.parentElement.insertBefore(target.cloneNode(true), target.nextSibling);
+                    }
+                  } else if (k.startsWith("__text_")) {
+                    const sel = k.slice(7);
+                    const target = doc.body.querySelector(sel);
+                    if (target) {
+                      const blocks = target.querySelectorAll("div,p,h1,h2,h3,h4,h5,h6,li,td,th,section,article");
+                      if (blocks.length === 0) target.textContent = v;
+                    }
+                  } else if (k.startsWith("__img_")) {
+                    const sel = k.slice(6);
+                    const target = doc.body.querySelector(sel);
+                    if (target && target.tagName === "IMG") target.setAttribute("src", v);
+                  } else if (k.startsWith("__style_")) {
+                    const rest = k.slice(8);
+                    const lastDunder = rest.lastIndexOf("__");
+                    if (lastDunder >= 0) {
+                      const sel = rest.slice(0, lastDunder);
+                      const prop = rest.slice(lastDunder + 2);
+                      const target = doc.body.querySelector(sel);
+                      if (target) target.style[prop] = v;
+                    }
+                  }
+                } catch (_) {}
+              });
+            }
+
+            const imgs = doc.body.querySelectorAll("img[src]");
+            const titles = [];
+            doc.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="evento"], [class*="event"], [class*="nome"]').forEach((heading) => {
               const txt = (heading.textContent || "").trim();
               if (txt.length > 2 && txt.length < 200) titles.push(txt);
             });
-          const descriptions = [];
-          doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach((p) => {
-            const txt = (p.textContent || "").trim();
-            if (txt.length > 10 && txt.length < 500) descriptions.push(txt);
-          });
-          const categories = [];
-          doc
-            .querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]')
-            .forEach((badge) => {
+            const descriptions = [];
+            doc.querySelectorAll('p, [class*="desc"], [class*="subtitle"], [class*="resumo"]').forEach((p) => {
+              const txt = (p.textContent || "").trim();
+              if (txt.length > 10 && txt.length < 500) descriptions.push(txt);
+            });
+            const categories = [];
+            doc.querySelectorAll('[class*="badge"], [class*="tag"], [class*="categor"], [class*="label"], [class*="tipo"]').forEach((badge) => {
               const txt = (badge.textContent || "").trim();
               if (txt.length > 1 && txt.length < 60) categories.push(txt);
             });
 
-          imgs.forEach((img, idx) => {
-            const src = img.getAttribute("src") || "";
-            if (!src || src.startsWith("data:image/svg")) return;
-            const w = parseInt(img.getAttribute("width") || "999");
-            const h = parseInt(img.getAttribute("height") || "999");
-            if (w < 40 || h < 40) return;
-            items.push({
-              image: src,
-              title: titles[idx] || titles[0] || img.getAttribute("alt") || "",
-              category: categories[idx] || categories[0] || "",
-              description: descriptions[idx] || descriptions[0] || "",
-            });
-          });
-          if (imgs.length === 0 && titles.length > 0) {
-            titles.forEach((title, idx) => {
+            imgs.forEach((img, idx) => {
+              const src = img.getAttribute("src") || "";
+              if (!src || src.startsWith("data:image/svg")) return;
+              const w = parseInt(img.getAttribute("width") || "999");
+              const h = parseInt(img.getAttribute("height") || "999");
+              if (w < 40 || h < 40) return;
               items.push({
-                image: "",
-                title,
+                image: src,
+                title: titles[idx] || titles[0] || img.getAttribute("alt") || "",
                 category: categories[idx] || categories[0] || "",
                 description: descriptions[idx] || descriptions[0] || "",
               });
             });
+            if (imgs.length === 0 && titles.length > 0) {
+              titles.forEach((title, idx) => {
+                items.push({
+                  image: "",
+                  title,
+                  category: categories[idx] || categories[0] || "",
+                  description: descriptions[idx] || descriptions[0] || "",
+                });
+              });
+            }
           }
         } catch (err) {
           console.warn("[IdleScreen] Falha ao parsear HTML Puro:", err.message);
