@@ -541,20 +541,39 @@ export function IframePlaceholder(props: IframeProps) {
     toolbar.className = 'layout-toolbar';
 
     var rect = el.getBoundingClientRect();
-    toolbar.style.left = Math.max(0, Math.min(rect.left, window.innerWidth - 300)) + 'px';
+    toolbar.style.left = Math.max(0, Math.min(rect.left, window.innerWidth - 400)) + 'px';
     toolbar.style.top = Math.max(0, rect.top - 36) + 'px';
 
     var tag = el.tagName.toLowerCase();
     var isImg = tag === 'img';
+    var isTextEl = ['h1','h2','h3','h4','h5','h6','p','span','a','li','td','th','label','button'].indexOf(tag) >= 0;
     var hasBg = window.getComputedStyle(el).backgroundImage !== 'none';
 
-    toolbar.innerHTML = '<button class="btn-move" data-action="move" title="Arrastar (ou use setas do teclado)">↕ Mover</button>'
-      + (isImg ? '<button class="btn-bg" data-action="change-img" title="Trocar imagem">🖼 Imagem</button>' : '')
-      + (hasBg || !isImg ? '<button class="btn-bg" data-action="change-bg" title="Trocar imagem de fundo">🎨 Fundo</button>' : '')
-      + '<button class="btn-duplicate" data-action="duplicate" title="Duplicar elemento">⧉ Duplicar</button>'
-      + '<button class="btn-hide" data-action="hide" title="Ocultar elemento">👁 Ocultar</button>'
-      + '<button class="btn-delete" data-action="delete" title="Excluir elemento (Delete)">✕ Excluir</button>';
+    var buttons = '';
+    // Edit text — for text-containing elements
+    if (isTextEl) {
+      buttons += '<button class="btn-edit-text" data-action="edit-text" title="Editar texto deste elemento">✏️ Texto</button>';
+    }
+    // Change image
+    if (isImg) {
+      buttons += '<button class="btn-bg" data-action="change-img" title="Trocar imagem">🖼 Imagem</button>';
+    }
+    // Change background
+    if (hasBg || !isImg) {
+      buttons += '<button class="btn-bg" data-action="change-bg" title="Trocar imagem de fundo">🎨 Fundo</button>';
+    }
+    // Style panel
+    buttons += '<button class="btn-style" data-action="open-style" title="Editar estilos CSS">🎨 Estilos</button>';
+    // Move
+    buttons += '<button class="btn-move" data-action="move" title="Arrastar (ou use setas)">↕ Mover</button>';
+    // Duplicate
+    buttons += '<button class="btn-duplicate" data-action="duplicate" title="Duplicar elemento">⧉ Duplicar</button>';
+    // Hide
+    buttons += '<button class="btn-hide" data-action="hide" title="Ocultar elemento">👁 Ocultar</button>';
+    // Delete
+    buttons += '<button class="btn-delete" data-action="delete" title="Excluir (Delete)">✕ Excluir</button>';
 
+    toolbar.innerHTML = buttons;
     document.body.appendChild(toolbar);
     layoutToolbar = toolbar;
 
@@ -569,8 +588,41 @@ export function IframePlaceholder(props: IframeProps) {
         else if (action === 'change-bg') changeBackground();
         else if (action === 'duplicate') duplicateSelected();
         else if (action === 'move') startDrag(e);
+        else if (action === 'edit-text') editTextInline(el);
+        else if (action === 'open-style') openStyleForSelected(el);
       });
     });
+  }
+
+  function editTextInline(el) {
+    if (!el) return;
+    el.contentEditable = 'true';
+    el.focus();
+    el.style.outline = '2px solid #818cf8';
+    el.style.outlineOffset = '2px';
+    // Remove toolbar while editing text
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    el.addEventListener('blur', function onBlur() {
+      el.contentEditable = 'false';
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+      var sel = buildSel(el);
+      var newText = el.textContent.trim();
+      window.parent.postMessage({ type: 'inline-edit-text', selector: sel, text: newText }, '*');
+      // Re-show toolbar
+      if (layoutSelected === el) showLayoutToolbar(el);
+      el.removeEventListener('blur', onBlur);
+    });
+  }
+
+  function openStyleForSelected(el) {
+    if (!el) return;
+    // Remove layout toolbar, show style panel
+    if (layoutToolbar) { layoutToolbar.remove(); layoutToolbar = null; }
+    styledEl = el;
+    el.setAttribute('data-style-highlight', '');
+    var rect = el.getBoundingClientRect();
+    showStylePanel(el, rect.left, rect.bottom + 8);
   }
 
   function deleteSelected() {
