@@ -267,7 +267,12 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [state, onSave]);
 
   const handlePublish = useCallback(() => {
-    onPublish?.(state); setDirty(false);
+    // Clean orphan views before publishing
+    const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
+    usedViewIds.add('__default__');
+    const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
+    const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
+    onPublish?.(cleanState); setDirty(false);
   }, [state, onPublish]);
 
   const handleExport = useCallback(() => {
