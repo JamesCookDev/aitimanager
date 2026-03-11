@@ -258,11 +258,21 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [dispatch, activeViewId]);
 
   const handleSave = useCallback(() => {
-    onSave?.(state); setDirty(false); toast.success('Layout salvo!');
+    // Clean orphan views before saving (keep views that have elements or are default)
+    const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
+    usedViewIds.add('__default__');
+    const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
+    const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
+    onSave?.(cleanState); setDirty(false); toast.success('Layout salvo!');
   }, [state, onSave]);
 
   const handlePublish = useCallback(() => {
-    onPublish?.(state); setDirty(false);
+    // Clean orphan views before publishing
+    const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
+    usedViewIds.add('__default__');
+    const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
+    const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
+    onPublish?.(cleanState); setDirty(false);
   }, [state, onPublish]);
 
   const handleExport = useCallback(() => {
