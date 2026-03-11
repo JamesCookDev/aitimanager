@@ -249,8 +249,20 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
       });
     }
     case 'LOAD': {
-      const views = action.state.views?.length ? action.state.views : [{ ...DEFAULT_VIEW }];
-      const defaultViewId = views.find(v => v.isDefault)?.id || views[0]?.id || '__default__';
+      const rawViews = action.state.views?.length ? action.state.views : [{ ...DEFAULT_VIEW }];
+      // Deduplicate views by id (keep first occurrence)
+      const seenIds = new Set<string>();
+      const views = rawViews.filter(v => {
+        if (seenIds.has(v.id)) return false;
+        seenIds.add(v.id);
+        return true;
+      });
+      // Remove orphan views (no elements assigned and not default)
+      const usedViewIds = new Set((action.state.elements || []).map(e => e.viewId).filter(Boolean));
+      usedViewIds.add('__default__');
+      const cleanViews = views.filter(v => v.isDefault || usedViewIds.has(v.id));
+      const finalViews = cleanViews.length ? cleanViews : [{ ...DEFAULT_VIEW }];
+      const defaultViewId = finalViews.find(v => v.isDefault)?.id || finalViews[0]?.id || '__default__';
       // Migrate orphaned elements (viewId null/undefined/__global__) to the default page
       const elements = (action.state.elements || []).map(e =>
         (!e.viewId || e.viewId === '__global__') ? { ...e, viewId: defaultViewId } : e
@@ -258,7 +270,7 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
       return {
         ...action.state,
         elements,
-        views,
+        views: finalViews,
         activeViewId: action.state.activeViewId || defaultViewId,
         viewIdleTimeout: action.state.viewIdleTimeout ?? 30,
       };
