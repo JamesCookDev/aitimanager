@@ -392,13 +392,67 @@ async function handleRemoteCommand() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  BOOTSTRAP
+//  AUTO-RESTART — respawna o processo em caso de erro fatal
 // ══════════════════════════════════════════════════════════════
-async function main() {
+const MAX_RESTARTS   = 10;
+const RESTART_WINDOW = 60000; // 1 minuto
+const RESTART_DELAY  = 5000;  // 5 segundos entre restarts
+
+if (process.env.__TOTEM_CHILD === 'true') {
+  // ── Processo filho — executa o worker de verdade ──────────
+  runWorker().catch((err) => {
+    error(`Falha fatal: ${err.message}`);
+    process.exit(1);
+  });
+} else {
+  // ── Processo pai — supervisiona e reinicia ────────────────
+  const restartTimes = [];
+
+  function spawnChild() {
+    const child = spawn(process.execPath, [__filename, ...ARGS], {
+      stdio: 'inherit',
+      env: { ...process.env, __TOTEM_CHILD: 'true' },
+    });
+
+    child.on('exit', (code) => {
+      if (code === 0) {
+        log('Worker encerrado normalmente.');
+        process.exit(0);
+      }
+
+      const now = Date.now();
+      restartTimes.push(now);
+      // Manter apenas restarts dentro da janela
+      while (restartTimes.length > 0 && restartTimes[0] < now - RESTART_WINDOW) {
+        restartTimes.shift();
+      }
+
+      if (restartTimes.length >= MAX_RESTARTS) {
+        error(`${MAX_RESTARTS} crashes em menos de ${RESTART_WINDOW / 1000}s — abortando.`);
+        process.exit(1);
+      }
+
+      warn(`Worker crashou (código ${code}). Reiniciando em ${RESTART_DELAY / 1000}s... (${restartTimes.length}/${MAX_RESTARTS})`);
+      setTimeout(spawnChild, RESTART_DELAY);
+    });
+
+    // Repassar sinais para o filho
+    process.on('SIGINT',  () => child.kill('SIGINT'));
+    process.on('SIGTERM', () => child.kill('SIGTERM'));
+  }
+
+  log('🛡️  Supervisor ativo — auto-restart habilitado');
+  spawnChild();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WORKER — lógica principal
+// ══════════════════════════════════════════════════════════════
+async function runWorker() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║         TOTEM WORKER  v6.0.0                     ║');
-  console.log('║         HTTP Server + HTML Updater                ║');
+  console.log('║         TOTEM WORKER  v7.0.0                     ║');
+  console.log('║         HTTP Server + HTML Updater + Auto-Restart ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
@@ -412,6 +466,7 @@ async function main() {
   log(`HTTP Port    : ${HTTP_PORT()}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
   log(`Kiosk        : ${FLAG_NO_KIOSK ? 'desativado' : KIOSK_URL()}`);
+  log(`Auto-restart : ativado (max ${MAX_RESTARTS} em ${RESTART_WINDOW / 1000}s)`);
   console.log('');
 
   // Initial HTML fetch
@@ -467,8 +522,3 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 }
-
-main().catch((err) => {
-  error(`Falha fatal: ${err.message}`);
-  process.exit(1);
-});
