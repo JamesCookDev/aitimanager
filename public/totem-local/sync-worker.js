@@ -558,7 +558,12 @@ async function runWorker() {
   loadEnv();
   VERBOSE = process.env.VERBOSE === 'true';
 
+  if (!validateRuntimeConfig()) {
+    process.exit(1);
+  }
+
   log(`API URL      : ${CMS_API_URL()}`);
+  log(`Base URL     : ${SUPABASE_URL() || '(não definida)'}`);
   log(`Device ID    : ${DEVICE_ID() || '(via API key)'}`);
   log(`HTTP Port    : ${HTTP_PORT()}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
