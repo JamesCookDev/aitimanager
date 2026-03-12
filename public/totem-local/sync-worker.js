@@ -471,9 +471,10 @@ async function handleRemoteCommand() {
         await pollForUpdates();
         break;
       case 'restart':
-        log('🔃 Reiniciando...');
-        process.exit(0); // Será reiniciado pelo start-totem
-        break;
+        log('🔃 Reiniciando por comando remoto...');
+        await reportCommandResult(command, 'executed', null);
+        process.exit(EXIT_CODE_REMOTE_RESTART);
+        return;
       default:
         warn(`Comando desconhecido: "${command}"`);
         success = false;
