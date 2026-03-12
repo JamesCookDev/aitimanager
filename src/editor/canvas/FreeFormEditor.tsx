@@ -454,7 +454,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <Upload className="w-3.5 h-3.5" /> Importar JSON
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-xs gap-2.5">
-                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (HTML/SVG)
+                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (SVG)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHTMLImport(true)} className="text-xs gap-2.5">
+                  <Upload className="w-3.5 h-3.5 text-blue-500" /> Importar HTML 📄
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-xs gap-2.5">
                   <FolderOpen className="w-3.5 h-3.5" /> Layouts Salvos
