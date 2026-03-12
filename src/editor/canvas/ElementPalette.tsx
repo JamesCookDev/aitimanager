@@ -3,7 +3,7 @@ import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Megaphone,
   List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
-  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3, Rss,
+  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3, Rss, FileCode2,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
