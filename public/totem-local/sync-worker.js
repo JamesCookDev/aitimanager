@@ -113,7 +113,15 @@ function CMS_API_URL() {
 }
 
 function DEVICE_ID() { return process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || ''; }
-function API_KEY() { return process.env.API_KEY || process.env.TOTEM_API_KEY || ''; }
+function API_KEY() {
+  return (
+    process.env.API_KEY ||
+    process.env.TOTEM_API_KEY ||
+    process.env.VITE_TOTEM_API_KEY ||
+    process.env.VITE_API_KEY ||
+    ''
+  );
+}
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
 function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
 function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
