@@ -3,6 +3,7 @@ import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
   Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen,
+  Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -94,29 +95,31 @@ interface Props {
 }
 
 /* ── Toolbar icon button ─────────── */
-function Tb({ tip, onClick, icon: Icon, disabled, active, className: cls }: {
-  tip: string; onClick: () => void; icon: any; disabled?: boolean; active?: boolean; className?: string;
+function Tb({ tip, onClick, icon: Icon, disabled, active, className: cls, label }: {
+  tip: string; onClick: () => void; icon: any; disabled?: boolean; active?: boolean; className?: string; label?: string;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size={label ? "sm" : "icon"}
           className={cn(
-            "h-7 w-7 rounded-md transition-all",
+            "rounded-lg transition-all",
+            label ? "h-9 px-3 gap-1.5 text-xs font-medium" : "h-9 w-9",
             active
               ? "bg-primary/15 text-primary shadow-sm shadow-primary/10"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
             cls,
           )}
           onClick={onClick}
           disabled={disabled}
         >
-          <Icon className="w-3.5 h-3.5" />
+          <Icon className={cn(label ? "w-4 h-4" : "w-4 h-4")} />
+          {label && <span className="hidden lg:inline">{label}</span>}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px] font-medium">{tip}</TooltipContent>
+      <TooltipContent side="bottom" className="text-xs font-medium">{tip}</TooltipContent>
     </Tooltip>
   );
 }
@@ -260,7 +263,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [dispatch, activeViewId]);
 
   const handleSave = useCallback(() => {
-    // Clean orphan views before saving (keep views that have elements or are default)
     const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
     usedViewIds.add('__default__');
     const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
@@ -269,7 +271,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   }, [state, onSave]);
 
   const handlePublish = useCallback(() => {
-    // Clean orphan views before publishing
     const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
     usedViewIds.add('__default__');
     const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
@@ -342,44 +343,115 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     { label: '100%', action: () => setScale(1) },
   ];
 
+  /* ── Floating element toolbar ── */
+  const FloatingElementToolbar = () => {
+    if (!selectedElement || previewMode) return null;
+    const elX = selectedElement.x * scale + canvasX;
+    const elY = selectedElement.y * scale + canvasY;
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 8 }}
+        className="absolute z-[100] pointer-events-auto"
+        style={{
+          left: elX,
+          top: Math.max(8, elY - 52),
+        }}
+      >
+        <div className="flex items-center gap-1 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-2xl px-2 py-1.5">
+          <span className="text-xs font-semibold text-foreground px-2 max-w-[120px] truncate">
+            {selectedElement.name}
+          </span>
+          <Separator orientation="vertical" className="h-5" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => dispatch({ type: 'DUPLICATE', id: selectedElement.id })}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Duplicar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => dispatch({ type: 'BRING_FORWARD', id: selectedElement.id })}>
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Trazer frente</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => dispatch({ type: 'SEND_BACKWARD', id: selectedElement.id })}>
+                <ArrowDown className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Enviar trás</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => {
+                const el = state.elements.find(e => e.id === selectedElement.id);
+                if (el) dispatch({ type: 'UPDATE_ELEMENT', id: el.id, patch: { locked: !el.locked } });
+              }}>
+                {selectedElement.locked ? <Lock className="w-4 h-4 text-warning" /> : <Unlock className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">{selectedElement.locked ? 'Desbloquear' : 'Bloquear'}</TooltipContent>
+          </Tooltip>
+          <Separator orientation="vertical" className="h-5" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive" onClick={() => dispatch({ type: 'DELETE_ELEMENT', id: selectedElement.id })}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Excluir</TooltipContent>
+          </Tooltip>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <PageVariablesProvider navigateToPage={handleNavigateToPage}>
     <TooltipProvider delayDuration={200}>
-      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background overflow-hidden rounded-lg border border-border/50 shadow-sm">
+      <div className="flex flex-col h-[calc(100vh-5rem)] bg-background overflow-hidden rounded-xl border border-border/50 shadow-lg">
 
         {/* ══════ TOP TOOLBAR ══════ */}
-        <div className="flex items-center gap-1.5 px-2 h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm shrink-0">
+        <div className="flex items-center gap-2 px-3 h-14 border-b border-border/60 bg-card/90 backdrop-blur-sm shrink-0">
 
           {/* ── Left cluster: Panel toggle + Page selector ── */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Tb
-              tip={leftOpen ? "Ocultar painel (←)" : "Mostrar painel"}
+              tip={leftOpen ? "Ocultar painel" : "Mostrar painel"}
               onClick={() => setLeftOpen(p => !p)}
               icon={leftOpen ? PanelLeftClose : PanelLeft}
               active={leftOpen}
             />
 
-            <Separator orientation="vertical" className="h-5 mx-0.5" />
+            <Separator orientation="vertical" className="h-6" />
 
-            {/* Page pill */}
+            {/* Page pill - bigger and more prominent */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-all">
-                  <FileText className="w-3 h-3 text-primary" />
-                  <span className="text-[10px] font-semibold text-primary max-w-[90px] truncate">{activePage?.name || 'Home'}</span>
-                  <ChevronDown className="w-2.5 h-2.5 text-primary/50" />
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-all">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold text-primary max-w-[120px] truncate">{activePage?.name || 'Home'}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-primary/50" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-52">
                 {views.map(v => (
                   <DropdownMenuItem
                     key={v.id}
                     onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', id: v.id })}
-                    className={cn("text-xs gap-2", v.id === activeViewId && "bg-primary/10 text-primary font-medium")}
+                    className={cn("text-sm gap-2 py-2", v.id === activeViewId && "bg-primary/10 text-primary font-medium")}
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <FileText className="w-4 h-4" />
                     {v.name}
-                    {v.isDefault && <span className="text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full ml-auto">Home</span>}
+                    {v.isDefault && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full ml-auto">Home</span>}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -387,22 +459,23 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
             {/* Dirty indicator */}
             {dirty && (
-              <div className="flex items-center gap-1 ml-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                <span className="text-[10px] text-warning font-medium hidden sm:inline">Não salvo</span>
               </div>
             )}
           </div>
 
-          {/* ── Center: Zoom controls — floating pill ── */}
+          {/* ── Center: Zoom controls ── */}
           <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-0.5 bg-muted/30 rounded-full px-1 py-0.5 border border-border/40">
+            <div className="flex items-center gap-1 bg-muted/30 rounded-xl px-1.5 py-1 border border-border/40">
               <Tb tip="Zoom −" onClick={() => setScale(s => Math.max(0.15, s - 0.05))} icon={ZoomOut} />
               {ZOOM_PRESETS.map(z => (
                 <button
                   key={z.label}
                   onClick={z.action}
                   className={cn(
-                    "text-[9px] px-2 py-1 rounded-full transition-all font-semibold",
+                    "text-xs px-3 py-1.5 rounded-lg transition-all font-semibold",
                     z.label === `${zoomPercent}%`
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -411,61 +484,62 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   {z.label}
                 </button>
               ))}
-              <span className="text-[9px] font-mono text-muted-foreground/50 w-8 text-center tabular-nums">{zoomPercent}%</span>
+              <span className="text-xs font-mono text-muted-foreground/60 w-10 text-center tabular-nums">{zoomPercent}%</span>
               <Tb tip="Zoom +" onClick={() => setScale(s => Math.min(1.5, s + 0.05))} icon={ZoomIn} />
             </div>
           </div>
 
           {/* ── Right cluster: Actions ── */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             <Tb tip="Desfazer (Ctrl+Z)" onClick={history.undo} icon={Undo2} disabled={!history.canUndo} />
             <Tb tip="Refazer (Ctrl+Y)" onClick={history.redo} icon={Redo2} disabled={!history.canRedo} />
 
-            <Separator orientation="vertical" className="h-5 mx-0.5" />
+            <Separator orientation="vertical" className="h-6 mx-1" />
 
-            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} />
+            {/* Save button with label */}
+            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} label="Salvar" />
 
             {/* More actions */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">
-                  <MoreVertical className="w-3.5 h-3.5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                  <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-xs gap-2.5">
-                  <Monitor className="w-3.5 h-3.5" />
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setShowFrame(p => !p)} className="text-sm gap-3 py-2.5">
+                  <Monitor className="w-4 h-4" />
                   <span className="flex-1">Moldura do Totem</span>
-                  {showFrame && <span className="text-[10px] text-primary">✓</span>}
+                  {showFrame && <span className="text-xs text-primary font-bold">✓</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-xs gap-2.5">
-                  <Ruler className="w-3.5 h-3.5" />
+                <DropdownMenuItem onClick={() => setShowZones(p => !p)} className="text-sm gap-3 py-2.5">
+                  <Ruler className="w-4 h-4" />
                   <span className="flex-1">Guias de Zona</span>
-                  {showZones && <span className="text-[10px] text-primary">✓</span>}
+                  {showZones && <span className="text-xs text-primary font-bold">✓</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowAIGenerate(true)} className="text-xs gap-2.5">
-                  <Sparkles className="w-3.5 h-3.5 text-violet-500" /> Gerar com IA ✨
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleExport} className="text-xs gap-2.5">
-                  <Download className="w-3.5 h-3.5" /> Exportar JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleImport} className="text-xs gap-2.5">
-                  <Upload className="w-3.5 h-3.5" /> Importar JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-xs gap-2.5">
-                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (SVG)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowHTMLImport(true)} className="text-xs gap-2.5">
-                  <Upload className="w-3.5 h-3.5 text-blue-500" /> Importar HTML 📄
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-xs gap-2.5">
-                  <FolderOpen className="w-3.5 h-3.5" /> Layouts Salvos
+                <DropdownMenuItem onClick={() => setShowAIGenerate(true)} className="text-sm gap-3 py-2.5">
+                  <Sparkles className="w-4 h-4 text-violet-500" /> Gerar com IA ✨
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-xs gap-2.5">
-                  <Keyboard className="w-3.5 h-3.5" /> Atalhos
-                  {showShortcuts && <span className="text-[10px] text-primary">✓</span>}
+                <DropdownMenuItem onClick={handleExport} className="text-sm gap-3 py-2.5">
+                  <Download className="w-4 h-4" /> Exportar JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleImport} className="text-sm gap-3 py-2.5">
+                  <Upload className="w-4 h-4" /> Importar JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-sm gap-3 py-2.5">
+                  <FileCode2 className="w-4 h-4" /> Importar SVG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHTMLImport(true)} className="text-sm gap-3 py-2.5">
+                  <Upload className="w-4 h-4 text-blue-500" /> Importar HTML
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-sm gap-3 py-2.5">
+                  <FolderOpen className="w-4 h-4" /> Layouts Salvos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-sm gap-3 py-2.5">
+                  <Keyboard className="w-4 h-4" /> Atalhos
+                  {showShortcuts && <span className="text-xs text-primary font-bold">✓</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -476,11 +550,11 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               trigger={
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">
-                      <LayoutTemplate className="w-3.5 h-3.5" />
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                      <LayoutTemplate className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-[10px] font-medium">Templates</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs font-medium">Templates</TooltipContent>
                 </Tooltip>
               }
             />
@@ -492,14 +566,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               active={rightOpen}
             />
 
-            <Separator orientation="vertical" className="h-5 mx-0.5" />
+            <Separator orientation="vertical" className="h-6 mx-1" />
 
             {/* Preview toggle */}
             <Button
-              variant={previewMode ? 'default' : 'ghost'}
+              variant={previewMode ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                "h-7 text-[10px] gap-1 px-2.5 rounded-md font-semibold",
+                "h-9 text-xs gap-1.5 px-4 rounded-lg font-semibold",
                 previewMode && "shadow-md"
               )}
               onClick={() => {
@@ -507,7 +581,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 if (!previewMode) dispatch({ type: 'SELECT', id: null });
               }}
             >
-              {previewMode ? <Pencil className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              {previewMode ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               {previewMode ? 'Editar' : 'Preview'}
             </Button>
 
@@ -515,10 +589,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             {onPublish && (
               <Button
                 size="sm"
-                className="h-7 text-[10px] gap-1 px-3 rounded-md font-bold shadow-md bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                className="h-9 text-xs gap-1.5 px-5 rounded-lg font-bold shadow-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
                 onClick={handlePublish}
               >
-                <Rocket className="w-3 h-3" /> Publicar
+                <Rocket className="w-4 h-4" /> Publicar
               </Button>
             )}
           </div>
@@ -533,7 +607,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden border-b border-border/40"
             >
-              <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/20 text-[9px] text-muted-foreground flex-wrap">
+              <div className="flex items-center gap-5 px-4 py-2 bg-muted/20 text-xs text-muted-foreground flex-wrap">
                 <span><kbd className="kbd">Del</kbd> Excluir</span>
                 <span><kbd className="kbd">Ctrl+D</kbd> Duplicar</span>
                 <span><kbd className="kbd">Ctrl+S</kbd> Salvar</span>
@@ -553,24 +627,24 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             {leftOpen && !previewMode && (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 248, opacity: 1 }}
+                animate={{ width: 272, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="border-r border-border/50 bg-card/60 backdrop-blur-sm shrink-0 flex flex-col overflow-hidden"
               >
                 <Tabs value={leftTab} onValueChange={setLeftTab} className="flex flex-col h-full">
-                  <TabsList className="w-full shrink-0 rounded-none bg-transparent h-9 px-1.5 gap-0.5 border-b border-border/40">
+                  <TabsList className="w-full shrink-0 rounded-none bg-transparent h-11 px-2 gap-1 border-b border-border/40">
                     <TabsTrigger
                       value="pages"
-                      className="text-[10px] gap-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-semibold"
+                      className="text-xs gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-9 rounded-lg font-semibold"
                     >
-                      <Layers className="w-3 h-3" /> Páginas
+                      <Layers className="w-4 h-4" /> Páginas
                     </TabsTrigger>
                     <TabsTrigger
                       value="elements"
-                      className="text-[10px] gap-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-7 rounded-md font-semibold"
+                      className="text-xs gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none flex-1 h-9 rounded-lg font-semibold"
                     >
-                      <Sparkles className="w-3 h-3" /> Elementos
+                      <Sparkles className="w-4 h-4" /> Elementos
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="pages" className="flex-1 overflow-hidden mt-0">
@@ -625,13 +699,18 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             onDragOver={handleCanvasDragOver}
             onDragLeave={handleCanvasDragLeave}
           >
+            {/* Floating element toolbar */}
+            <AnimatePresence>
+              {selectedElement && <FloatingElementToolbar />}
+            </AnimatePresence>
+
             {/* Drop overlay */}
             {dragOverCanvas && (
               <div className="absolute inset-0 z-50 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center pointer-events-none">
-                <div className="bg-card/90 backdrop-blur-sm rounded-xl px-6 py-4 shadow-xl border border-primary/30 text-center">
-                  <Upload className="w-8 h-8 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-foreground">Solte o arquivo HTML aqui</p>
-                  <p className="text-xs text-muted-foreground mt-1">Cada elemento será separado e editável individualmente</p>
+                <div className="bg-card/90 backdrop-blur-sm rounded-xl px-8 py-5 shadow-xl border border-primary/30 text-center">
+                  <Upload className="w-10 h-10 text-primary mx-auto mb-3" />
+                  <p className="text-base font-semibold text-foreground">Solte o arquivo HTML aqui</p>
+                  <p className="text-sm text-muted-foreground mt-1">Cada elemento será separado e editável</p>
                 </div>
               </div>
             )}
@@ -705,7 +784,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             {rightOpen && !previewMode && (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 280, opacity: 1 }}
+                animate={{ width: 300, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="border-l border-border/50 bg-card/60 backdrop-blur-sm shrink-0 overflow-hidden"
@@ -741,7 +820,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   onAssignView={(elementId, viewId) => dispatch({ type: 'ASSIGN_ELEMENT_VIEW', elementId, viewId })}
                   selectedNavElement={selectedNavElement}
                   onAssignNavigation={(selector, pageId, pageName) => {
-                    // Send message to iframe to update the element
                     const iframes = document.querySelectorAll('iframe');
                     iframes.forEach(iframe => {
                       iframe.contentWindow?.postMessage({
@@ -751,7 +829,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                         pageName,
                       }, '*');
                     });
-                    // Also persist to HTML via override
                     if (state.selectedId) {
                       const el = state.elements.find(e => e.id === state.selectedId);
                       if (el?.props?.htmlContent) {
@@ -772,25 +849,25 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         </div>
 
         {/* ══════ STATUS BAR ══════ */}
-        <div className="flex items-center justify-between px-3 h-6 border-t border-border/40 bg-card/50 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="text-[8px] font-mono text-muted-foreground/40 tabular-nums">
+        <div className="flex items-center justify-between px-4 h-7 border-t border-border/40 bg-card/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-muted-foreground/50 tabular-nums">
               {CANVAS_WIDTH}×{CANVAS_HEIGHT}
             </span>
-            <span className="text-[8px] text-muted-foreground/30">•</span>
-            <span className="text-[8px] text-muted-foreground/40">
+            <span className="text-[10px] text-muted-foreground/30">•</span>
+            <span className="text-[10px] text-muted-foreground/50">
               {visibleElements.length} elemento{visibleElements.length !== 1 ? 's' : ''}
             </span>
             {selectedElement && (
               <>
-                <span className="text-[8px] text-muted-foreground/30">•</span>
-                <span className="text-[8px] text-primary/60 font-medium">{selectedElement.name}</span>
+                <span className="text-[10px] text-muted-foreground/30">•</span>
+                <span className="text-[10px] text-primary/70 font-medium">{selectedElement.name}</span>
               </>
             )}
           </div>
-          <div className="flex items-center gap-2.5">
-            {deviceName && <span className="text-[8px] text-muted-foreground/30 flex items-center gap-1"><Monitor className="w-2.5 h-2.5" />{deviceName}</span>}
-            <span className="text-[8px] text-muted-foreground/20 font-semibold tracking-widest uppercase">Totem Builder</span>
+          <div className="flex items-center gap-3">
+            {deviceName && <span className="text-[10px] text-muted-foreground/40 flex items-center gap-1"><Monitor className="w-3 h-3" />{deviceName}</span>}
+            <span className="text-[10px] text-muted-foreground/25 font-semibold tracking-widest uppercase">Totem Builder</span>
           </div>
         </div>
       </div>
@@ -800,35 +877,28 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       open={showSvgImport}
       onOpenChange={setShowSvgImport}
       onImport={(imported) => {
-        // Instead of replacing the entire state, ADD elements to the current active page
         const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
         
-        // Assign each imported element to the current active page
         const newElements = imported.elements.map(el => ({
           ...el,
           viewId: activeViewId,
-          id: `${el.id}_${Date.now()}`, // Ensure unique IDs
+          id: `${el.id}_${Date.now()}`,
         }));
         
-        // If imported state has multiple views (multi-page HTML), create new views
         const importedViews = imported.views || [];
         const hasMultiplePages = importedViews.length > 1;
         
         if (hasMultiplePages) {
-          // Multi-page import: create new views and assign elements
           const viewMap: Record<string, string> = {};
           importedViews.forEach(v => {
             if (v.isDefault) {
-              // Map default imported page to the current active view
               viewMap[v.id] = activeViewId;
             } else {
-              // Create new views for non-default pages
               const newId = viewUid();
               viewMap[v.id] = newId;
               dispatch({ type: 'ADD_VIEW', view: { id: newId, name: v.name } });
             }
           });
-          // Re-assign elements to mapped view IDs
           const mappedElements = imported.elements.map(el => ({
             ...el,
             viewId: viewMap[el.viewId || importedViews[0]?.id || '__default__'] || activeViewId,
@@ -836,11 +906,9 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           }));
           mappedElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
         } else {
-          // Single page import: add all elements to current page
           newElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
         }
         
-        // Set page bg color if provided
         if (imported.bgColor && imported.bgColor !== state.bgColor) {
           dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: imported.bgColor });
         }
@@ -878,10 +946,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           let targetViewId: string;
 
           if (i === 0) {
-            // First page goes to active view
             targetViewId = activeViewId;
           } else {
-            // Create a new view for subsequent pages
             const newViewId = viewUid();
             dispatch({ type: 'ADD_VIEW', view: { id: newViewId, name: page.name, isDefault: false } });
             targetViewId = newViewId;
