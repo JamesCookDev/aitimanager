@@ -1,33 +1,36 @@
 #!/usr/bin/env node
 /**
  * ══════════════════════════════════════════════════════════════
- *  TOTEM SYNC WORKER  —  sync-worker.js  v5.0.0
+ *  TOTEM WORKER  —  sync-worker.js  v6.0.0
  * ══════════════════════════════════════════════════════════════
  *
- *  Automatiza TODO o processo de setup e manutenção do totem:
+ *  Servidor HTTP local + atualizador de HTML para totems.
  *
- *  0. Verifica/atualiza repositório Git (pull latest)
- *  1. Verifica pré-requisitos (Node.js, npm)
- *  2. Cria .env a partir de .env.sync.example se não existir
- *     (solicita o ORG_ID interativamente)
- *  3. Sincroniza arquivos do Hub (manifest.json)
- *  4. Instala dependências automaticamente (npm install)
- *  5. Inicia AMBOS os servidores (frontend + backend)
- *  6. Abre navegador em modo kiosk (opcional)
- *  7. Mantém polling de sync + comandos remotos em background
+ *  Fluxo:
+ *  1. Carrega .env e valida configurações
+ *  2. Busca o HTML publicado via Edge Function (totem-html)
+ *  3. Salva como index.html local
+ *  4. Serve via HTTP server (porta 8080)
+ *  5. Polling periódico por atualizações (ETag-based)
+ *  6. Abre navegador em modo kiosk
+ *  7. Escuta comandos remotos
  *
  *  Uso:
- *    node sync-worker.js              # Setup completo + servidores + kiosk
- *    node sync-worker.js --no-dev     # Apenas sync (sem iniciar servidores)
- *    node sync-worker.js --setup      # Apenas setup inicial (sem loop)
- *    node sync-worker.js --no-kiosk   # Tudo, mas sem abrir navegador
+ *    node sync-worker.js              # Servidor + polling + kiosk
+ *    node sync-worker.js --no-kiosk   # Sem abrir navegador
+ *    node sync-worker.js --setup      # Apenas setup inicial
  *
  *  Variáveis de ambiente (.env):
- *    HUB_URL, LOCAL_DIR, BACKEND_DIR, SYNC_INTERVAL_MS,
- *    RESTART_COMMAND, BACKUP_FILES, VERBOSE, API_KEY,
- *    SUPABASE_URL, AUTO_INSTALL, PACKAGE_MANAGER, AUTO_DEV,
- *    KIOSK_URL, KIOSK_DELAY_MS, KIOSK_BROWSER,
- *    GIT_REPO_URL, GIT_BRANCH, GIT_AUTO_PULL
+ *    VITE_CMS_API_URL      — URL das Edge Functions
+ *    VITE_SUPABASE_ANON_KEY — Anon key do projeto
+ *    VITE_SUPABASE_URL     — URL base do Supabase (para Realtime)
+ *    VITE_TOTEM_DEVICE_ID  — ID do dispositivo (ou usa API key)
+ *    API_KEY               — API key do dispositivo
+ *    SYNC_INTERVAL_MS      — Intervalo de polling (padrão: 15000)
+ *    HTTP_PORT             — Porta do servidor HTTP (padrão: 8080)
+ *    KIOSK_URL             — URL do kiosk (padrão: http://localhost:8080)
+ *    KIOSK_DELAY_MS        — Delay antes de abrir navegador
+ *    KIOSK_BROWSER         — Caminho do navegador (auto-detecta)
  *
  * ══════════════════════════════════════════════════════════════
  */
@@ -45,11 +48,10 @@ const __dirname  = path.dirname(__filename);
 
 // ─── Args ────────────────────────────────────────────────────
 const ARGS = process.argv.slice(2);
-const FLAG_NO_DEV  = ARGS.includes('--no-dev');
-const FLAG_SETUP   = ARGS.includes('--setup');
+const FLAG_SETUP    = ARGS.includes('--setup');
 const FLAG_NO_KIOSK = ARGS.includes('--no-kiosk');
 
-// ─── Carregar .env manualmente (sem dependência de dotenv) ───
+// ─── Carregar .env manualmente ───────────────────────────────
 function loadEnv() {
   const envPath = path.join(__dirname, '.env');
   if (!fs.existsSync(envPath)) return;
@@ -65,465 +67,198 @@ function loadEnv() {
 }
 
 // ─── Utilidades ──────────────────────────────────────────────
-const log   = (msg) => console.log(`[Sync] ${msg}`);
-const debug = (msg) => VERBOSE && console.log(`[Sync][debug] ${msg}`);
-const warn  = (msg) => console.warn(`[Sync] ⚠️  ${msg}`);
-const error = (msg) => console.error(`[Sync] ❌  ${msg}`);
+const log   = (msg) => console.log(`[Totem] ${msg}`);
+const debug = (msg) => VERBOSE && console.log(`[Totem][debug] ${msg}`);
+const warn  = (msg) => console.warn(`[Totem] ⚠️  ${msg}`);
+const error = (msg) => console.error(`[Totem] ❌  ${msg}`);
 
 let VERBOSE = false;
 
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
-function fetchText(url) {
-  return new Promise((resolve, reject) => {
-    const client = url.startsWith('https://') ? https : http;
-    const req = client.get(url, { timeout: 15_000 }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchText(res.headers.location).then(resolve).catch(reject);
-      }
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(body);
-        } else {
-          reject(new Error(`HTTP ${res.statusCode} ao buscar ${url}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error(`Timeout ao buscar ${url}`)); });
+    rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); });
   });
 }
 
 function isCommandAvailable(cmd) {
-  try {
-    execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 5000 });
-    return true;
-  } catch { return false; }
+  try { execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 5000 }); return true; }
+  catch { return false; }
 }
 
-function runCommand(cmd, cwd, timeoutMs = 300_000) {
-  return new Promise((resolve, reject) => {
-    exec(cmd, { cwd, timeout: timeoutMs }, (err, stdout, stderr) => {
-      if (err) {
-        reject(new Error(`${err.message}\n${stderr || ''}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
-}
+// ─── Configurações (lazy) ────────────────────────────────────
+function CMS_API_URL()     { return (process.env.VITE_CMS_API_URL || '').replace(/\/$/, ''); }
+function ANON_KEY()        { return process.env.VITE_SUPABASE_ANON_KEY || ''; }
+function SUPABASE_URL()    { return (process.env.VITE_SUPABASE_URL || '').replace(/\/$/, ''); }
+function DEVICE_ID()       { return process.env.VITE_TOTEM_DEVICE_ID || ''; }
+function API_KEY()         { return process.env.API_KEY || ''; }
+function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
+function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
+function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
+function KIOSK_DELAY()     { return parseInt(process.env.KIOSK_DELAY_MS || '3000', 10); }
+function KIOSK_BROWSER()   { return process.env.KIOSK_BROWSER || 'auto'; }
 
-// ══════════════════════════════════════════════════════════════
-//  FASE 0 — Git: verificar/atualizar repositório
-// ══════════════════════════════════════════════════════════════
-function GIT_REPO_URL()  { return process.env.GIT_REPO_URL || 'https://github.com/JamesCookDev/Avatar-AI.git'; }
-function GIT_BRANCH()    { return process.env.GIT_BRANCH || 'feat/escalavel'; }
-function GIT_AUTO_PULL() { return process.env.GIT_AUTO_PULL !== 'false'; }
+const HTML_FILE = () => path.join(__dirname, 'index.html');
 
-async function gitSync() {
-  if (!isCommandAvailable('git')) {
-    warn('Git não disponível — pulando sync do repositório');
-    return;
-  }
-
-  const gitDir = path.join(__dirname, '.git');
-  const repoUrl = GIT_REPO_URL();
-  const branch = GIT_BRANCH();
-
-  if (!fs.existsSync(gitDir)) {
-    // Não estamos dentro de um repositório git — verificar se é o start script que clona
-    log('📂 Diretório não é um repositório Git — sync via Hub apenas');
-    return;
-  }
-
-  if (!GIT_AUTO_PULL()) {
-    debug('GIT_AUTO_PULL desativado');
-    return;
-  }
-
-  log(`🔄 Git pull (branch: ${branch})...`);
-  try {
-    await runCommand(`git fetch origin ${branch}`, __dirname, 30_000);
-    await runCommand(`git reset --hard origin/${branch}`, __dirname, 15_000);
-    log('✅ Repositório atualizado via Git');
-  } catch (err) {
-    warn(`Git pull falhou: ${err.message}`);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  FASE 1 — Verificar pré-requisitos
-// ══════════════════════════════════════════════════════════════
-function checkPrerequisites() {
-  log('🔍 Verificando pré-requisitos...');
-
-  if (!isCommandAvailable('node')) {
-    error('Node.js não encontrado! Instale em: https://nodejs.org');
-    process.exit(1);
-  }
-
-  if (!isCommandAvailable('npm')) {
-    error('npm não encontrado! Reinstale o Node.js: https://nodejs.org');
-    process.exit(1);
-  }
-
-  const nodeVersion = execSync('node --version', { encoding: 'utf8' }).trim();
-  const npmVersion  = execSync('npm --version', { encoding: 'utf8' }).trim();
-  log(`✅ Node.js ${nodeVersion} / npm ${npmVersion}`);
-
-  if (isCommandAvailable('git')) {
-    const gitVersion = execSync('git --version', { encoding: 'utf8' }).trim();
-    log(`✅ ${gitVersion}`);
-  } else {
-    warn('Git não encontrado — atualizações automáticas do código desativadas');
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  FASE 2 — Garantir .env existe
-// ══════════════════════════════════════════════════════════════
+// ─── Garantir .env existe ────────────────────────────────────
 async function ensureEnvFile() {
-  const envPath     = path.join(__dirname, '.env');
-  const examplePath = path.join(__dirname, '.env.sync.example');
-
+  const envPath = path.join(__dirname, '.env');
   if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf8');
-    if (content.includes('cole-o-uuid-da-organizacao-aqui')) {
-      log('⚠️  VITE_ORG_ID não configurado no .env');
-      const orgId = await ask('\n📋 Cole o UUID da organização (encontre em Organizações no Hub): ');
-      if (orgId && orgId.length > 10) {
-        const updated = content.replace('cole-o-uuid-da-organizacao-aqui', orgId);
-        fs.writeFileSync(envPath, updated, 'utf8');
-        log(`✅ VITE_ORG_ID configurado: ${orgId.substring(0, 8)}...`);
-      } else {
-        error('ORG_ID inválido. Configure manualmente no .env');
-        process.exit(1);
-      }
-    }
     log('✅ .env encontrado');
     return;
   }
 
+  const examplePath = path.join(__dirname, '.env.sync.example');
   if (!fs.existsSync(examplePath)) {
-    error('.env.sync.example não encontrado! Copie do Hub.');
+    error('.env não encontrado! Crie um .env com as configurações necessárias.');
     process.exit(1);
   }
 
   log('📄 Criando .env a partir de .env.sync.example...');
   let content = fs.readFileSync(examplePath, 'utf8');
 
-  content = content.replace(
-    /LOCAL_DIR=.*/,
-    `LOCAL_DIR=${__dirname}`
-  );
-
-  const orgId = await ask('\n📋 Cole o UUID da organização (encontre em Organizações no Hub): ');
+  const orgId = await ask('\n📋 Cole o UUID da organização: ');
   if (orgId && orgId.length > 10) {
     content = content.replace('cole-o-uuid-da-organizacao-aqui', orgId);
   } else {
-    error('ORG_ID inválido. Configure manualmente no .env');
+    error('ORG_ID inválido.');
     process.exit(1);
   }
 
-  const totemName = await ask('📛 Nome do totem (Enter para pular): ');
-  if (totemName) {
-    content = content.replace(
-      '# VITE_TOTEM_NAME=Totem Recepção',
-      `VITE_TOTEM_NAME=${totemName}`
-    );
-  }
-
-  const totemLocation = await ask('📍 Localização do totem (Enter para pular): ');
-  if (totemLocation) {
-    content = content.replace(
-      '# VITE_TOTEM_LOCATION=Entrada Principal',
-      `VITE_TOTEM_LOCATION=${totemLocation}`
-    );
-  }
-
   fs.writeFileSync(envPath, content, 'utf8');
-  log('✅ .env criado com sucesso');
+  log('✅ .env criado');
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 3 — Sincronizar arquivos do Hub
+//  FETCH HTML — busca o HTML publicado via Edge Function
 // ══════════════════════════════════════════════════════════════
-const LOCAL_STATE_PATH = () => path.join(LOCAL_DIR(), '.sync-state.json');
+let lastEtag = null;
 
-// Configurações (lazy, carregadas após loadEnv)
-function LOCAL_DIR()      { return process.env.LOCAL_DIR || __dirname; }
-function BACKEND_DIR()    { return process.env.BACKEND_DIR || path.resolve(LOCAL_DIR(), '..', 'backend'); }
-function HUB_URL()        { return (process.env.HUB_URL || '').replace(/\/$/, ''); }
-function SYNC_INTERVAL()  { return parseInt(process.env.SYNC_INTERVAL_MS || '30000', 10); }
-function RESTART_CMD()    { return process.env.RESTART_COMMAND || null; }
-function BACKUP_FILES()   { return process.env.BACKUP_FILES !== 'false'; }
-function API_KEY()        { return process.env.API_KEY || process.env.API_KEY_2 || null; }
-function SUPABASE_URL()   { return (process.env.SUPABASE_URL || '').replace(/\/$/, ''); }
-function AUTO_INSTALL()   { return process.env.AUTO_INSTALL !== 'false'; }
-function FORCED_PM()      { return process.env.PACKAGE_MANAGER || null; }
-function AUTO_DEV()       { return process.env.AUTO_DEV !== 'false'; }
-function KIOSK_URL()      { return process.env.KIOSK_URL || 'http://localhost:5173'; }
-function KIOSK_DELAY()    { return parseInt(process.env.KIOSK_DELAY_MS || '8000', 10); }
-function KIOSK_BROWSER()  { return process.env.KIOSK_BROWSER || 'auto'; }
+function fetchHtml() {
+  return new Promise((resolve, reject) => {
+    const apiUrl = CMS_API_URL();
+    if (!apiUrl) { reject(new Error('VITE_CMS_API_URL não configurado')); return; }
 
-function loadState() {
-  try {
-    return JSON.parse(fs.readFileSync(LOCAL_STATE_PATH(), 'utf8'));
-  } catch {
-    return { files: {}, last_sync: null, last_install: null };
-  }
-}
+    const url = `${apiUrl}/totem-html`;
+    const headers = {
+      'apikey': ANON_KEY(),
+      'Content-Type': 'application/json',
+    };
 
-function saveState(state) {
-  fs.writeFileSync(LOCAL_STATE_PATH(), JSON.stringify({ ...state, last_sync: new Date().toISOString() }, null, 2));
-}
+    // Identify device
+    if (API_KEY()) headers['x-totem-api-key'] = API_KEY();
+    else if (DEVICE_ID()) headers['x-totem-device-id'] = DEVICE_ID();
+    else { reject(new Error('Defina API_KEY ou VITE_TOTEM_DEVICE_ID no .env')); return; }
 
-function backupFile(filePath) {
-  if (!BACKUP_FILES()) return;
-  if (fs.existsSync(filePath)) {
-    fs.copyFileSync(filePath, filePath + '.bak');
-    debug(`Backup: ${path.basename(filePath)}.bak`);
-  }
-}
+    // ETag for caching
+    if (lastEtag) headers['If-None-Match'] = lastEtag;
 
-function ensureDir(filePath) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-}
-
-async function syncFiles() {
-  const hubUrl = HUB_URL();
-  if (!hubUrl) {
-    debug('HUB_URL não configurado — sync via Hub desativado');
-    return { updated: 0, packageJsonUpdated: false };
-  }
-
-  debug(`Verificando: ${hubUrl}/totem-local/manifest.json`);
-
-  let hubManifest;
-  try {
-    const text = await fetchText(`${hubUrl}/totem-local/manifest.json`);
-    hubManifest = JSON.parse(text);
-  } catch (err) {
-    error(`Manifest inacessível: ${err.message}`);
-    return { updated: 0, packageJsonUpdated: false };
-  }
-
-  const state = loadState();
-  const updatedFiles = [];
-  let hasCritical = false;
-  let packageJsonUpdated = false;
-  const localDir = LOCAL_DIR();
-
-  for (const [fileName, fileInfo] of Object.entries(hubManifest.files || {})) {
-    const installedVersion = state.files[fileName]?.version;
-    const hubVersion = fileInfo.version;
-
-    if (installedVersion === hubVersion) {
-      debug(`${fileName} — OK (${hubVersion})`);
-      continue;
-    }
-
-    const action = installedVersion ? `${installedVersion} → ${hubVersion}` : `novo (${hubVersion})`;
-    log(`📥 ${fileName} [${action}]`);
-
-    try {
-      const content = await fetchText(`${hubUrl}/totem-local/${fileName}`);
-      const localPath = path.join(localDir, fileName);
-
-      ensureDir(localPath);
-      backupFile(localPath);
-
-      // Cleanup: remover variantes com extensão diferente
-      const ext = path.extname(fileName);
-      const base = fileName.replace(ext, '');
-      const altExts = { '.jsx': ['.js', '.ts', '.tsx'], '.js': ['.jsx', '.ts', '.tsx'], '.ts': ['.js', '.jsx', '.tsx'], '.tsx': ['.js', '.jsx', '.ts'] };
-      for (const altExt of (altExts[ext] || [])) {
-        const altPath = path.join(localDir, base + altExt);
-        if (fs.existsSync(altPath)) {
-          log(`🧹 Removendo variante: ${base + altExt}`);
-          backupFile(altPath);
-          fs.unlinkSync(altPath);
-          if (state.files[base + altExt]) delete state.files[base + altExt];
-        }
+    const client = url.startsWith('https://') ? https : http;
+    const req = client.get(url, { headers, timeout: 15000 }, (res) => {
+      if (res.statusCode === 304) {
+        resolve({ html: null, changed: false });
+        return;
       }
 
-      fs.writeFileSync(localPath, content, 'utf8');
-      if (!state.files) state.files = {};
-      state.files[fileName] = { version: hubVersion, updated_at: new Date().toISOString() };
-      updatedFiles.push(fileName);
-      if (fileInfo.critical) hasCritical = true;
-      if (fileName === 'package.json' || fileInfo.install) packageJsonUpdated = true;
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          if (res.headers.etag) lastEtag = res.headers.etag;
+          resolve({ html: body, changed: true });
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${body.substring(0, 200)}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+  });
+}
 
-      log(`✅ ${fileName}`);
-    } catch (err) {
-      error(`Falha em ${fileName}: ${err.message}`);
+// ══════════════════════════════════════════════════════════════
+//  UPDATE HTML — salva o HTML no arquivo local
+// ══════════════════════════════════════════════════════════════
+function updateHtmlFile(html) {
+  const htmlPath = HTML_FILE();
+  
+  // Backup anterior
+  if (fs.existsSync(htmlPath)) {
+    try { fs.copyFileSync(htmlPath, htmlPath + '.bak'); } catch {}
+  }
+
+  fs.writeFileSync(htmlPath, html, 'utf8');
+  log(`✅ HTML atualizado (${(html.length / 1024).toFixed(1)} KB)`);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HTTP SERVER — serve o index.html localmente
+// ══════════════════════════════════════════════════════════════
+function startHttpServer() {
+  const port = HTTP_PORT();
+
+  const server = http.createServer((req, res) => {
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+    // Health check endpoint
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+      return;
     }
-  }
 
-  saveState(state);
+    // Serve index.html for everything else
+    const htmlPath = HTML_FILE();
+    if (fs.existsSync(htmlPath)) {
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(html);
+    } else {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="width:1080px;height:1920px;margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8"><h1>Aguardando publicação...</h1></body></html>`);
+    }
+  });
 
-  if (updatedFiles.length === 0) {
-    log(`✔ Sincronizado [${new Date().toLocaleTimeString('pt-BR')}]`);
-  } else {
-    log(`🔄 ${updatedFiles.length} arquivo(s): ${updatedFiles.join(', ')}`);
-    if (hasCritical && RESTART_CMD()) triggerRestart();
-  }
+  server.listen(port, () => {
+    log(`🌐 Servidor HTTP em http://localhost:${port}`);
+  });
 
-  return { updated: updatedFiles.length, packageJsonUpdated };
+  return server;
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 4 — Instalar dependências
+//  POLLING — verifica atualizações periodicamente
 // ══════════════════════════════════════════════════════════════
-function detectPackageManager(dir) {
-  const forced = FORCED_PM();
-  if (forced) return isCommandAvailable(forced) ? forced : 'npm';
-  if (fs.existsSync(path.join(dir, 'yarn.lock')) && isCommandAvailable('yarn')) return 'yarn';
-  if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')) && isCommandAvailable('pnpm')) return 'pnpm';
-  return 'npm';
-}
-
-async function installDependencies(dir, label) {
-  if (!AUTO_INSTALL()) { debug('AUTO_INSTALL desativado.'); return false; }
-  if (!fs.existsSync(path.join(dir, 'package.json'))) { debug(`Sem package.json em ${label}.`); return false; }
-
-  const pm = detectPackageManager(dir);
-  const cmd = pm === 'yarn' ? 'yarn install --frozen-lockfile || yarn install'
-            : pm === 'pnpm' ? 'pnpm install --frozen-lockfile || pnpm install'
-            : 'npm ci || npm install';
-
-  log(`📦 [${label}] Instalando dependências com ${pm}...`);
-
+async function pollForUpdates() {
   try {
-    await runCommand(cmd, dir);
-    log(`✅ [${label}] Dependências instaladas via ${pm}`);
-    return true;
+    const result = await fetchHtml();
+    if (result.changed && result.html) {
+      updateHtmlFile(result.html);
+    } else {
+      debug(`Sem alterações [${new Date().toLocaleTimeString('pt-BR')}]`);
+    }
   } catch (err) {
-    error(`[${label}] Falha na instalação: ${err.message}`);
-    return false;
-  }
-}
-
-async function checkAndInstall(packageJsonUpdated) {
-  if (!AUTO_INSTALL()) return;
-
-  // Frontend
-  const frontendDir = LOCAL_DIR();
-  const frontModulesExists = fs.existsSync(path.join(frontendDir, 'node_modules'));
-  if (!frontModulesExists || packageJsonUpdated) {
-    const reason = !frontModulesExists ? 'node_modules ausente' : 'package.json atualizado';
-    log(`📦 [Frontend] ${reason} — instalando...`);
-    const ok = await installDependencies(frontendDir, 'Frontend');
-    if (ok) {
-      const state = loadState();
-      state.last_install = new Date().toISOString();
-      saveState(state);
-    }
-  }
-
-  // Backend
-  const backendDir = BACKEND_DIR();
-  if (fs.existsSync(path.join(backendDir, 'package.json'))) {
-    const backModulesExists = fs.existsSync(path.join(backendDir, 'node_modules'));
-    if (!backModulesExists) {
-      log('📦 [Backend] node_modules ausente — instalando...');
-      await installDependencies(backendDir, 'Backend');
-    }
+    warn(`Polling falhou: ${err.message}`);
   }
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 5 — Iniciar servidores (frontend + backend)
+//  REALTIME — escuta atualizações via Supabase Realtime
 // ══════════════════════════════════════════════════════════════
-let frontendProcess = null;
-let backendProcess = null;
-
-function spawnServer(label, cmd, args, cwd) {
-  if (!fs.existsSync(path.join(cwd, 'package.json'))) {
-    warn(`[${label}] package.json não encontrado em ${cwd} — pulando`);
-    return null;
-  }
-
-  log(`🚀 [${label}] Iniciando...`);
-
-  const proc = spawn(cmd, args, {
-    cwd,
-    stdio: 'inherit',
-    shell: true,
-    env: { ...process.env }
-  });
-
-  proc.on('error', (err) => {
-    error(`[${label}] falhou: ${err.message}`);
-  });
-
-  proc.on('exit', (code) => {
-    if (code !== null && code !== 0) {
-      warn(`[${label}] encerrou com código ${code}`);
-    }
-  });
-
-  log(`✅ [${label}] iniciado (PID: ${proc.pid})`);
-  return proc;
-}
-
-function startServers() {
-  if (FLAG_NO_DEV || FLAG_SETUP) return;
-  if (!AUTO_DEV()) { log('AUTO_DEV desativado — inicie manualmente.'); return; }
-
-  const pm = detectPackageManager(LOCAL_DIR());
-  const cmd = pm === 'npm' ? 'npm' : pm;
-  const devArgs = pm === 'npm' ? ['run', 'dev'] : ['dev'];
-
-  // Frontend (Vite — porta 5173)
-  frontendProcess = spawnServer('Frontend', cmd, devArgs, LOCAL_DIR());
-
-  // Backend (Node — porta 3000)
-  const backendDir = BACKEND_DIR();
-  if (fs.existsSync(path.join(backendDir, 'package.json'))) {
-    const backPm = detectPackageManager(backendDir);
-    const backCmd = backPm === 'npm' ? 'npm' : backPm;
-    const backArgs = backPm === 'npm' ? ['run', 'dev'] : ['dev'];
-    backendProcess = spawnServer('Backend', backCmd, backArgs, backendDir);
-  } else {
-    warn('[Backend] Não encontrado — apenas frontend será iniciado');
-  }
-
-  log('✅ Servidores iniciados');
-}
-
-function killProcess(proc, label) {
-  if (!proc) return;
-  try {
-    proc.kill('SIGTERM');
-    log(`🛑 [${label}] encerrado`);
-  } catch { /* already dead */ }
-}
-
-function restartServers() {
-  log('🔃 Reiniciando servidores...');
-  killProcess(frontendProcess, 'Frontend');
-  killProcess(backendProcess, 'Backend');
-  frontendProcess = null;
-  backendProcess = null;
-  setTimeout(startServers, 2000);
-}
+// Note: Realtime via WebSocket requires a browser-like env.
+// The worker uses simple polling as primary mechanism.
+// When a publish happens, the poll interval catches it quickly.
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 6 — Abrir navegador em modo kiosk
+//  KIOSK — abrir navegador em tela cheia
 // ══════════════════════════════════════════════════════════════
 function openKiosk() {
-  if (FLAG_NO_DEV || FLAG_SETUP || FLAG_NO_KIOSK) return;
+  if (FLAG_SETUP || FLAG_NO_KIOSK) return;
 
   const url = KIOSK_URL();
   const delay = KIOSK_DELAY();
@@ -534,42 +269,26 @@ function openKiosk() {
   setTimeout(() => {
     const platform = process.platform;
     let browserCmd = null;
+    const kioskFlags = '--kiosk --start-fullscreen --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required';
 
     if (browserPref !== 'auto') {
-      // Usar browser específico definido pelo usuário
-      browserCmd = `"${browserPref}" --kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required "${url}"`;
+      browserCmd = `"${browserPref}" ${kioskFlags} "${url}"`;
     } else if (platform === 'win32') {
-      // Windows — tentar Edge primeiro, depois Chrome
       const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
       const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-      const kioskFlags = '--kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required';
-
-      if (fs.existsSync(edgePath)) {
-        browserCmd = `"${edgePath}" ${kioskFlags} "${url}"`;
-      } else if (fs.existsSync(chromePath)) {
-        browserCmd = `"${chromePath}" ${kioskFlags} "${url}"`;
-      } else {
-        // Fallback: tentar msedge no PATH
-        browserCmd = `msedge ${kioskFlags} "${url}"`;
-      }
+      if (fs.existsSync(edgePath)) browserCmd = `"${edgePath}" ${kioskFlags} "${url}"`;
+      else if (fs.existsSync(chromePath)) browserCmd = `"${chromePath}" ${kioskFlags} "${url}"`;
+      else browserCmd = `msedge ${kioskFlags} "${url}"`;
     } else if (platform === 'linux') {
-      const kioskFlags = '--kiosk --disable-infobars --disable-session-crashed-bubble --noerrdialogs --no-first-run --disable-translate --autoplay-policy=no-user-gesture-required';
-      // Linux — tentar chromium, depois google-chrome
-      if (isCommandAvailable('chromium-browser')) {
-        browserCmd = `chromium-browser ${kioskFlags} "${url}"`;
-      } else if (isCommandAvailable('chromium')) {
-        browserCmd = `chromium ${kioskFlags} "${url}"`;
-      } else if (isCommandAvailable('google-chrome')) {
-        browserCmd = `google-chrome ${kioskFlags} "${url}"`;
-      } else {
-        browserCmd = `xdg-open "${url}"`;
-      }
+      if (isCommandAvailable('chromium-browser')) browserCmd = `chromium-browser ${kioskFlags} "${url}"`;
+      else if (isCommandAvailable('chromium')) browserCmd = `chromium ${kioskFlags} "${url}"`;
+      else if (isCommandAvailable('google-chrome')) browserCmd = `google-chrome ${kioskFlags} "${url}"`;
+      else browserCmd = `xdg-open "${url}"`;
     } else if (platform === 'darwin') {
       browserCmd = `open -a "Google Chrome" --args --kiosk "${url}"`;
     }
 
     if (browserCmd) {
-      log(`🌐 Executando: ${browserCmd.substring(0, 80)}...`);
       const browserProc = spawn(browserCmd, [], { shell: true, detached: true, stdio: 'ignore' });
       browserProc.unref();
       log('✅ Navegador kiosk aberto');
@@ -580,22 +299,8 @@ function openKiosk() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FASE 7 — Comandos remotos
+//  COMANDOS REMOTOS — polling de comandos do Hub
 // ══════════════════════════════════════════════════════════════
-function triggerRestart() {
-  const cmd = RESTART_CMD();
-  if (!cmd) {
-    if (frontendProcess || backendProcess) { restartServers(); return; }
-    warn('Configure RESTART_COMMAND no .env para reinício automático');
-    return;
-  }
-  log(`🔃 Executando: ${cmd}`);
-  exec(cmd, (err) => {
-    if (err) error(`Falha ao reiniciar: ${err.message}`);
-    else log('✅ Reinicialização OK');
-  });
-}
-
 async function checkRemoteCommand() {
   const apiKey = API_KEY();
   const supaUrl = SUPABASE_URL();
@@ -608,7 +313,7 @@ async function checkRemoteCommand() {
       const req = client.request(url, {
         method: 'GET',
         headers: { 'x-totem-api-key': apiKey },
-        timeout: 10_000,
+        timeout: 10000,
       }, (res) => {
         let data = '';
         res.on('data', (c) => { data += c; });
@@ -637,7 +342,7 @@ async function reportCommandResult(command, status, errorMsg) {
       const req = client.request(url, {
         method: 'POST',
         headers: { 'x-totem-api-key': apiKey, 'Content-Type': 'application/json' },
-        timeout: 10_000,
+        timeout: 10000,
       }, (res) => {
         let data = '';
         res.on('data', (c) => { data += c; });
@@ -663,23 +368,14 @@ async function handleRemoteCommand() {
   try {
     switch (command) {
       case 'sync':
-        await syncFiles();
+      case 'reload_config':
+        // Force HTML refresh (clear ETag to force download)
+        lastEtag = null;
+        await pollForUpdates();
         break;
       case 'restart':
-        triggerRestart();
-        break;
-      case 'sync_restart':
-        await syncFiles();
-        triggerRestart();
-        break;
-      case 'install':
-        await installDependencies(LOCAL_DIR(), 'Frontend');
-        break;
-      case 'reload_config':
-        triggerRestart();
-        break;
-      case 'git_pull':
-        await gitSync();
+        log('🔃 Reiniciando...');
+        process.exit(0); // Será reiniciado pelo start-totem
         break;
       default:
         warn(`Comando desconhecido: "${command}"`);
@@ -696,82 +392,65 @@ async function handleRemoteCommand() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  BOOTSTRAP — Orquestra todas as fases
+//  BOOTSTRAP
 // ══════════════════════════════════════════════════════════════
 async function main() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║         TOTEM SYNC WORKER  v5.0.0               ║');
-  console.log('║         Git + Setup + Kiosk                      ║');
+  console.log('║         TOTEM WORKER  v6.0.0                     ║');
+  console.log('║         HTTP Server + HTML Updater                ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
-  // Fase 1 — Pré-requisitos
-  checkPrerequisites();
-
-  // Fase 2 — Garantir .env
+  // Setup
   await ensureEnvFile();
   loadEnv();
   VERBOSE = process.env.VERBOSE === 'true';
 
-  const localDir = LOCAL_DIR();
-  const backendDir = BACKEND_DIR();
-  const hubUrl = HUB_URL();
-
-  log(`Hub URL      : ${hubUrl || '(não configurado)'}`);
-  log(`Frontend     : ${localDir}`);
-  log(`Backend      : ${backendDir}`);
-  log(`Git repo     : ${GIT_REPO_URL()}`);
-  log(`Git branch   : ${GIT_BRANCH()}`);
-  log(`Git auto-pull: ${GIT_AUTO_PULL() ? 'sim' : 'não'}`);
+  log(`API URL      : ${CMS_API_URL()}`);
+  log(`Device ID    : ${DEVICE_ID() || '(via API key)'}`);
+  log(`HTTP Port    : ${HTTP_PORT()}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
-  log(`Auto-install : ${AUTO_INSTALL() ? 'sim' : 'não'}`);
-  log(`Auto-dev     : ${!FLAG_NO_DEV && !FLAG_SETUP && AUTO_DEV() ? 'sim' : 'não'}`);
-  log(`Kiosk        : ${!FLAG_NO_DEV && !FLAG_SETUP && !FLAG_NO_KIOSK ? KIOSK_URL() : 'desativado'}`);
-  log(`Cmd remoto   : ${API_KEY() ? 'ativo' : 'inativo'}`);
+  log(`Kiosk        : ${FLAG_NO_KIOSK ? 'desativado' : KIOSK_URL()}`);
   console.log('');
 
-  // Fase 0 — Git pull (se dentro de um repo)
-  log('━━━ FASE 0: Atualizando código via Git ━━━');
-  await gitSync();
-
-  // Fase 3 — Sync do Hub
-  log('━━━ FASE 1: Sincronizando arquivos do Hub ━━━');
-  const { packageJsonUpdated } = await syncFiles();
-
-  // Fase 4 — Instalar dependências (front + back)
-  log('━━━ FASE 2: Verificando dependências ━━━');
-  await checkAndInstall(packageJsonUpdated);
+  // Initial HTML fetch
+  log('━━━ Buscando HTML publicado ━━━');
+  try {
+    const result = await fetchHtml();
+    if (result.changed && result.html) {
+      updateHtmlFile(result.html);
+    } else {
+      log('ℹ️  Nenhum HTML publicado ainda');
+    }
+  } catch (err) {
+    warn(`Fetch inicial falhou: ${err.message}`);
+    if (!fs.existsSync(HTML_FILE())) {
+      log('📄 Criando página de espera...');
+      fs.writeFileSync(HTML_FILE(),
+        `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="10"></head><body style="width:1080px;height:1920px;margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8"><h1>Aguardando conexão com o Hub...</h1></body></html>`,
+        'utf8'
+      );
+    }
+  }
 
   if (FLAG_SETUP) {
-    log('');
-    log('✅ Setup completo! Para iniciar o totem:');
-    log('   node sync-worker.js');
+    log('✅ Setup completo!');
     return;
   }
 
-  // Fase 5 — Iniciar servidores
-  log('━━━ FASE 3: Iniciando aplicação ━━━');
-  startServers();
+  // Start HTTP server
+  log('━━━ Iniciando servidor HTTP ━━━');
+  startHttpServer();
 
-  // Fase 6 — Abrir kiosk
+  // Open kiosk
   openKiosk();
 
-  // Fase 7 — Loop de sync em background
-  log('');
-  log('━━━ Sync contínuo ativo ━━━');
-  const syncInterval = setInterval(async () => {
-    // Git pull periódico
-    if (GIT_AUTO_PULL()) await gitSync();
-    // Hub sync
-    const result = await syncFiles();
-    if (result.packageJsonUpdated) {
-      await checkAndInstall(true);
-      restartServers();
-    }
-  }, SYNC_INTERVAL());
+  // Polling loop
+  log('━━━ Polling de atualizações ativo ━━━');
+  const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
 
-  // Comandos remotos
+  // Remote commands
   let cmdInterval;
   if (API_KEY() && SUPABASE_URL()) {
     log('🔌 Polling de comandos remotos ativo');
@@ -781,11 +460,9 @@ async function main() {
   // Graceful shutdown
   function shutdown() {
     log('Encerrando...');
-    clearInterval(syncInterval);
+    clearInterval(pollInterval);
     if (cmdInterval) clearInterval(cmdInterval);
-    killProcess(frontendProcess, 'Frontend');
-    killProcess(backendProcess, 'Backend');
-    setTimeout(() => process.exit(0), 1000);
+    setTimeout(() => process.exit(0), 500);
   }
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
