@@ -154,12 +154,16 @@ export function ElementPalette({ onAdd }: Props) {
 
                 <CollapsibleContent>
                   <div className="grid grid-cols-3 gap-2 pt-2 pb-1">
-                    {cat.items.map((item) => (
+                    {cat.items.map((item, idx) => (
                       <button
-                        key={item.type}
+                        key={`${item.type}-${idx}`}
                         type="button"
                         onClick={() => {
                           const el = createElement(item.type, 80 + Math.random() * 200, 80 + Math.random() * 400);
+                          if (item.htmlPuro) {
+                            el.name = 'HTML Puro';
+                            el.props = { ...el.props, _iframeMode: 'html', htmlContent: '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;font-size:24px;">Cole seu HTML aqui</div>', borderRadius: 0 };
+                          }
                           onAdd(el);
                         }}
                         className="flex flex-col items-center gap-2 group cursor-pointer active:scale-90 transition-transform p-1.5"
