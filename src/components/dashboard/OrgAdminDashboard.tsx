@@ -67,7 +67,7 @@ export function OrgAdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('devices')
-        .select('*')
+        .select('id, org_id, name, description, location, api_key, last_ping, current_version_id, avatar_config, model_3d_url, is_speaking, last_interaction, status_details, pending_command, command_sent_at, ai_prompt, created_at, updated_at')
         .eq('org_id', profile.org_id)
         .order('name');
 

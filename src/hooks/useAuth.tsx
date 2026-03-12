@@ -72,27 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchUserData = async (userId: string) => {
+    // Prevent duplicate fetches for the same user
+    fetchedUserIdRef.current = userId;
     try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Fetch profile and role in parallel
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+      ]);
 
-      if (profileData) {
-        setProfile(profileData as Profile);
+      if (profileRes.data) {
+        setProfile(profileRes.data as Profile);
       }
-
-      // Fetch role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (roleData) {
-        setRole(roleData.role as AppRole);
+      if (roleRes.data) {
+        setRole(roleRes.data.role as AppRole);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
