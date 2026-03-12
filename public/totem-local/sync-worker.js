@@ -393,10 +393,10 @@ async function checkRemoteCommand() {
 
 async function reportCommandResult(command, status, errorMsg) {
   const apiKey = API_KEY();
-  const supaUrl = SUPABASE_URL();
-  if (!apiKey || !supaUrl) return;
+  const apiUrl = CMS_API_URL();
+  if (!apiKey || !apiUrl) return;
   try {
-    const url = `${supaUrl}/functions/v1/totem-command-report`;
+    const url = `${apiUrl}/totem-command-report`;
     const payload = JSON.stringify({ command, status, error: errorMsg || undefined });
     await new Promise((resolve, reject) => {
       const client = url.startsWith('https://') ? https : http;
