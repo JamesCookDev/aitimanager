@@ -364,11 +364,11 @@ function openKiosk() {
 // ══════════════════════════════════════════════════════════════
 async function checkRemoteCommand() {
   const apiKey = API_KEY();
-  const supaUrl = SUPABASE_URL();
-  if (!apiKey || !supaUrl) return null;
+  const apiUrl = CMS_API_URL();
+  if (!apiKey || !apiUrl) return null;
 
   try {
-    const url = `${supaUrl}/functions/v1/totem-poll-command`;
+    const url = `${apiUrl}/totem-poll-command`;
     const text = await new Promise((resolve, reject) => {
       const client = url.startsWith('https://') ? https : http;
       const req = client.request(url, {
