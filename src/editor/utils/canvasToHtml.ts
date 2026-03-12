@@ -10,6 +10,11 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function isHtmlIframeMode(props: Record<string, any> | undefined): boolean {
+  if (!props) return false;
+  return props._iframeMode === 'html' || (!props._iframeMode && Boolean(props.htmlContent));
+}
+
 function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
   const p = el.props || {};
 
