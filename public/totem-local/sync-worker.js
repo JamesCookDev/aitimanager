@@ -184,6 +184,26 @@ async function ensureEnvFile() {
 //  FETCH HTML — busca o HTML publicado via Edge Function
 // ══════════════════════════════════════════════════════════════
 let lastEtag = null;
+let htmlRevision = Date.now();
+let lastHtmlSyncAt = null;
+
+function markHtmlUpdated() {
+  htmlRevision = Date.now();
+  lastHtmlSyncAt = new Date().toISOString();
+}
+
+function injectAutoReloadScript(html) {
+  const marker = '__TOTEM_AUTO_RELOAD__';
+  if (html.includes(marker)) return html;
+
+  const script = `\n<!-- ${marker} -->\n<script>(function(){var last=null;async function check(){try{var r=await fetch('/__totem_version?ts='+Date.now(),{cache:'no-store'});var j=await r.json();if(last===null){last=j.revision;return;}if(j.revision!==last){window.location.reload();}}catch(e){} } setInterval(check,4000); check();})();</script>\n`;
+
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${script}</body>`);
+  }
+
+  return `${html}${script}`;
+}
 
 function fetchHtml() {
   return new Promise((resolve, reject) => {
