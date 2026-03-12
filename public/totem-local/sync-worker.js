@@ -87,18 +87,33 @@ function isCommandAvailable(cmd) {
 }
 
 // ─── Configurações (lazy) ────────────────────────────────────
-function ANON_KEY()        { return process.env.VITE_SUPABASE_ANON_KEY || ''; }
-function SUPABASE_URL()    { return (process.env.VITE_SUPABASE_URL || '').replace(/\/$/, ''); }
-// Derive CMS_API_URL from VITE_CMS_API_URL or VITE_SUPABASE_URL
+function ANON_KEY() {
+  return (
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  );
+}
+
+function SUPABASE_URL() {
+  const direct = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  if (direct) return direct;
+  const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID || '';
+  return projectId ? `https://${projectId}.supabase.co` : '';
+}
+
+// Derive CMS API from explicit URL or project base URL
 function CMS_API_URL() {
-  const explicit = (process.env.VITE_CMS_API_URL || '').replace(/\/$/, '');
+  const explicit = (process.env.VITE_CMS_API_URL || process.env.CMS_API_URL || '').replace(/\/$/, '');
   if (explicit) return explicit;
   const base = SUPABASE_URL();
-  if (base) return `${base}/functions/v1`;
-  return '';
+  return base ? `${base}/functions/v1` : '';
 }
-function DEVICE_ID()       { return process.env.VITE_TOTEM_DEVICE_ID || ''; }
-function API_KEY()         { return process.env.API_KEY || ''; }
+
+function DEVICE_ID() { return process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || ''; }
+function API_KEY() { return process.env.API_KEY || process.env.TOTEM_API_KEY || ''; }
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
 function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
 function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
