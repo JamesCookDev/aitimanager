@@ -87,9 +87,16 @@ function isCommandAvailable(cmd) {
 }
 
 // ─── Configurações (lazy) ────────────────────────────────────
-function CMS_API_URL()     { return (process.env.VITE_CMS_API_URL || '').replace(/\/$/, ''); }
 function ANON_KEY()        { return process.env.VITE_SUPABASE_ANON_KEY || ''; }
 function SUPABASE_URL()    { return (process.env.VITE_SUPABASE_URL || '').replace(/\/$/, ''); }
+// Derive CMS_API_URL from VITE_CMS_API_URL or VITE_SUPABASE_URL
+function CMS_API_URL() {
+  const explicit = (process.env.VITE_CMS_API_URL || '').replace(/\/$/, '');
+  if (explicit) return explicit;
+  const base = SUPABASE_URL();
+  if (base) return `${base}/functions/v1`;
+  return '';
+}
 function DEVICE_ID()       { return process.env.VITE_TOTEM_DEVICE_ID || ''; }
 function API_KEY()         { return process.env.API_KEY || ''; }
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
