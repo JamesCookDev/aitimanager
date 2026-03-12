@@ -87,18 +87,33 @@ function isCommandAvailable(cmd) {
 }
 
 // ─── Configurações (lazy) ────────────────────────────────────
-function ANON_KEY()        { return process.env.VITE_SUPABASE_ANON_KEY || ''; }
-function SUPABASE_URL()    { return (process.env.VITE_SUPABASE_URL || '').replace(/\/$/, ''); }
-// Derive CMS_API_URL from VITE_CMS_API_URL or VITE_SUPABASE_URL
+function ANON_KEY() {
+  return (
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  );
+}
+
+function SUPABASE_URL() {
+  const direct = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  if (direct) return direct;
+  const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID || '';
+  return projectId ? `https://${projectId}.supabase.co` : '';
+}
+
+// Derive CMS API from explicit URL or project base URL
 function CMS_API_URL() {
-  const explicit = (process.env.VITE_CMS_API_URL || '').replace(/\/$/, '');
+  const explicit = (process.env.VITE_CMS_API_URL || process.env.CMS_API_URL || '').replace(/\/$/, '');
   if (explicit) return explicit;
   const base = SUPABASE_URL();
-  if (base) return `${base}/functions/v1`;
-  return '';
+  return base ? `${base}/functions/v1` : '';
 }
-function DEVICE_ID()       { return process.env.VITE_TOTEM_DEVICE_ID || ''; }
-function API_KEY()         { return process.env.API_KEY || ''; }
+
+function DEVICE_ID() { return process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || ''; }
+function API_KEY() { return process.env.API_KEY || process.env.TOTEM_API_KEY || ''; }
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
 function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
 function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
@@ -106,6 +121,27 @@ function KIOSK_DELAY()     { return parseInt(process.env.KIOSK_DELAY_MS || '3000
 function KIOSK_BROWSER()   { return process.env.KIOSK_BROWSER || 'auto'; }
 
 const HTML_FILE = () => path.join(__dirname, 'index.html');
+
+function validateRuntimeConfig() {
+  const apiUrl = CMS_API_URL();
+  const hasIdentity = Boolean(API_KEY() || DEVICE_ID());
+
+  if (!apiUrl) {
+    error('Config inválida: defina VITE_CMS_API_URL, VITE_SUPABASE_URL ou VITE_SUPABASE_PROJECT_ID no .env');
+    return false;
+  }
+
+  if (!hasIdentity) {
+    error('Config inválida: defina API_KEY (ou VITE_TOTEM_DEVICE_ID) no .env');
+    return false;
+  }
+
+  if (!ANON_KEY()) {
+    warn('VITE_SUPABASE_ANON_KEY não encontrada (algumas funções podem falhar)');
+  }
+
+  return true;
+}
 
 // ─── Garantir .env existe ────────────────────────────────────
 async function ensureEnvFile() {
@@ -522,7 +558,12 @@ async function runWorker() {
   loadEnv();
   VERBOSE = process.env.VERBOSE === 'true';
 
+  if (!validateRuntimeConfig()) {
+    process.exit(1);
+  }
+
   log(`API URL      : ${CMS_API_URL()}`);
+  log(`Base URL     : ${SUPABASE_URL() || '(não definida)'}`);
   log(`Device ID    : ${DEVICE_ID() || '(via API key)'}`);
   log(`HTTP Port    : ${HTTP_PORT()}`);
   log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
@@ -571,11 +612,13 @@ async function runWorker() {
   log('━━━ Polling de atualizações ativo ━━━');
   const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
 
-  // Remote commands — usa CMS_API_URL derivado
+  // Remote commands — requer API_KEY
   let cmdInterval;
-  if ((API_KEY() || DEVICE_ID()) && CMS_API_URL()) {
+  if (API_KEY() && CMS_API_URL()) {
     log('🔌 Polling de comandos remotos ativo');
     cmdInterval = setInterval(handleRemoteCommand, 5000);
+  } else {
+    warn('Comandos remotos desativados: defina API_KEY no .env');
   }
 
   // Graceful shutdown
