@@ -3,7 +3,7 @@ import {
   Type, Image, MousePointer2, Square, Sparkles, Play, QrCode, MapPin,
   Share2, MessageSquare, GalleryHorizontal, Clock, CloudSun, Timer, Globe, User, Megaphone,
   List, LayoutGrid, Hash, ShoppingBag, FileText, Ticket, CreditCard, Keyboard, Pointer,
-  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3, Rss,
+  Search, ChevronDown, Monitor, PenLine, Film, Link2, BarChart3, Rss, FileCode2,
 } from 'lucide-react';
 import type { ElementType } from '../types/canvas';
 import { createElement } from '../types/canvas';
@@ -24,6 +24,7 @@ interface PaletteItem {
   label: string;
   desc: string;
   color: string;
+  htmlPuro?: boolean;
 }
 
 const CATEGORIES: {
@@ -65,6 +66,7 @@ const CATEGORIES: {
       { type: 'gallery', icon: LayoutGrid, label: 'Galeria', desc: 'Grid de imagens', color: '#06b6d4' },
       { type: 'feed' as ElementType, icon: Rss, label: 'Feed', desc: 'Feed estilo Instagram', color: '#f97316' },
       { type: 'iframe', icon: Globe, label: 'Iframe', desc: 'Conteúdo externo', color: '#64748b' },
+      { type: 'iframe', icon: FileCode2, label: 'HTML Puro', desc: 'HTML direto no canvas', color: '#0ea5e9', htmlPuro: true },
     ],
   },
   {
@@ -152,12 +154,16 @@ export function ElementPalette({ onAdd }: Props) {
 
                 <CollapsibleContent>
                   <div className="grid grid-cols-3 gap-2 pt-2 pb-1">
-                    {cat.items.map((item) => (
+                    {cat.items.map((item, idx) => (
                       <button
-                        key={item.type}
+                        key={`${item.type}-${idx}`}
                         type="button"
                         onClick={() => {
                           const el = createElement(item.type, 80 + Math.random() * 200, 80 + Math.random() * 400);
+                          if (item.htmlPuro) {
+                            el.name = 'HTML Puro';
+                            el.props = { ...el.props, _iframeMode: 'html', htmlContent: '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;font-size:24px;">Cole seu HTML aqui</div>', borderRadius: 0 };
+                          }
                           onAdd(el);
                         }}
                         className="flex flex-col items-center gap-2 group cursor-pointer active:scale-90 transition-transform p-1.5"
