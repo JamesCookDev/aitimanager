@@ -58,7 +58,7 @@ function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
       return `<div id="clock-${el.id}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${p.color || '#fff'};font-size:${p.fontSize || 48}px;font-weight:${p.fontWeight || '700'};font-family:${p.fontFamily || 'Inter'},monospace"><script>setInterval(()=>{const d=new Date();document.getElementById('clock-${el.id}').textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'${p.showSeconds ? ",second:'2-digit'" : ''}})},1000)</script></div>`;
 
     case 'iframe':
-      if (p._iframeMode === 'html' && p.htmlContent) {
+      if (isHtmlIframeMode(p) && p.htmlContent) {
         // Embed raw HTML directly (most common use case for HTML Puro templates)
         return p.htmlContent;
       }
