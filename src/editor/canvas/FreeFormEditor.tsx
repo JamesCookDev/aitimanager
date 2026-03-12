@@ -34,6 +34,7 @@ import { SavedLayoutsDialog } from './SavedLayoutsDialog';
 import { applyFieldOverrides } from '../utils/htmlEditableFields';
 import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
 import { AIGenerateDialog } from './AIGenerateDialog';
+import { HTMLImportDialog } from './HTMLImportDialog';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
@@ -163,6 +164,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   } | null>(null);
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
   const [showAIGenerate, setShowAIGenerate] = useState(false);
+  const [showHTMLImport, setShowHTMLImport] = useState(false);
 
   const fitToViewport = useCallback(() => {
     if (!viewportRef.current) return;
@@ -452,7 +454,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <Upload className="w-3.5 h-3.5" /> Importar JSON
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-xs gap-2.5">
-                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (HTML/SVG)
+                  <FileCode2 className="w-3.5 h-3.5" /> Importar Design (SVG)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHTMLImport(true)} className="text-xs gap-2.5">
+                  <Upload className="w-3.5 h-3.5 text-blue-500" /> Importar HTML 📄
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-xs gap-2.5">
                   <FolderOpen className="w-3.5 h-3.5" /> Layouts Salvos
@@ -900,6 +905,17 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         if (state.selectedId) {
           dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props: { htmlContent: html } });
           toast.success('Layout refinado com sucesso!');
+        }
+      }}
+    />
+
+    <HTMLImportDialog
+      open={showHTMLImport}
+      onOpenChange={setShowHTMLImport}
+      onImport={(elements, importBgColor) => {
+        elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
+        if (importBgColor && importBgColor !== '#0f172a') {
+          dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: importBgColor });
         }
       }}
     />
