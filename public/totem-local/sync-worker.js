@@ -252,14 +252,24 @@ function fetchHtml() {
 // ══════════════════════════════════════════════════════════════
 function updateHtmlFile(html) {
   const htmlPath = HTML_FILE();
-  
-  // Backup anterior
-  if (fs.existsSync(htmlPath)) {
-    try { fs.copyFileSync(htmlPath, htmlPath + '.bak'); } catch {}
+  const nextHtml = injectAutoReloadScript(html);
+
+  try {
+    if (fs.existsSync(htmlPath)) {
+      const currentHtml = fs.readFileSync(htmlPath, 'utf8');
+      if (currentHtml === nextHtml) {
+        debug('HTML recebido sem mudanças reais no arquivo local');
+        return;
+      }
+      fs.copyFileSync(htmlPath, htmlPath + '.bak');
+    }
+  } catch {
+    // segue o fluxo mesmo se não conseguir comparar/backup
   }
 
-  fs.writeFileSync(htmlPath, html, 'utf8');
-  log(`✅ HTML atualizado (${(html.length / 1024).toFixed(1)} KB)`);
+  fs.writeFileSync(htmlPath, nextHtml, 'utf8');
+  markHtmlUpdated();
+  log(`✅ HTML atualizado (${(nextHtml.length / 1024).toFixed(1)} KB)`);
 }
 
 // ══════════════════════════════════════════════════════════════
