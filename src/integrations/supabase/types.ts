@@ -193,6 +193,7 @@ export type Database = {
           name: string
           org_id: string
           pending_command: string | null
+          published_html: string | null
           status_details: Json | null
           ui_config: Json | null
           updated_at: string
@@ -215,6 +216,7 @@ export type Database = {
           name: string
           org_id: string
           pending_command?: string | null
+          published_html?: string | null
           status_details?: Json | null
           ui_config?: Json | null
           updated_at?: string
@@ -237,6 +239,7 @@ export type Database = {
           name?: string
           org_id?: string
           pending_command?: string | null
+          published_html?: string | null
           status_details?: Json | null
           ui_config?: Json | null
           updated_at?: string
