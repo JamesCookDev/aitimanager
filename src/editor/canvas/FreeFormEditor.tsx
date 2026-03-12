@@ -908,6 +908,17 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
         }
       }}
     />
+
+    <HTMLImportDialog
+      open={showHTMLImport}
+      onOpenChange={setShowHTMLImport}
+      onImport={(elements, importBgColor) => {
+        elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
+        if (importBgColor && importBgColor !== '#0f172a') {
+          dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: importBgColor });
+        }
+      }}
+    />
     </PageVariablesProvider>
   );
 }
