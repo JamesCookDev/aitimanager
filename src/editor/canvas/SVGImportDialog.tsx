@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FileCode2, Upload, ClipboardPaste, AlertTriangle, Eye, Code2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -18,6 +18,7 @@ interface SVGImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImport: (state: CanvasState) => void;
+  initialMode?: ImportMode;
 }
 
 /* ── Mini canvas preview of parsed elements ── */
@@ -61,11 +62,18 @@ function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgCol
 
 type ImportMode = 'svg' | 'html' | 'raw';
 
-export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialogProps) {
+export function SVGImportDialog({ open, onOpenChange, onImport, initialMode }: SVGImportDialogProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<ImportMode>('raw');
+  const [mode, setMode] = useState<ImportMode>(initialMode || 'raw');
   const [parsedResult, setParsedResult] = useState<{ elements: CanvasElement[]; bgColor: string } | null>(null);
+
+  // Sync mode when dialog opens with a specific initialMode
+  useEffect(() => {
+    if (open && initialMode) {
+      setMode(initialMode);
+    }
+  }, [open, initialMode]);
 
   const reset = () => {
     setCode('');
