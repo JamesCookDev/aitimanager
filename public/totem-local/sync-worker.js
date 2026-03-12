@@ -519,6 +519,12 @@ if (process.env.__TOTEM_CHILD === 'true') {
         process.exit(0);
       }
 
+      if (code === EXIT_CODE_REMOTE_RESTART) {
+        log('♻️ Reinício remoto solicitado — iniciando novo processo...');
+        setTimeout(spawnChild, 1000);
+        return;
+      }
+
       const now = Date.now();
       restartTimes.push(now);
       // Manter apenas restarts dentro da janela
