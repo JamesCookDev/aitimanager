@@ -34,6 +34,7 @@ import { SavedLayoutsDialog } from './SavedLayoutsDialog';
 import { applyFieldOverrides } from '../utils/htmlEditableFields';
 import { parseHTMLToCanvas } from '../utils/htmlToCanvas';
 import { AIGenerateDialog } from './AIGenerateDialog';
+import { HTMLImportDialog } from './HTMLImportDialog';
 
 /* ── Page transition variants ─────────── */
 const transitionVariants: Record<PageTransition, { initial: any; animate: any; exit: any }> = {
