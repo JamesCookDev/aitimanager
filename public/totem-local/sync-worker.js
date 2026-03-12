@@ -87,9 +87,16 @@ function isCommandAvailable(cmd) {
 }
 
 // ─── Configurações (lazy) ────────────────────────────────────
-function CMS_API_URL()     { return (process.env.VITE_CMS_API_URL || '').replace(/\/$/, ''); }
 function ANON_KEY()        { return process.env.VITE_SUPABASE_ANON_KEY || ''; }
 function SUPABASE_URL()    { return (process.env.VITE_SUPABASE_URL || '').replace(/\/$/, ''); }
+// Derive CMS_API_URL from VITE_CMS_API_URL or VITE_SUPABASE_URL
+function CMS_API_URL() {
+  const explicit = (process.env.VITE_CMS_API_URL || '').replace(/\/$/, '');
+  if (explicit) return explicit;
+  const base = SUPABASE_URL();
+  if (base) return `${base}/functions/v1`;
+  return '';
+}
 function DEVICE_ID()       { return process.env.VITE_TOTEM_DEVICE_ID || ''; }
 function API_KEY()         { return process.env.API_KEY || ''; }
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
@@ -248,11 +255,65 @@ async function pollForUpdates() {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  HEARTBEAT — informa ao Hub que o totem está online
+// ══════════════════════════════════════════════════════════════
+async function sendHeartbeat() {
+  const apiKey = API_KEY();
+  const deviceId = DEVICE_ID();
+  const apiUrl = CMS_API_URL();
+  if (!apiUrl) { debug('Heartbeat: CMS_API_URL não configurado'); return; }
+  if (!apiKey && !deviceId) { debug('Heartbeat: sem identificação'); return; }
+
+  try {
+    const url = `${apiUrl}/totem-heartbeat`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY(),
+    };
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+    else headers['x-totem-device-id'] = deviceId;
+
+    const payload = JSON.stringify({
+      status_details: {
+        worker_version: '7.0.0',
+        http_port: HTTP_PORT(),
+        uptime_seconds: Math.floor(process.uptime()),
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      const client = url.startsWith('https://') ? https : http;
+      const req = client.request(url, {
+        method: 'POST',
+        headers,
+        timeout: 10000,
+      }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            debug(`Heartbeat OK [${new Date().toLocaleTimeString('pt-BR')}]`);
+          } else {
+            warn(`Heartbeat HTTP ${res.statusCode}: ${data.substring(0, 100)}`);
+          }
+          resolve(data);
+        });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+      req.write(payload);
+      req.end();
+    });
+  } catch (err) {
+    warn(`Heartbeat falhou: ${err.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  REALTIME — escuta atualizações via Supabase Realtime
 // ══════════════════════════════════════════════════════════════
 // Note: Realtime via WebSocket requires a browser-like env.
 // The worker uses simple polling as primary mechanism.
-// When a publish happens, the poll interval catches it quickly.
 
 // ══════════════════════════════════════════════════════════════
 //  KIOSK — abrir navegador em tela cheia
@@ -303,11 +364,11 @@ function openKiosk() {
 // ══════════════════════════════════════════════════════════════
 async function checkRemoteCommand() {
   const apiKey = API_KEY();
-  const supaUrl = SUPABASE_URL();
-  if (!apiKey || !supaUrl) return null;
+  const apiUrl = CMS_API_URL();
+  if (!apiKey || !apiUrl) return null;
 
   try {
-    const url = `${supaUrl}/functions/v1/totem-poll-command`;
+    const url = `${apiUrl}/totem-poll-command`;
     const text = await new Promise((resolve, reject) => {
       const client = url.startsWith('https://') ? https : http;
       const req = client.request(url, {
@@ -332,10 +393,10 @@ async function checkRemoteCommand() {
 
 async function reportCommandResult(command, status, errorMsg) {
   const apiKey = API_KEY();
-  const supaUrl = SUPABASE_URL();
-  if (!apiKey || !supaUrl) return;
+  const apiUrl = CMS_API_URL();
+  if (!apiKey || !apiUrl) return;
   try {
-    const url = `${supaUrl}/functions/v1/totem-command-report`;
+    const url = `${apiUrl}/totem-command-report`;
     const payload = JSON.stringify({ command, status, error: errorMsg || undefined });
     await new Promise((resolve, reject) => {
       const client = url.startsWith('https://') ? https : http;
@@ -501,13 +562,18 @@ async function runWorker() {
   // Open kiosk
   openKiosk();
 
+  // Heartbeat — marca dispositivo como online
+  log('💓 Heartbeat ativo (a cada 30s)');
+  await sendHeartbeat(); // Envia imediatamente
+  const heartbeatInterval = setInterval(sendHeartbeat, 30000);
+
   // Polling loop
   log('━━━ Polling de atualizações ativo ━━━');
   const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
 
-  // Remote commands
+  // Remote commands — usa CMS_API_URL derivado
   let cmdInterval;
-  if (API_KEY() && SUPABASE_URL()) {
+  if ((API_KEY() || DEVICE_ID()) && CMS_API_URL()) {
     log('🔌 Polling de comandos remotos ativo');
     cmdInterval = setInterval(handleRemoteCommand, 5000);
   }
@@ -515,6 +581,7 @@ async function runWorker() {
   // Graceful shutdown
   function shutdown() {
     log('Encerrando...');
+    clearInterval(heartbeatInterval);
     clearInterval(pollInterval);
     if (cmdInterval) clearInterval(cmdInterval);
     setTimeout(() => process.exit(0), 500);
