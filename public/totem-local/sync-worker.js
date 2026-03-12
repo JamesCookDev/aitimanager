@@ -333,9 +333,10 @@ async function pollForUpdates() {
   try {
     const result = await fetchHtml();
     if (result.changed && result.html) {
+      log(`📥 HTML atualizado — ${(result.html.length / 1024).toFixed(1)} KB | ETag: ${lastEtag || '(nenhum)'}`);
       updateHtmlFile(result.html);
     } else {
-      debug(`Sem alterações [${new Date().toLocaleTimeString('pt-BR')}]`);
+      log(`⏳ Sem alterações (304) | ETag: ${lastEtag || '(nenhum)'} | ${new Date().toLocaleTimeString('pt-BR')}`);
     }
   } catch (err) {
     warn(`Polling falhou: ${err.message}`);
