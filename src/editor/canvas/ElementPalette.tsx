@@ -24,6 +24,7 @@ interface PaletteItem {
   label: string;
   desc: string;
   color: string;
+  htmlPuro?: boolean;
 }
 
 const CATEGORIES: {
