@@ -879,7 +879,8 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
 
     <SVGImportDialog
       open={showSvgImport}
-      onOpenChange={setShowSvgImport}
+      onOpenChange={(v) => { setShowSvgImport(v); if (!v) setSvgImportMode(undefined); }}
+      initialMode={svgImportMode}
       onImport={(imported) => {
         const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
         
