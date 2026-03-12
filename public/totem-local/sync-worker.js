@@ -471,9 +471,10 @@ async function handleRemoteCommand() {
         await pollForUpdates();
         break;
       case 'restart':
-        log('🔃 Reiniciando...');
-        process.exit(0); // Será reiniciado pelo start-totem
-        break;
+        log('🔃 Reiniciando por comando remoto...');
+        await reportCommandResult(command, 'executed', null);
+        process.exit(EXIT_CODE_REMOTE_RESTART);
+        return;
       default:
         warn(`Comando desconhecido: "${command}"`);
         success = false;
@@ -494,6 +495,7 @@ async function handleRemoteCommand() {
 const MAX_RESTARTS   = 10;
 const RESTART_WINDOW = 60000; // 1 minuto
 const RESTART_DELAY  = 5000;  // 5 segundos entre restarts
+const EXIT_CODE_REMOTE_RESTART = 75;
 
 if (process.env.__TOTEM_CHILD === 'true') {
   // ── Processo filho — executa o worker de verdade ──────────
@@ -515,6 +517,12 @@ if (process.env.__TOTEM_CHILD === 'true') {
       if (code === 0) {
         log('Worker encerrado normalmente.');
         process.exit(0);
+      }
+
+      if (code === EXIT_CODE_REMOTE_RESTART) {
+        log('♻️ Reinício remoto solicitado — iniciando novo processo...');
+        setTimeout(spawnChild, 1000);
+        return;
       }
 
       const now = Date.now();
