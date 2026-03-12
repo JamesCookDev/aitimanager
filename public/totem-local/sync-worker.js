@@ -612,11 +612,13 @@ async function runWorker() {
   log('━━━ Polling de atualizações ativo ━━━');
   const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
 
-  // Remote commands — usa CMS_API_URL derivado
+  // Remote commands — requer API_KEY
   let cmdInterval;
-  if ((API_KEY() || DEVICE_ID()) && CMS_API_URL()) {
+  if (API_KEY() && CMS_API_URL()) {
     log('🔌 Polling de comandos remotos ativo');
     cmdInterval = setInterval(handleRemoteCommand, 5000);
+  } else {
+    warn('Comandos remotos desativados: defina API_KEY no .env');
   }
 
   // Graceful shutdown
