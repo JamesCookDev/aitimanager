@@ -95,22 +95,10 @@ export default function PageEditorPage() {
     if (!selectedDeviceId) return;
 
     try {
-      // Use a lightweight RPC-style update to avoid loading the full ui_config
-      const { data: existing } = await supabase
-        .from('devices')
-        .select('ui_config')
-        .eq('id', selectedDeviceId)
-        .single();
-
-      const currentConfig = (existing?.ui_config as Record<string, any>) || {};
-      
-      // Only update free_canvas, keep other keys
-      const updatedConfig = { ...currentConfig, free_canvas: state };
-
       const { error } = await supabase
         .from('devices')
         .update({
-          ui_config: updatedConfig as any,
+          ui_config: { free_canvas: state } as any,
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedDeviceId);
@@ -132,33 +120,40 @@ export default function PageEditorPage() {
     try {
       // Generate static HTML from canvas state
       const html = canvasToHtml(state);
+      const now = new Date().toISOString();
 
-      // Save canvas state AND published HTML in one update
-      const { data: existing } = await supabase
-        .from('devices')
-        .select('ui_config')
-        .eq('id', selectedDeviceId)
-        .single();
-
-      const currentConfig = (existing?.ui_config as Record<string, any>) || {};
-      const updatedConfig = { ...currentConfig, free_canvas: state };
-
+      // Fast path: save canvas + published HTML together
       const { error } = await supabase
         .from('devices')
         .update({
-          ui_config: updatedConfig as any,
+          ui_config: { free_canvas: state } as any,
           published_html: html,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         } as any)
         .eq('id', selectedDeviceId);
 
       if (error) {
-        toast.error('Erro ao publicar: ' + error.message);
-        console.error(error);
-        return;
-      }
+        console.warn('Publish com ui_config falhou, tentando fallback html-only:', error);
 
-      toast.success('Layout publicado no dispositivo!');
+        // Fallback: guarantee worker sync even if ui_config payload is too heavy
+        const { error: fallbackError } = await supabase
+          .from('devices')
+          .update({
+            published_html: html,
+            updated_at: now,
+          } as any)
+          .eq('id', selectedDeviceId);
+
+        if (fallbackError) {
+          toast.error('Erro ao publicar: ' + fallbackError.message);
+          console.error(fallbackError);
+          return;
+        }
+
+        toast.success('Layout publicado! (HTML sincronizado)');
+      } else {
+        toast.success('Layout publicado no dispositivo!');
+      }
 
       // Broadcast reload signal
       try {
