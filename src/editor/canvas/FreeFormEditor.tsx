@@ -528,11 +528,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 <DropdownMenuItem onClick={handleImport} className="text-sm gap-3 py-2.5">
                   <Upload className="w-4 h-4" /> Importar JSON
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowSvgImport(true)} className="text-sm gap-3 py-2.5">
+                <DropdownMenuItem onClick={() => { setSvgImportMode('raw'); setShowSvgImport(true); }} className="text-sm gap-3 py-2.5">
+                  <FileCode2 className="w-4 h-4 text-cyan-500" /> HTML Puro
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSvgImportMode('svg'); setShowSvgImport(true); }} className="text-sm gap-3 py-2.5">
                   <FileCode2 className="w-4 h-4" /> Importar SVG
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowHTMLImport(true)} className="text-sm gap-3 py-2.5">
-                  <Upload className="w-4 h-4 text-blue-500" /> Importar HTML
+                  <Upload className="w-4 h-4 text-blue-500" /> Importar HTML → Widgets
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-sm gap-3 py-2.5">
                   <FolderOpen className="w-4 h-4" /> Layouts Salvos
