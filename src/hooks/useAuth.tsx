@@ -23,6 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Track last fetched user ID to prevent duplicate requests
+  const fetchedUserIdRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     // Timeout to prevent infinite loading if Supabase is slow
     const timeout = setTimeout(() => {
@@ -34,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && fetchedUserIdRef.current !== session.user.id) {
         fetchUserData(session.user.id);
       }
       setLoading(false);
@@ -50,13 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid Supabase client deadlock
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
+          // Only fetch if user changed
+          if (fetchedUserIdRef.current !== session.user.id) {
+            setTimeout(() => {
+              fetchUserData(session.user.id);
+            }, 0);
+          }
         } else {
           setProfile(null);
           setRole(null);
+          fetchedUserIdRef.current = null;
         }
         setLoading(false);
       }
