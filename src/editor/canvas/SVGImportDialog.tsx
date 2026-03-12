@@ -62,11 +62,17 @@ function CanvasPreview({ elements, bgColor }: { elements: CanvasElement[]; bgCol
 
 type ImportMode = 'svg' | 'html' | 'raw';
 
-export function SVGImportDialog({ open, onOpenChange, onImport }: SVGImportDialogProps) {
+export function SVGImportDialog({ open, onOpenChange, onImport, initialMode }: SVGImportDialogProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<ImportMode>('raw');
+  const [mode, setMode] = useState<ImportMode>(initialMode || 'raw');
   const [parsedResult, setParsedResult] = useState<{ elements: CanvasElement[]; bgColor: string } | null>(null);
+
+  // Sync mode when dialog opens with a specific initialMode
+  const prevOpen = useState(open)[0];
+  if (open && initialMode && mode !== initialMode && !code) {
+    setMode(initialMode);
+  }
 
   const reset = () => {
     setCode('');
