@@ -161,6 +161,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [showFrame, setShowFrame] = useState(false);
   const [showZones, setShowZones] = useState(false);
   const [showSvgImport, setShowSvgImport] = useState(false);
+  const [svgImportMode, setSvgImportMode] = useState<'svg' | 'html' | 'raw' | undefined>(undefined);
   const [showSavedLayouts, setShowSavedLayouts] = useState(false);
   const [selectedNavElement, setSelectedNavElement] = useState<{
     selector: string; tag: string; text: string; currentNavigate: string; elementId: string;
