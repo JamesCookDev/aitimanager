@@ -14,6 +14,7 @@ import { getDeviceStatus, type DeviceStatus } from '@/types/database';
 import { cn } from '@/lib/utils';
 import type { CanvasState } from '@/editor/types/canvas';
 import { DEFAULT_CANVAS_STATE } from '@/editor/types/canvas';
+import { canvasToHtml } from '@/editor/utils/canvasToHtml';
 
 interface DeviceSummary {
   id: string;
