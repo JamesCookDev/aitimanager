@@ -293,6 +293,20 @@ function startHttpServer() {
       return;
     }
 
+    // Worker metadata endpoint (usado para auto-reload no kiosk)
+    if (req.url?.startsWith('/__totem_version')) {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify({
+        revision: htmlRevision,
+        etag: lastEtag,
+        last_sync_at: lastHtmlSyncAt,
+      }));
+      return;
+    }
+
     // Serve index.html for everything else
     const htmlPath = HTML_FILE();
     if (fs.existsSync(htmlPath)) {
