@@ -18,6 +18,7 @@ interface SVGImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImport: (state: CanvasState) => void;
+  initialMode?: ImportMode;
 }
 
 /* ── Mini canvas preview of parsed elements ── */
