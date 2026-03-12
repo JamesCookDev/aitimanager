@@ -10,6 +10,11 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function isHtmlIframeMode(props: Record<string, any> | undefined): boolean {
+  if (!props) return false;
+  return props._iframeMode === 'html' || (!props._iframeMode && Boolean(props.htmlContent));
+}
+
 function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
   const p = el.props || {};
 
@@ -53,7 +58,7 @@ function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
       return `<div id="clock-${el.id}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${p.color || '#fff'};font-size:${p.fontSize || 48}px;font-weight:${p.fontWeight || '700'};font-family:${p.fontFamily || 'Inter'},monospace"><script>setInterval(()=>{const d=new Date();document.getElementById('clock-${el.id}').textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'${p.showSeconds ? ",second:'2-digit'" : ''}})},1000)</script></div>`;
 
     case 'iframe':
-      if (p._iframeMode === 'html' && p.htmlContent) {
+      if (isHtmlIframeMode(p) && p.htmlContent) {
         // Embed raw HTML directly (most common use case for HTML Puro templates)
         return p.htmlContent;
       }
@@ -189,13 +194,13 @@ export function canvasToHtml(state: CanvasState): string {
   fonts.add('Inter');
   const fontImport = `@import url('https://fonts.googleapis.com/css2?${Array.from(fonts).map(f => `family=${f.replace(/\s+/g, '+')}:wght@400;500;600;700;800;900`).join('&')}&display=swap');`;
 
-  // Check if any element is an iframe with _iframeMode='html' covering the full canvas
+  // Check if any element is an iframe with HTML content covering the full canvas.
   // In that case, just use the raw HTML directly (HTML Puro mode)
   for (const v of views) {
     const viewEls = elementsByView.get(v.id) || [];
     if (viewEls.length === 1) {
       const el = viewEls[0];
-      if (el.type === 'iframe' && el.props?._iframeMode === 'html' && el.props?.htmlContent &&
+      if (el.type === 'iframe' && isHtmlIframeMode(el.props) && el.props?.htmlContent &&
           el.width >= 1080 && el.height >= 1920 && el.x === 0 && el.y === 0) {
         // Single full-canvas HTML element on one page — if it's the only view, return raw HTML
         if (views.length === 1) {
@@ -217,7 +222,7 @@ export function canvasToHtml(state: CanvasState): string {
 
     const elementsHtml = viewElements.map(el => {
       // For full-canvas iframe HTML, embed directly without wrapper
-      if (el.type === 'iframe' && el.props?._iframeMode === 'html' && el.props?.htmlContent &&
+      if (el.type === 'iframe' && isHtmlIframeMode(el.props) && el.props?.htmlContent &&
           el.width >= 1080 && el.height >= 1920) {
         return `<div style="position:absolute;left:0;top:0;width:1080px;height:1920px;z-index:${el.zIndex};opacity:${el.opacity ?? 1};${el.rotation ? `transform:rotate(${el.rotation}deg)` : ''}">${el.props.htmlContent}</div>`;
       }
