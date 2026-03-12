@@ -255,11 +255,65 @@ async function pollForUpdates() {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  HEARTBEAT — informa ao Hub que o totem está online
+// ══════════════════════════════════════════════════════════════
+async function sendHeartbeat() {
+  const apiKey = API_KEY();
+  const deviceId = DEVICE_ID();
+  const apiUrl = CMS_API_URL();
+  if (!apiUrl) { debug('Heartbeat: CMS_API_URL não configurado'); return; }
+  if (!apiKey && !deviceId) { debug('Heartbeat: sem identificação'); return; }
+
+  try {
+    const url = `${apiUrl}/totem-heartbeat`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY(),
+    };
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+    else headers['x-totem-device-id'] = deviceId;
+
+    const payload = JSON.stringify({
+      status_details: {
+        worker_version: '7.0.0',
+        http_port: HTTP_PORT(),
+        uptime_seconds: Math.floor(process.uptime()),
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      const client = url.startsWith('https://') ? https : http;
+      const req = client.request(url, {
+        method: 'POST',
+        headers,
+        timeout: 10000,
+      }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            debug(`Heartbeat OK [${new Date().toLocaleTimeString('pt-BR')}]`);
+          } else {
+            warn(`Heartbeat HTTP ${res.statusCode}: ${data.substring(0, 100)}`);
+          }
+          resolve(data);
+        });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+      req.write(payload);
+      req.end();
+    });
+  } catch (err) {
+    warn(`Heartbeat falhou: ${err.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  REALTIME — escuta atualizações via Supabase Realtime
 // ══════════════════════════════════════════════════════════════
 // Note: Realtime via WebSocket requires a browser-like env.
 // The worker uses simple polling as primary mechanism.
-// When a publish happens, the poll interval catches it quickly.
 
 // ══════════════════════════════════════════════════════════════
 //  KIOSK — abrir navegador em tela cheia
