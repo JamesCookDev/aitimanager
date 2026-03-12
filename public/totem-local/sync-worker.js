@@ -562,13 +562,18 @@ async function runWorker() {
   // Open kiosk
   openKiosk();
 
+  // Heartbeat — marca dispositivo como online
+  log('💓 Heartbeat ativo (a cada 30s)');
+  await sendHeartbeat(); // Envia imediatamente
+  const heartbeatInterval = setInterval(sendHeartbeat, 30000);
+
   // Polling loop
   log('━━━ Polling de atualizações ativo ━━━');
   const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
 
-  // Remote commands
+  // Remote commands — usa CMS_API_URL derivado
   let cmdInterval;
-  if (API_KEY() && SUPABASE_URL()) {
+  if ((API_KEY() || DEVICE_ID()) && CMS_API_URL()) {
     log('🔌 Polling de comandos remotos ativo');
     cmdInterval = setInterval(handleRemoteCommand, 5000);
   }
@@ -576,6 +581,7 @@ async function runWorker() {
   // Graceful shutdown
   function shutdown() {
     log('Encerrando...');
+    clearInterval(heartbeatInterval);
     clearInterval(pollInterval);
     if (cmdInterval) clearInterval(cmdInterval);
     setTimeout(() => process.exit(0), 500);
