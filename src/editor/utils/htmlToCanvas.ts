@@ -344,7 +344,7 @@ export function parseHTMLToCanvas(htmlString: string): ParsedHTML {
     const originX = containerRect.left;
     const originY = containerRect.top;
     const refW = containerRect.width || 1080;
-    const refH = Math.max(containerRect.scrollHeight, containerRect.height, 1920);
+    const refH = Math.max(container.scrollHeight, containerRect.height, 1920);
 
     const scaleX = CANVAS_WIDTH / refW;
     const scaleY = CANVAS_HEIGHT / Math.max(refH, 1920);
