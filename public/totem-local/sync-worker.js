@@ -122,6 +122,27 @@ function KIOSK_BROWSER()   { return process.env.KIOSK_BROWSER || 'auto'; }
 
 const HTML_FILE = () => path.join(__dirname, 'index.html');
 
+function validateRuntimeConfig() {
+  const apiUrl = CMS_API_URL();
+  const hasIdentity = Boolean(API_KEY() || DEVICE_ID());
+
+  if (!apiUrl) {
+    error('Config inválida: defina VITE_CMS_API_URL, VITE_SUPABASE_URL ou VITE_SUPABASE_PROJECT_ID no .env');
+    return false;
+  }
+
+  if (!hasIdentity) {
+    error('Config inválida: defina API_KEY (ou VITE_TOTEM_DEVICE_ID) no .env');
+    return false;
+  }
+
+  if (!ANON_KEY()) {
+    warn('VITE_SUPABASE_ANON_KEY não encontrada (algumas funções podem falhar)');
+  }
+
+  return true;
+}
+
 // ─── Garantir .env existe ────────────────────────────────────
 async function ensureEnvFile() {
   const envPath = path.join(__dirname, '.env');
