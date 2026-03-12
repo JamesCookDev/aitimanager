@@ -127,17 +127,40 @@ export default function PageEditorPage() {
   };
 
   const handlePublish = async (state: CanvasState) => {
+    if (!selectedDeviceId) return;
+
     try {
-      await handleSave(state);
-    } catch {
-      toast.error('Falha ao salvar — publicação cancelada');
-      return;
-    }
+      // Generate static HTML from canvas state
+      const html = canvasToHtml(state);
 
-    toast.success('Layout publicado no dispositivo!');
+      // Save canvas state AND published HTML in one update
+      const { data: existing } = await supabase
+        .from('devices')
+        .select('ui_config')
+        .eq('id', selectedDeviceId)
+        .single();
 
-    // Broadcast a lightweight reload signal
-    if (selectedDeviceId) {
+      const currentConfig = (existing?.ui_config as Record<string, any>) || {};
+      const updatedConfig = { ...currentConfig, free_canvas: state };
+
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          ui_config: updatedConfig as any,
+          published_html: html,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', selectedDeviceId);
+
+      if (error) {
+        toast.error('Erro ao publicar: ' + error.message);
+        console.error(error);
+        return;
+      }
+
+      toast.success('Layout publicado no dispositivo!');
+
+      // Broadcast reload signal
       try {
         const channel = supabase.channel(`live-preview:${selectedDeviceId}`);
         await channel.send({
@@ -149,6 +172,9 @@ export default function PageEditorPage() {
       } catch (err) {
         console.warn('Broadcast falhou, totem usará polling:', err);
       }
+    } catch (err) {
+      console.error('Publish failed:', err);
+      toast.error('Falha ao publicar layout');
     }
   };
 
