@@ -69,10 +69,11 @@ export function SVGImportDialog({ open, onOpenChange, onImport, initialMode }: S
   const [parsedResult, setParsedResult] = useState<{ elements: CanvasElement[]; bgColor: string } | null>(null);
 
   // Sync mode when dialog opens with a specific initialMode
-  const prevOpen = useState(open)[0];
-  if (open && initialMode && mode !== initialMode && !code) {
-    setMode(initialMode);
-  }
+  useEffect(() => {
+    if (open && initialMode) {
+      setMode(initialMode);
+    }
+  }, [open, initialMode]);
 
   const reset = () => {
     setCode('');
