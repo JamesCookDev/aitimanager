@@ -65,6 +65,7 @@ const CATEGORIES: {
       { type: 'gallery', icon: LayoutGrid, label: 'Galeria', desc: 'Grid de imagens', color: '#06b6d4' },
       { type: 'feed' as ElementType, icon: Rss, label: 'Feed', desc: 'Feed estilo Instagram', color: '#f97316' },
       { type: 'iframe', icon: Globe, label: 'Iframe', desc: 'Conteúdo externo', color: '#64748b' },
+      { type: 'iframe', icon: FileCode2, label: 'HTML Puro', desc: 'HTML direto no canvas', color: '#0ea5e9', htmlPuro: true },
     ],
   },
   {
