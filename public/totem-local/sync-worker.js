@@ -494,6 +494,7 @@ async function handleRemoteCommand() {
 const MAX_RESTARTS   = 10;
 const RESTART_WINDOW = 60000; // 1 minuto
 const RESTART_DELAY  = 5000;  // 5 segundos entre restarts
+const EXIT_CODE_REMOTE_RESTART = 75;
 
 if (process.env.__TOTEM_CHILD === 'true') {
   // ── Processo filho — executa o worker de verdade ──────────
