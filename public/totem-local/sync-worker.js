@@ -113,7 +113,15 @@ function CMS_API_URL() {
 }
 
 function DEVICE_ID() { return process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || ''; }
-function API_KEY() { return process.env.API_KEY || process.env.TOTEM_API_KEY || ''; }
+function API_KEY() {
+  return (
+    process.env.API_KEY ||
+    process.env.TOTEM_API_KEY ||
+    process.env.VITE_TOTEM_API_KEY ||
+    process.env.VITE_API_KEY ||
+    ''
+  );
+}
 function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
 function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
 function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
@@ -176,6 +184,26 @@ async function ensureEnvFile() {
 //  FETCH HTML — busca o HTML publicado via Edge Function
 // ══════════════════════════════════════════════════════════════
 let lastEtag = null;
+let htmlRevision = Date.now();
+let lastHtmlSyncAt = null;
+
+function markHtmlUpdated() {
+  htmlRevision = Date.now();
+  lastHtmlSyncAt = new Date().toISOString();
+}
+
+function injectAutoReloadScript(html) {
+  const marker = '__TOTEM_AUTO_RELOAD__';
+  if (html.includes(marker)) return html;
+
+  const script = `\n<!-- ${marker} -->\n<script>(function(){var last=null;async function check(){try{var r=await fetch('/__totem_version?ts='+Date.now(),{cache:'no-store'});var j=await r.json();if(last===null){last=j.revision;return;}if(j.revision!==last){window.location.reload();}}catch(e){} } setInterval(check,4000); check();})();</script>\n`;
+
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${script}</body>`);
+  }
+
+  return `${html}${script}`;
+}
 
 function fetchHtml() {
   return new Promise((resolve, reject) => {
@@ -224,14 +252,24 @@ function fetchHtml() {
 // ══════════════════════════════════════════════════════════════
 function updateHtmlFile(html) {
   const htmlPath = HTML_FILE();
-  
-  // Backup anterior
-  if (fs.existsSync(htmlPath)) {
-    try { fs.copyFileSync(htmlPath, htmlPath + '.bak'); } catch {}
+  const nextHtml = injectAutoReloadScript(html);
+
+  try {
+    if (fs.existsSync(htmlPath)) {
+      const currentHtml = fs.readFileSync(htmlPath, 'utf8');
+      if (currentHtml === nextHtml) {
+        debug('HTML recebido sem mudanças reais no arquivo local');
+        return;
+      }
+      fs.copyFileSync(htmlPath, htmlPath + '.bak');
+    }
+  } catch {
+    // segue o fluxo mesmo se não conseguir comparar/backup
   }
 
-  fs.writeFileSync(htmlPath, html, 'utf8');
-  log(`✅ HTML atualizado (${(html.length / 1024).toFixed(1)} KB)`);
+  fs.writeFileSync(htmlPath, nextHtml, 'utf8');
+  markHtmlUpdated();
+  log(`✅ HTML atualizado (${(nextHtml.length / 1024).toFixed(1)} KB)`);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -252,6 +290,20 @@ function startHttpServer() {
     if (req.url === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+      return;
+    }
+
+    // Worker metadata endpoint (usado para auto-reload no kiosk)
+    if (req.url?.startsWith('/__totem_version')) {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify({
+        revision: htmlRevision,
+        etag: lastEtag,
+        last_sync_at: lastHtmlSyncAt,
+      }));
       return;
     }
 
