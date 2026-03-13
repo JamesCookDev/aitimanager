@@ -646,8 +646,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 size="sm"
                 className="h-9 text-xs gap-1.5 px-5 rounded-lg font-bold shadow-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
                 onClick={handlePublish}
+                disabled={publishing}
               >
-                <Rocket className="w-4 h-4" /> Publicar
+                {publishing ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Publicando...</>
+                ) : (
+                  <><Rocket className="w-4 h-4" /> Publicar</>
+                )}
               </Button>
             )}
           </div>
