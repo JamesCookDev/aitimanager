@@ -615,6 +615,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                   <FolderOpen className="w-4 h-4" /> Layouts Salvos
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleClearAll} className="text-sm gap-3 py-2.5 text-destructive focus:text-destructive">
+                  <Trash2 className="w-4 h-4" /> Limpar Tudo
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-sm gap-3 py-2.5">
                   <Keyboard className="w-4 h-4" /> Atalhos
                   {showShortcuts && <span className="text-xs text-primary font-bold">✓</span>}
