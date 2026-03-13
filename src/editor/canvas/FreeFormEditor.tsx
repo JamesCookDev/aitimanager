@@ -169,6 +169,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
   const [showAIGenerate, setShowAIGenerate] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showHTMLImport, setShowHTMLImport] = useState(false);
 
   const fitToViewport = useCallback(() => {
@@ -304,13 +305,35 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     setLeftTab('elements');
   }, [dispatch, activeViewId]);
 
-  const handleSave = useCallback(() => {
+
+  const handleSave = useCallback(async () => {
+    if (!onSave || saving) return;
     const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
     usedViewIds.add('__default__');
     const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
     const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
-    onSave?.(cleanState); setDirty(false); toast.success('Layout salvo!');
-  }, [state, onSave]);
+    setSaving(true);
+    try {
+      await onSave(cleanState);
+      setDirty(false);
+      toast.success('Layout salvo!');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Erro ao salvar layout');
+    } finally {
+      setSaving(false);
+    }
+  }, [state, onSave, saving]);
+
+  const handleClearAll = useCallback(() => {
+    if (state.elements.length === 0) {
+      toast.info('O canvas já está vazio');
+      return;
+    }
+    dispatch({ type: 'LOAD', state: { ...DEFAULT_CANVAS_STATE } });
+    setDirty(true);
+    toast.success('Canvas limpo!');
+  }, [state.elements.length, dispatch]);
 
 
   const handlePublish = useCallback(async () => {
@@ -549,7 +572,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
             {/* Save button with label */}
-            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} label="Salvar" />
+            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={saving ? RefreshCw : Save} label={saving ? "Salvando..." : "Salvar"} disabled={saving} />
 
             {/* More actions */}
             <DropdownMenu>
@@ -590,6 +613,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSavedLayouts(true)} className="text-sm gap-3 py-2.5">
                   <FolderOpen className="w-4 h-4" /> Layouts Salvos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleClearAll} className="text-sm gap-3 py-2.5 text-destructive focus:text-destructive">
+                  <Trash2 className="w-4 h-4" /> Limpar Tudo
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowShortcuts(p => !p)} className="text-sm gap-3 py-2.5">
