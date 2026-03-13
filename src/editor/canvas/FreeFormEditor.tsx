@@ -169,6 +169,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
   const [showAIGenerate, setShowAIGenerate] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showHTMLImport, setShowHTMLImport] = useState(false);
 
   const fitToViewport = useCallback(() => {
