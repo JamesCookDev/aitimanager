@@ -204,6 +204,32 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   const currentBgColor = (state.pageBgColors || {})[activeViewId] || state.bgColor;
   const activePage = views.find(v => v.id === activeViewId);
 
+  const replaceCanvasWithImportedState = useCallback((imported: CanvasState) => {
+    const fallbackView = { id: '__default__', name: 'Home', isDefault: true };
+    const rawViews = imported.views?.length ? imported.views : [fallbackView];
+    const defaultView = rawViews.find(v => v.isDefault) || rawViews[0] || fallbackView;
+    const importStamp = Date.now();
+
+    const normalizedElements = (imported.elements || []).map((el, idx) => ({
+      ...el,
+      id: `${el.id || 'el'}_${importStamp}_${idx}`,
+      viewId: el.viewId || defaultView.id,
+    }));
+
+    dispatch({
+      type: 'LOAD',
+      state: {
+        ...DEFAULT_CANVAS_STATE,
+        ...imported,
+        selectedId: null,
+        activeViewId: defaultView.id,
+        views: rawViews,
+        elements: normalizedElements,
+        pageBgColors: imported.pageBgColors || {},
+      },
+    });
+  }, [dispatch]);
+
   /* ── HTML file/text drop handler ── */
   const handleCanvasDrop = useCallback(async (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -215,8 +241,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       const html = await file.text();
       const result = parseHTMLToCanvas(html);
       if (result.elements.length === 0) { toast.error('Nenhum elemento reconhecido no HTML'); return; }
-      result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
-      dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
+
+      replaceCanvasWithImportedState({
+        ...DEFAULT_CANVAS_STATE,
+        bgColor: result.bgColor,
+        elements: result.elements.map(el => ({ ...el, viewId: '__default__' })),
+        views: [{ id: '__default__', name: 'Home', isDefault: true }],
+        activeViewId: '__default__',
+        pageBgColors: result.bgColor ? { __default__: result.bgColor } : {},
+      });
       toast.success(`${result.elements.length} elementos importados do arquivo`);
       return;
     }
@@ -225,11 +258,18 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     if (htmlData && htmlData.includes('<') && htmlData.includes('>')) {
       const result = parseHTMLToCanvas(htmlData);
       if (result.elements.length === 0) { toast.error('Nenhum elemento reconhecido no HTML'); return; }
-      result.elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
-      if (result.bgColor !== '#0f172a') dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: result.bgColor });
+
+      replaceCanvasWithImportedState({
+        ...DEFAULT_CANVAS_STATE,
+        bgColor: result.bgColor,
+        elements: result.elements.map(el => ({ ...el, viewId: '__default__' })),
+        views: [{ id: '__default__', name: 'Home', isDefault: true }],
+        activeViewId: '__default__',
+        pageBgColors: result.bgColor ? { __default__: result.bgColor } : {},
+      });
       toast.success(`${result.elements.length} elementos importados`);
     }
-  }, [dispatch, activeViewId]);
+  }, [replaceCanvasWithImportedState]);
 
   const handleCanvasDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
