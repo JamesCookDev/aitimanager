@@ -884,13 +884,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       onImport={(imported) => {
         // Clear ALL existing elements and extra views before importing
         const existingElements = state.elements || [];
-        existingElements.forEach(el => dispatch({ type: 'REMOVE_ELEMENT', id: el.id }));
+        existingElements.forEach(el => dispatch({ type: 'DELETE_ELEMENT', id: el.id }));
 
         // Remove extra views (keep only the default one)
         const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
         existingViews.forEach(v => {
           if (!v.isDefault) {
-            dispatch({ type: 'REMOVE_VIEW', id: v.id });
+            dispatch({ type: 'DELETE_VIEW', id: v.id });
           }
         });
 
