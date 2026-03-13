@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Copy as CopyIcon, Eye, EyeOff, FileBox, Clock,
-  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, GitCompare,
+  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
