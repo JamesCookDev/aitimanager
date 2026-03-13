@@ -922,50 +922,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       onOpenChange={(v) => { setShowSvgImport(v); if (!v) setSvgImportMode(undefined); }}
       initialMode={svgImportMode}
       onImport={(imported) => {
-        // Clear ALL existing elements and extra views before importing
-        const existingElements = state.elements || [];
-        existingElements.forEach(el => dispatch({ type: 'DELETE_ELEMENT', id: el.id }));
-
-        // Remove extra views (keep only the default one)
-        const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
-        existingViews.forEach(v => {
-          if (!v.isDefault) {
-            dispatch({ type: 'DELETE_VIEW', id: v.id });
-          }
-        });
-
-        const importedViews = imported.views || [];
-        const hasMultiplePages = importedViews.length > 1;
-        
-        if (hasMultiplePages) {
-          const viewMap: Record<string, string> = {};
-          importedViews.forEach(v => {
-            if (v.isDefault) {
-              viewMap[v.id] = activeViewId;
-            } else {
-              const newId = viewUid();
-              viewMap[v.id] = newId;
-              dispatch({ type: 'ADD_VIEW', view: { id: newId, name: v.name } });
-            }
-          });
-          const mappedElements = imported.elements.map(el => ({
-            ...el,
-            viewId: viewMap[el.viewId || importedViews[0]?.id || '__default__'] || activeViewId,
-            id: `${el.id}_${Date.now()}`,
-          }));
-          mappedElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
-        } else {
-          const newElements = imported.elements.map(el => ({
-            ...el,
-            viewId: activeViewId,
-            id: `${el.id}_${Date.now()}`,
-          }));
-          newElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
-        }
-        
-        if (imported.bgColor) {
-          dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: imported.bgColor });
-        }
+        replaceCanvasWithImportedState(imported);
       }}
     />
 
