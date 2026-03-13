@@ -22,7 +22,7 @@ import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
-import { CodeSyncPanel } from '@/components/devices/CodeSyncPanel';
+
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
