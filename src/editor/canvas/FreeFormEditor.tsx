@@ -572,7 +572,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
             {/* Save button with label */}
-            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={Save} label="Salvar" />
+            <Tb tip="Salvar (Ctrl+S)" onClick={handleSave} icon={saving ? RefreshCw : Save} label={saving ? "Salvando..." : "Salvar"} disabled={saving} />
 
             {/* More actions */}
             <DropdownMenu>
