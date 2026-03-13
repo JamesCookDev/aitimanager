@@ -882,14 +882,18 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       onOpenChange={(v) => { setShowSvgImport(v); if (!v) setSvgImportMode(undefined); }}
       initialMode={svgImportMode}
       onImport={(imported) => {
+        // Clear ALL existing elements and extra views before importing
+        const existingElements = state.elements || [];
+        existingElements.forEach(el => dispatch({ type: 'REMOVE_ELEMENT', id: el.id }));
+
+        // Remove extra views (keep only the default one)
         const existingViews = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
-        
-        const newElements = imported.elements.map(el => ({
-          ...el,
-          viewId: activeViewId,
-          id: `${el.id}_${Date.now()}`,
-        }));
-        
+        existingViews.forEach(v => {
+          if (!v.isDefault) {
+            dispatch({ type: 'REMOVE_VIEW', id: v.id });
+          }
+        });
+
         const importedViews = imported.views || [];
         const hasMultiplePages = importedViews.length > 1;
         
@@ -911,10 +915,15 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
           }));
           mappedElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
         } else {
+          const newElements = imported.elements.map(el => ({
+            ...el,
+            viewId: activeViewId,
+            id: `${el.id}_${Date.now()}`,
+          }));
           newElements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
         }
         
-        if (imported.bgColor && imported.bgColor !== state.bgColor) {
+        if (imported.bgColor) {
           dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: imported.bgColor });
         }
       }}
