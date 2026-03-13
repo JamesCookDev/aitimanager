@@ -385,14 +385,6 @@ export default function DeviceDetail() {
           </div>
         </TabsContent>
 
-        {/* CODE SYNC TAB */}
-        <TabsContent value="code-sync" className="mt-4">
-          <CodeSyncPanel
-            statusDetails={device.status_details}
-            deviceName={device.name}
-            deviceId={device.id}
-          />
-        </TabsContent>
       </Tabs>
     </div>
   );
