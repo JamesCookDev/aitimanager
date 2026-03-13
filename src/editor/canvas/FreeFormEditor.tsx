@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef, useState, useEffect, DragEvent } from 
 import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
-  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen,
+  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen, RefreshCw,
   Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
