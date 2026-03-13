@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Copy as CopyIcon, Eye, EyeOff, FileBox, Clock,
-  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X, GitCompare,
+  MapPin, Key, RefreshCw, Check, Power, CopyPlus, Pencil, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +22,7 @@ import { CommandHistory } from '@/components/devices/CommandHistory';
 import { PendingCommandBadge } from '@/components/devices/PendingCommandBadge';
 import { AIPromptEditor } from '@/components/devices/AIPromptEditor';
 import { EnvironmentPresets } from '@/components/devices/EnvironmentPresets';
-import { CodeSyncPanel } from '@/components/devices/CodeSyncPanel';
+
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -272,9 +272,6 @@ export default function DeviceDetail() {
           <TabsTrigger value="details" className="gap-1.5">
             <FileBox className="w-4 h-4" /> Detalhes
           </TabsTrigger>
-          <TabsTrigger value="code-sync" className="gap-1.5">
-            <GitCompare className="w-4 h-4" /> Code Sync
-          </TabsTrigger>
         </TabsList>
 
         {/* AI PROMPT TAB */}
@@ -388,14 +385,6 @@ export default function DeviceDetail() {
           </div>
         </TabsContent>
 
-        {/* CODE SYNC TAB */}
-        <TabsContent value="code-sync" className="mt-4">
-          <CodeSyncPanel
-            statusDetails={device.status_details}
-            deviceName={device.name}
-            deviceId={device.id}
-          />
-        </TabsContent>
       </Tabs>
     </div>
   );
