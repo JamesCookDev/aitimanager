@@ -312,7 +312,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     onSave?.(cleanState); setDirty(false); toast.success('Layout salvo!');
   }, [state, onSave]);
 
-  const [publishing, setPublishing] = useState(false);
 
   const handlePublish = useCallback(async () => {
     if (!onPublish || publishing) return;
