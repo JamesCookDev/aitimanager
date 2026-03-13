@@ -1,6 +1,6 @@
 # AITI.MANAGER — Documentação Técnica do Projeto
 
-> **Versão:** 4.13.0 | **Última atualização:** 2026-02-22
+> **Versão:** 5.0.0 | **Última atualização:** 2026-03-13
 
 ---
 
@@ -15,20 +15,20 @@
 7. [Edge Functions (Backend)](#7-edge-functions-backend)
 8. [Páginas do Dashboard (Frontend)](#8-páginas-do-dashboard-frontend)
 9. [Page Builder (Editor de Canvas)](#9-page-builder-editor-de-canvas)
-10. [Aplicação Local do Totem (Hardware)](#10-aplicação-local-do-totem-hardware)
+10. [Sincronização com Hardware (Totem)](#10-sincronização-com-hardware-totem)
 11. [Sistema de IA](#11-sistema-de-ia)
-12. [Sincronização e Comunicação](#12-sincronização-e-comunicação)
-13. [Fluxos Principais](#13-fluxos-principais)
-14. [Variáveis de Ambiente](#14-variáveis-de-ambiente)
+12. [Fluxos Principais](#12-fluxos-principais)
+13. [Variáveis de Ambiente](#13-variáveis-de-ambiente)
 
 ---
 
 ## 1. Visão Geral
 
-O **AITI.MANAGER** é uma plataforma de gerenciamento de totens interativos com avatar 3D e inteligência artificial. O sistema é composto por:
+O **AITI.MANAGER** é uma plataforma de gerenciamento de totens interativos com inteligência artificial. O sistema é composto por:
 
 - **Hub (Dashboard Web):** Painel administrativo para gerenciar organizações, dispositivos, configurações de IA e layout visual dos totens.
-- **Hardware Local (Totem):** Aplicação React que roda em dispositivos físicos (telas touch), exibindo um avatar 3D interativo com chat por voz e texto.
+- **Page Builder:** Editor visual tipo Figma/Canva que gera HTML estático (1080×1920) para os totens.
+- **Sync Worker:** Script Node.js (`sync-worker.js`) que roda no hardware local, busca o HTML publicado e serve via HTTP em modo quiosque.
 - **Backend (Lovable Cloud):** Edge Functions serverless que fornecem APIs para comunicação entre Hub e Hardware.
 
 ### Fluxo Simplificado
@@ -36,20 +36,18 @@ O **AITI.MANAGER** é uma plataforma de gerenciamento de totens interativos com 
 ```
 ┌─────────────┐     Edge Functions      ┌──────────────┐
 │  Hub (Web)   │ ◄────────────────────► │ Lovable Cloud │
-│  Dashboard   │     REST + Realtime     │  (Supabase)   │
-└─────────────┘                          └──────┬───────┘
-                                                │
-                              Polling 15s + Realtime
-                                                │
-                                         ┌──────▼───────┐
-                                         │ Totem Local   │
-                                         │ (Hardware)    │
-                                         └──────┬───────┘
-                                                │
-                                     ┌──────────▼──────────┐
-                                     │ Backend Local       │
-                                     │ (Ollama + Kokoro)   │
-                                     └─────────────────────┘
+│  Dashboard   │     REST + Realtime     │  (Backend)    │
+└──────┬──────┘                          └──────┬───────┘
+       │                                        │
+       │  Publica HTML                   totem-html (GET)
+       │  → published_html               Polling 15s + ETag
+       │                                        │
+       │                                 ┌──────▼───────┐
+       │                                 │ Sync Worker   │
+       │                                 │ (Hardware)    │
+       │                                 │ HTTP :8080    │
+       │                                 │ Kiosk Browser │
+       │                                 └──────────────┘
 ```
 
 ---
@@ -71,14 +69,28 @@ O sistema opera com isolamento por organização:
 Configuração por Dispositivo > Configuração por Organização > Padrão do Sistema
 ```
 
-### 2.3 Comunicação Hub ↔ Hardware
+### 2.3 Arquitetura de HTML Estático
+
+O sistema adota uma arquitetura de **HTML estático** para os totens:
+
+1. O **Page Builder** gera um documento HTML/CSS autônomo (1080×1920)
+2. Ao publicar, o HTML é armazenado na coluna `published_html` da tabela `devices`
+3. A Edge Function `totem-html` serve esse HTML ao sync worker
+4. O **Sync Worker** (`sync-worker.js`) opera no hardware local:
+   - Servidor HTTP na porta 8080
+   - Polling de atualizações via ETags (a cada 15s)
+   - Substitui o `index.html` local quando há nova versão
+   - Abre e gerencia o navegador em modo quiosque
+   - Supervisor embutido com reinício automático
+
+### 2.4 Comunicação Hub ↔ Hardware
 
 | Canal | Direção | Uso |
 |-------|---------|-----|
+| **Polling** (`totem-html`) | Hardware → Cloud | HTML publicado com cache via ETag |
 | **Polling** (`totem-config`) | Hardware → Cloud | Config completa a cada 15s (com verificação de hash) |
 | **Heartbeat** (`totem-heartbeat`) | Hardware → Cloud | Status, comandos pendentes |
 | **Realtime** (Supabase Channels) | Hub → Hardware | Live preview instantâneo do Page Builder |
-| **Sync Worker** | Hub → Hardware | Atualização de código-fonte dos arquivos locais |
 
 ---
 
@@ -93,28 +105,17 @@ Configuração por Dispositivo > Configuração por Organização > Padrão do S
 | shadcn/ui | Componentes de interface |
 | React Router v6 | Roteamento SPA |
 | TanStack React Query | Cache e gerenciamento de estado servidor |
-| Framer Motion | Animações |
+| Framer Motion | Animações e transições de página |
 | react-rnd | Drag & resize no Page Builder |
 | Recharts | Gráficos e métricas |
 | Supabase JS SDK | Conexão com backend |
 
-### Hardware Local (Totem)
+### Hardware Local (Sync Worker)
 | Tecnologia | Uso |
 |------------|-----|
-| React + Vite (JSX) | Aplicação do totem |
-| Three.js / React Three Fiber | Renderização do avatar 3D |
-| @react-three/drei | Helpers 3D (OrbitControls, Loader) |
-| Leva | Debug de parâmetros 3D |
-| Web Audio API | VAD (Voice Activity Detection) |
-| Web Speech API | TTS fallback (modo nuvem) |
-
-### Backend Local (IA)
-| Tecnologia | Uso |
-|------------|-----|
-| Ollama | LLM (processamento de linguagem) |
-| Kokoro | TTS (síntese de voz de alta fidelidade) |
-| Rhubarb | LipSync (geração de visemas) |
-| Express.js | Servidor local (endpoints `/text`, `/sts`) |
+| Node.js | Runtime do sync worker |
+| HTTP server nativo | Servidor local (porta 8080) |
+| Navegador (Chromium) | Modo quiosque para exibição |
 
 ### Backend Cloud
 | Tecnologia | Uso |
@@ -144,19 +145,47 @@ Configuração por Dispositivo > Configuração por Organização > Padrão do S
 │   │   ├── Users.tsx             # Gerenciamento de usuários
 │   │   ├── AIConfigs.tsx         # Configurações de IA
 │   │   ├── Settings.tsx          # Configurações gerais
-│   │   └── PageEditorPage.tsx    # Page Builder
-│   ├── editor/                   # Page Builder (editor de canvas)
-│   │   ├── PageEditor.tsx        # Editor principal
-│   │   ├── canvas/               # Canvas livre (drag & drop)
-│   │   ├── components/           # Blocos do editor (Text, Image, etc.)
-│   │   ├── settings/             # Painéis de propriedades por bloco
+│   │   └── PageEditorPage.tsx    # Page Builder (seletor de device + editor)
+│   ├── editor/                   # Page Builder (editor de canvas livre)
+│   │   ├── canvas/
+│   │   │   ├── FreeFormEditor.tsx # Editor principal do canvas
+│   │   │   ├── ElementPalette.tsx # Paleta de elementos (sidebar)
+│   │   │   ├── PropertiesPanel.tsx# Painel de propriedades contextual
+│   │   │   ├── PagesPanel.tsx    # Gerenciador de páginas/views
+│   │   │   ├── PageVariablesContext.tsx # Contexto de variáveis
+│   │   │   ├── DraggableElement.tsx # Wrapper drag & resize
+│   │   │   ├── TotemFrame.tsx    # Frame visual do totem
+│   │   │   ├── ZoneGuides.tsx    # Guias de zona no canvas
+│   │   │   ├── AIGenerateDialog.tsx # Geração via IA
+│   │   │   ├── HTMLImportDialog.tsx # Importação de HTML
+│   │   │   ├── SVGImportDialog.tsx # Importação de SVG
+│   │   │   ├── SavedLayoutsDialog.tsx # Layouts salvos
+│   │   │   ├── FreeFormTemplatePicker.tsx # Seletor de templates
+│   │   │   ├── ThemePalettes.tsx # Paletas de temas
+│   │   │   ├── ViewsManager.tsx  # Gerenciador de views/páginas
+│   │   │   ├── renderers/        # Renderizadores por tipo de elemento
+│   │   │   │   ├── ElementRenderer.tsx # Router de renderização
+│   │   │   │   └── ... (27+ renderers)
+│   │   │   └── properties/       # Painéis de propriedades específicos
+│   │   │       └── ... (12+ painéis)
+│   │   ├── components/           # Blocos do editor craft.js (legado)
+│   │   ├── settings/             # Settings dos blocos craft.js
+│   │   ├── hooks/useHistory.ts   # Undo/Redo
 │   │   ├── templates/            # Templates pré-definidos
-│   │   └── types/                # Tipos TypeScript do editor
+│   │   ├── types/canvas.ts       # Tipos, defaults e reducer
+│   │   └── utils/
+│   │       ├── canvasToHtml.ts   # Converte canvas → HTML estático
+│   │       ├── htmlToCanvas.ts   # Importa HTML → elementos do canvas
+│   │       ├── svgToCanvas.ts    # Importa SVG → elementos do canvas
+│   │       ├── htmlEditableFields.ts # Aplica overrides em HTML
+│   │       └── editorStorage.ts  # Persistência local (craft.js)
 │   ├── components/
 │   │   ├── layout/               # DashboardLayout, Sidebar
 │   │   ├── devices/              # Componentes de dispositivos
 │   │   ├── dashboard/            # Dashboards por papel
 │   │   ├── page-builder/         # Componentes auxiliares do builder
+│   │   ├── skeletons/            # Loading skeletons
+│   │   ├── auth/                 # SocialLogin
 │   │   └── ui/                   # shadcn/ui components
 │   ├── types/
 │   │   └── database.ts           # Tipos locais (Device, Org, etc.)
@@ -165,39 +194,28 @@ Configuração por Dispositivo > Configuração por Organização > Padrão do S
 │           ├── client.ts         # Cliente Supabase (auto-gerado)
 │           └── types.ts          # Tipos do banco (auto-gerado)
 │
-├── public/totem-local/           # Código do Hardware Local
-│   ├── App.jsx                   # Renderizador do canvas (1080×1920)
-│   ├── main.jsx                  # Entry point com SpeechProvider
-│   ├── index.html                # HTML do totem
-│   ├── index.css                 # Estilos do totem
-│   ├── manifest.json             # Controle de versão dos arquivos
-│   ├── sync-worker.js            # Worker de sincronização
-│   ├── components/
-│   │   ├── Avatar.jsx            # Avatar 3D (Three.js, lipsync)
-│   │   ├── ChatInterface.jsx     # Interface de chat inline
-│   │   └── Scenario.jsx          # Cenário 3D (environment, luzes)
-│   ├── hooks/
-│   │   ├── useSpeech.jsx         # VAD, TTS, STT, fila de mensagens
-│   │   └── useCMSConfig.js       # Hook de configuração via CMS
-│   └── docs/                     # Módulos de backend local
-│       ├── server.js             # Servidor Express
-│       ├── localLLM.mjs          # Integração Ollama
-│       ├── kokoro.mjs            # Integração Kokoro TTS
-│       ├── whisper.mjs           # Integração Whisper STT
-│       ├── knowledge.mjs         # Base de conhecimento local
-│       └── aiConfig.mjs          # Config de IA local
+├── public/
+│   ├── sync-worker.js            # Worker de sincronização (v6.0+)
+│   ├── .env.sync.example         # Exemplo de .env para o sync worker
+│   ├── models/                   # Modelos 3D (avatar.glb, animations.glb)
+│   ├── templates/                # Templates HTML estáticos
+│   └── images/                   # Imagens estáticas
 │
 ├── supabase/
-│   ├── config.toml               # Configuração Supabase
+│   ├── config.toml               # Configuração das Edge Functions
 │   ├── migrations/               # Migrações SQL (auto-gerado)
 │   └── functions/                # Edge Functions
+│       ├── totem-html/           # Serve HTML publicado (com ETag)
 │       ├── totem-config/         # Configuração unificada do totem
 │       ├── totem-heartbeat/      # Heartbeat + comandos pendentes
 │       ├── totem-register/       # Registro de novos dispositivos
 │       ├── totem-chat/           # Chat IA via Lovable AI Gateway
+│       ├── totem-poll-command/   # Polling de comandos
+│       ├── totem-command-report/ # Report de execução de comandos
 │       ├── ai-config/            # Configuração de IA dedicada
 │       ├── manage-users/         # CRUD de usuários (admin)
-│       └── totem-poll-command/   # Polling de comandos
+│       ├── generate-html/        # Geração de HTML via IA
+│       └── form-submit/          # Recebimento de formulários do totem
 ```
 
 ---
@@ -272,14 +290,23 @@ Todas as tabelas possuem RLS ativado com políticas:
 | id | UUID (PK) | Identificador |
 | org_id | UUID (FK) | Organização |
 | name | TEXT | Nome do dispositivo |
+| description | TEXT | Descrição opcional |
+| location | TEXT | Localização física |
 | api_key | UUID | Chave de autenticação do hardware |
+| hardware_id | TEXT | ID do hardware físico |
 | last_ping | TIMESTAMPTZ | Último heartbeat |
 | ui_config | JSONB | Configuração de layout (free_canvas) |
+| **published_html** | **TEXT** | **HTML estático publicado pelo Page Builder** |
 | ai_prompt | TEXT | Prompt de IA legado |
 | avatar_config | JSONB | Configuração do avatar 3D |
-| pending_command | TEXT | Comando pendente (restart, sync, etc.) |
+| pending_command | TEXT | Comando pendente (restart, sync, reload) |
+| command_sent_at | TIMESTAMPTZ | Quando o comando foi enviado |
 | status_details | JSONB | Detalhes de status (versão, CPU, memória) |
 | is_speaking | BOOLEAN | Avatar está falando |
+| last_interaction | TIMESTAMPTZ | Última interação do usuário final |
+| model_3d_url | TEXT | URL do modelo 3D customizado |
+| current_version_id | UUID (FK) | Versão atual do modelo 3D |
+| created_at / updated_at | TIMESTAMPTZ | Timestamps |
 
 #### `ai_configs`
 | Coluna | Tipo | Descrição |
@@ -296,6 +323,7 @@ Todas as tabelas possuem RLS ativado com políticas:
 | voice | VARCHAR | Voz TTS (ex: af_bella) |
 | tts_model | VARCHAR | Motor TTS (ex: kokoro) |
 | tts_speed | NUMERIC | Velocidade da fala |
+| avatar_name | VARCHAR | Nome do avatar |
 | base_url / llm_url / tts_url / stt_url | TEXT | URLs de serviços locais |
 | is_active | BOOLEAN | Configuração ativa |
 
@@ -303,10 +331,22 @@ Todas as tabelas possuem RLS ativado com políticas:
 Histórico de versões de modelo 3D por dispositivo.
 
 #### `command_logs`
-Log de comandos enviados aos dispositivos (restart, sync, etc.).
+Log de comandos enviados aos dispositivos (restart, sync, reload, etc.).
 
 #### `layout_templates`
 Templates de layout salvos por organização.
+
+#### `form_submissions`
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| id | UUID (PK) | Identificador |
+| device_id | UUID (FK) | Dispositivo de origem |
+| org_id | UUID (FK) | Organização |
+| form_title | TEXT | Título do formulário |
+| fields | JSONB | Dados dos campos preenchidos |
+| ip_address | TEXT | IP do visitante |
+| metadata | JSONB | Metadados adicionais |
+| submitted_at | TIMESTAMPTZ | Data de envio |
 
 ### 6.2 Funções SQL
 
@@ -317,7 +357,18 @@ Templates de layout salvos por organização.
 
 ## 7. Edge Functions (Backend)
 
-### 7.1 `totem-config`
+### 7.1 `totem-html` ⭐ NOVO
+**Propósito:** Serve o HTML publicado de um dispositivo para o sync worker.
+
+| Campo | Detalhes |
+|-------|---------|
+| **Método** | GET |
+| **Auth** | Header `x-totem-api-key` ou `x-totem-device-id` |
+| **Resposta** | HTML completo (text/html) |
+| **Cache** | ETag baseado em `updated_at`; retorna `304 Not Modified` se inalterado |
+| **Fallback** | Página "Aguardando publicação..." se `published_html` está vazio |
+
+### 7.2 `totem-config`
 **Propósito:** Fornece configuração unificada (UI + IA) para o hardware em uma única requisição.
 
 | Campo | Detalhes |
@@ -326,15 +377,7 @@ Templates de layout salvos por organização.
 | **Auth** | Header `x-totem-api-key` |
 | **Resposta** | `{ config: { device_id, device_name, organization, avatar, model, ui, ai } }` |
 
-**Lógica de merge da UI:**
-1. Se `ui_config` possui formato modular (`canvas` + `components`), faz merge com defaults
-2. Se formato legado, converte para formato modular
-3. Inclui `free_canvas` (elementos do Page Builder) quando disponível
-
-**Lógica de IA:**
-1. Busca config por `device_id` → se não encontrar, busca por `org_id` → se não encontrar, usa defaults
-
-### 7.2 `totem-heartbeat`
+### 7.3 `totem-heartbeat`
 **Propósito:** Registra que o dispositivo está ativo e retorna comandos pendentes.
 
 | Campo | Detalhes |
@@ -349,7 +392,7 @@ Templates de layout salvos por organização.
 - Retorna e limpa `pending_command`
 - Marca comando como executado no `command_logs`
 
-### 7.3 `totem-chat`
+### 7.4 `totem-chat`
 **Propósito:** Chat por IA usando Lovable AI Gateway (Gemini 3 Flash) como fallback cloud.
 
 | Campo | Detalhes |
@@ -359,12 +402,7 @@ Templates de layout salvos por organização.
 | **Body** | `{ messages: [{role, content}], device_id }` |
 | **Resposta** | SSE stream (Server-Sent Events) |
 
-**Lógica:**
-1. Se `device_id` fornecido, busca `system_prompt` e `knowledge_base` da `ai_configs`
-2. Segue hierarquia: device → org → default
-3. Faz streaming via Lovable AI Gateway
-
-### 7.4 `totem-register`
+### 7.5 `totem-register`
 **Propósito:** Registra um novo dispositivo via Dashboard.
 
 | Campo | Detalhes |
@@ -374,7 +412,13 @@ Templates de layout salvos por organização.
 | **Body** | `{ name, description, location, org_id }` |
 | **Verificação** | Super Admin pode criar em qualquer org; Org Admin apenas na sua |
 
-### 7.5 `ai-config`
+### 7.6 `totem-poll-command`
+**Propósito:** Polling de comandos pendentes pelo hardware.
+
+### 7.7 `totem-command-report`
+**Propósito:** Report de execução de comandos pelo hardware.
+
+### 7.8 `ai-config`
 **Propósito:** Endpoint dedicado para buscar apenas config de IA (usado pelo hardware local).
 
 | Campo | Detalhes |
@@ -383,7 +427,7 @@ Templates de layout salvos por organização.
 | **Auth** | Header `x-totem-api-key` |
 | **Resposta** | `{ config: { system_prompt, knowledge_base, model, voice, ... } }` |
 
-### 7.6 `manage-users`
+### 7.9 `manage-users`
 **Propósito:** CRUD de usuários (apenas Super Admin).
 
 | Ação | Descrição |
@@ -392,6 +436,12 @@ Templates de layout salvos por organização.
 | `invite` | Cria usuário com senha aleatória e atribui org + role |
 | `update` | Atualiza org_id, role ou full_name |
 | `delete` | Remove user_roles, profiles e auth.users |
+
+### 7.10 `generate-html`
+**Propósito:** Gera HTML via IA para uso no Page Builder.
+
+### 7.11 `form-submit`
+**Propósito:** Recebe dados de formulários preenchidos nos totens e salva na tabela `form_submissions`.
 
 ---
 
@@ -414,8 +464,7 @@ Lista de todos os dispositivos com:
 ### 8.4 `/dashboard/devices/:deviceId` — Detalhes do Dispositivo
 Tabs:
 - **🧠 Prompt de IA:** Editor de prompt com salvamento direto
-- **📦 Detalhes:** API Key, informações, histórico de comandos, histórico de versões
-- **🔄 Code Sync:** Painel de sincronização de código
+- **📦 Detalhes:** API Key, informações, histórico de comandos, histórico de versões, presets de ambiente
 
 Funcionalidades:
 - Edição inline (nome, descrição, localização)
@@ -424,16 +473,12 @@ Funcionalidades:
 - Realtime updates via Supabase Channels
 
 ### 8.5 `/dashboard/organizations` — Organizações
-Hierarquia visual com **Cards + Accordion (Collapsible)**:
+Hierarquia visual com Cards + Accordion:
 - Cada organização é um card expansível
-- Ao expandir, lista dispositivos com:
-  - StatusBadge (online/offline)
-  - Localização e versão
-  - Último ping (formatTimeAgo)
-  - Ações rápidas: reiniciar, ver detalhes
+- Ao expandir, lista dispositivos com status, localização e ações
 - Métricas: total de orgs, dispositivos, usuários, taxa de disponibilidade
 - Busca unificada por org ou dispositivo
-- CRUD de organizações (criar, editar, excluir)
+- CRUD de organizações
 
 ### 8.6 `/dashboard/users` — Usuários
 - Tabela com nome, email, organização, função, data de criação
@@ -457,7 +502,11 @@ Cards com configurações de IA:
 - Configurações de notificações
 
 ### 8.9 `/dashboard/page-editor` — Page Builder
-Editor visual de canvas livre para design do layout do totem.
+Editor visual de canvas livre com:
+- Seletor de dispositivo no topo
+- Salvamento no banco de dados (`ui_config`)
+- Publicação de HTML estático (`published_html`)
+- Botão de limpar canvas
 
 ---
 
@@ -466,107 +515,137 @@ Editor visual de canvas livre para design do layout do totem.
 ### 9.1 Conceito
 Editor tipo **Figma/Canva** com canvas fixo de **1080×1920px** (resolução vertical de totem). Elementos são posicionados livremente com drag & drop (react-rnd).
 
-### 9.2 Elementos Suportados (16 tipos)
+### 9.2 Elementos Suportados (27+ tipos)
 
 | Tipo | Descrição |
 |------|-----------|
-| `text` | Texto com formatação (fonte, cor, alinhamento) |
+| `text` | Texto com formatação e interpolação `{{var}}` |
 | `image` | Imagens (URL ou upload) |
-| `button` | Botões interativos com prompts de IA |
-| `shape` | Formas geométricas (retângulo, círculo, triângulo) |
-| `icon` | Ícones Lucide |
-| `video` | Embed de vídeo (YouTube, Vimeo) |
+| `button` | Botões interativos com ações (prompt, URL, navigate) |
+| `shape` | Formas geométricas (retângulo, círculo) |
+| `icon` | Ícones (emoji) |
+| `video` | Embed de vídeo |
 | `carousel` | Carrossel de imagens |
+| `gallery` | Grid de galeria |
 | `qrcode` | QR Codes dinâmicos |
+| `qrpix` | QR Code Pix para pagamentos |
 | `social` | Links de redes sociais |
-| `clock` | Relógio digital/analógico |
+| `clock` | Relógio digital |
 | `weather` | Widget de clima |
 | `countdown` | Contador regressivo |
+| `animated-number` | Número com animação de incremento |
 | `chat` | Interface de chat IA integrada |
 | `map` | Mapas embarcados |
 | `iframe` | iFrames genéricos |
-| `store` | Vitrine de produtos |
+| `store` | Diretório de lojas |
+| `catalog` | Grid de produtos com filtro |
+| `list` | Lista/menu de itens |
+| `feed` | Feed de lojas com cards |
+| `form` | Formulários dinâmicos |
+| `bigcta` | CTA grande com pulso |
+| `ticket` | Painel de senhas |
+| `numpad` | Teclado numérico |
+| `avatar` | Avatar 3D |
 
-### 9.3 Propriedades por Elemento
-Cada elemento possui:
-- **Posição:** x, y (absoluto no canvas)
-- **Dimensões:** width, height
-- **Rotação:** rotation (graus)
-- **Camadas:** zIndex
-- **Opacidade:** opacity (0-1)
-- **Visibilidade:** visible (boolean)
-- **Props específicas:** variam por tipo
+### 9.3 Sistema de Páginas (Views)
 
-### 9.4 Fluxo de Salvamento
-1. Usuário edita no Page Builder
-2. Salva → grava `ui_config.free_canvas` na tabela `devices`
-3. **Realtime broadcast** → Hardware recebe atualização instantânea via Supabase Channel
-4. **Polling fallback** → Hardware verifica via `totem-config` a cada 15s (comparando hash)
+O editor suporta múltiplas páginas internas:
+- Cada elemento é atribuído a uma `viewId`
+- Navegação entre páginas via `actionType: 'navigate'` nos botões
+- Transições animadas: `fade`, `slide-left`, `slide-right`, `slide-up`, `slide-down`, `zoom`, `flip`, `rotate`
+- Idle timeout configurável retorna à página padrão
+- Fundo independente por página (`pageBgColors`)
 
-### 9.5 Escala de Visualização
+### 9.4 Variáveis de Página
+
+O `PageVariablesContext` permite interpolação de texto em tempo real:
+- Sintaxe `{{variavel}}` no `TextRenderer`
+- Dados capturados em formulários, listas e catálogos são injetados automaticamente
+- `targetVariable` mapeia itens selecionados para campos em outras páginas
+
+### 9.5 Fluxo de Salvamento e Publicação
+
+```
+Hub (Page Builder)
+  │
+  ├── Salvar → UPDATE devices.ui_config (estado do canvas em JSON)
+  │
+  ├── Publicar → canvasToHtml() gera HTML autônomo
+  │            → UPDATE devices.published_html (HTML estático)
+  │            → UPDATE devices.updated_at (trigger de nova versão)
+  │
+  └── Hardware recebe por:
+       └── Sync Worker polling totem-html (15s)
+           → Compara ETag (updated_at timestamp)
+           → 304: sem mudança / 200: novo HTML
+           → Salva index.html local
+           → Live reload via /__totem_version
+```
+
+### 9.6 Escala de Visualização
 Seletor de largura (320px a 720px) para visualizar o canvas em diferentes resoluções de monitor, mantendo a proporção 1080×1920.
+
+### 9.7 Funcionalidades Adicionais
+- **Undo/Redo** com histórico de ações
+- **Templates pré-definidos** para cenários comuns
+- **Importação de HTML** e **SVG**
+- **Geração via IA** (AIGenerateDialog)
+- **Layouts salvos** por organização (tabela `layout_templates`)
+- **Temas/Paletas** de cores
+- **Guias de zona** no canvas
+- **Limpar tudo** (reset do canvas)
+- **Exportar/Importar JSON** do estado do canvas
 
 ---
 
-## 10. Aplicação Local do Totem (Hardware)
+## 10. Sincronização com Hardware (Totem)
 
-### 10.1 Estrutura
-- **`App.jsx`** (v4.13.0) — Renderizador principal do canvas livre
-- **`main.jsx`** — Entry point com `SpeechProvider`
-- **`components/Avatar.jsx`** — Avatar 3D com Three.js e lipsync
-- **`components/ChatInterface.jsx`** — Interface de chat inline
-- **`components/Scenario.jsx`** — Cenário 3D (environment, luzes, câmera)
-- **`hooks/useSpeech.jsx`** — VAD, TTS, STT, fila de mensagens
-- **`hooks/useCMSConfig.js`** — Config via CMS (AI config + cenário)
-- **`sync-worker.js`** — Worker de sincronização de código
+### 10.1 Sync Worker (`public/sync-worker.js`)
 
-### 10.2 Renderização do Canvas
-O `App.jsx` recebe o `free_canvas` (do `totem-config`) e renderiza cada elemento com posicionamento absoluto pixel-perfect em um container de 1080×1920px escalado para a tela.
+O Sync Worker (v6.0+) é um script Node.js autônomo que:
 
-**Elementos renderizados:**
-- Cada tipo tem um renderizador dedicado
-- Elementos interativos são wrapped em handlers de toque
-- O avatar 3D é renderizado via React Three Fiber separadamente
+1. **Serve HTML** via HTTP na porta 8080
+2. **Faz polling** da Edge Function `totem-html` a cada 15s
+3. **Usa ETags** para evitar downloads desnecessários
+4. **Gerencia o navegador** em modo quiosque (auto-detecta Chromium/Chrome)
+5. **Supervisor embutido** reinicia automaticamente em caso de falha (até 10 vezes em 60s)
+6. **Escuta comandos remotos** (restart, reload, sync)
 
-### 10.3 Sistema de Polling Inteligente
-```
-useConfigPoller → fetch totem-config a cada 15s
-                → compara hash (JSON.stringify)
-                → só atualiza se houver mudança real
-```
+### 10.2 Live Reload
 
-### 10.4 Live Preview
-Via Supabase Realtime (broadcast channel), o Hub envia atualizações do canvas instantaneamente durante a edição no Page Builder.
+O worker injeta um script no `index.html` local que monitora o endpoint interno `/__totem_version` a cada 4 segundos. Quando o HTML é atualizado, o `htmlRevision` é incrementado, disparando o recarregamento instantâneo do navegador quiosque.
 
-### 10.5 Chat IA (Modo Dual)
-```
-           ┌─── VITE_API_URL definido? ───┐
-           │                               │
-         SIM                              NÃO
-           │                               │
-     ┌─────▼──────┐              ┌─────────▼──────────┐
-     │ Modo LOCAL  │              │ Modo CLOUD          │
-     │ Ollama LLM  │              │ totem-chat (Gemini) │
-     │ Kokoro TTS  │              │ Web Speech API      │
-     │ Rhubarb Lip │              │                     │
-     └─────┬──────┘              └────────────────────┘
-           │
-     Se falhar → fallback automático para CLOUD
+### 10.3 Uso
+
+```bash
+# No diretório do hardware
+node sync-worker.js              # Servidor + polling + kiosk
+node sync-worker.js --no-kiosk   # Sem abrir navegador
+node sync-worker.js --setup      # Apenas setup inicial
 ```
 
-### 10.6 Funções Globais (Bridge)
-| Função | Uso |
-|--------|-----|
-| `window.__totemSendMessage(prompt)` | Envia mensagem para pipeline de IA |
-| `window.__totemPlayMessage(msg)` | Processa resposta local (áudio + lipsync) |
-| `window.__totemSpeakAvatar(text)` | Aciona Web Speech API (modo cloud) |
+### 10.4 Variáveis do Worker (`.env`)
 
-### 10.7 Sincronização de Código (Sync Worker)
-- Monitora `manifest.json` no Hub para detectar mudanças de versão
-- Download automático de arquivos atualizados
-- Reinicialização via PM2 para aplicar atualizações
-- Unidirecional: Hub → Local (nunca o contrário)
-- Não remove arquivos deletados automaticamente (requer limpeza manual)
+```env
+VITE_CMS_API_URL=https://xxx.supabase.co/functions/v1
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_TOTEM_DEVICE_ID=<uuid-do-dispositivo>
+API_KEY=<uuid-da-api-key>
+SYNC_INTERVAL_MS=15000
+HTTP_PORT=8080
+KIOSK_URL=http://localhost:8080
+KIOSK_DELAY_MS=3000
+KIOSK_BROWSER=<caminho-do-navegador>  # auto-detecta
+```
+
+### 10.5 Comandos Remotos
+
+| Comando | Ação |
+|---------|------|
+| `restart` | Reinicia o processo do totem |
+| `sync` | Força sincronização de HTML |
+| `reload` | Recarrega a página do totem |
 
 ---
 
@@ -602,119 +681,65 @@ O sistema oferece templates de prompt para cenários comuns:
 - 🏢 Escritório / Corporativo
 - 🌿 Porto Futuro 2
 
-### 11.4 Backend Local vs Cloud
-
-| Aspecto | Local (Ollama) | Cloud (Lovable AI) |
-|---------|-----------------|---------------------|
-| Modelo | llama3.2:1b (configurável) | Gemini 3 Flash |
-| TTS | Kokoro (alta fidelidade) | Web Speech API |
-| LipSync | Rhubarb (visemas) | Não disponível |
-| Latência | Baixa (local) | Dependente de rede |
-| Requisito | Servidor local | Apenas internet |
-| Streaming | Sim | Sim (SSE) |
+### 11.4 Chat Cloud (Gemini)
+O `totem-chat` utiliza o Lovable AI Gateway com Gemini 3 Flash para processar mensagens de chat enviadas pelo formulário do totem. O streaming é feito via SSE (Server-Sent Events).
 
 ---
 
-## 12. Sincronização e Comunicação
+## 12. Fluxos Principais
 
-### 12.1 Fluxo de Atualização de Layout
-
-```
-Hub (Page Builder)
-  │
-  ├── Salvar → UPDATE devices.ui_config (DB)
-  │
-  ├── Live Preview → Supabase Realtime broadcast (instantâneo)
-  │
-  └── Hardware recebe por:
-       ├── Realtime channel (se conectado) → atualiza imediatamente
-       └── Config poller (15s) → compara hash, atualiza se diferente
-```
-
-### 12.2 Fluxo de Comandos Remotos
-
-```
-Hub → UPDATE devices.pending_command = 'restart'
-    → INSERT command_logs (status: 'pending')
-    │
-    ▼ (próximo heartbeat do hardware)
-    │
-Hardware → POST totem-heartbeat
-         → Recebe command: 'restart' na resposta
-         → Executa comando
-         │
-Cloud   → UPDATE devices.pending_command = NULL
-        → UPDATE command_logs.status = 'executed'
-```
-
-### 12.3 Comandos Suportados
-
-| Comando | Ação |
-|---------|------|
-| `restart` | Reinicia o processo do totem |
-| `sync` | Força sincronização de código |
-| `reload` | Recarrega a página do totem |
-
----
-
-## 13. Fluxos Principais
-
-### 13.1 Registro de Novo Dispositivo
+### 12.1 Registro de Novo Dispositivo
 1. Super/Org Admin acessa "Dispositivos" → "Novo Dispositivo"
 2. Preenche nome, descrição, localização, organização
 3. Edge Function `totem-register` cria device com `api_key` gerada automaticamente
-4. API Key é exibida para copiar e configurar no `.env` do hardware local
+4. API Key é exibida para copiar e configurar no `.env` do sync worker
 
-### 13.2 Configuração de um Totem
-1. Admin edita layout no **Page Builder** (canvas livre)
-2. Admin configura **IA** (prompt, knowledge base, voz) na página de AI Configs
-3. Configurações propagam via Realtime + Polling para o hardware
-4. Hardware aplica novo layout e comportamento de IA
+### 12.2 Design e Publicação do Layout
+1. Admin acessa **Page Builder** → seleciona dispositivo
+2. Arrasta e posiciona elementos no canvas (1080×1920)
+3. Configura propriedades de cada elemento
+4. **Salvar** → grava `ui_config` (JSON) na tabela `devices`
+5. **Publicar** → `canvasToHtml()` gera HTML autônomo → grava em `published_html`
+6. Sync Worker detecta nova versão via ETag → baixa HTML → atualiza `index.html` local
+7. Live reload do navegador quiosque exibe o novo layout
 
-### 13.3 Interação do Usuário Final (Totem Físico)
-1. Visitante toca na tela do totem
-2. Chat IA é ativado (texto ou voz)
-3. Mensagem processada localmente (Ollama) ou na nuvem (Gemini)
-4. Avatar 3D responde com animação de fala + áudio sincronizado
-5. Interação registrada via heartbeat (`is_speaking`, `last_interaction`)
+### 12.3 Configuração de IA
+1. Admin acessa "Configurações IA"
+2. Cria config vinculada a org e/ou dispositivo
+3. Define prompt, knowledge base, modelo, voz
+4. Hardware busca config automaticamente via `ai-config` ou `totem-config`
 
-### 13.4 Monitoramento
+### 12.4 Monitoramento
 1. Dashboard mostra métricas em tempo real
 2. Dispositivos com `last_ping > 90s` são marcados como offline
-3. Comandos podem ser enviados remotamente
-4. Histórico de comandos e versões disponível
+3. Comandos podem ser enviados remotamente (restart, reload, sync)
+4. Histórico de comandos disponível no detalhe do dispositivo
+
+### 12.5 Formulários do Totem
+1. Visitante preenche formulário no totem (elemento `form`)
+2. Dados enviados via Edge Function `form-submit`
+3. Salvos na tabela `form_submissions` com device_id e org_id
 
 ---
 
-## 14. Variáveis de Ambiente
+## 13. Variáveis de Ambiente
 
-### Hub (Dashboard) — `.env`
+### Hub (Dashboard) — `.env` (auto-gerado)
 ```env
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
 VITE_SUPABASE_PROJECT_ID=xxx
 ```
 
-### Hardware Local (Totem) — `.env`
+### Sync Worker (Hardware) — `.env`
 ```env
-# Conexão com o Hub
 VITE_CMS_API_URL=https://xxx.supabase.co/functions/v1
-VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_TOTEM_API_KEY=<uuid-da-api-key>
+VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_TOTEM_DEVICE_ID=<uuid-do-dispositivo>
-
-# Backend Local (IA)
-VITE_API_URL=http://localhost:3000
-VITE_TENANT_ID=default
-
-# Sync Worker
-HUB_URL=https://xxx.lovable.app
-LOCAL_DIR=./
-SUPABASE_URL=https://xxx.supabase.co
 API_KEY=<uuid-da-api-key>
-VERBOSE=true
-BACKUP_FILES=false
+SYNC_INTERVAL_MS=15000
+HTTP_PORT=8080
 ```
 
 ### Edge Functions (automático)
@@ -727,4 +752,4 @@ LOVABLE_API_KEY     # Para Lovable AI Gateway
 
 ---
 
-> **Nota:** Esta documentação reflete o estado do projeto em fevereiro de 2026. Para atualizações, consulte o código-fonte e os comentários inline.
+> **Nota:** Esta documentação reflete o estado do projeto em março de 2026. Para atualizações, consulte o código-fonte e os comentários inline.
