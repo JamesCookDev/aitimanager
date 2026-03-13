@@ -311,13 +311,24 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     onSave?.(cleanState); setDirty(false); toast.success('Layout salvo!');
   }, [state, onSave]);
 
-  const handlePublish = useCallback(() => {
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = useCallback(async () => {
+    if (!onPublish || publishing) return;
     const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
     usedViewIds.add('__default__');
     const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
     const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
-    onPublish?.(cleanState); setDirty(false);
-  }, [state, onPublish]);
+    setPublishing(true);
+    try {
+      await onPublish(cleanState);
+      setDirty(false);
+    } catch (err) {
+      console.error('Publish error:', err);
+    } finally {
+      setPublishing(false);
+    }
+  }, [state, onPublish, publishing]);
 
   const handleExport = useCallback(() => {
     const json = JSON.stringify(state, null, 2);
