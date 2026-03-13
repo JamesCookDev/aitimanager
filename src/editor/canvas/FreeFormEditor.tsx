@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef, useState, useEffect, DragEvent } from 
 import {
   Save, Download, Upload, ZoomIn, ZoomOut, Maximize2, LayoutTemplate, Undo2, Redo2,
   PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Keyboard, FileText, Blocks,
-  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen,
+  Eye, ChevronDown, MoreVertical, Ruler, Monitor, Layers, Pencil, Rocket, Sparkles, FileCode2, FolderOpen, RefreshCw,
   Trash2, Copy, ArrowUp, ArrowDown, Lock, Unlock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -168,6 +168,7 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
   } | null>(null);
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
   const [showAIGenerate, setShowAIGenerate] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [showHTMLImport, setShowHTMLImport] = useState(false);
 
   const fitToViewport = useCallback(() => {
@@ -311,13 +312,23 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     onSave?.(cleanState); setDirty(false); toast.success('Layout salvo!');
   }, [state, onSave]);
 
-  const handlePublish = useCallback(() => {
+
+  const handlePublish = useCallback(async () => {
+    if (!onPublish || publishing) return;
     const usedViewIds = new Set(state.elements.map(e => e.viewId).filter(Boolean));
     usedViewIds.add('__default__');
     const cleanViews = (state.views || []).filter(v => v.isDefault || usedViewIds.has(v.id));
     const cleanState = { ...state, views: cleanViews.length ? cleanViews : [{ id: '__default__', name: 'Home', isDefault: true }] };
-    onPublish?.(cleanState); setDirty(false);
-  }, [state, onPublish]);
+    setPublishing(true);
+    try {
+      await onPublish(cleanState);
+      setDirty(false);
+    } catch (err) {
+      console.error('Publish error:', err);
+    } finally {
+      setPublishing(false);
+    }
+  }, [state, onPublish, publishing]);
 
   const handleExport = useCallback(() => {
     const json = JSON.stringify(state, null, 2);
@@ -635,8 +646,13 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                 size="sm"
                 className="h-9 text-xs gap-1.5 px-5 rounded-lg font-bold shadow-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
                 onClick={handlePublish}
+                disabled={publishing}
               >
-                <Rocket className="w-4 h-4" /> Publicar
+                {publishing ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Publicando...</>
+                ) : (
+                  <><Rocket className="w-4 h-4" /> Publicar</>
+                )}
               </Button>
             )}
           </div>
