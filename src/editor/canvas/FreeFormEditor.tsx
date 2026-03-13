@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, DEFAULT_CANVAS_STATE,
-  canvasReducer, createElement,
+  canvasReducer, createElement, viewUid,
   type CanvasState, type CanvasElement, type ElementType, type CanvasView, type PageTransition,
 } from '../types/canvas';
 import { useHistory } from '../hooks/useHistory';
