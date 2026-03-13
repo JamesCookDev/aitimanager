@@ -305,7 +305,6 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
     setLeftTab('elements');
   }, [dispatch, activeViewId]);
 
-  const [saving, setSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
     if (!onSave || saving) return;
