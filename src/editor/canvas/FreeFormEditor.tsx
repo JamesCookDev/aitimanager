@@ -990,10 +990,14 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
       open={showHTMLImport}
       onOpenChange={setShowHTMLImport}
       onImport={(elements, importBgColor) => {
-        elements.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: { ...el, viewId: activeViewId } }));
-        if (importBgColor && importBgColor !== '#0f172a') {
-          dispatch({ type: 'SET_PAGE_BG_COLOR', viewId: activeViewId, color: importBgColor });
-        }
+        replaceCanvasWithImportedState({
+          ...DEFAULT_CANVAS_STATE,
+          bgColor: importBgColor || DEFAULT_CANVAS_STATE.bgColor,
+          elements: elements.map(el => ({ ...el, viewId: '__default__' })),
+          views: [{ id: '__default__', name: 'Home', isDefault: true }],
+          activeViewId: '__default__',
+          pageBgColors: importBgColor ? { __default__: importBgColor } : {},
+        });
       }}
     />
     </PageVariablesProvider>
