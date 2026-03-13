@@ -272,9 +272,6 @@ export default function DeviceDetail() {
           <TabsTrigger value="details" className="gap-1.5">
             <FileBox className="w-4 h-4" /> Detalhes
           </TabsTrigger>
-          <TabsTrigger value="code-sync" className="gap-1.5">
-            <GitCompare className="w-4 h-4" /> Code Sync
-          </TabsTrigger>
         </TabsList>
 
         {/* AI PROMPT TAB */}
