@@ -118,7 +118,8 @@ function saveOperationalConfig(config) {
 
 function isProvisioned() {
   const creds = loadDeviceCredentials();
-  return creds && creds.api_key && creds.org_id;
+  // api_key is the minimum required credential; org_id is optional for legacy
+  return creds && !!creds.api_key;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -303,6 +304,7 @@ async function enrollDevice(enrollmentKey) {
 
   log('🔑 Ativando dispositivo com chave: ' + enrollmentKey.substring(0, 8) + '...');
   log('🖥️  Hardware ID: ' + hardwareId);
+  log('🌐 API URL: ' + apiUrl + '/totem-register');
 
   const payload = JSON.stringify({
     enrollment_key: enrollmentKey,
@@ -321,25 +323,35 @@ async function enrollDevice(enrollmentKey) {
     body: payload,
   });
 
+  log('📨 Registro — HTTP ' + res.status);
+
   const result = JSON.parse(res.body);
   if (res.status >= 400) {
+    error('Registro falhou: ' + (result.error || 'HTTP ' + res.status));
     throw new Error(result.error || 'HTTP ' + res.status);
   }
 
-  if (!result.device) {
-    throw new Error('Resposta inválida do servidor');
+  if (!result.device || !result.device.id || !result.device.api_key) {
+    error('Resposta inválida do servidor: ' + JSON.stringify(result));
+    throw new Error('Resposta inválida do servidor — faltam device.id ou device.api_key');
   }
 
-  saveDeviceCredentials({
+  const creds = {
     device_id: result.device.id,
     api_key: result.device.api_key,
     org_id: result.device.org_id || null,
     org_name: result.organization || null,
     device_name: result.device.name,
     registration_method: 'enrollment',
-  });
+  };
 
-  log('✅ Dispositivo ativado: ' + result.device.name);
+  saveDeviceCredentials(creds);
+
+  log('✅ Enrollment OK — device_id: ' + creds.device_id);
+  log('✅ Enrollment OK — api_key: ' + creds.api_key.substring(0, 8) + '...');
+  log('✅ Enrollment OK — org_id: ' + (creds.org_id || '(não informado)'));
+  log('✅ Credenciais salvas em ' + DEVICE_FILE);
+
   return result;
 }
 
@@ -393,12 +405,18 @@ async function fetchHtml() {
     'apikey': getAnonKey(),
     'Content-Type': 'application/json',
   };
+  if (deviceId) headers['x-totem-device-id'] = deviceId;
   if (apiKey) headers['x-totem-api-key'] = apiKey;
-  else headers['x-totem-device-id'] = deviceId;
   if (lastEtag) headers['If-None-Match'] = lastEtag;
+
+  debug('Fetch HTML → ' + url + ' (device: ' + (deviceId || 'api_key').substring(0, 8) + '…)');
 
   const res = await httpRequest(url, { method: 'GET', headers: headers });
   if (res.status === 304) return { html: null, changed: false };
+  if (res.status === 404) {
+    warn('totem-html 404 — dispositivo não encontrado no backend');
+    throw new Error('Device not found (404)');
+  }
   if (res.status >= 200 && res.status < 300) {
     if (res.headers.etag) lastEtag = res.headers.etag;
     return { html: res.body, changed: true };
@@ -443,17 +461,21 @@ async function sendHeartbeat() {
   const apiKey = getApiKey();
   const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey && !deviceId) return;
+  if (!apiKey && !deviceId) {
+    warn('Heartbeat ignorado — sem credenciais');
+    return;
+  }
 
   try {
     const headers = {
       'Content-Type': 'application/json',
       'apikey': getAnonKey(),
     };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
     if (apiKey) headers['x-totem-api-key'] = apiKey;
-    else headers['x-totem-device-id'] = deviceId;
 
-    const payload = JSON.stringify({ status_details: collectTelemetry() });
+    const telemetry = collectTelemetry();
+    const payload = JSON.stringify({ status_details: telemetry });
 
     const res = await httpRequest(apiUrl + '/totem-heartbeat', {
       method: 'POST',
@@ -462,9 +484,20 @@ async function sendHeartbeat() {
     });
 
     if (res.status >= 200 && res.status < 300) {
-      debug('Heartbeat OK [' + new Date().toLocaleTimeString('pt-BR') + ']');
+      const data = JSON.parse(res.body);
+      log('💓 Heartbeat OK — device: ' + (data.device_id || '?').substring(0, 8) + '… [' + new Date().toLocaleTimeString('pt-BR') + ']');
+
+      // Process pending command from heartbeat response
+      if (data.command) {
+        log('⚡ Comando via heartbeat: "' + data.command + '"');
+      }
     } else {
-      warn('Heartbeat HTTP ' + res.status + ': ' + res.body.substring(0, 100));
+      warn('Heartbeat HTTP ' + res.status + ': ' + res.body.substring(0, 200));
+      if (res.status === 404) {
+        error('Heartbeat 404 — dispositivo não encontrado no backend. Verifique device_id/api_key.');
+      } else if (res.status === 401) {
+        error('Heartbeat 401 — falha de autenticação. apikey inválida?');
+      }
     }
   } catch (err) {
     warn('Heartbeat falhou: ' + err.message);
@@ -478,15 +511,24 @@ const EXIT_CODE_REMOTE_RESTART = 75;
 
 async function checkRemoteCommand() {
   const apiKey = getApiKey();
+  const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey || !apiUrl) return null;
+  if (!apiKey && !deviceId) return null;
 
   try {
+    const headers = {
+      'apikey': getAnonKey(),
+    };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+
     const res = await httpRequest(apiUrl + '/totem-poll-command', {
       method: 'GET',
-      headers: { 'x-totem-api-key': apiKey },
+      headers: headers,
     });
-    return JSON.parse(res.body).command || null;
+    const cmd = JSON.parse(res.body).command || null;
+    if (cmd) log('📩 Comando recebido via poll: "' + cmd + '"');
+    return cmd;
   } catch (err) {
     debug('Poll-command: ' + err.message);
     return null;
@@ -495,12 +537,20 @@ async function checkRemoteCommand() {
 
 async function reportCommandResult(command, status, errorMsg) {
   const apiKey = getApiKey();
+  const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey || !apiUrl) return;
+  if (!apiKey && !deviceId) return;
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': getAnonKey(),
+    };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+
     await httpRequest(apiUrl + '/totem-command-report', {
       method: 'POST',
-      headers: { 'x-totem-api-key': apiKey, 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({ command: command, status: status, error: errorMsg || undefined }),
     });
   } catch (err) {
