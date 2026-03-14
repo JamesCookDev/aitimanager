@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Pencil, Check, Home, Clock, Trash2, Copy, FileText, ChevronRight, ChevronDown, MoreHorizontal, CornerDownRight } from 'lucide-react';
+import { Plus, X, Pencil, Check, Home, Clock, Trash2, Copy, FileText, ChevronRight, ChevronDown, MoreHorizontal, CornerDownRight, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,10 @@ interface Props {
   onSetIdleTimeout: (seconds: number) => void;
   onSetPageBgColor?: (viewId: string, color: string) => void;
   onSetParent?: (viewId: string, parentId: string | null) => void;
+  idleScreenEnabled?: boolean;
+  idleScreenTimeout?: number;
+  onSetIdleScreen?: (enabled: boolean) => void;
+  onSetIdleScreenTimeout?: (seconds: number) => void;
 }
 
 export function PagesPanel({
@@ -33,6 +37,7 @@ export function PagesPanel({
   pageBgColors = {}, globalBgColor,
   onSelectView, onAddView, onRenameView, onDeleteView, onDuplicateView,
   onSetDefault, onSetIdleTimeout, onSetPageBgColor, onSetParent,
+  idleScreenEnabled, idleScreenTimeout, onSetIdleScreen, onSetIdleScreenTimeout,
 }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -394,6 +399,46 @@ export function PagesPanel({
               Após inatividade, volta para "{defaultView?.name || 'Home'}". 0 = desativado.
             </p>
           </div>
+
+          {/* Idle Screen */}
+          {onSetIdleScreen && (
+            <div className="space-y-1.5 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Moon className="w-3 h-3" /> Tela de Descanso
+                </Label>
+                <button
+                  onClick={() => onSetIdleScreen(!idleScreenEnabled)}
+                  className={cn(
+                    'text-[9px] font-medium px-2 py-0.5 rounded transition-all',
+                    idleScreenEnabled
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {idleScreenEnabled ? 'Ativo' : 'Off'}
+                </button>
+              </div>
+              {idleScreenEnabled && onSetIdleScreenTimeout && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] text-muted-foreground">Ativar após</span>
+                    <span className="text-[9px] font-mono text-muted-foreground">
+                      {idleScreenTimeout || 60}s
+                    </span>
+                  </div>
+                  <Slider
+                    value={[idleScreenTimeout || 60]}
+                    onValueChange={([v]) => onSetIdleScreenTimeout(v)}
+                    min={15} max={300} step={5}
+                  />
+                  <p className="text-[9px] text-muted-foreground">
+                    Exibe screensaver com imagens e textos do layout quando inativo.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </ScrollArea>

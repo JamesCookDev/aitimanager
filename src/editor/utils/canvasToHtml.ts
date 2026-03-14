@@ -172,6 +172,8 @@ function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
  * Generate a complete standalone HTML document from a CanvasState.
  */
 export function canvasToHtml(state: CanvasState): string {
+  const idleScreenEnabled = state.idleScreenEnabled ?? false;
+  const idleScreenTimeout = state.idleScreenTimeout ?? 60;
   const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
   const defaultView = views.find(v => v.isDefault) || views[0];
 
@@ -315,6 +317,280 @@ ${hasMultiplePages ? `
       resetIdleTimer();
     })();
   </script>
+` : ''}
+${idleScreenEnabled ? `
+<!-- Idle Screen / Screensaver -->
+<style>
+  #idle-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 99999; opacity: 0; pointer-events: none;
+    transition: opacity 1s ease;
+    background: #000;
+    overflow: hidden;
+  }
+  #idle-screen.active { opacity: 1; pointer-events: auto; }
+  #idle-screen .idle-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0; transition: opacity 1.5s ease;
+    animation: kenburns 20s ease infinite alternate;
+  }
+  #idle-screen .idle-bg.visible { opacity: 0.45; }
+  @keyframes kenburns {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.15) translate(-2%, -1%); }
+  }
+  #idle-screen .idle-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.85) 100%);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 60px 50px; gap: 24px;
+  }
+  #idle-screen .idle-clock {
+    position: absolute; top: 50px; left: 50px; right: 50px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  #idle-screen .idle-time {
+    font-size: 72px; font-weight: 200; color: #fff;
+    font-family: 'Inter', sans-serif; letter-spacing: -2px;
+  }
+  #idle-screen .idle-date {
+    font-size: 18px; color: rgba(255,255,255,0.6);
+    font-family: 'Inter', sans-serif; text-align: right; line-height: 1.5;
+  }
+  #idle-screen .idle-texts {
+    display: flex; flex-direction: column; gap: 12px;
+    max-height: 600px; overflow: hidden;
+  }
+  #idle-screen .idle-title {
+    font-size: 36px; font-weight: 700; color: #fff;
+    font-family: 'Inter', sans-serif; line-height: 1.2;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  }
+  #idle-screen .idle-subtitle {
+    font-size: 18px; color: rgba(255,255,255,0.7);
+    font-family: 'Inter', sans-serif; line-height: 1.4;
+  }
+  #idle-screen .idle-thumbnails {
+    display: flex; gap: 12px; overflow: hidden; padding-top: 16px;
+  }
+  #idle-screen .idle-thumb {
+    width: 160px; height: 120px; border-radius: 12px; object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0;
+  }
+  #idle-screen .idle-hint {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: rgba(255,255,255,0.35);
+    font-family: 'Inter', sans-serif; letter-spacing: 2px; text-transform: uppercase;
+    animation: pulse-hint 2s ease infinite;
+  }
+  @keyframes pulse-hint { 0%,100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+</style>
+<div id="idle-screen">
+  <div class="idle-overlay">
+    <div class="idle-clock">
+      <div class="idle-time" id="idle-time"></div>
+      <div class="idle-date" id="idle-date"></div>
+    </div>
+    <div class="idle-texts" id="idle-texts"></div>
+    <div class="idle-thumbnails" id="idle-thumbnails"></div>
+  </div>
+  <div class="idle-hint">Toque para continuar</div>
+</div>
+<script>
+(function() {
+  var IDLE_TIMEOUT = ${idleScreenTimeout} * 1000;
+  var screen = document.getElementById('idle-screen');
+  var timer = null;
+  var slideTimer = null;
+  var isActive = false;
+
+  // Extract content from DOM
+  function extractContent() {
+    var images = [];
+    var texts = [];
+
+    // Collect images
+    document.querySelectorAll('img').forEach(function(img) {
+      if (img.closest('#idle-screen')) return;
+      var src = img.src || img.getAttribute('src');
+      if (src && !src.includes('qrserver') && !src.includes('data:') && src.length > 10) {
+        images.push(src);
+      }
+    });
+
+    // Collect background images from styles
+    document.querySelectorAll('[style]').forEach(function(el) {
+      if (el.closest('#idle-screen')) return;
+      var bg = el.style.backgroundImage;
+      if (bg && bg.includes('url(')) {
+        var match = bg.match(/url\\(['"]?([^'"\\)]+)['"]?\\)/);
+        if (match && match[1] && !match[1].includes('qrserver')) images.push(match[1]);
+      }
+    });
+
+    // Collect carousel/video poster images
+    document.querySelectorAll('video[poster]').forEach(function(v) {
+      if (v.poster) images.push(v.poster);
+    });
+
+    // Collect texts - prioritize headings and larger text
+    var selectors = ['h1','h2','h3','[data-editable]','strong','b','button'];
+    selectors.forEach(function(sel) {
+      document.querySelectorAll(sel).forEach(function(el) {
+        if (el.closest('#idle-screen')) return;
+        var t = (el.textContent || '').trim();
+        if (t.length > 2 && t.length < 200 && texts.indexOf(t) === -1) {
+          texts.push(t);
+        }
+      });
+    });
+
+    // Also extract from data-page elements (all pages, not just visible)
+    document.querySelectorAll('[data-page]').forEach(function(page) {
+      page.querySelectorAll('img').forEach(function(img) {
+        var src = img.src || img.getAttribute('src');
+        if (src && !src.includes('qrserver') && !src.includes('data:') && images.indexOf(src) === -1) {
+          images.push(src);
+        }
+      });
+      page.querySelectorAll('h1,h2,h3,[data-editable],strong').forEach(function(el) {
+        var t = (el.textContent || '').trim();
+        if (t.length > 2 && t.length < 200 && texts.indexOf(t) === -1) {
+          texts.push(t);
+        }
+      });
+    });
+
+    // Extract from embedded HTML (iframes with srcdoc or raw HTML)
+    document.querySelectorAll('script').forEach(function(s) {
+      try {
+        var content = s.textContent || '';
+        var eventMatch = content.match(/var\\s+events\\s*=\\s*(\\[.*?\\]);/s);
+        if (eventMatch) {
+          var events = JSON.parse(eventMatch[1].replace(/'/g, '"'));
+          events.forEach(function(ev) {
+            if (ev.title && texts.indexOf(ev.title) === -1) texts.push(ev.title);
+            if (ev.image && images.indexOf(ev.image) === -1) images.push(ev.image);
+            if (ev.img && images.indexOf(ev.img) === -1) images.push(ev.img);
+          });
+        }
+      } catch(e) {}
+    });
+
+    return { images: images.filter(function(v,i,a){ return a.indexOf(v) === i; }), texts: texts };
+  }
+
+  var content = { images: [], texts: [] };
+  var currentSlide = 0;
+  var bgElements = [];
+
+  function buildIdleScreen() {
+    content = extractContent();
+
+    // Build background images
+    var existing = screen.querySelectorAll('.idle-bg');
+    existing.forEach(function(el) { el.remove(); });
+    bgElements = [];
+
+    content.images.slice(0, 8).forEach(function(src) {
+      var img = document.createElement('img');
+      img.className = 'idle-bg';
+      img.src = src;
+      img.onerror = function() { img.style.display = 'none'; };
+      screen.insertBefore(img, screen.firstChild);
+      bgElements.push(img);
+    });
+
+    // Build texts
+    var textsContainer = document.getElementById('idle-texts');
+    textsContainer.innerHTML = '';
+    content.texts.slice(0, 5).forEach(function(t, i) {
+      var div = document.createElement('div');
+      div.className = i === 0 ? 'idle-title' : 'idle-subtitle';
+      div.textContent = t;
+      textsContainer.appendChild(div);
+    });
+
+    // Build thumbnails
+    var thumbsContainer = document.getElementById('idle-thumbnails');
+    thumbsContainer.innerHTML = '';
+    content.images.slice(0, 5).forEach(function(src) {
+      var img = document.createElement('img');
+      img.className = 'idle-thumb';
+      img.src = src;
+      img.onerror = function() { img.style.display = 'none'; };
+      thumbsContainer.appendChild(img);
+    });
+
+    currentSlide = 0;
+    showSlide(0);
+  }
+
+  function showSlide(index) {
+    bgElements.forEach(function(img, i) {
+      img.classList.toggle('visible', i === index);
+      // Vary the ken burns direction per slide
+      img.style.animationDuration = (15 + (i % 3) * 5) + 's';
+      img.style.animationDirection = i % 2 === 0 ? 'alternate' : 'alternate-reverse';
+    });
+  }
+
+  function nextSlide() {
+    if (bgElements.length === 0) return;
+    currentSlide = (currentSlide + 1) % bgElements.length;
+    showSlide(currentSlide);
+  }
+
+  function updateClock() {
+    var now = new Date();
+    var timeEl = document.getElementById('idle-time');
+    var dateEl = document.getElementById('idle-date');
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (dateEl) {
+      dateEl.innerHTML = now.toLocaleDateString('pt-BR', { weekday: 'long' }).charAt(0).toUpperCase() +
+        now.toLocaleDateString('pt-BR', { weekday: 'long' }).slice(1) +
+        '<br>' + now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+  }
+
+  function activate() {
+    if (isActive) return;
+    isActive = true;
+    buildIdleScreen();
+    updateClock();
+    screen.classList.add('active');
+    slideTimer = setInterval(function() { nextSlide(); updateClock(); }, 6000);
+  }
+
+  function deactivate() {
+    if (!isActive) return;
+    isActive = false;
+    screen.classList.remove('active');
+    if (slideTimer) { clearInterval(slideTimer); slideTimer = null; }
+    resetTimer();
+  }
+
+  function resetTimer() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(activate, IDLE_TIMEOUT);
+  }
+
+  // Listen for user interaction
+  ['click', 'touchstart', 'mousemove', 'keydown'].forEach(function(evt) {
+    document.addEventListener(evt, function() {
+      if (isActive) { deactivate(); }
+      else { resetTimer(); }
+    }, { passive: true });
+  });
+
+  // Dismiss idle screen on touch
+  screen.addEventListener('click', deactivate);
+  screen.addEventListener('touchstart', deactivate);
+
+  // Start timer
+  resetTimer();
+})();
+</script>
 ` : ''}
 </body>
 </html>`;

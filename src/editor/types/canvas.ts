@@ -80,6 +80,10 @@ export interface CanvasState {
   viewIdleTimeout?: number;
   /** Per-page background colors (viewId → color). Falls back to bgColor if not set */
   pageBgColors?: Record<string, string>;
+  /** Enable idle/screensaver screen that extracts content from the page */
+  idleScreenEnabled?: boolean;
+  /** Seconds of inactivity before idle screen activates (default 60) */
+  idleScreenTimeout?: number;
 }
 
 export const DEFAULT_CANVAS_STATE: CanvasState = {
@@ -90,6 +94,8 @@ export const DEFAULT_CANVAS_STATE: CanvasState = {
   activeViewId: '__default__',
   viewIdleTimeout: 30,
   pageBgColors: {},
+  idleScreenEnabled: false,
+  idleScreenTimeout: 60,
 };
 
 /* ── helpers ────────────────────────────────────── */
@@ -172,7 +178,9 @@ export type CanvasAction =
   | { type: 'SET_VIEW_IDLE_TIMEOUT'; seconds: number }
   | { type: 'ASSIGN_ELEMENT_VIEW'; elementId: string; viewId: string | null }
   | { type: 'SET_PAGE_BG_COLOR'; viewId: string; color: string }
-  | { type: 'DUPLICATE_VIEW'; id: string };
+  | { type: 'DUPLICATE_VIEW'; id: string }
+  | { type: 'SET_IDLE_SCREEN'; enabled: boolean }
+  | { type: 'SET_IDLE_SCREEN_TIMEOUT'; seconds: number };
 
 export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasState {
   switch (action.type) {
@@ -326,6 +334,11 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
         },
       };
     }
+
+    case 'SET_IDLE_SCREEN':
+      return { ...state, idleScreenEnabled: action.enabled };
+    case 'SET_IDLE_SCREEN_TIMEOUT':
+      return { ...state, idleScreenTimeout: action.seconds };
 
     default:
       return state;
