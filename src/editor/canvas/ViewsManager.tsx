@@ -205,6 +205,57 @@ export function ViewsManager({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Idle Screen config */}
+      {onSetIdleScreen && (
+        <>
+          <div className="w-px h-5 bg-border mx-0.5" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                  idleScreenEnabled
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+                title="Tela de descanso"
+              >
+                <Moon className="w-3 h-3" />
+                {idleScreenEnabled ? `${idleScreenTimeout || 60}s` : 'Off'}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" className="w-56 p-3" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-semibold">Tela de Descanso</Label>
+                  <Switch
+                    checked={idleScreenEnabled ?? false}
+                    onCheckedChange={(v) => onSetIdleScreen(v)}
+                  />
+                </div>
+                {idleScreenEnabled && onSetIdleScreenTimeout && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">Ativar após</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {idleScreenTimeout || 60}s
+                      </span>
+                    </div>
+                    <Slider
+                      value={[idleScreenTimeout || 60]}
+                      onValueChange={([v]) => onSetIdleScreenTimeout(v)}
+                      min={15} max={300} step={5}
+                    />
+                  </>
+                )}
+                <p className="text-[9px] text-muted-foreground">
+                  Exibe um screensaver com imagens e textos extraídos do layout ao ficar inativo.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </>
+      )}
     </div>
   );
 }
