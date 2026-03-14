@@ -61,7 +61,7 @@ const DISTRIBUTION = {
   windows: {
     url: `${SUPABASE_URL}/functions/v1/agent-download`,
     fileName: 'TotemAgent-Instalador.zip',
-    label: 'Baixar Instalador Windows',
+    label: 'Baixar Totem Agent',
     description: 'Compatível com Windows 10/11 (64-bit)',
   },
 };
