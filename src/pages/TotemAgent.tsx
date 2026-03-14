@@ -55,17 +55,43 @@ function HeroSection({ orgName }: { orgName?: string }) {
   );
 }
 
-function DownloadButton({ onDownload }: { onDownload: () => void }) {
+/* ─── distribution config ─── */
+const DISTRIBUTION = {
+  windows: {
+    url: '', // Set to the real .exe/.zip URL when available
+    fileName: 'TotemAgent-Instalador.zip',
+    label: 'Baixar Instalador Windows',
+    description: 'Compatível com Windows 10/11 (64-bit)',
+  },
+};
+
+function DownloadButton() {
+  const dist = DISTRIBUTION.windows;
+  const available = !!dist.url;
+
+  const handleDownload = () => {
+    if (!available) {
+      toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = dist.url;
+    link.download = dist.fileName;
+    link.click();
+    toast.success('Download iniciado!');
+  };
+
   return (
-    <section className="flex justify-center pb-2">
+    <section className="flex flex-col items-center gap-2 pb-2">
       <Button
         size="lg"
         className="h-16 px-10 text-lg gap-3 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow"
-        onClick={onDownload}
+        onClick={handleDownload}
       >
         <Download className="w-6 h-6" />
-        Baixar Totem Agent
+        {dist.label}
       </Button>
+      <span className="text-xs text-muted-foreground">{dist.description}</span>
     </section>
   );
 }
@@ -74,12 +100,12 @@ const STEPS = [
   {
     icon: Download,
     title: 'Baixe',
-    desc: 'Clique no botão acima e salve o instalador na máquina que será seu totem.',
+    desc: 'Clique no botão acima e salve o instalador na máquina que será seu totem. Não é necessário instalar nada antes.',
   },
   {
     icon: MousePointerClick,
     title: 'Instale',
-    desc: 'Execute o instalador. Ele cuida de tudo automaticamente.',
+    desc: 'Execute o instalador na máquina do totem. Ele configura tudo automaticamente, sem precisar de conhecimento técnico.',
   },
   {
     icon: Power,
@@ -409,19 +435,12 @@ export default function TotemAgent() {
     toast.success('Código copiado!');
   };
 
-  const downloadInstaller = () => {
-    const link = document.createElement('a');
-    link.href = '/sync-worker.js';
-    link.download = 'totem-agent.js';
-    link.click();
-    toast.success('Download iniciado!');
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 pb-16 space-y-12">
         <HeroSection orgName={org?.name} />
-        <DownloadButton onDownload={downloadInstaller} />
+        <DownloadButton />
         <Separator />
         <HowItWorks />
         <Separator />
