@@ -130,10 +130,10 @@ async function handleHardwareRegister(
     return jsonResponse({ error: 'Erro ao criar dispositivo' }, 500)
   }
 
-  console.log(`[Register] ✅ ${device.name} (${device.id})`)
+  console.log(`[Register] ✅ ${device.name} (${device.id}) → org ${org_id}`)
   return jsonResponse({
     success: true, registered: true,
-    device: { id: device.id, name: device.name, api_key: device.api_key },
+    device: { id: device.id, name: device.name, api_key: device.api_key, org_id: org_id },
     message: 'Dispositivo registrado com sucesso',
   }, 201)
 }
