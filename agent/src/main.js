@@ -455,17 +455,21 @@ async function sendHeartbeat() {
   const apiKey = getApiKey();
   const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey && !deviceId) return;
+  if (!apiKey && !deviceId) {
+    warn('Heartbeat ignorado — sem credenciais');
+    return;
+  }
 
   try {
     const headers = {
       'Content-Type': 'application/json',
       'apikey': getAnonKey(),
     };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
     if (apiKey) headers['x-totem-api-key'] = apiKey;
-    else headers['x-totem-device-id'] = deviceId;
 
-    const payload = JSON.stringify({ status_details: collectTelemetry() });
+    const telemetry = collectTelemetry();
+    const payload = JSON.stringify({ status_details: telemetry });
 
     const res = await httpRequest(apiUrl + '/totem-heartbeat', {
       method: 'POST',
@@ -474,9 +478,20 @@ async function sendHeartbeat() {
     });
 
     if (res.status >= 200 && res.status < 300) {
-      debug('Heartbeat OK [' + new Date().toLocaleTimeString('pt-BR') + ']');
+      const data = JSON.parse(res.body);
+      log('💓 Heartbeat OK — device: ' + (data.device_id || '?').substring(0, 8) + '… [' + new Date().toLocaleTimeString('pt-BR') + ']');
+
+      // Process pending command from heartbeat response
+      if (data.command) {
+        log('⚡ Comando via heartbeat: "' + data.command + '"');
+      }
     } else {
-      warn('Heartbeat HTTP ' + res.status + ': ' + res.body.substring(0, 100));
+      warn('Heartbeat HTTP ' + res.status + ': ' + res.body.substring(0, 200));
+      if (res.status === 404) {
+        error('Heartbeat 404 — dispositivo não encontrado no backend. Verifique device_id/api_key.');
+      } else if (res.status === 401) {
+        error('Heartbeat 401 — falha de autenticação. apikey inválida?');
+      }
     }
   } catch (err) {
     warn('Heartbeat falhou: ' + err.message);
