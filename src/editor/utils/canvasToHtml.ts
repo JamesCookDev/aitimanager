@@ -172,6 +172,8 @@ function renderElementHtml(el: CanvasElement, views: CanvasView[]): string {
  * Generate a complete standalone HTML document from a CanvasState.
  */
 export function canvasToHtml(state: CanvasState): string {
+  const idleScreenEnabled = state.idleScreenEnabled ?? false;
+  const idleScreenTimeout = state.idleScreenTimeout ?? 60;
   const views = state.views?.length ? state.views : [{ id: '__default__', name: 'Home', isDefault: true }];
   const defaultView = views.find(v => v.isDefault) || views[0];
 
