@@ -1,6 +1,6 @@
 # AITI.MANAGER — Documentação Técnica do Projeto
 
-> **Versão:** 5.0.0 | **Última atualização:** 2026-03-13
+> **Versão:** 6.0.0 | **Última atualização:** 2026-03-14
 
 ---
 
@@ -257,101 +257,308 @@ Todas as tabelas possuem RLS ativado com políticas:
 
 ---
 
-## 6. Banco de Dados
+## 6. Banco de Dados — Documentação Detalhada
 
-### 6.1 Tabelas
+### 6.1 Diagrama de Relacionamentos (ERD)
 
-#### `organizations`
-| Coluna | Tipo | Descrição |
+```
+┌──────────────────┐       ┌──────────────────┐
+│  organizations   │◄──────│    profiles       │
+│──────────────────│  FK   │──────────────────│
+│ id (PK, UUID)    │ org_id│ id (PK, UUID)    │ ← auth.users.id
+│ name (TEXT)      │       │ full_name (TEXT)  │
+│ slug (TEXT)      │       │ email (TEXT)      │
+│ created_at       │       │ org_id (FK, UUID) │
+│ updated_at       │       │ created_at        │
+└───────┬──────────┘       │ updated_at        │
+        │                  └──────────────────┘
+        │ FK org_id
+        │                  ┌──────────────────┐
+        │                  │   user_roles      │
+        │                  │──────────────────│
+        │                  │ id (PK, UUID)    │
+        │                  │ user_id (UUID)   │ ← auth.users.id
+        │                  │ role (ENUM)      │   super_admin | org_admin
+        │                  └──────────────────┘
+        │
+┌───────▼──────────┐       ┌──────────────────┐
+│     devices      │◄──────│ device_versions  │
+│──────────────────│  FK   │──────────────────│
+│ id (PK, UUID)    │device │ id (PK, UUID)    │
+│ org_id (FK)      │ _id   │ device_id (FK)   │
+│ name (TEXT)      │       │ model_url (TEXT)  │
+│ api_key (UUID)   │       │ version_notes    │
+│ hardware_id (TEXT)│      │ file_name, size  │
+│ last_ping (TS)   │       │ created_at       │
+│ ui_config (JSONB)│       └──────────────────┘
+│ published_html   │
+│ avatar_config    │       ┌──────────────────┐
+│ ai_prompt (TEXT)  │◄──────│  command_logs    │
+│ pending_command   │ FK   │──────────────────│
+│ command_sent_at   │device │ id (PK, UUID)    │
+│ status_details    │ _id   │ device_id (FK)   │
+│ is_speaking       │      │ command (TEXT)    │
+│ model_3d_url      │      │ sent_by (UUID)   │
+│ created/updated   │      │ status (TEXT)     │
+└───────┬──────────┘       │ sent_at / exec_at│
+        │                  └──────────────────┘
+        │ FK org_id / device_id
+        │
+┌───────▼──────────┐       ┌──────────────────┐
+│   ai_configs     │       │ form_submissions │
+│──────────────────│       │──────────────────│
+│ id (PK, UUID)    │       │ id (PK, UUID)    │
+│ org_id (FK)      │       │ device_id (FK)   │
+│ device_id (FK)   │       │ org_id (FK)      │
+│ name (VARCHAR)   │       │ form_title (TEXT) │
+│ system_prompt    │       │ fields (JSONB)    │
+│ knowledge_base   │       │ ip_address       │
+│ model, voice ... │       │ metadata (JSONB)  │
+│ is_active (BOOL) │       │ submitted_at     │
+└──────────────────┘       └──────────────────┘
+
+                           ┌──────────────────┐
+                           │ layout_templates │
+                           │──────────────────│
+                           │ id (PK, UUID)    │
+                           │ org_id (FK)      │
+                           │ created_by (UUID)│
+                           │ name (TEXT)      │
+                           │ layout (JSONB)   │
+                           │ icon, description│
+                           │ created_at       │
+                           └──────────────────┘
+```
+
+### 6.2 Tabelas — Descrição Detalhada
+
+---
+
+#### 🏢 `organizations` — Organizações (Multi-Tenant)
+
+Tabela raiz do modelo multi-tenant. Toda entidade (devices, users, configs) pertence a uma organização.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador único |
+| `name` | TEXT | ❌ | — | Nome da organização (ex: "Shopping Porto Futuro") |
+| `slug` | TEXT | ❌ | — | Identificador URL-friendly (ex: "porto-futuro") |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de última atualização |
+
+**RLS:**
+- Super Admin: leitura/escrita total
+- Org Admin: somente leitura da sua organização (`id = get_user_org_id(auth.uid())`)
+
+---
+
+#### 👤 `profiles` — Perfis de Usuários
+
+Espelho dos dados do `auth.users` no schema público. Criado automaticamente via trigger `handle_new_user()` quando um novo usuário se cadastra.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | — | Mesmo UUID do `auth.users.id` |
+| `full_name` | TEXT | ✅ | — | Nome completo do usuário |
+| `email` | TEXT | ✅ | — | Email (copiado do auth) |
+| `org_id` | UUID (FK) | ✅ | — | Organização vinculada |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de atualização |
+
+**RLS:**
+- Super Admin: leitura e exclusão total
+- Usuário: leitura e atualização apenas do próprio perfil
+- **Sem INSERT público** — criado apenas via trigger no `auth.users`
+
+**⚠️ Importante:** Nunca fazer FK diretamente para `auth.users` em outras tabelas. Use `profiles.id` como referência indireta.
+
+---
+
+#### 🔐 `user_roles` — Papéis de Acesso
+
+Tabela separada para armazenar papéis, evitando escalação de privilégios.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `user_id` | UUID | ❌ | — | Referência ao usuário |
+| `role` | ENUM `app_role` | ❌ | — | `super_admin` ou `org_admin` |
+
+**Constraint:** `UNIQUE (user_id, role)` — um usuário não pode ter o mesmo papel duplicado.
+
+**RLS:**
+- Super Admin: CRUD total
+- Usuário: somente leitura das próprias roles
+
+---
+
+#### 📱 `devices` — Dispositivos (Totens)
+
+Tabela central do sistema. Cada registro representa um totem físico.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador do dispositivo |
+| `org_id` | UUID (FK) | ❌ | — | Organização dona do totem |
+| `name` | TEXT | ❌ | — | Nome do dispositivo (ex: "Totem Recepção") |
+| `description` | TEXT | ✅ | — | Descrição opcional |
+| `location` | TEXT | ✅ | — | Localização física (ex: "Lobby Principal") |
+| `api_key` | UUID | ❌ | `gen_random_uuid()` | **Chave de autenticação do hardware** — usada em headers HTTP |
+| `hardware_id` | TEXT | ✅ | — | Fingerprint do hardware (hostname) para auto-registro |
+| `last_ping` | TIMESTAMPTZ | ✅ | — | Último heartbeat recebido. **Online se < 90s** |
+| `ui_config` | JSONB | ✅ | _default UI_ | Estado completo do canvas (JSON com `free_canvas`, views, etc.) |
+| `published_html` | TEXT | ✅ | — | **HTML estático gerado pelo Page Builder** — servido ao hardware |
+| `ai_prompt` | TEXT | ✅ | — | Prompt de IA legado (campo simples) |
+| `avatar_config` | JSONB | ✅ | _default colors_ | Configuração do avatar 3D (cores, material, animação) |
+| `pending_command` | TEXT | ✅ | — | Comando pendente: `restart`, `sync`, `reload`, `reload_config` |
+| `command_sent_at` | TIMESTAMPTZ | ✅ | — | Quando o comando foi enviado |
+| `status_details` | JSONB | ✅ | `{}` | Telemetria: `worker_version`, `http_port`, `uptime_seconds`, `cpu_usage`, `memory_usage` |
+| `is_speaking` | BOOLEAN | ✅ | `false` | Se o avatar está reproduzindo fala |
+| `last_interaction` | TIMESTAMPTZ | ✅ | — | Última interação do visitante no totem |
+| `model_3d_url` | TEXT | ✅ | — | URL do modelo 3D customizado (storage) |
+| `current_version_id` | UUID (FK) | ✅ | — | Versão ativa do modelo 3D |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de atualização — **usada como ETag para sincronização** |
+
+**Campos-chave para sincronização:**
+- `api_key` → identifica o hardware nas Edge Functions
+- `published_html` → HTML que o worker baixa e exibe
+- `updated_at` → usado como ETag para cache (polling eficiente)
+- `pending_command` → fila de comandos remotos (consumido pelo hardware)
+- `last_ping` → indica se o totem está online (< 90s)
+
+**RLS:**
+- Super Admin: CRUD total
+- Org Admin: CRUD apenas dos devices da sua organização
+
+---
+
+#### 🤖 `ai_configs` — Configurações de IA
+
+Configurações de LLM/TTS por organização ou por dispositivo específico.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `org_id` | UUID (FK) | ❌ | — | Organização |
+| `device_id` | UUID (FK) | ✅ | — | Dispositivo específico. **NULL = config global da org** |
+| `name` | VARCHAR | ❌ | 'Configuração Padrão' | Nome descritivo |
+| `system_prompt` | TEXT | ❌ | — | Prompt de sistema do LLM |
+| `knowledge_base` | TEXT | ❌ | `''` | Base de conhecimento contextual |
+| `model` | VARCHAR | ❌ | 'llama3.2:1b' | Modelo LLM |
+| `temperature` | NUMERIC | ✅ | 0.3 | Temperatura (criatividade) |
+| `max_tokens` | INTEGER | ✅ | 50 | Limite de tokens |
+| `voice` | VARCHAR | ✅ | 'af_bella' | Voz TTS |
+| `tts_model` | VARCHAR | ✅ | 'kokoro' | Engine TTS |
+| `tts_speed` | NUMERIC | ✅ | 1 | Velocidade da fala |
+| `avatar_name` | VARCHAR | ✅ | 'Assistente' | Nome do avatar |
+| `base_url` | TEXT | ✅ | — | URL base do servidor local |
+| `llm_url` / `tts_url` / `stt_url` | TEXT | ✅ | — | URLs de serviços locais |
+| `is_active` | BOOLEAN | ✅ | `true` | Configuração ativa |
+
+**Hierarquia de precedência:**
+```
+1. ai_configs WHERE device_id = <device> → Mais específica
+2. ai_configs WHERE org_id = <org> AND device_id IS NULL → Global da org
+3. devices.ai_prompt → Legado (campo simples)
+4. Prompt hardcoded → Fallback final
+```
+
+---
+
+#### 📋 `command_logs` — Auditoria de Comandos Remotos
+
+Rastreia o ciclo de vida completo de cada comando enviado do Hub para o hardware.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ❌ | — | Dispositivo alvo |
+| `command` | TEXT | ❌ | — | Comando: `restart`, `sync`, `reload`, `reload_config` |
+| `sent_by` | UUID | ❌ | — | Usuário que disparou o comando |
+| `status` | TEXT | ❌ | 'pending' | Estado: `pending` → `delivered` → `executed` / `failed` |
+| `sent_at` | TIMESTAMPTZ | ❌ | `now()` | Quando foi enviado |
+| `executed_at` | TIMESTAMPTZ | ✅ | — | Quando foi executado no hardware |
+
+**Ciclo de vida:**
+```
+pending → (hardware faz poll) → delivered → (hardware executa) → executed | failed
+```
+
+---
+
+#### 📦 `device_versions` — Histórico de Modelos 3D
+
+Versões de modelos 3D enviados via upload para cada dispositivo.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ❌ | — | Dispositivo |
+| `model_url` | TEXT | ❌ | — | URL no storage (bucket `models`) |
+| `version_notes` | TEXT | ✅ | — | Notas da versão |
+| `file_name` | TEXT | ✅ | — | Nome do arquivo original |
+| `file_size` | BIGINT | ✅ | — | Tamanho em bytes |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de upload |
+
+---
+
+#### 📝 `form_submissions` — Formulários do Totem
+
+Dados preenchidos por visitantes nos formulários exibidos no totem.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ✅ | — | Dispositivo de origem |
+| `org_id` | UUID (FK) | ✅ | — | Organização |
+| `form_title` | TEXT | ✅ | — | Título do formulário |
+| `fields` | JSONB | ❌ | `{}` | Dados dos campos preenchidos |
+| `ip_address` | TEXT | ✅ | — | IP do visitante |
+| `metadata` | JSONB | ✅ | `{}` | Metadados adicionais |
+| `submitted_at` | TIMESTAMPTZ | ❌ | `now()` | Data de envio |
+
+**RLS:** INSERT público (qualquer um pode enviar), SELECT restrito a admins da org.
+
+---
+
+#### 🎨 `layout_templates` — Templates de Layout Salvos
+
+Layouts do Page Builder salvos como templates reutilizáveis por organização.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `org_id` | UUID (FK) | ❌ | — | Organização |
+| `created_by` | UUID | ❌ | — | Usuário que criou |
+| `name` | TEXT | ❌ | — | Nome do template |
+| `icon` | TEXT | ❌ | '🎨' | Emoji ícone |
+| `description` | TEXT | ✅ | — | Descrição |
+| `layout` | JSONB | ❌ | — | Estado completo do canvas (JSON) |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+
+### 6.3 Funções SQL
+
+| Função | Tipo | Descrição |
 |--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| name | TEXT | Nome da organização |
-| slug | TEXT | Identificador URL-friendly |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps |
+| `get_user_org_id(user_id UUID)` | SECURITY DEFINER | Retorna `org_id` do perfil do usuário. Usada em todas as políticas RLS de org_admin |
+| `has_role(user_id UUID, role app_role)` | SECURITY DEFINER | Verifica se o usuário possui determinado papel. Usada em todas as políticas RLS de super_admin |
+| `handle_new_user()` | TRIGGER (SECURITY DEFINER) | Cria automaticamente um registro em `profiles` quando um novo usuário é criado no `auth.users` |
+| `update_updated_at_column()` | TRIGGER | Atualiza `updated_at = now()` automaticamente em UPDATEs |
 
-#### `profiles`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Referência ao auth.users |
-| full_name | TEXT | Nome completo |
-| email | TEXT | Email |
-| org_id | UUID (FK) | Organização vinculada |
+### 6.4 Enums
 
-#### `user_roles`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| user_id | UUID | Referência ao usuário |
-| role | ENUM | `super_admin` ou `org_admin` |
+```sql
+CREATE TYPE public.app_role AS ENUM ('super_admin', 'org_admin');
+```
 
-#### `devices`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| org_id | UUID (FK) | Organização |
-| name | TEXT | Nome do dispositivo |
-| description | TEXT | Descrição opcional |
-| location | TEXT | Localização física |
-| api_key | UUID | Chave de autenticação do hardware |
-| hardware_id | TEXT | ID do hardware físico |
-| last_ping | TIMESTAMPTZ | Último heartbeat |
-| ui_config | JSONB | Configuração de layout (free_canvas) |
-| **published_html** | **TEXT** | **HTML estático publicado pelo Page Builder** |
-| ai_prompt | TEXT | Prompt de IA legado |
-| avatar_config | JSONB | Configuração do avatar 3D |
-| pending_command | TEXT | Comando pendente (restart, sync, reload) |
-| command_sent_at | TIMESTAMPTZ | Quando o comando foi enviado |
-| status_details | JSONB | Detalhes de status (versão, CPU, memória) |
-| is_speaking | BOOLEAN | Avatar está falando |
-| last_interaction | TIMESTAMPTZ | Última interação do usuário final |
-| model_3d_url | TEXT | URL do modelo 3D customizado |
-| current_version_id | UUID (FK) | Versão atual do modelo 3D |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps |
+### 6.5 Storage (Buckets)
 
-#### `ai_configs`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| org_id | UUID (FK) | Organização |
-| device_id | UUID (FK, nullable) | Dispositivo específico (null = org-wide) |
-| name | VARCHAR | Nome da configuração |
-| system_prompt | TEXT | Prompt do sistema |
-| knowledge_base | TEXT | Base de conhecimento |
-| model | VARCHAR | Modelo LLM (ex: llama3.2:1b) |
-| temperature | NUMERIC | Temperatura do modelo |
-| max_tokens | INTEGER | Máximo de tokens |
-| voice | VARCHAR | Voz TTS (ex: af_bella) |
-| tts_model | VARCHAR | Motor TTS (ex: kokoro) |
-| tts_speed | NUMERIC | Velocidade da fala |
-| avatar_name | VARCHAR | Nome do avatar |
-| base_url / llm_url / tts_url / stt_url | TEXT | URLs de serviços locais |
-| is_active | BOOLEAN | Configuração ativa |
-
-#### `device_versions`
-Histórico de versões de modelo 3D por dispositivo.
-
-#### `command_logs`
-Log de comandos enviados aos dispositivos (restart, sync, reload, etc.).
-
-#### `layout_templates`
-Templates de layout salvos por organização.
-
-#### `form_submissions`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| device_id | UUID (FK) | Dispositivo de origem |
-| org_id | UUID (FK) | Organização |
-| form_title | TEXT | Título do formulário |
-| fields | JSONB | Dados dos campos preenchidos |
-| ip_address | TEXT | IP do visitante |
-| metadata | JSONB | Metadados adicionais |
-| submitted_at | TIMESTAMPTZ | Data de envio |
-
-### 6.2 Funções SQL
-
-- **`get_user_org_id(user_id)`** → Retorna org_id do usuário
-- **`has_role(user_id, role)`** → Verifica se usuário tem determinado papel
+| Bucket | Público | Uso |
+|--------|---------|-----|
+| `models` | ✅ | Modelos 3D (.glb) dos avatares |
+| `logos` | ✅ | Logos das organizações |
+| `canvas-images` | ✅ | Imagens usadas no Page Builder |
 
 ---
 
@@ -598,54 +805,309 @@ Seletor de largura (320px a 720px) para visualizar o canvas em diferentes resolu
 
 ---
 
-## 10. Sincronização com Hardware (Totem)
+## 10. Sincronização com Hardware (Totem) — Guia Completo
 
-### 10.1 Sync Worker (`public/sync-worker.js`)
+### 10.1 Visão Geral da Arquitetura de Sincronização
 
-O Sync Worker (v6.0+) é um script Node.js autônomo que:
+O sistema utiliza uma arquitetura de **HTML estático com polling baseado em ETag**. O Hub (dashboard web) gera HTML autônomo e o armazena no banco de dados. O hardware local (sync-worker) periodicamente verifica se há atualizações e baixa o novo HTML quando disponível.
 
-1. **Serve HTML** via HTTP na porta 8080
-2. **Faz polling** da Edge Function `totem-html` a cada 15s
-3. **Usa ETags** para evitar downloads desnecessários
-4. **Gerencia o navegador** em modo quiosque (auto-detecta Chromium/Chrome)
-5. **Supervisor embutido** reinicia automaticamente em caso de falha (até 10 vezes em 60s)
-6. **Escuta comandos remotos** (restart, reload, sync)
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    FLUXO DE SINCRONIZAÇÃO                        │
+│                                                                  │
+│  ┌─────────────┐    Publica HTML     ┌──────────────────────┐   │
+│  │  Page Builder │ ──────────────────► │  devices.published_  │   │
+│  │  (Hub Web)   │                     │  html + updated_at   │   │
+│  └─────────────┘                     └──────────┬───────────┘   │
+│                                                  │               │
+│                    Edge Function                 │               │
+│                    totem-html                    │               │
+│                    (GET + ETag)                  │               │
+│                                                  │               │
+│  ┌─────────────────┐    Polling 15s    ┌────────▼──────────┐   │
+│  │  Sync Worker     │ ◄───────────────── │  Lovable Cloud    │   │
+│  │  (Node.js local) │    304 | 200+HTML  │  (Backend)        │   │
+│  └────────┬────────┘                    └──────────────────┘   │
+│           │                                                     │
+│           │  Salva index.html                                   │
+│           │  Live reload (4s check)                             │
+│           ▼                                                     │
+│  ┌─────────────────┐                                           │
+│  │  Navegador Kiosk │                                           │
+│  │  (Chromium/Edge) │                                           │
+│  │  localhost:8080   │                                           │
+│  └─────────────────┘                                           │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-### 10.2 Live Reload
+### 10.2 Como Funciona Passo a Passo
 
-O worker injeta um script no `index.html` local que monitora o endpoint interno `/__totem_version` a cada 4 segundos. Quando o HTML é atualizado, o `htmlRevision` é incrementado, disparando o recarregamento instantâneo do navegador quiosque.
+#### Fase 1: Publicação (Hub → Banco de Dados)
 
-### 10.3 Uso
+1. Admin abre o **Page Builder** e seleciona um dispositivo
+2. Edita o layout no canvas (1080×1920px)
+3. Clica em **"Publicar"**
+4. `canvasToHtml()` converte o canvas em HTML/CSS autônomo
+5. O HTML é salvo em `devices.published_html` (coluna TEXT)
+6. `devices.updated_at` é atualizado automaticamente (usado como ETag)
+
+#### Fase 2: Detecção de Atualização (Hardware → Cloud)
+
+7. O Sync Worker faz polling a cada **15 segundos** na Edge Function `totem-html`
+8. O request inclui:
+   - Header `x-totem-api-key: <api_key>` (identifica o dispositivo)
+   - Header `If-None-Match: "<timestamp>"` (ETag da última versão conhecida)
+9. A Edge Function compara o ETag:
+   - **Se igual:** Retorna `304 Not Modified` (sem corpo, economiza banda)
+   - **Se diferente:** Retorna `200` com o HTML completo e novo ETag
+
+#### Fase 3: Atualização Local (Worker → Navegador)
+
+10. Worker recebe o novo HTML e salva como `index.html` local
+11. Injeta script de **auto-reload** no HTML (se não existir)
+12. Incrementa o `htmlRevision` interno
+13. O navegador kiosk verifica `/__totem_version` a cada **4 segundos**
+14. Detecta que `revision` mudou → **recarrega a página automaticamente**
+
+#### Fase 4: Heartbeat (Hardware → Cloud)
+
+15. Worker envia heartbeat a cada **30 segundos** via `totem-heartbeat`
+16. Payload inclui: `worker_version`, `http_port`, `uptime_seconds`
+17. Cloud atualiza `devices.last_ping` → Dashboard mostra status online
+18. Se há `pending_command`, o heartbeat retorna o comando
+
+### 10.3 Protocolo de Comunicação
+
+| Endpoint | Método | Frequência | Header de Auth | Função |
+|----------|--------|------------|----------------|--------|
+| `totem-html` | GET | 15s | `x-totem-api-key` | Busca HTML publicado (com ETag) |
+| `totem-heartbeat` | POST | 30s | `x-totem-api-key` | Registra status online + telemetria |
+| `totem-poll-command` | GET | 5s | `x-totem-api-key` | Verifica comandos pendentes |
+| `totem-command-report` | POST | On-demand | `x-totem-api-key` | Reporta resultado de comando |
+| `totem-config` | GET | On-demand | `x-totem-api-key` | Config unificada (UI + IA) |
+| `ai-config` | GET | On-demand | `x-totem-api-key` | Apenas config de IA |
+
+### 10.4 Sync Worker (`public/sync-worker.js`) — v7.0
+
+Script Node.js autônomo com as seguintes responsabilidades:
+
+| Componente | Descrição |
+|------------|-----------|
+| **Servidor HTTP** | Serve `index.html` na porta 8080 com endpoints de health e versão |
+| **Polling de HTML** | Verifica `totem-html` a cada 15s usando ETags |
+| **Heartbeat** | Envia status a cada 30s via `totem-heartbeat` |
+| **Comandos Remotos** | Polling de comandos a cada 5s via `totem-poll-command` |
+| **Kiosk Manager** | Auto-detecta e abre Chromium/Chrome/Edge em modo kiosk |
+| **Live Reload** | Injeta script que recarrega o navegador automaticamente |
+| **Supervisor** | Reinicia automaticamente em caso de crash (até 10x em 60s) |
+| **Backup** | Cria `.bak` do HTML antes de sobrescrever |
+
+### 10.5 ⭐ GUIA: Configurar uma Máquina Nova
+
+#### Pré-requisitos
+- **Node.js** 18+ instalado
+- **Chromium, Chrome ou Edge** instalado
+- Acesso à internet
+
+#### Passo 1: Criar o Dispositivo no Hub
+
+1. Acesse o Dashboard → **Dispositivos** → **"Novo Dispositivo"**
+2. Preencha: Nome, Descrição, Localização, Organização
+3. O sistema gera automaticamente:
+   - `id` (UUID do dispositivo)
+   - `api_key` (UUID de autenticação)
+4. **Copie a API Key** — você vai precisar dela no próximo passo
+
+#### Passo 2: Preparar o Diretório no Hardware
 
 ```bash
-# No diretório do hardware
-node sync-worker.js              # Servidor + polling + kiosk
-node sync-worker.js --no-kiosk   # Sem abrir navegador
-node sync-worker.js --setup      # Apenas setup inicial
+# Crie uma pasta para o totem
+mkdir ~/totem
+cd ~/totem
+
+# Baixe o sync-worker.js do projeto publicado
+curl -o sync-worker.js https://aitimanager.lovable.app/sync-worker.js
 ```
 
-### 10.4 Variáveis do Worker (`.env`)
+#### Passo 3: Criar o Arquivo `.env`
+
+Crie um arquivo `.env` no mesmo diretório do `sync-worker.js`:
 
 ```env
-VITE_CMS_API_URL=https://xxx.supabase.co/functions/v1
-VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_TOTEM_DEVICE_ID=<uuid-do-dispositivo>
-API_KEY=<uuid-da-api-key>
-SYNC_INTERVAL_MS=15000
+# ══════════════════════════════════════════════════════════
+#  CONFIGURAÇÃO DO TOTEM — Obrigatório
+# ══════════════════════════════════════════════════════════
+
+# URL base do Supabase (NÃO ALTERE)
+VITE_SUPABASE_URL=https://iwqcltmeniotzbowbxzg.supabase.co
+
+# Anon Key do projeto (NÃO ALTERE)
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cWNsdG1lbmlvdHpib3dieHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ0NDUsImV4cCI6MjA4NzAyMDQ0NX0.IxBMzeC6VUhe8lRE0yELuZM-4YdzgBo5dsCdddp1C_s
+
+# ★ COLE AQUI a API Key do dispositivo (copiada do Hub)
+API_KEY=cole-a-api-key-aqui
+
+# ══════════════════════════════════════════════════════════
+#  CONFIGURAÇÃO OPCIONAL
+# ══════════════════════════════════════════════════════════
+
+# Porta do servidor local (padrão: 8080)
 HTTP_PORT=8080
-KIOSK_URL=http://localhost:8080
-KIOSK_DELAY_MS=3000
-KIOSK_BROWSER=<caminho-do-navegador>  # auto-detecta
+
+# Intervalo de polling em ms (padrão: 15000 = 15s)
+SYNC_INTERVAL_MS=15000
+
+# Debug detalhado
+VERBOSE=true
 ```
 
-### 10.5 Comandos Remotos
+**⚠️ Mínimo necessário:** Apenas `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `API_KEY`. O worker deriva `VITE_CMS_API_URL` automaticamente da URL do Supabase.
 
-| Comando | Ação |
-|---------|------|
-| `restart` | Reinicia o processo do totem |
-| `sync` | Força sincronização de HTML |
-| `reload` | Recarrega a página do totem |
+#### Passo 4: Iniciar o Worker
+
+```bash
+# Modo completo (servidor + polling + kiosk)
+node sync-worker.js
+
+# Sem abrir navegador (para testar em background)
+node sync-worker.js --no-kiosk
+
+# Apenas setup inicial (baixa HTML e sai)
+node sync-worker.js --setup
+```
+
+#### Passo 5: Verificar que Está Funcionando
+
+Após iniciar, você deve ver no terminal:
+
+```
+╔══════════════════════════════════════════════════╗
+║         TOTEM WORKER  v7.0.0                     ║
+║         HTTP Server + HTML Updater + Auto-Restart ║
+╚══════════════════════════════════════════════════╝
+
+[Totem] ✅ .env encontrado
+[Totem] API URL      : https://xxx.supabase.co/functions/v1
+[Totem] Device ID    : (via API key)
+[Totem] HTTP Port    : 8080
+[Totem] Intervalo    : 15s
+[Totem] 🌐 Servidor HTTP em http://localhost:8080
+[Totem] ✅ HTML atualizado (42.3 KB)
+[Totem] 💓 Heartbeat ativo (a cada 30s)
+```
+
+**No Hub (Dashboard):**
+- O dispositivo deve aparecer como **🟢 Online** em poucos segundos
+- A coluna "Último Ping" mostra o tempo decorrido
+
+#### Passo 6: Publicar um Layout
+
+1. No Hub, vá em **Page Builder** → selecione o dispositivo
+2. Crie ou importe um layout
+3. Clique em **"Publicar"**
+4. Em até **15 segundos**, o totem atualiza automaticamente
+
+#### Passo 7 (Opcional): Configurar Inicialização Automática
+
+**Linux (systemd):**
+```ini
+[Unit]
+Description=Totem Sync Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=totem
+WorkingDirectory=/home/totem/totem
+ExecStart=/usr/bin/node sync-worker.js
+Restart=always
+RestartSec=10
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Windows (Task Scheduler):**
+- Programa: `node.exe`
+- Argumentos: `C:\totem\sync-worker.js`
+- Trigger: "Ao fazer logon"
+- Marcar: "Executar com privilégios máximos"
+
+### 10.6 Comandos Remotos
+
+Enviados pelo Hub e consumidos pelo worker via polling (5s):
+
+| Comando | Ação no Worker | Uso |
+|---------|---------------|-----|
+| `sync` | Limpa ETag e força download do HTML | Após publicar layout |
+| `reload` | Mesmo que `sync` | Recarregar página |
+| `reload_config` | Mesmo que `sync` | Após alterar config de IA |
+| `restart` | `process.exit(75)` → supervisor reinicia | Problemas no worker |
+
+**Ciclo de um comando:**
+```
+Hub: INSERT command_logs (status='pending')
+Hub: UPDATE devices SET pending_command='sync'
+  ↓ (5s polling)
+Worker: GET totem-poll-command → recebe 'sync'
+Worker: Executa o comando
+Worker: POST totem-command-report (status='executed' ou 'failed')
+Cloud: UPDATE command_logs SET status='executed', executed_at=now()
+Cloud: UPDATE devices SET pending_command=NULL
+```
+
+### 10.7 Live Reload — Como Funciona
+
+O worker injeta um script no `index.html` servido que monitora mudanças:
+
+```
+Worker:                              Navegador Kiosk:
+┌─────────────────┐                 ┌─────────────────┐
+│ htmlRevision = 1 │                 │ GET /__totem_    │
+│                  │ ←──── 4s ────── │ version          │
+│ Responde:        │                 │ last = 1         │
+│ { revision: 1 }  │                 │ (sem mudança)    │
+│                  │                 │                  │
+│ ... novo HTML    │                 │                  │
+│ htmlRevision = 2 │                 │                  │
+│                  │ ←──── 4s ────── │ GET /__totem_    │
+│ Responde:        │                 │ version          │
+│ { revision: 2 }  │                 │ last ≠ 2         │
+│                  │                 │ → RELOAD!        │
+└─────────────────┘                 └─────────────────┘
+```
+
+### 10.8 Resolução de Problemas
+
+| Problema | Causa Provável | Solução |
+|----------|----------------|---------|
+| Totem mostra "Aguardando publicação..." | Nenhum layout foi publicado | Publique um layout no Page Builder |
+| Totem offline no Dashboard | Worker não está rodando ou sem internet | Verifique o processo e a conexão |
+| HTML não atualiza | ETag travado ou erro de rede | Envie comando `sync` pelo Hub |
+| Worker crashando em loop | Erro de configuração no `.env` | Verifique `API_KEY` e URLs |
+| Navegador não abre | Chromium/Chrome não encontrado | Instale ou configure `KIOSK_BROWSER` |
+| `401 Unauthorized` | API Key inválida ou expirada | Verifique `API_KEY` no `.env` vs Hub |
+| `304` constante mas HTML antigo | Cache local corrompido | Delete `index.html` e reinicie |
+
+### 10.9 Variáveis do Worker (Resumo)
+
+| Variável | Obrigatória | Default | Descrição |
+|----------|:-----------:|---------|-----------|
+| `VITE_SUPABASE_URL` | ✅ | — | URL base do projeto |
+| `VITE_SUPABASE_ANON_KEY` | ✅ | — | Chave pública do projeto |
+| `API_KEY` | ✅* | — | API Key do dispositivo |
+| `VITE_TOTEM_DEVICE_ID` | ✅* | — | *Alternativa ao API_KEY |
+| `VITE_CMS_API_URL` | ❌ | Auto-derivado | URL das Edge Functions |
+| `HTTP_PORT` | ❌ | `8080` | Porta do servidor HTTP |
+| `SYNC_INTERVAL_MS` | ❌ | `15000` | Intervalo de polling (ms) |
+| `KIOSK_URL` | ❌ | `localhost:8080` | URL que o kiosk abre |
+| `KIOSK_DELAY_MS` | ❌ | `3000` | Delay antes de abrir kiosk |
+| `KIOSK_BROWSER` | ❌ | `auto` | Caminho do navegador |
+| `VERBOSE` | ❌ | `false` | Logs detalhados |
+
+*Pelo menos um entre `API_KEY` e `VITE_TOTEM_DEVICE_ID` é obrigatório.
 
 ---
 
