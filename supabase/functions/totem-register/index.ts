@@ -105,7 +105,7 @@ async function handleHardwareRegister(
   if (existing) {
     return jsonResponse({
       success: true, registered: false,
-      device: { id: existing.id, name: existing.name, api_key: existing.api_key },
+      device: { id: existing.id, name: existing.name, api_key: existing.api_key, org_id: org_id },
       message: 'Dispositivo já registrado',
     })
   }
