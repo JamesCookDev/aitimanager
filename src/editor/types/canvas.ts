@@ -335,6 +335,11 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
       };
     }
 
+    case 'SET_IDLE_SCREEN':
+      return { ...state, idleScreenEnabled: action.enabled };
+    case 'SET_IDLE_SCREEN_TIMEOUT':
+      return { ...state, idleScreenTimeout: action.seconds };
+
     default:
       return state;
   }
