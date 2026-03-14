@@ -531,12 +531,20 @@ async function checkRemoteCommand() {
 
 async function reportCommandResult(command, status, errorMsg) {
   const apiKey = getApiKey();
+  const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey || !apiUrl) return;
+  if (!apiKey && !deviceId) return;
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': getAnonKey(),
+    };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+
     await httpRequest(apiUrl + '/totem-command-report', {
       method: 'POST',
-      headers: { 'x-totem-api-key': apiKey, 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({ command: command, status: status, error: errorMsg || undefined }),
     });
   } catch (err) {
