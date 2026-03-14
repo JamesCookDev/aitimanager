@@ -69,21 +69,14 @@ const DISTRIBUTION = {
 function DownloadButton() {
   const dist = DISTRIBUTION.windows;
 
-  const handleDownload = async () => {
-    try {
-      const res = await fetch(dist.url, { method: 'HEAD' });
-      if (!res.ok) {
-        toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
-        return;
-      }
-      const link = document.createElement('a');
-      link.href = dist.url;
-      link.download = dist.fileName;
-      link.click();
-      toast.success('Download iniciado!');
-    } catch {
-      toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
-    }
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = dist.url;
+    link.download = dist.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Download iniciado!');
   };
 
   return (
