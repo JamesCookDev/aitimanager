@@ -127,7 +127,7 @@ export default function TotemAgent() {
           location: totemLocation.trim() || null,
           org_id: orgId,
           registration_method: 'manual',
-        } as any)
+        })
         .select('name, api_key')
         .single();
 
