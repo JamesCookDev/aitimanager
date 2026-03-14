@@ -257,101 +257,308 @@ Todas as tabelas possuem RLS ativado com políticas:
 
 ---
 
-## 6. Banco de Dados
+## 6. Banco de Dados — Documentação Detalhada
 
-### 6.1 Tabelas
+### 6.1 Diagrama de Relacionamentos (ERD)
 
-#### `organizations`
-| Coluna | Tipo | Descrição |
+```
+┌──────────────────┐       ┌──────────────────┐
+│  organizations   │◄──────│    profiles       │
+│──────────────────│  FK   │──────────────────│
+│ id (PK, UUID)    │ org_id│ id (PK, UUID)    │ ← auth.users.id
+│ name (TEXT)      │       │ full_name (TEXT)  │
+│ slug (TEXT)      │       │ email (TEXT)      │
+│ created_at       │       │ org_id (FK, UUID) │
+│ updated_at       │       │ created_at        │
+└───────┬──────────┘       │ updated_at        │
+        │                  └──────────────────┘
+        │ FK org_id
+        │                  ┌──────────────────┐
+        │                  │   user_roles      │
+        │                  │──────────────────│
+        │                  │ id (PK, UUID)    │
+        │                  │ user_id (UUID)   │ ← auth.users.id
+        │                  │ role (ENUM)      │   super_admin | org_admin
+        │                  └──────────────────┘
+        │
+┌───────▼──────────┐       ┌──────────────────┐
+│     devices      │◄──────│ device_versions  │
+│──────────────────│  FK   │──────────────────│
+│ id (PK, UUID)    │device │ id (PK, UUID)    │
+│ org_id (FK)      │ _id   │ device_id (FK)   │
+│ name (TEXT)      │       │ model_url (TEXT)  │
+│ api_key (UUID)   │       │ version_notes    │
+│ hardware_id (TEXT)│      │ file_name, size  │
+│ last_ping (TS)   │       │ created_at       │
+│ ui_config (JSONB)│       └──────────────────┘
+│ published_html   │
+│ avatar_config    │       ┌──────────────────┐
+│ ai_prompt (TEXT)  │◄──────│  command_logs    │
+│ pending_command   │ FK   │──────────────────│
+│ command_sent_at   │device │ id (PK, UUID)    │
+│ status_details    │ _id   │ device_id (FK)   │
+│ is_speaking       │      │ command (TEXT)    │
+│ model_3d_url      │      │ sent_by (UUID)   │
+│ created/updated   │      │ status (TEXT)     │
+└───────┬──────────┘       │ sent_at / exec_at│
+        │                  └──────────────────┘
+        │ FK org_id / device_id
+        │
+┌───────▼──────────┐       ┌──────────────────┐
+│   ai_configs     │       │ form_submissions │
+│──────────────────│       │──────────────────│
+│ id (PK, UUID)    │       │ id (PK, UUID)    │
+│ org_id (FK)      │       │ device_id (FK)   │
+│ device_id (FK)   │       │ org_id (FK)      │
+│ name (VARCHAR)   │       │ form_title (TEXT) │
+│ system_prompt    │       │ fields (JSONB)    │
+│ knowledge_base   │       │ ip_address       │
+│ model, voice ... │       │ metadata (JSONB)  │
+│ is_active (BOOL) │       │ submitted_at     │
+└──────────────────┘       └──────────────────┘
+
+                           ┌──────────────────┐
+                           │ layout_templates │
+                           │──────────────────│
+                           │ id (PK, UUID)    │
+                           │ org_id (FK)      │
+                           │ created_by (UUID)│
+                           │ name (TEXT)      │
+                           │ layout (JSONB)   │
+                           │ icon, description│
+                           │ created_at       │
+                           └──────────────────┘
+```
+
+### 6.2 Tabelas — Descrição Detalhada
+
+---
+
+#### 🏢 `organizations` — Organizações (Multi-Tenant)
+
+Tabela raiz do modelo multi-tenant. Toda entidade (devices, users, configs) pertence a uma organização.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador único |
+| `name` | TEXT | ❌ | — | Nome da organização (ex: "Shopping Porto Futuro") |
+| `slug` | TEXT | ❌ | — | Identificador URL-friendly (ex: "porto-futuro") |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de última atualização |
+
+**RLS:**
+- Super Admin: leitura/escrita total
+- Org Admin: somente leitura da sua organização (`id = get_user_org_id(auth.uid())`)
+
+---
+
+#### 👤 `profiles` — Perfis de Usuários
+
+Espelho dos dados do `auth.users` no schema público. Criado automaticamente via trigger `handle_new_user()` quando um novo usuário se cadastra.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | — | Mesmo UUID do `auth.users.id` |
+| `full_name` | TEXT | ✅ | — | Nome completo do usuário |
+| `email` | TEXT | ✅ | — | Email (copiado do auth) |
+| `org_id` | UUID (FK) | ✅ | — | Organização vinculada |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de atualização |
+
+**RLS:**
+- Super Admin: leitura e exclusão total
+- Usuário: leitura e atualização apenas do próprio perfil
+- **Sem INSERT público** — criado apenas via trigger no `auth.users`
+
+**⚠️ Importante:** Nunca fazer FK diretamente para `auth.users` em outras tabelas. Use `profiles.id` como referência indireta.
+
+---
+
+#### 🔐 `user_roles` — Papéis de Acesso
+
+Tabela separada para armazenar papéis, evitando escalação de privilégios.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `user_id` | UUID | ❌ | — | Referência ao usuário |
+| `role` | ENUM `app_role` | ❌ | — | `super_admin` ou `org_admin` |
+
+**Constraint:** `UNIQUE (user_id, role)` — um usuário não pode ter o mesmo papel duplicado.
+
+**RLS:**
+- Super Admin: CRUD total
+- Usuário: somente leitura das próprias roles
+
+---
+
+#### 📱 `devices` — Dispositivos (Totens)
+
+Tabela central do sistema. Cada registro representa um totem físico.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador do dispositivo |
+| `org_id` | UUID (FK) | ❌ | — | Organização dona do totem |
+| `name` | TEXT | ❌ | — | Nome do dispositivo (ex: "Totem Recepção") |
+| `description` | TEXT | ✅ | — | Descrição opcional |
+| `location` | TEXT | ✅ | — | Localização física (ex: "Lobby Principal") |
+| `api_key` | UUID | ❌ | `gen_random_uuid()` | **Chave de autenticação do hardware** — usada em headers HTTP |
+| `hardware_id` | TEXT | ✅ | — | Fingerprint do hardware (hostname) para auto-registro |
+| `last_ping` | TIMESTAMPTZ | ✅ | — | Último heartbeat recebido. **Online se < 90s** |
+| `ui_config` | JSONB | ✅ | _default UI_ | Estado completo do canvas (JSON com `free_canvas`, views, etc.) |
+| `published_html` | TEXT | ✅ | — | **HTML estático gerado pelo Page Builder** — servido ao hardware |
+| `ai_prompt` | TEXT | ✅ | — | Prompt de IA legado (campo simples) |
+| `avatar_config` | JSONB | ✅ | _default colors_ | Configuração do avatar 3D (cores, material, animação) |
+| `pending_command` | TEXT | ✅ | — | Comando pendente: `restart`, `sync`, `reload`, `reload_config` |
+| `command_sent_at` | TIMESTAMPTZ | ✅ | — | Quando o comando foi enviado |
+| `status_details` | JSONB | ✅ | `{}` | Telemetria: `worker_version`, `http_port`, `uptime_seconds`, `cpu_usage`, `memory_usage` |
+| `is_speaking` | BOOLEAN | ✅ | `false` | Se o avatar está reproduzindo fala |
+| `last_interaction` | TIMESTAMPTZ | ✅ | — | Última interação do visitante no totem |
+| `model_3d_url` | TEXT | ✅ | — | URL do modelo 3D customizado (storage) |
+| `current_version_id` | UUID (FK) | ✅ | — | Versão ativa do modelo 3D |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | ❌ | `now()` | Data de atualização — **usada como ETag para sincronização** |
+
+**Campos-chave para sincronização:**
+- `api_key` → identifica o hardware nas Edge Functions
+- `published_html` → HTML que o worker baixa e exibe
+- `updated_at` → usado como ETag para cache (polling eficiente)
+- `pending_command` → fila de comandos remotos (consumido pelo hardware)
+- `last_ping` → indica se o totem está online (< 90s)
+
+**RLS:**
+- Super Admin: CRUD total
+- Org Admin: CRUD apenas dos devices da sua organização
+
+---
+
+#### 🤖 `ai_configs` — Configurações de IA
+
+Configurações de LLM/TTS por organização ou por dispositivo específico.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `org_id` | UUID (FK) | ❌ | — | Organização |
+| `device_id` | UUID (FK) | ✅ | — | Dispositivo específico. **NULL = config global da org** |
+| `name` | VARCHAR | ❌ | 'Configuração Padrão' | Nome descritivo |
+| `system_prompt` | TEXT | ❌ | — | Prompt de sistema do LLM |
+| `knowledge_base` | TEXT | ❌ | `''` | Base de conhecimento contextual |
+| `model` | VARCHAR | ❌ | 'llama3.2:1b' | Modelo LLM |
+| `temperature` | NUMERIC | ✅ | 0.3 | Temperatura (criatividade) |
+| `max_tokens` | INTEGER | ✅ | 50 | Limite de tokens |
+| `voice` | VARCHAR | ✅ | 'af_bella' | Voz TTS |
+| `tts_model` | VARCHAR | ✅ | 'kokoro' | Engine TTS |
+| `tts_speed` | NUMERIC | ✅ | 1 | Velocidade da fala |
+| `avatar_name` | VARCHAR | ✅ | 'Assistente' | Nome do avatar |
+| `base_url` | TEXT | ✅ | — | URL base do servidor local |
+| `llm_url` / `tts_url` / `stt_url` | TEXT | ✅ | — | URLs de serviços locais |
+| `is_active` | BOOLEAN | ✅ | `true` | Configuração ativa |
+
+**Hierarquia de precedência:**
+```
+1. ai_configs WHERE device_id = <device> → Mais específica
+2. ai_configs WHERE org_id = <org> AND device_id IS NULL → Global da org
+3. devices.ai_prompt → Legado (campo simples)
+4. Prompt hardcoded → Fallback final
+```
+
+---
+
+#### 📋 `command_logs` — Auditoria de Comandos Remotos
+
+Rastreia o ciclo de vida completo de cada comando enviado do Hub para o hardware.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ❌ | — | Dispositivo alvo |
+| `command` | TEXT | ❌ | — | Comando: `restart`, `sync`, `reload`, `reload_config` |
+| `sent_by` | UUID | ❌ | — | Usuário que disparou o comando |
+| `status` | TEXT | ❌ | 'pending' | Estado: `pending` → `delivered` → `executed` / `failed` |
+| `sent_at` | TIMESTAMPTZ | ❌ | `now()` | Quando foi enviado |
+| `executed_at` | TIMESTAMPTZ | ✅ | — | Quando foi executado no hardware |
+
+**Ciclo de vida:**
+```
+pending → (hardware faz poll) → delivered → (hardware executa) → executed | failed
+```
+
+---
+
+#### 📦 `device_versions` — Histórico de Modelos 3D
+
+Versões de modelos 3D enviados via upload para cada dispositivo.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ❌ | — | Dispositivo |
+| `model_url` | TEXT | ❌ | — | URL no storage (bucket `models`) |
+| `version_notes` | TEXT | ✅ | — | Notas da versão |
+| `file_name` | TEXT | ✅ | — | Nome do arquivo original |
+| `file_size` | BIGINT | ✅ | — | Tamanho em bytes |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de upload |
+
+---
+
+#### 📝 `form_submissions` — Formulários do Totem
+
+Dados preenchidos por visitantes nos formulários exibidos no totem.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `device_id` | UUID (FK) | ✅ | — | Dispositivo de origem |
+| `org_id` | UUID (FK) | ✅ | — | Organização |
+| `form_title` | TEXT | ✅ | — | Título do formulário |
+| `fields` | JSONB | ❌ | `{}` | Dados dos campos preenchidos |
+| `ip_address` | TEXT | ✅ | — | IP do visitante |
+| `metadata` | JSONB | ✅ | `{}` | Metadados adicionais |
+| `submitted_at` | TIMESTAMPTZ | ❌ | `now()` | Data de envio |
+
+**RLS:** INSERT público (qualquer um pode enviar), SELECT restrito a admins da org.
+
+---
+
+#### 🎨 `layout_templates` — Templates de Layout Salvos
+
+Layouts do Page Builder salvos como templates reutilizáveis por organização.
+
+| Coluna | Tipo | Null | Default | Descrição |
+|--------|------|------|---------|-----------|
+| `id` | UUID (PK) | ❌ | `gen_random_uuid()` | Identificador |
+| `org_id` | UUID (FK) | ❌ | — | Organização |
+| `created_by` | UUID | ❌ | — | Usuário que criou |
+| `name` | TEXT | ❌ | — | Nome do template |
+| `icon` | TEXT | ❌ | '🎨' | Emoji ícone |
+| `description` | TEXT | ✅ | — | Descrição |
+| `layout` | JSONB | ❌ | — | Estado completo do canvas (JSON) |
+| `created_at` | TIMESTAMPTZ | ❌ | `now()` | Data de criação |
+
+### 6.3 Funções SQL
+
+| Função | Tipo | Descrição |
 |--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| name | TEXT | Nome da organização |
-| slug | TEXT | Identificador URL-friendly |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps |
+| `get_user_org_id(user_id UUID)` | SECURITY DEFINER | Retorna `org_id` do perfil do usuário. Usada em todas as políticas RLS de org_admin |
+| `has_role(user_id UUID, role app_role)` | SECURITY DEFINER | Verifica se o usuário possui determinado papel. Usada em todas as políticas RLS de super_admin |
+| `handle_new_user()` | TRIGGER (SECURITY DEFINER) | Cria automaticamente um registro em `profiles` quando um novo usuário é criado no `auth.users` |
+| `update_updated_at_column()` | TRIGGER | Atualiza `updated_at = now()` automaticamente em UPDATEs |
 
-#### `profiles`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Referência ao auth.users |
-| full_name | TEXT | Nome completo |
-| email | TEXT | Email |
-| org_id | UUID (FK) | Organização vinculada |
+### 6.4 Enums
 
-#### `user_roles`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| user_id | UUID | Referência ao usuário |
-| role | ENUM | `super_admin` ou `org_admin` |
+```sql
+CREATE TYPE public.app_role AS ENUM ('super_admin', 'org_admin');
+```
 
-#### `devices`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| org_id | UUID (FK) | Organização |
-| name | TEXT | Nome do dispositivo |
-| description | TEXT | Descrição opcional |
-| location | TEXT | Localização física |
-| api_key | UUID | Chave de autenticação do hardware |
-| hardware_id | TEXT | ID do hardware físico |
-| last_ping | TIMESTAMPTZ | Último heartbeat |
-| ui_config | JSONB | Configuração de layout (free_canvas) |
-| **published_html** | **TEXT** | **HTML estático publicado pelo Page Builder** |
-| ai_prompt | TEXT | Prompt de IA legado |
-| avatar_config | JSONB | Configuração do avatar 3D |
-| pending_command | TEXT | Comando pendente (restart, sync, reload) |
-| command_sent_at | TIMESTAMPTZ | Quando o comando foi enviado |
-| status_details | JSONB | Detalhes de status (versão, CPU, memória) |
-| is_speaking | BOOLEAN | Avatar está falando |
-| last_interaction | TIMESTAMPTZ | Última interação do usuário final |
-| model_3d_url | TEXT | URL do modelo 3D customizado |
-| current_version_id | UUID (FK) | Versão atual do modelo 3D |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps |
+### 6.5 Storage (Buckets)
 
-#### `ai_configs`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| org_id | UUID (FK) | Organização |
-| device_id | UUID (FK, nullable) | Dispositivo específico (null = org-wide) |
-| name | VARCHAR | Nome da configuração |
-| system_prompt | TEXT | Prompt do sistema |
-| knowledge_base | TEXT | Base de conhecimento |
-| model | VARCHAR | Modelo LLM (ex: llama3.2:1b) |
-| temperature | NUMERIC | Temperatura do modelo |
-| max_tokens | INTEGER | Máximo de tokens |
-| voice | VARCHAR | Voz TTS (ex: af_bella) |
-| tts_model | VARCHAR | Motor TTS (ex: kokoro) |
-| tts_speed | NUMERIC | Velocidade da fala |
-| avatar_name | VARCHAR | Nome do avatar |
-| base_url / llm_url / tts_url / stt_url | TEXT | URLs de serviços locais |
-| is_active | BOOLEAN | Configuração ativa |
-
-#### `device_versions`
-Histórico de versões de modelo 3D por dispositivo.
-
-#### `command_logs`
-Log de comandos enviados aos dispositivos (restart, sync, reload, etc.).
-
-#### `layout_templates`
-Templates de layout salvos por organização.
-
-#### `form_submissions`
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID (PK) | Identificador |
-| device_id | UUID (FK) | Dispositivo de origem |
-| org_id | UUID (FK) | Organização |
-| form_title | TEXT | Título do formulário |
-| fields | JSONB | Dados dos campos preenchidos |
-| ip_address | TEXT | IP do visitante |
-| metadata | JSONB | Metadados adicionais |
-| submitted_at | TIMESTAMPTZ | Data de envio |
-
-### 6.2 Funções SQL
-
-- **`get_user_org_id(user_id)`** → Retorna org_id do usuário
-- **`has_role(user_id, role)`** → Verifica se usuário tem determinado papel
+| Bucket | Público | Uso |
+|--------|---------|-----|
+| `models` | ✅ | Modelos 3D (.glb) dos avatares |
+| `logos` | ✅ | Logos das organizações |
+| `canvas-images` | ✅ | Imagens usadas no Page Builder |
 
 ---
 
