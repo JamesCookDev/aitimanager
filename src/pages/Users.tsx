@@ -162,8 +162,15 @@ export default function UsersPage() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Usuário convidado com sucesso!');
+      toast.success('Usuário criado com sucesso!');
       setInviteDialogOpen(false);
+      
+      // Show temp credentials dialog
+      setCredentialsDialog({
+        email: formEmail.trim(),
+        password: data.temp_password,
+      });
+      
       resetForm();
       fetchData();
     } catch (error: any) {
