@@ -447,7 +447,7 @@ export default function TotemAgent() {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 pb-16 space-y-12">
         <HeroSection orgName={org?.name} />
-        <DownloadButton onDownload={downloadInstaller} />
+        <DownloadButton />
         <Separator />
         <HowItWorks />
         <Separator />
