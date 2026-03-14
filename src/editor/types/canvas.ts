@@ -178,7 +178,9 @@ export type CanvasAction =
   | { type: 'SET_VIEW_IDLE_TIMEOUT'; seconds: number }
   | { type: 'ASSIGN_ELEMENT_VIEW'; elementId: string; viewId: string | null }
   | { type: 'SET_PAGE_BG_COLOR'; viewId: string; color: string }
-  | { type: 'DUPLICATE_VIEW'; id: string };
+  | { type: 'DUPLICATE_VIEW'; id: string }
+  | { type: 'SET_IDLE_SCREEN'; enabled: boolean }
+  | { type: 'SET_IDLE_SCREEN_TIMEOUT'; seconds: number };
 
 export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasState {
   switch (action.type) {
