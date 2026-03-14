@@ -37,6 +37,7 @@ export function PagesPanel({
   pageBgColors = {}, globalBgColor,
   onSelectView, onAddView, onRenameView, onDeleteView, onDuplicateView,
   onSetDefault, onSetIdleTimeout, onSetPageBgColor, onSetParent,
+  idleScreenEnabled, idleScreenTimeout, onSetIdleScreen, onSetIdleScreenTimeout,
 }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
