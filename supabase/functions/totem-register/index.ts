@@ -174,7 +174,7 @@ async function handleManualRegister(
 
   return jsonResponse({
     success: true, registered: true,
-    device: { id: device.id, name: device.name, api_key: device.api_key },
+    device: { id: device.id, name: device.name, api_key: device.api_key, org_id: org_id },
     message: 'Dispositivo registrado com sucesso',
   }, 201)
 }
