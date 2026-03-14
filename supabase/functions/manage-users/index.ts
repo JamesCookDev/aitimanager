@@ -74,11 +74,12 @@ serve(async (req) => {
         });
       }
 
-      // Create user with admin API
+      // Create user with admin API (temporary password, email confirmed)
+      const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
-        password: crypto.randomUUID().slice(0, 12),
+        password: tempPassword,
         user_metadata: { full_name: full_name || email },
       });
 
@@ -95,6 +96,21 @@ serve(async (req) => {
         user_id: newUser.user.id,
         role,
       });
+
+      // Generate password reset link and send email so user can set their own password
+      const siteUrl = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "https://aitimanager.lovable.app";
+      const { error: resetError } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: {
+          redirectTo: `${siteUrl}/auth?type=recovery`,
+        },
+      });
+
+      if (resetError) {
+        console.error("Failed to generate recovery link:", resetError.message);
+        // Don't fail the invite, just warn
+      }
 
       return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
