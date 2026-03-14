@@ -304,6 +304,7 @@ async function enrollDevice(enrollmentKey) {
 
   log('🔑 Ativando dispositivo com chave: ' + enrollmentKey.substring(0, 8) + '...');
   log('🖥️  Hardware ID: ' + hardwareId);
+  log('🌐 API URL: ' + apiUrl + '/totem-register');
 
   const payload = JSON.stringify({
     enrollment_key: enrollmentKey,
@@ -322,25 +323,35 @@ async function enrollDevice(enrollmentKey) {
     body: payload,
   });
 
+  log('📨 Registro — HTTP ' + res.status);
+
   const result = JSON.parse(res.body);
   if (res.status >= 400) {
+    error('Registro falhou: ' + (result.error || 'HTTP ' + res.status));
     throw new Error(result.error || 'HTTP ' + res.status);
   }
 
-  if (!result.device) {
-    throw new Error('Resposta inválida do servidor');
+  if (!result.device || !result.device.id || !result.device.api_key) {
+    error('Resposta inválida do servidor: ' + JSON.stringify(result));
+    throw new Error('Resposta inválida do servidor — faltam device.id ou device.api_key');
   }
 
-  saveDeviceCredentials({
+  const creds = {
     device_id: result.device.id,
     api_key: result.device.api_key,
     org_id: result.device.org_id || null,
     org_name: result.organization || null,
     device_name: result.device.name,
     registration_method: 'enrollment',
-  });
+  };
 
-  log('✅ Dispositivo ativado: ' + result.device.name);
+  saveDeviceCredentials(creds);
+
+  log('✅ Enrollment OK — device_id: ' + creds.device_id);
+  log('✅ Enrollment OK — api_key: ' + creds.api_key.substring(0, 8) + '...');
+  log('✅ Enrollment OK — org_id: ' + (creds.org_id || '(não informado)'));
+  log('✅ Credenciais salvas em ' + DEVICE_FILE);
+
   return result;
 }
 
