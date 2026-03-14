@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from './StatusBadge';
 import { Device, getDeviceStatus } from '@/types/database';
-import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2 } from 'lucide-react';
+import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -176,7 +176,15 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium text-foreground">{device.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">{device.name}</p>
+                      {((device as any).registration_method === 'enrollment' || (device as any).registration_method === 'hardware') && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1 border-primary/30 text-primary">
+                          <Zap className="w-2.5 h-2.5" />
+                          Auto
+                        </Badge>
+                      )}
+                    </div>
                     {device.description && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {device.description}

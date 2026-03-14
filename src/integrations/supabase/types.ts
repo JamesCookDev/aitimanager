@@ -194,6 +194,7 @@ export type Database = {
           org_id: string
           pending_command: string | null
           published_html: string | null
+          registration_method: string | null
           status_details: Json | null
           ui_config: Json | null
           updated_at: string
@@ -217,6 +218,7 @@ export type Database = {
           org_id: string
           pending_command?: string | null
           published_html?: string | null
+          registration_method?: string | null
           status_details?: Json | null
           ui_config?: Json | null
           updated_at?: string
@@ -240,6 +242,7 @@ export type Database = {
           org_id?: string
           pending_command?: string | null
           published_html?: string | null
+          registration_method?: string | null
           status_details?: Json | null
           ui_config?: Json | null
           updated_at?: string
@@ -353,6 +356,9 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          enrollment_enabled: boolean | null
+          enrollment_expires_at: string | null
+          enrollment_key: string | null
           id: string
           name: string
           slug: string
@@ -360,6 +366,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          enrollment_enabled?: boolean | null
+          enrollment_expires_at?: string | null
+          enrollment_key?: string | null
           id?: string
           name: string
           slug: string
@@ -367,6 +376,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          enrollment_enabled?: boolean | null
+          enrollment_expires_at?: string | null
+          enrollment_key?: string | null
           id?: string
           name?: string
           slug?: string
