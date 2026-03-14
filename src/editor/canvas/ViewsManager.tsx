@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, X, Pencil, Check, Home, Clock, Globe } from 'lucide-react';
+import { Plus, X, Pencil, Check, Home, Clock, Globe, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import type { CanvasView } from '../types/canvas';
@@ -18,6 +19,10 @@ interface Props {
   onDeleteView: (id: string) => void;
   onSetDefault: (id: string) => void;
   onSetIdleTimeout: (seconds: number) => void;
+  idleScreenEnabled?: boolean;
+  idleScreenTimeout?: number;
+  onSetIdleScreen?: (enabled: boolean) => void;
+  onSetIdleScreenTimeout?: (seconds: number) => void;
 }
 
 export function ViewsManager({
