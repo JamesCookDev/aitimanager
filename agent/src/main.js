@@ -118,7 +118,8 @@ function saveOperationalConfig(config) {
 
 function isProvisioned() {
   const creds = loadDeviceCredentials();
-  return creds && creds.api_key && creds.org_id;
+  // api_key is the minimum required credential; org_id is optional for legacy
+  return creds && !!creds.api_key;
 }
 
 // ═══════════════════════════════════════════════════════════════
