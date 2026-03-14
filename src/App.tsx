@@ -23,6 +23,7 @@ const Organizations = lazy(() => import("./pages/Organizations"));
 const Users = lazy(() => import("./pages/Users"));
 const AIConfigs = lazy(() => import("./pages/AIConfigs"));
 const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
+const TotemAgent = lazy(() => import("./pages/TotemAgent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="users" element={<Suspense fallback={<TablePageSkeleton />}><Users /></Suspense>} />
                 <Route path="ai-configs" element={<Suspense fallback={<TablePageSkeleton />}><AIConfigs /></Suspense>} />
                 <Route path="page-editor" element={<Suspense fallback={<EditorSkeleton />}><PageEditorPage /></Suspense>} />
+                <Route path="totem-agent" element={<Suspense fallback={<DashboardSkeleton />}><TotemAgent /></Suspense>} />
               </Route>
               <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
             </Routes>

@@ -15,6 +15,7 @@ import {
   PanelTop,
   LayoutDashboard,
   Shield,
+  Package,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -50,6 +51,7 @@ export function Sidebar() {
         { title: isSuperAdmin ? 'Todos Dispositivos' : 'Meus Totens', icon: Cpu, path: '/dashboard/devices', showFor: 'all' },
         { title: 'Page Builder', icon: PanelTop, path: '/dashboard/page-editor', showFor: 'all' },
         { title: 'Configurações IA', icon: Brain, path: '/dashboard/ai-configs', showFor: 'super_admin' },
+        { title: 'Totem Agent', icon: Package, path: '/dashboard/totem-agent', showFor: 'all' },
       ],
     },
     {
