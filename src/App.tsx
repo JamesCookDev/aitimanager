@@ -23,6 +23,7 @@ const Organizations = lazy(() => import("./pages/Organizations"));
 const Users = lazy(() => import("./pages/Users"));
 const AIConfigs = lazy(() => import("./pages/AIConfigs"));
 const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
+const TotemAgent = lazy(() => import("./pages/TotemAgent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
