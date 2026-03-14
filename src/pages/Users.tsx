@@ -7,6 +7,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Copy } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
