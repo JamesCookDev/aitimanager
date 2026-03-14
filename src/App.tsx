@@ -54,6 +54,7 @@ const App = () => (
                 <Route path="users" element={<Suspense fallback={<TablePageSkeleton />}><Users /></Suspense>} />
                 <Route path="ai-configs" element={<Suspense fallback={<TablePageSkeleton />}><AIConfigs /></Suspense>} />
                 <Route path="page-editor" element={<Suspense fallback={<EditorSkeleton />}><PageEditorPage /></Suspense>} />
+                <Route path="totem-agent" element={<Suspense fallback={<DashboardSkeleton />}><TotemAgent /></Suspense>} />
               </Route>
               <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
             </Routes>
