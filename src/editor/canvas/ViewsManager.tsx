@@ -28,6 +28,7 @@ interface Props {
 export function ViewsManager({
   views, activeViewId, viewIdleTimeout, elementCounts,
   onSelectView, onAddView, onRenameView, onDeleteView, onSetDefault, onSetIdleTimeout,
+  idleScreenEnabled, idleScreenTimeout, onSetIdleScreen, onSetIdleScreenTimeout,
 }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
