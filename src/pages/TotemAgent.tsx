@@ -59,7 +59,7 @@ function HeroSection({ orgName }: { orgName?: string }) {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://iwqcltmeniotzbowbxzg.supabase.co';
 const DISTRIBUTION = {
   windows: {
-    url: `${SUPABASE_URL}/storage/v1/object/public/agent-dist/TotemAgent-Instalador.zip`,
+    url: `${SUPABASE_URL}/functions/v1/agent-download`,
     fileName: 'TotemAgent-Instalador.zip',
     label: 'Baixar Instalador Windows',
     description: 'Compatível com Windows 10/11 (64-bit)',
@@ -70,19 +70,29 @@ function DownloadButton() {
   const dist = DISTRIBUTION.windows;
 
   const handleDownload = async () => {
+    toast.info('Preparando download...');
     try {
-      const res = await fetch(dist.url, { method: 'HEAD' });
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cWNsdG1lbmlvdHpib3dieHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ0NDUsImV4cCI6MjA4NzAyMDQ0NX0.IxBMzeC6VUhe8lRE0yELuZM-4YdzgBo5dsCdddp1C_s';
+      const res = await fetch(dist.url, {
+        headers: { 'apikey': anonKey },
+      });
       if (!res.ok) {
-        toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
+        const err = await res.json().catch(() => ({ error: 'Download falhou' }));
+        toast.error(err.error || 'Erro ao baixar instalador');
         return;
       }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = dist.url;
+      link.href = url;
       link.download = dist.fileName;
+      document.body.appendChild(link);
       link.click();
-      toast.success('Download iniciado!');
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Download concluído!');
     } catch {
-      toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
+      toast.error('Erro ao baixar. Tente novamente.');
     }
   };
 
