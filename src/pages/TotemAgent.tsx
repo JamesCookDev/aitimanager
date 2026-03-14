@@ -68,7 +68,6 @@ const DISTRIBUTION = {
 
 function DownloadButton() {
   const dist = DISTRIBUTION.windows;
-  const available = !!dist.url;
 
   const handleDownload = async () => {
     try {
