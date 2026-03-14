@@ -45,8 +45,8 @@ serve(async (req) => {
 
     const { action, ...payload } = await req.json();
 
+    // ── LIST ──
     if (action === "list") {
-      // List all profiles with roles
       const { data: profiles, error } = await adminClient
         .from("profiles")
         .select("*")
@@ -65,6 +65,7 @@ serve(async (req) => {
       });
     }
 
+    // ── INVITE ──
     if (action === "invite") {
       const { email, full_name, org_id, role } = payload;
 
@@ -74,14 +75,14 @@ serve(async (req) => {
         });
       }
 
-      // Generate a readable temporary password
+      // Generate readable temporary password
       const tempPassword = "Temp" + crypto.randomUUID().slice(0, 8) + "!";
 
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
         password: tempPassword,
-        user_metadata: { 
+        user_metadata: {
           full_name: full_name || email,
           must_change_password: true,
         },
@@ -89,21 +90,18 @@ serve(async (req) => {
 
       if (createError) throw createError;
 
-      // Update profile with org_id
       await adminClient
         .from("profiles")
         .update({ org_id, full_name: full_name || null })
         .eq("id", newUser.user.id);
 
-      // Assign role
       await adminClient.from("user_roles").insert({
         user_id: newUser.user.id,
         role,
       });
 
-      // Return temp password so admin can share it
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         user_id: newUser.user.id,
         temp_password: tempPassword,
       }), {
@@ -111,20 +109,45 @@ serve(async (req) => {
       });
     }
 
-    if (action === "clear_password_flag") {
-      const { user_id } = payload;
-      if (!user_id) {
-        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+    // ── UPDATE ──
+    if (action === "update") {
+      const { user_id, org_id, role, full_name } = payload;
+
+      if (full_name !== undefined) {
+        await adminClient.from("profiles").update({ full_name }).eq("id", user_id);
+      }
+      if (org_id !== undefined) {
+        await adminClient.from("profiles").update({ org_id }).eq("id", user_id);
+      }
+      if (role) {
+        await adminClient.from("user_roles").upsert(
+          { user_id, role },
+          { onConflict: "user_id" }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── CHANGE PASSWORD (any authenticated user for themselves) ──
+    if (action === "change_password") {
+      const { user_id, new_password } = payload;
+
+      if (!user_id || !new_password) {
+        return new Response(JSON.stringify({ error: "user_id e new_password obrigatórios" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Anyone can clear their own flag, or super_admin can clear for others
+      // Users can change their own password, super_admin can change anyone's
       if (user_id !== caller.id) {
-        // Already verified caller is super_admin above
+        // Already verified caller is super_admin
       }
 
       await adminClient.auth.admin.updateUser(user_id, {
+        password: new_password,
         user_metadata: { must_change_password: false },
       });
 
@@ -133,11 +156,7 @@ serve(async (req) => {
       });
     }
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    // ── DELETE ──
     if (action === "delete") {
       const { user_id } = payload;
       if (user_id === caller.id) {
