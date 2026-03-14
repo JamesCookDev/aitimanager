@@ -74,13 +74,17 @@ serve(async (req) => {
         });
       }
 
-      // Create user with admin API (temporary password, email confirmed)
-      const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
+      // Generate a readable temporary password
+      const tempPassword = "Temp" + crypto.randomUUID().slice(0, 8) + "!";
+
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
         password: tempPassword,
-        user_metadata: { full_name: full_name || email },
+        user_metadata: { 
+          full_name: full_name || email,
+          must_change_password: true,
+        },
       });
 
       if (createError) throw createError;
@@ -97,41 +101,37 @@ serve(async (req) => {
         role,
       });
 
-      // Generate password reset link and send email so user can set their own password
-      const siteUrl = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "https://aitimanager.lovable.app";
-      const { error: resetError } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: {
-          redirectTo: `${siteUrl}/auth?type=recovery`,
-        },
-      });
-
-      if (resetError) {
-        console.error("Failed to generate recovery link:", resetError.message);
-        // Don't fail the invite, just warn
-      }
-
-      return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
+      // Return temp password so admin can share it
+      return new Response(JSON.stringify({ 
+        success: true, 
+        user_id: newUser.user.id,
+        temp_password: tempPassword,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (action === "update") {
-      const { user_id, org_id, role, full_name } = payload;
+    if (action === "clear_password_flag") {
+      const { user_id } = payload;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      if (full_name !== undefined) {
-        await adminClient.from("profiles").update({ full_name }).eq("id", user_id);
+      // Anyone can clear their own flag, or super_admin can clear for others
+      if (user_id !== caller.id) {
+        // Already verified caller is super_admin above
       }
-      if (org_id !== undefined) {
-        await adminClient.from("profiles").update({ org_id }).eq("id", user_id);
-      }
-      if (role) {
-        await adminClient.from("user_roles").upsert(
-          { user_id, role },
-          { onConflict: "user_id" }
-        );
-      }
+
+      await adminClient.auth.admin.updateUser(user_id, {
+        user_metadata: { must_change_password: false },
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
