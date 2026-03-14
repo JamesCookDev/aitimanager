@@ -1,36 +1,25 @@
 #!/usr/bin/env node
 /**
  * ══════════════════════════════════════════════════════════════
- *  TOTEM WORKER  —  sync-worker.js  v6.0.0
+ *  TOTEM AGENT  v8.0.0
  * ══════════════════════════════════════════════════════════════
  *
- *  Servidor HTTP local + atualizador de HTML para totems.
+ *  Agente instalável para totems com provisionamento automático.
  *
- *  Fluxo:
- *  1. Carrega .env e valida configurações
- *  2. Busca o HTML publicado via Edge Function (totem-html)
- *  3. Salva como index.html local
- *  4. Serve via HTTP server (porta 8080)
- *  5. Polling periódico por atualizações (ETag-based)
- *  6. Abre navegador em modo kiosk
- *  7. Escuta comandos remotos
+ *  Modos de operação:
+ *    • Não provisionado → abre UI de ativação local
+ *    • Provisionado     → opera normalmente (HTTP + sync + kiosk)
+ *
+ *  Estrutura de runtime:
+ *    runtime/device.json   — credenciais do dispositivo
+ *    runtime/config.json   — configuração operacional
+ *    runtime/index.html    — conteúdo publicado
+ *    runtime/logs/         — logs de operação
  *
  *  Uso:
- *    node sync-worker.js              # Servidor + polling + kiosk
- *    node sync-worker.js --no-kiosk   # Sem abrir navegador
- *    node sync-worker.js --setup      # Apenas setup inicial
- *
- *  Variáveis de ambiente (.env):
- *    VITE_CMS_API_URL      — URL das Edge Functions
- *    VITE_SUPABASE_ANON_KEY — Anon key do projeto
- *    VITE_SUPABASE_URL     — URL base do Supabase (para Realtime)
- *    VITE_TOTEM_DEVICE_ID  — ID do dispositivo (ou usa API key)
- *    API_KEY               — API key do dispositivo
- *    SYNC_INTERVAL_MS      — Intervalo de polling (padrão: 15000)
- *    HTTP_PORT             — Porta do servidor HTTP (padrão: 8080)
- *    KIOSK_URL             — URL do kiosk (padrão: http://localhost:8080)
- *    KIOSK_DELAY_MS        — Delay antes de abrir navegador
- *    KIOSK_BROWSER         — Caminho do navegador (auto-detecta)
+ *    node sync-worker.js                  # Operação normal
+ *    node sync-worker.js --no-kiosk       # Sem abrir navegador
+ *    node sync-worker.js --reset          # Limpa provisionamento
  *
  * ══════════════════════════════════════════════════════════════
  */
@@ -40,18 +29,95 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { exec, execSync, spawn } from 'child_process';
-import readline from 'readline';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
+const AGENT_VERSION = '8.0.0';
+
 // ─── Args ────────────────────────────────────────────────────
 const ARGS = process.argv.slice(2);
-const FLAG_SETUP    = ARGS.includes('--setup');
 const FLAG_NO_KIOSK = ARGS.includes('--no-kiosk');
+const FLAG_RESET    = ARGS.includes('--reset');
 
-// ─── Carregar .env manualmente ───────────────────────────────
+// ─── Logging ─────────────────────────────────────────────────
+let VERBOSE = false;
+const log   = (msg) => console.log(`[Agent] ${msg}`);
+const debug = (msg) => VERBOSE && console.log(`[Agent][debug] ${msg}`);
+const warn  = (msg) => console.warn(`[Agent] ⚠️  ${msg}`);
+const error = (msg) => console.error(`[Agent] ❌  ${msg}`);
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Runtime Storage
+//  Manages runtime/ directory for device persistence
+// ═══════════════════════════════════════════════════════════════
+const RUNTIME_DIR  = path.join(__dirname, 'runtime');
+const DEVICE_FILE  = path.join(RUNTIME_DIR, 'device.json');
+const CONFIG_FILE  = path.join(RUNTIME_DIR, 'config.json');
+const HTML_FILE    = path.join(RUNTIME_DIR, 'index.html');
+const LOGS_DIR     = path.join(RUNTIME_DIR, 'logs');
+
+function ensureRuntimeDirs() {
+  for (const dir of [RUNTIME_DIR, LOGS_DIR]) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function readJsonFile(filePath, fallback = null) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch { return fallback; }
+}
+
+function writeJsonFile(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function loadDeviceCredentials() {
+  return readJsonFile(DEVICE_FILE, null);
+}
+
+function saveDeviceCredentials(creds) {
+  writeJsonFile(DEVICE_FILE, {
+    device_id: creds.device_id,
+    api_key: creds.api_key,
+    org_id: creds.org_id,
+    org_name: creds.org_name || null,
+    device_name: creds.device_name || null,
+    provisioned_at: creds.provisioned_at || new Date().toISOString(),
+    registration_method: creds.registration_method || 'enrollment',
+  });
+}
+
+function loadOperationalConfig() {
+  return readJsonFile(CONFIG_FILE, {
+    sync_interval_ms: 15000,
+    http_port: 8080,
+    heartbeat_interval_ms: 30000,
+    command_poll_interval_ms: 5000,
+    kiosk_url: null,
+    kiosk_delay_ms: 3000,
+    kiosk_browser: 'auto',
+    verbose: false,
+  });
+}
+
+function saveOperationalConfig(config) {
+  writeJsonFile(CONFIG_FILE, config);
+}
+
+function isProvisioned() {
+  const creds = loadDeviceCredentials();
+  return creds && creds.api_key && creds.org_id;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Legacy .env Compatibility
+//  Falls back to .env if runtime/device.json doesn't exist
+// ═══════════════════════════════════════════════════════════════
 function loadEnv() {
   const envPath = path.join(__dirname, '.env');
   if (!fs.existsSync(envPath)) return;
@@ -66,256 +132,646 @@ function loadEnv() {
   }
 }
 
-// ─── Utilidades ──────────────────────────────────────────────
-const log   = (msg) => console.log(`[Totem] ${msg}`);
-const debug = (msg) => VERBOSE && console.log(`[Totem][debug] ${msg}`);
-const warn  = (msg) => console.warn(`[Totem] ⚠️  ${msg}`);
-const error = (msg) => console.error(`[Totem] ❌  ${msg}`);
+function migrateFromEnv() {
+  loadEnv();
 
-let VERBOSE = false;
+  const apiKey = process.env.API_KEY || process.env.TOTEM_API_KEY || process.env.VITE_TOTEM_API_KEY || process.env.VITE_API_KEY || '';
+  const supabaseUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  const deviceId = process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || '';
+  const orgId = process.env.VITE_ORG_ID || process.env.ORG_ID || '';
 
-function ask(question) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); });
+  if (!apiKey && !deviceId) return false;
+  if (!supabaseUrl) return false;
+
+  log('📦 Migrando configuração do .env para runtime/...');
+
+  saveDeviceCredentials({
+    device_id: deviceId || null,
+    api_key: apiKey,
+    org_id: orgId || null,
+    provisioned_at: new Date().toISOString(),
+    registration_method: 'legacy',
   });
-}
 
-function isCommandAvailable(cmd) {
-  try { execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 5000 }); return true; }
-  catch { return false; }
-}
+  const config = loadOperationalConfig();
+  config.supabase_url = supabaseUrl;
+  config.anon_key = anonKey;
+  config.http_port = parseInt(process.env.HTTP_PORT || '8080', 10);
+  config.sync_interval_ms = parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10);
+  config.kiosk_delay_ms = parseInt(process.env.KIOSK_DELAY_MS || '3000', 10);
+  config.kiosk_browser = process.env.KIOSK_BROWSER || 'auto';
+  config.verbose = process.env.VERBOSE === 'true';
+  saveOperationalConfig(config);
 
-// ─── Configurações (lazy) ────────────────────────────────────
-function ANON_KEY() {
-  return (
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    ''
-  );
-}
-
-function SUPABASE_URL() {
-  const direct = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  if (direct) return direct;
-  const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID || '';
-  return projectId ? `https://${projectId}.supabase.co` : '';
-}
-
-// Derive CMS API from explicit URL or project base URL
-function CMS_API_URL() {
-  const explicit = (process.env.VITE_CMS_API_URL || process.env.CMS_API_URL || '').replace(/\/$/, '');
-  if (explicit) return explicit;
-  const base = SUPABASE_URL();
-  return base ? `${base}/functions/v1` : '';
-}
-
-function DEVICE_ID() { return process.env.VITE_TOTEM_DEVICE_ID || process.env.TOTEM_DEVICE_ID || ''; }
-function API_KEY() {
-  return (
-    process.env.API_KEY ||
-    process.env.TOTEM_API_KEY ||
-    process.env.VITE_TOTEM_API_KEY ||
-    process.env.VITE_API_KEY ||
-    ''
-  );
-}
-function SYNC_INTERVAL()   { return parseInt(process.env.SYNC_INTERVAL_MS || '15000', 10); }
-function HTTP_PORT()       { return parseInt(process.env.HTTP_PORT || '8080', 10); }
-function KIOSK_URL()       { return process.env.KIOSK_URL || `http://localhost:${HTTP_PORT()}`; }
-function KIOSK_DELAY()     { return parseInt(process.env.KIOSK_DELAY_MS || '3000', 10); }
-function KIOSK_BROWSER()   { return process.env.KIOSK_BROWSER || 'auto'; }
-
-const HTML_FILE = () => path.join(__dirname, 'index.html');
-
-function validateRuntimeConfig() {
-  const apiUrl = CMS_API_URL();
-  const hasIdentity = Boolean(API_KEY() || DEVICE_ID());
-
-  if (!apiUrl) {
-    error('Config inválida: defina VITE_CMS_API_URL, VITE_SUPABASE_URL ou VITE_SUPABASE_PROJECT_ID no .env');
-    return false;
-  }
-
-  if (!hasIdentity) {
-    error('Config inválida: defina API_KEY (ou VITE_TOTEM_DEVICE_ID) no .env');
-    return false;
-  }
-
-  if (!ANON_KEY()) {
-    warn('VITE_SUPABASE_ANON_KEY não encontrada (algumas funções podem falhar)');
-  }
-
+  log('✅ Migração concluída');
   return true;
 }
 
-// ─── Garantir .env existe ────────────────────────────────────
-async function ensureEnvFile() {
-  const envPath = path.join(__dirname, '.env');
-  if (fs.existsSync(envPath)) {
-    log('✅ .env encontrado');
-    return;
-  }
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Platform Config
+//  Resolves Supabase URLs and keys from config or env
+// ═══════════════════════════════════════════════════════════════
 
-  const examplePath = path.join(__dirname, '.env.sync.example');
-  if (!fs.existsSync(examplePath)) {
-    error('.env não encontrado! Crie um .env com as configurações necessárias.');
-    process.exit(1);
-  }
+// Hardcoded project config — embedded for commercial distribution
+const EMBEDDED_CONFIG = {
+  supabase_url: 'https://iwqcltmeniotzbowbxzg.supabase.co',
+  anon_key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cWNsdG1lbmlvdHpib3dieHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ0NDUsImV4cCI6MjA4NzAyMDQ0NX0.IxBMzeC6VUhe8lRE0yELuZM-4YdzgBo5dsCdddp1C_s',
+};
 
-  log('📄 Criando .env a partir de .env.sync.example...');
-  let content = fs.readFileSync(examplePath, 'utf8');
-
-  const orgId = await ask('\n📋 Cole o UUID da organização: ');
-  if (orgId && orgId.length > 10) {
-    content = content.replace('cole-o-uuid-da-organizacao-aqui', orgId);
-  } else {
-    error('ORG_ID inválido.');
-    process.exit(1);
-  }
-
-  fs.writeFileSync(envPath, content, 'utf8');
-  log('✅ .env criado');
+function getSupabaseUrl() {
+  const config = loadOperationalConfig();
+  return config.supabase_url || EMBEDDED_CONFIG.supabase_url;
 }
 
-// ══════════════════════════════════════════════════════════════
-//  FETCH HTML — busca o HTML publicado via Edge Function
-// ══════════════════════════════════════════════════════════════
+function getAnonKey() {
+  const config = loadOperationalConfig();
+  return config.anon_key || EMBEDDED_CONFIG.anon_key;
+}
+
+function getCmsApiUrl() {
+  return `${getSupabaseUrl()}/functions/v1`;
+}
+
+function getApiKey() {
+  const creds = loadDeviceCredentials();
+  return creds?.api_key || '';
+}
+
+function getDeviceId() {
+  const creds = loadDeviceCredentials();
+  return creds?.device_id || '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Diagnostics
+//  Collects machine fingerprint and telemetry
+// ═══════════════════════════════════════════════════════════════
+function getMachineFingerprint() {
+  const nets = os.networkInterfaces();
+  let mac = '';
+  for (const ifaces of Object.values(nets)) {
+    for (const iface of ifaces || []) {
+      if (!iface.internal && iface.mac && iface.mac !== '00:00:00:00:00:00') {
+        mac = iface.mac;
+        break;
+      }
+    }
+    if (mac) break;
+  }
+  const parts = [os.hostname(), os.platform(), os.arch(), mac || 'no-mac'];
+  // Simple hash
+  let hash = 0;
+  const str = parts.join('-');
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return `hw-${Math.abs(hash).toString(36)}-${mac.replace(/:/g, '')}`;
+}
+
+function getNetworkStatus() {
+  const nets = os.networkInterfaces();
+  for (const ifaces of Object.values(nets)) {
+    for (const iface of ifaces || []) {
+      if (!iface.internal && iface.family === 'IPv4') return 'connected';
+    }
+  }
+  return 'disconnected';
+}
+
+function getStorageFreeMb() {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync('wmic logicaldisk get size,freespace,caption', { timeout: 5000, encoding: 'utf8' });
+      const lines = out.trim().split('\n').filter(l => l.trim());
+      if (lines.length > 1) {
+        const parts = lines[1].trim().split(/\s+/);
+        if (parts.length >= 2) return Math.round(parseInt(parts[1]) / (1024 * 1024));
+      }
+    } else {
+      const out = execSync("df -m / | tail -1 | awk '{print $4}'", { timeout: 5000, encoding: 'utf8' });
+      return parseInt(out.trim()) || null;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function collectTelemetry() {
+  return {
+    agent_version: AGENT_VERSION,
+    worker_version: AGENT_VERSION,
+    http_port: loadOperationalConfig().http_port || 8080,
+    uptime_seconds: Math.floor(process.uptime()),
+    hostname: os.hostname(),
+    platform: `${os.platform()}/${os.arch()}`,
+    network_status: getNetworkStatus(),
+    kiosk_mode: !FLAG_NO_KIOSK,
+    last_content_sync_at: lastHtmlSyncAt,
+    last_sync_result: lastSyncResult,
+    storage_free_mb: getStorageFreeMb(),
+    node_version: process.version,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Enrollment
+//  Handles device provisioning via enrollment key
+// ═══════════════════════════════════════════════════════════════
+function httpRequest(url, options) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https://') ? https : http;
+    const req = client.request(url, { timeout: 15000, ...options }, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+async function enrollDevice(enrollmentKey) {
+  const hardwareId = getMachineFingerprint();
+  const apiUrl = getCmsApiUrl();
+
+  log(`🔑 Ativando dispositivo com chave: ${enrollmentKey.substring(0, 8)}...`);
+  log(`🖥️  Hardware ID: ${hardwareId}`);
+
+  const payload = JSON.stringify({
+    enrollment_key: enrollmentKey,
+    hardware_id: hardwareId,
+    name: `Totem ${os.hostname()}`,
+    location: null,
+    description: `Auto-ativado em ${os.hostname()} (${os.platform()})`,
+  });
+
+  const res = await httpRequest(`${apiUrl}/totem-register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': getAnonKey(),
+    },
+    body: payload,
+  });
+
+  const result = JSON.parse(res.body);
+  if (res.status >= 400) {
+    throw new Error(result.error || `HTTP ${res.status}`);
+  }
+
+  if (!result.device) {
+    throw new Error('Resposta inválida do servidor');
+  }
+
+  saveDeviceCredentials({
+    device_id: result.device.id,
+    api_key: result.device.api_key,
+    org_id: result.device.org_id || null,
+    org_name: result.organization || null,
+    device_name: result.device.name,
+    registration_method: 'enrollment',
+  });
+
+  log(`✅ Dispositivo ativado: ${result.device.name}`);
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Activation UI
+//  Serves a local HTML page for enrollment when not provisioned
+// ═══════════════════════════════════════════════════════════════
+function getActivationHtml() {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1080, height=1920, initial-scale=1">
+  <title>Ativar Totem</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1080px; height: 1920px;
+      background: #0a0a0f;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex; align-items: center; justify-content: center;
+      color: #e2e8f0;
+    }
+    .container {
+      text-align: center; padding: 60px;
+      max-width: 800px;
+    }
+    .logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 24px;
+      margin: 0 auto 40px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    h1 { font-size: 48px; font-weight: 800; margin-bottom: 16px; }
+    .subtitle { font-size: 22px; color: #94a3b8; margin-bottom: 60px; line-height: 1.5; }
+    .input-group { margin-bottom: 30px; }
+    input {
+      width: 100%; padding: 24px 32px;
+      font-size: 28px; text-align: center;
+      background: #1e1e2e; border: 2px solid #334155;
+      border-radius: 16px; color: #e2e8f0;
+      font-family: monospace; letter-spacing: 4px;
+      outline: none; transition: border-color 0.2s;
+    }
+    input:focus { border-color: #6366f1; }
+    input::placeholder { color: #475569; letter-spacing: 2px; font-family: sans-serif; font-size: 22px; }
+    button {
+      width: 100%; padding: 24px;
+      font-size: 24px; font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border: none; border-radius: 16px;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 30px; font-size: 20px; min-height: 30px; }
+    .status.error { color: #f87171; }
+    .status.success { color: #4ade80; }
+    .steps {
+      margin-top: 60px; text-align: left;
+      background: #1e1e2e; border-radius: 20px; padding: 40px;
+    }
+    .steps h3 { font-size: 22px; margin-bottom: 24px; color: #94a3b8; }
+    .step { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #6366f1; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; flex-shrink: 0;
+    }
+    .step p { font-size: 18px; color: #cbd5e1; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">📡</div>
+    <h1>Ativar Totem</h1>
+    <p class="subtitle">
+      Informe o código de ativação da sua conta para<br>conectar este totem automaticamente.
+    </p>
+
+    <div class="input-group">
+      <input id="key" type="text" placeholder="Cole o código de ativação aqui" autocomplete="off" />
+    </div>
+    <button id="btn" onclick="activate()">Ativar</button>
+    <div id="status" class="status"></div>
+
+    <div class="steps">
+      <h3>Como funciona:</h3>
+      <div class="step">
+        <div class="step-num">1</div>
+        <p>Acesse o painel da sua conta e copie o <strong>código de ativação</strong></p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <p>Cole o código no campo acima e clique em <strong>Ativar</strong></p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <p>Pronto! O totem será configurado automaticamente em segundos</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function activate() {
+      const key = document.getElementById('key').value.trim();
+      const status = document.getElementById('status');
+      const btn = document.getElementById('btn');
+      if (!key) { status.textContent = 'Informe o código de ativação'; status.className = 'status error'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Ativando...';
+      status.textContent = 'Conectando ao servidor...';
+      status.className = 'status';
+      try {
+        const res = await fetch('/__totem_enroll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enrollment_key: key }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          status.textContent = '✅ ' + (data.message || 'Totem ativado com sucesso!');
+          status.className = 'status success';
+          btn.textContent = 'Ativado!';
+          setTimeout(() => location.reload(), 3000);
+        } else {
+          throw new Error(data.error || 'Erro desconhecido');
+        }
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = 'status error';
+        btn.disabled = false;
+        btn.textContent = 'Ativar';
+      }
+    }
+    document.getElementById('key').addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
+  </script>
+</body>
+</html>`;
+}
+
+function getWaitingHtml() {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="10"></head><body style="width:1080px;height:1920px;margin:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8"><h1>Aguardando publicação...</h1></body></html>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Content Sync
+//  Fetches published HTML from the Hub
+// ═══════════════════════════════════════════════════════════════
 let lastEtag = null;
 let htmlRevision = Date.now();
 let lastHtmlSyncAt = null;
+let lastSyncResult = 'pending';
 
 function markHtmlUpdated() {
   htmlRevision = Date.now();
   lastHtmlSyncAt = new Date().toISOString();
+  lastSyncResult = 'success';
 }
 
 function injectAutoReloadScript(html) {
   const marker = '__TOTEM_AUTO_RELOAD__';
   if (html.includes(marker)) return html;
-
   const script = `\n<!-- ${marker} -->\n<script>(function(){var last=null;async function check(){try{var r=await fetch('/__totem_version?ts='+Date.now(),{cache:'no-store'});var j=await r.json();if(last===null){last=j.revision;return;}if(j.revision!==last){window.location.reload();}}catch(e){} } setInterval(check,4000); check();})();</script>\n`;
-
-  if (html.includes('</body>')) {
-    return html.replace('</body>', `${script}</body>`);
-  }
-
+  if (html.includes('</body>')) return html.replace('</body>', `${script}</body>`);
   return `${html}${script}`;
 }
 
-function fetchHtml() {
-  return new Promise((resolve, reject) => {
-    const apiUrl = CMS_API_URL();
-    if (!apiUrl) { reject(new Error('VITE_CMS_API_URL não configurado')); return; }
+async function fetchHtml() {
+  const apiUrl = getCmsApiUrl();
+  const apiKey = getApiKey();
+  const deviceId = getDeviceId();
+  if (!apiKey && !deviceId) throw new Error('Dispositivo não provisionado');
 
-    const url = `${apiUrl}/totem-html`;
-    const headers = {
-      'apikey': ANON_KEY(),
-      'Content-Type': 'application/json',
-    };
+  const url = `${apiUrl}/totem-html`;
+  const headers = {
+    'apikey': getAnonKey(),
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['x-totem-api-key'] = apiKey;
+  else headers['x-totem-device-id'] = deviceId;
+  if (lastEtag) headers['If-None-Match'] = lastEtag;
 
-    // Identify device
-    if (API_KEY()) headers['x-totem-api-key'] = API_KEY();
-    else if (DEVICE_ID()) headers['x-totem-device-id'] = DEVICE_ID();
-    else { reject(new Error('Defina API_KEY ou VITE_TOTEM_DEVICE_ID no .env')); return; }
-
-    // ETag for caching
-    if (lastEtag) headers['If-None-Match'] = lastEtag;
-
-    const client = url.startsWith('https://') ? https : http;
-    const req = client.get(url, { headers, timeout: 15000 }, (res) => {
-      if (res.statusCode === 304) {
-        resolve({ html: null, changed: false });
-        return;
-      }
-
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          if (res.headers.etag) lastEtag = res.headers.etag;
-          resolve({ html: body, changed: true });
-        } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${body.substring(0, 200)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-  });
+  const res = await httpRequest(url, { method: 'GET', headers });
+  if (res.status === 304) return { html: null, changed: false };
+  if (res.status >= 200 && res.status < 300) {
+    if (res.headers.etag) lastEtag = res.headers.etag;
+    return { html: res.body, changed: true };
+  }
+  throw new Error(`HTTP ${res.status}: ${res.body.substring(0, 200)}`);
 }
 
-// ══════════════════════════════════════════════════════════════
-//  UPDATE HTML — salva o HTML no arquivo local
-// ══════════════════════════════════════════════════════════════
 function updateHtmlFile(html) {
-  const htmlPath = HTML_FILE();
   const nextHtml = injectAutoReloadScript(html);
+  try {
+    if (fs.existsSync(HTML_FILE)) {
+      const current = fs.readFileSync(HTML_FILE, 'utf8');
+      if (current === nextHtml) { debug('HTML sem mudanças reais'); return; }
+      fs.copyFileSync(HTML_FILE, HTML_FILE + '.bak');
+    }
+  } catch { /* continue */ }
+  fs.writeFileSync(HTML_FILE, nextHtml, 'utf8');
+  markHtmlUpdated();
+  log(`✅ Conteúdo atualizado (${(nextHtml.length / 1024).toFixed(1)} KB)`);
+}
+
+async function syncContent() {
+  try {
+    const result = await fetchHtml();
+    if (result.changed && result.html) {
+      log(`📥 Novo conteúdo — ${(result.html.length / 1024).toFixed(1)} KB`);
+      updateHtmlFile(result.html);
+    } else {
+      debug(`Sem alterações (304) | ${new Date().toLocaleTimeString('pt-BR')}`);
+    }
+    lastSyncResult = 'success';
+  } catch (err) {
+    warn(`Sync falhou: ${err.message}`);
+    lastSyncResult = `error: ${err.message}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Config Sync
+//  Fetches operational config from the Hub (future-ready)
+// ═══════════════════════════════════════════════════════════════
+async function syncConfig() {
+  // Reserved for future config sync endpoint
+  // Will fetch operational parameters from the Hub
+  debug('Config sync: reservado para implementação futura');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Heartbeat
+//  Reports device status to the Hub
+// ═══════════════════════════════════════════════════════════════
+async function sendHeartbeat() {
+  const apiKey = getApiKey();
+  const deviceId = getDeviceId();
+  const apiUrl = getCmsApiUrl();
+  if (!apiKey && !deviceId) return;
 
   try {
-    if (fs.existsSync(htmlPath)) {
-      const currentHtml = fs.readFileSync(htmlPath, 'utf8');
-      if (currentHtml === nextHtml) {
-        debug('HTML recebido sem mudanças reais no arquivo local');
-        return;
-      }
-      fs.copyFileSync(htmlPath, htmlPath + '.bak');
-    }
-  } catch {
-    // segue o fluxo mesmo se não conseguir comparar/backup
-  }
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': getAnonKey(),
+    };
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+    else headers['x-totem-device-id'] = deviceId;
 
-  fs.writeFileSync(htmlPath, nextHtml, 'utf8');
-  markHtmlUpdated();
-  log(`✅ HTML atualizado (${(nextHtml.length / 1024).toFixed(1)} KB)`);
+    const payload = JSON.stringify({ status_details: collectTelemetry() });
+
+    const res = await httpRequest(`${apiUrl}/totem-heartbeat`, {
+      method: 'POST',
+      headers,
+      body: payload,
+    });
+
+    if (res.status >= 200 && res.status < 300) {
+      debug(`Heartbeat OK [${new Date().toLocaleTimeString('pt-BR')}]`);
+    } else {
+      warn(`Heartbeat HTTP ${res.status}: ${res.body.substring(0, 100)}`);
+    }
+  } catch (err) {
+    warn(`Heartbeat falhou: ${err.message}`);
+  }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  HTTP SERVER — serve o index.html localmente
-// ══════════════════════════════════════════════════════════════
-function startHttpServer() {
-  const port = HTTP_PORT();
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Remote Commands
+//  Polls and executes commands from the Hub
+// ═══════════════════════════════════════════════════════════════
+const EXIT_CODE_REMOTE_RESTART = 75;
 
-  const server = http.createServer((req, res) => {
-    // CORS headers
+async function checkRemoteCommand() {
+  const apiKey = getApiKey();
+  const apiUrl = getCmsApiUrl();
+  if (!apiKey || !apiUrl) return null;
+
+  try {
+    const res = await httpRequest(`${apiUrl}/totem-poll-command`, {
+      method: 'GET',
+      headers: { 'x-totem-api-key': apiKey },
+    });
+    return JSON.parse(res.body).command || null;
+  } catch (err) {
+    debug(`Poll-command: ${err.message}`);
+    return null;
+  }
+}
+
+async function reportCommandResult(command, status, errorMsg) {
+  const apiKey = getApiKey();
+  const apiUrl = getCmsApiUrl();
+  if (!apiKey || !apiUrl) return;
+  try {
+    await httpRequest(`${apiUrl}/totem-command-report`, {
+      method: 'POST',
+      headers: { 'x-totem-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command, status, error: errorMsg || undefined }),
+    });
+  } catch (err) {
+    debug(`Report falhou: ${err.message}`);
+  }
+}
+
+async function handleRemoteCommand() {
+  const command = await checkRemoteCommand();
+  if (!command) return;
+
+  log(`⚡ Comando: "${command}"`);
+  let success = true, errorMsg = null;
+
+  try {
+    switch (command) {
+      case 'sync':
+      case 'reload_config':
+      case 'refresh_content':
+        lastEtag = null;
+        await syncContent();
+        break;
+
+      case 'refresh_config':
+        await syncConfig();
+        break;
+
+      case 'clear_cache':
+        lastEtag = null;
+        try { if (fs.existsSync(HTML_FILE + '.bak')) fs.unlinkSync(HTML_FILE + '.bak'); } catch {}
+        log('🧹 Cache limpo');
+        break;
+
+      case 'restart':
+      case 'restart_browser':
+        log('🔃 Reiniciando...');
+        await reportCommandResult(command, 'executed', null);
+        process.exit(EXIT_CODE_REMOTE_RESTART);
+        return;
+
+      case 're_enroll':
+        log('🔄 Re-provisionamento solicitado...');
+        if (fs.existsSync(DEVICE_FILE)) fs.unlinkSync(DEVICE_FILE);
+        await reportCommandResult(command, 'executed', null);
+        process.exit(EXIT_CODE_REMOTE_RESTART);
+        return;
+
+      case 'diagnostic_ping':
+        log('📊 Diagnóstico solicitado');
+        // Heartbeat imediato com telemetria completa
+        await sendHeartbeat();
+        break;
+
+      default:
+        warn(`Comando desconhecido: "${command}"`);
+        success = false;
+        errorMsg = 'Comando desconhecido';
+    }
+  } catch (err) {
+    error(`"${command}" falhou: ${err.message}`);
+    success = false;
+    errorMsg = err.message;
+  }
+
+  await reportCommandResult(command, success ? 'executed' : 'failed', errorMsg);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: HTTP Server
+//  Serves content locally and handles enrollment requests
+// ═══════════════════════════════════════════════════════════════
+function startHttpServer(provisioned) {
+  const config = loadOperationalConfig();
+  const port = config.http_port || 8080;
+
+  const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cache-Control', 'no-cache');
 
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-    // Health check endpoint
+    // Health check
     if (req.url === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
-      return;
-    }
-
-    // Worker metadata endpoint (usado para auto-reload no kiosk)
-    if (req.url?.startsWith('/__totem_version')) {
-      res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store',
-      });
       res.end(JSON.stringify({
-        revision: htmlRevision,
-        etag: lastEtag,
-        last_sync_at: lastHtmlSyncAt,
+        status: 'ok',
+        provisioned: isProvisioned(),
+        timestamp: new Date().toISOString(),
       }));
       return;
     }
 
-    // Serve index.html for everything else
-    const htmlPath = HTML_FILE();
-    if (fs.existsSync(htmlPath)) {
-      const html = fs.readFileSync(htmlPath, 'utf8');
+    // Version endpoint (for auto-reload)
+    if (req.url?.startsWith('/__totem_version')) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ revision: htmlRevision, etag: lastEtag, last_sync_at: lastHtmlSyncAt }));
+      return;
+    }
+
+    // Enrollment endpoint (local only)
+    if (req.url === '/__totem_enroll' && req.method === 'POST') {
+      try {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const { enrollment_key } = JSON.parse(body);
+        if (!enrollment_key) throw new Error('Código de ativação não informado');
+
+        const result = await enrollDevice(enrollment_key);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: result.message || 'Totem ativado!' }));
+
+        // After successful enrollment, restart to enter provisioned mode
+        log('🔄 Reiniciando para modo operacional...');
+        setTimeout(() => process.exit(EXIT_CODE_REMOTE_RESTART), 2000);
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // Serve HTML content
+    if (isProvisioned() && fs.existsSync(HTML_FILE)) {
+      const html = fs.readFileSync(HTML_FILE, 'utf8');
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
+    } else if (!isProvisioned()) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(getActivationHtml());
     } else {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="width:1080px;height:1920px;margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8"><h1>Aguardando publicação...</h1></body></html>`);
+      res.end(getWaitingHtml());
     }
   });
 
@@ -326,93 +782,23 @@ function startHttpServer() {
   return server;
 }
 
-// ══════════════════════════════════════════════════════════════
-//  POLLING — verifica atualizações periodicamente
-// ══════════════════════════════════════════════════════════════
-async function pollForUpdates() {
-  try {
-    const result = await fetchHtml();
-    if (result.changed && result.html) {
-      log(`📥 HTML atualizado — ${(result.html.length / 1024).toFixed(1)} KB | ETag: ${lastEtag || '(nenhum)'}`);
-      updateHtmlFile(result.html);
-    } else {
-      log(`⏳ Sem alterações (304) | ETag: ${lastEtag || '(nenhum)'} | ${new Date().toLocaleTimeString('pt-BR')}`);
-    }
-  } catch (err) {
-    warn(`Polling falhou: ${err.message}`);
-  }
+// ═══════════════════════════════════════════════════════════════
+//  MODULE: Kiosk Launcher
+//  Opens browser in fullscreen kiosk mode
+// ═══════════════════════════════════════════════════════════════
+function isCommandAvailable(cmd) {
+  try { execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 5000 }); return true; }
+  catch { return false; }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  HEARTBEAT — informa ao Hub que o totem está online
-// ══════════════════════════════════════════════════════════════
-async function sendHeartbeat() {
-  const apiKey = API_KEY();
-  const deviceId = DEVICE_ID();
-  const apiUrl = CMS_API_URL();
-  if (!apiUrl) { debug('Heartbeat: CMS_API_URL não configurado'); return; }
-  if (!apiKey && !deviceId) { debug('Heartbeat: sem identificação'); return; }
-
-  try {
-    const url = `${apiUrl}/totem-heartbeat`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY(),
-    };
-    if (apiKey) headers['x-totem-api-key'] = apiKey;
-    else headers['x-totem-device-id'] = deviceId;
-
-    const payload = JSON.stringify({
-      status_details: {
-        worker_version: '7.0.0',
-        http_port: HTTP_PORT(),
-        uptime_seconds: Math.floor(process.uptime()),
-      }
-    });
-
-    await new Promise((resolve, reject) => {
-      const client = url.startsWith('https://') ? https : http;
-      const req = client.request(url, {
-        method: 'POST',
-        headers,
-        timeout: 10000,
-      }, (res) => {
-        let data = '';
-        res.on('data', (c) => { data += c; });
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            debug(`Heartbeat OK [${new Date().toLocaleTimeString('pt-BR')}]`);
-          } else {
-            warn(`Heartbeat HTTP ${res.statusCode}: ${data.substring(0, 100)}`);
-          }
-          resolve(data);
-        });
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-      req.write(payload);
-      req.end();
-    });
-  } catch (err) {
-    warn(`Heartbeat falhou: ${err.message}`);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  REALTIME — escuta atualizações via Supabase Realtime
-// ══════════════════════════════════════════════════════════════
-// Note: Realtime via WebSocket requires a browser-like env.
-// The worker uses simple polling as primary mechanism.
-
-// ══════════════════════════════════════════════════════════════
-//  KIOSK — abrir navegador em tela cheia
-// ══════════════════════════════════════════════════════════════
 function openKiosk() {
-  if (FLAG_SETUP || FLAG_NO_KIOSK) return;
+  if (FLAG_NO_KIOSK) return;
 
-  const url = KIOSK_URL();
-  const delay = KIOSK_DELAY();
-  const browserPref = KIOSK_BROWSER();
+  const config = loadOperationalConfig();
+  const port = config.http_port || 8080;
+  const url = config.kiosk_url || `http://localhost:${port}`;
+  const delay = config.kiosk_delay_ms || 3000;
+  const browserPref = config.kiosk_browser || 'auto';
 
   log(`🖥️  Abrindo kiosk em ${delay / 1000}s → ${url}`);
 
@@ -448,116 +834,19 @@ function openKiosk() {
   }, delay);
 }
 
-// ══════════════════════════════════════════════════════════════
-//  COMANDOS REMOTOS — polling de comandos do Hub
-// ══════════════════════════════════════════════════════════════
-async function checkRemoteCommand() {
-  const apiKey = API_KEY();
-  const apiUrl = CMS_API_URL();
-  if (!apiKey || !apiUrl) return null;
-
-  try {
-    const url = `${apiUrl}/totem-poll-command`;
-    const text = await new Promise((resolve, reject) => {
-      const client = url.startsWith('https://') ? https : http;
-      const req = client.request(url, {
-        method: 'GET',
-        headers: { 'x-totem-api-key': apiKey },
-        timeout: 10000,
-      }, (res) => {
-        let data = '';
-        res.on('data', (c) => { data += c; });
-        res.on('end', () => resolve(data));
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-      req.end();
-    });
-    return JSON.parse(text).command || null;
-  } catch (err) {
-    debug(`Poll-command: ${err.message}`);
-    return null;
-  }
-}
-
-async function reportCommandResult(command, status, errorMsg) {
-  const apiKey = API_KEY();
-  const apiUrl = CMS_API_URL();
-  if (!apiKey || !apiUrl) return;
-  try {
-    const url = `${apiUrl}/totem-command-report`;
-    const payload = JSON.stringify({ command, status, error: errorMsg || undefined });
-    await new Promise((resolve, reject) => {
-      const client = url.startsWith('https://') ? https : http;
-      const req = client.request(url, {
-        method: 'POST',
-        headers: { 'x-totem-api-key': apiKey, 'Content-Type': 'application/json' },
-        timeout: 10000,
-      }, (res) => {
-        let data = '';
-        res.on('data', (c) => { data += c; });
-        res.on('end', () => resolve(data));
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-      req.write(payload);
-      req.end();
-    });
-  } catch (err) {
-    debug(`Report falhou: ${err.message}`);
-  }
-}
-
-async function handleRemoteCommand() {
-  const command = await checkRemoteCommand();
-  if (!command) return;
-
-  log(`⚡ Comando: "${command}"`);
-  let success = true, errorMsg = null;
-
-  try {
-    switch (command) {
-      case 'sync':
-      case 'reload_config':
-        // Force HTML refresh (clear ETag to force download)
-        lastEtag = null;
-        await pollForUpdates();
-        break;
-      case 'restart':
-        log('🔃 Reiniciando por comando remoto...');
-        await reportCommandResult(command, 'executed', null);
-        process.exit(EXIT_CODE_REMOTE_RESTART);
-        return;
-      default:
-        warn(`Comando desconhecido: "${command}"`);
-        success = false;
-        errorMsg = 'Comando desconhecido';
-    }
-  } catch (err) {
-    error(`"${command}" falhou: ${err.message}`);
-    success = false;
-    errorMsg = err.message;
-  }
-
-  await reportCommandResult(command, success ? 'executed' : 'failed', errorMsg);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  AUTO-RESTART — respawna o processo em caso de erro fatal
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  SUPERVISOR — auto-restart with crash protection
+// ═══════════════════════════════════════════════════════════════
 const MAX_RESTARTS   = 10;
-const RESTART_WINDOW = 60000; // 1 minuto
-const RESTART_DELAY  = 5000;  // 5 segundos entre restarts
-const EXIT_CODE_REMOTE_RESTART = 75;
+const RESTART_WINDOW = 60000;
+const RESTART_DELAY  = 5000;
 
 if (process.env.__TOTEM_CHILD === 'true') {
-  // ── Processo filho — executa o worker de verdade ──────────
   runWorker().catch((err) => {
     error(`Falha fatal: ${err.message}`);
     process.exit(1);
   });
 } else {
-  // ── Processo pai — supervisiona e reinicia ────────────────
   const restartTimes = [];
 
   function spawnChild() {
@@ -567,119 +856,120 @@ if (process.env.__TOTEM_CHILD === 'true') {
     });
 
     child.on('exit', (code) => {
-      if (code === 0) {
-        log('Worker encerrado normalmente.');
-        process.exit(0);
-      }
-
+      if (code === 0) { log('Agent encerrado.'); process.exit(0); }
       if (code === EXIT_CODE_REMOTE_RESTART) {
-        log('♻️ Reinício remoto solicitado — iniciando novo processo...');
+        log('♻️ Reinício solicitado...');
         setTimeout(spawnChild, 1000);
         return;
       }
-
       const now = Date.now();
       restartTimes.push(now);
-      // Manter apenas restarts dentro da janela
-      while (restartTimes.length > 0 && restartTimes[0] < now - RESTART_WINDOW) {
-        restartTimes.shift();
-      }
-
+      while (restartTimes.length > 0 && restartTimes[0] < now - RESTART_WINDOW) restartTimes.shift();
       if (restartTimes.length >= MAX_RESTARTS) {
-        error(`${MAX_RESTARTS} crashes em menos de ${RESTART_WINDOW / 1000}s — abortando.`);
+        error(`${MAX_RESTARTS} crashes em ${RESTART_WINDOW / 1000}s — abortando.`);
         process.exit(1);
       }
-
-      warn(`Worker crashou (código ${code}). Reiniciando em ${RESTART_DELAY / 1000}s... (${restartTimes.length}/${MAX_RESTARTS})`);
+      warn(`Crash (código ${code}). Reiniciando em ${RESTART_DELAY / 1000}s... (${restartTimes.length}/${MAX_RESTARTS})`);
       setTimeout(spawnChild, RESTART_DELAY);
     });
 
-    // Repassar sinais para o filho
     process.on('SIGINT',  () => child.kill('SIGINT'));
     process.on('SIGTERM', () => child.kill('SIGTERM'));
   }
 
-  log('🛡️  Supervisor ativo — auto-restart habilitado');
+  log('🛡️  Supervisor ativo');
   spawnChild();
 }
 
-// ══════════════════════════════════════════════════════════════
-//  WORKER — lógica principal
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  MAIN WORKER
+// ═══════════════════════════════════════════════════════════════
 async function runWorker() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║         TOTEM WORKER  v7.0.0                     ║');
-  console.log('║         HTTP Server + HTML Updater + Auto-Restart ║');
+  console.log(`║         TOTEM AGENT  v${AGENT_VERSION}                      ║`);
+  console.log('║         Instalação e Operação Automática          ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
-  // Setup
-  await ensureEnvFile();
-  loadEnv();
-  VERBOSE = process.env.VERBOSE === 'true';
+  ensureRuntimeDirs();
 
-  if (!validateRuntimeConfig()) {
-    process.exit(1);
+  // Handle --reset
+  if (FLAG_RESET) {
+    log('🗑️  Limpando provisionamento...');
+    if (fs.existsSync(DEVICE_FILE)) fs.unlinkSync(DEVICE_FILE);
+    if (fs.existsSync(CONFIG_FILE)) fs.unlinkSync(CONFIG_FILE);
+    log('✅ Provisionamento removido. Execute novamente para reativar.');
+    return;
   }
 
-  log(`API URL      : ${CMS_API_URL()}`);
-  log(`Base URL     : ${SUPABASE_URL() || '(não definida)'}`);
-  log(`Device ID    : ${DEVICE_ID() || '(via API key)'}`);
-  log(`HTTP Port    : ${HTTP_PORT()}`);
-  log(`Intervalo    : ${SYNC_INTERVAL() / 1000}s`);
-  log(`Kiosk        : ${FLAG_NO_KIOSK ? 'desativado' : KIOSK_URL()}`);
-  log(`Auto-restart : ativado (max ${MAX_RESTARTS} em ${RESTART_WINDOW / 1000}s)`);
+  // Check provisioning: runtime/ → .env fallback → activation mode
+  if (!isProvisioned()) {
+    log('🔍 Verificando .env legado...');
+    const migrated = migrateFromEnv();
+    if (!migrated) {
+      log('');
+      log('═══════════════════════════════════════════');
+      log('  📡  MODO DE ATIVAÇÃO');
+      log('  Este totem ainda não foi ativado.');
+      log('  Abra o navegador para informar o código.');
+      log('═══════════════════════════════════════════');
+      log('');
+
+      // Start HTTP server in activation mode
+      startHttpServer(false);
+      openKiosk();
+      return; // Stay in activation mode until enrollment completes → restart
+    }
+  }
+
+  // ── Provisioned Mode ─────────────────────────────────────────
+  const creds = loadDeviceCredentials();
+  const config = loadOperationalConfig();
+  VERBOSE = config.verbose || false;
+
+  log(`📱 Dispositivo: ${creds.device_name || creds.device_id || '(sem nome)'}`);
+  log(`🏢 Organização: ${creds.org_name || creds.org_id || '(desconhecida)'}`);
+  log(`🌐 Porta HTTP : ${config.http_port || 8080}`);
+  log(`🔄 Intervalo  : ${(config.sync_interval_ms || 15000) / 1000}s`);
+  log(`🖥️  Kiosk      : ${FLAG_NO_KIOSK ? 'desativado' : 'ativo'}`);
   console.log('');
 
-  // Initial HTML fetch
-  log('━━━ Buscando HTML publicado ━━━');
+  // Initial content sync
+  log('━━━ Buscando conteúdo publicado ━━━');
   try {
     const result = await fetchHtml();
     if (result.changed && result.html) {
       updateHtmlFile(result.html);
     } else {
-      log('ℹ️  Nenhum HTML publicado ainda');
+      log('ℹ️  Nenhum conteúdo publicado ainda');
     }
   } catch (err) {
     warn(`Fetch inicial falhou: ${err.message}`);
-    if (!fs.existsSync(HTML_FILE())) {
-      log('📄 Criando página de espera...');
-      fs.writeFileSync(HTML_FILE(),
-        `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="10"></head><body style="width:1080px;height:1920px;margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8"><h1>Aguardando conexão com o Hub...</h1></body></html>`,
-        'utf8'
-      );
+    if (!fs.existsSync(HTML_FILE)) {
+      fs.writeFileSync(HTML_FILE, getWaitingHtml(), 'utf8');
     }
   }
 
-  if (FLAG_SETUP) {
-    log('✅ Setup completo!');
-    return;
-  }
-
-  // Start HTTP server
-  log('━━━ Iniciando servidor HTTP ━━━');
-  startHttpServer();
-
-  // Open kiosk
+  // Start services
+  startHttpServer(true);
   openKiosk();
 
-  // Heartbeat — marca dispositivo como online
-  log('💓 Heartbeat ativo (a cada 30s)');
-  await sendHeartbeat(); // Envia imediatamente
-  const heartbeatInterval = setInterval(sendHeartbeat, 30000);
+  // Heartbeat
+  log('💓 Heartbeat ativo');
+  await sendHeartbeat();
+  const heartbeatInterval = setInterval(sendHeartbeat, config.heartbeat_interval_ms || 30000);
 
-  // Polling loop
-  log('━━━ Polling de atualizações ativo ━━━');
-  const pollInterval = setInterval(pollForUpdates, SYNC_INTERVAL());
+  // Content polling
+  log('━━━ Polling de conteúdo ativo ━━━');
+  const pollInterval = setInterval(syncContent, config.sync_interval_ms || 15000);
 
-  // Remote commands — requer API_KEY
+  // Remote commands
+  const apiKey = getApiKey();
   let cmdInterval;
-  if (API_KEY() && CMS_API_URL()) {
+  if (apiKey) {
     log('🔌 Polling de comandos remotos ativo');
-    cmdInterval = setInterval(handleRemoteCommand, 5000);
-  } else {
-    warn('Comandos remotos desativados: defina API_KEY no .env');
+    cmdInterval = setInterval(handleRemoteCommand, config.command_poll_interval_ms || 5000);
   }
 
   // Graceful shutdown
