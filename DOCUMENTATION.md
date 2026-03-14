@@ -1,6 +1,6 @@
 # AITI.MANAGER — Documentação Técnica do Projeto
 
-> **Versão:** 5.0.0 | **Última atualização:** 2026-03-13
+> **Versão:** 6.0.0 | **Última atualização:** 2026-03-14
 
 ---
 
