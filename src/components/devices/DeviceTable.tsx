@@ -169,7 +169,7 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={status} />
-                    {(device as any).pending_command && (
+                    {device.pending_command && (
                       <Loader2 className="w-3.5 h-3.5 text-warning animate-spin" />
                     )}
                   </div>
@@ -178,7 +178,7 @@ export function DeviceTable({ devices, showOrganization = false, loading, onDevi
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-foreground">{device.name}</p>
-                      {((device as any).registration_method === 'enrollment' || (device as any).registration_method === 'hardware') && (
+                      {(device.registration_method === 'enrollment' || device.registration_method === 'hardware') && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1 border-primary/30 text-primary">
                           <Zap className="w-2.5 h-2.5" />
                           Auto

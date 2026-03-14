@@ -450,7 +450,7 @@ export default function TotemAgent() {
             </CardHeader>
             <CardContent>
               <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
-                {devices.map((device: any) => {
+                {devices.map((device) => {
                   const online = isOnline(device.last_ping);
                   const isAutoRegistered = device.registration_method === 'enrollment' || device.registration_method === 'hardware';
                   return (
