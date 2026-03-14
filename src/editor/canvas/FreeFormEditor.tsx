@@ -760,6 +760,10 @@ export function FreeFormEditor({ initialState, onSave, onPublish, deviceName }: 
                       onSetIdleTimeout={(s) => dispatch({ type: 'SET_VIEW_IDLE_TIMEOUT', seconds: s })}
                       onSetPageBgColor={(viewId, color) => dispatch({ type: 'SET_PAGE_BG_COLOR', viewId, color })}
                       onSetParent={(viewId, parentId) => dispatch({ type: 'UPDATE_VIEW', id: viewId, patch: { parentId } })}
+                      idleScreenEnabled={state.idleScreenEnabled ?? false}
+                      idleScreenTimeout={state.idleScreenTimeout ?? 60}
+                      onSetIdleScreen={(enabled) => dispatch({ type: 'SET_IDLE_SCREEN', enabled })}
+                      onSetIdleScreenTimeout={(seconds) => dispatch({ type: 'SET_IDLE_SCREEN_TIMEOUT', seconds })}
                     />
                   </TabsContent>
                   <TabsContent value="elements" className="flex-1 overflow-hidden mt-0">
