@@ -80,6 +80,10 @@ export interface CanvasState {
   viewIdleTimeout?: number;
   /** Per-page background colors (viewId → color). Falls back to bgColor if not set */
   pageBgColors?: Record<string, string>;
+  /** Enable idle/screensaver screen that extracts content from the page */
+  idleScreenEnabled?: boolean;
+  /** Seconds of inactivity before idle screen activates (default 60) */
+  idleScreenTimeout?: number;
 }
 
 export const DEFAULT_CANVAS_STATE: CanvasState = {
@@ -90,6 +94,8 @@ export const DEFAULT_CANVAS_STATE: CanvasState = {
   activeViewId: '__default__',
   viewIdleTimeout: 30,
   pageBgColors: {},
+  idleScreenEnabled: false,
+  idleScreenTimeout: 60,
 };
 
 /* ── helpers ────────────────────────────────────── */
