@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Prefer device ID over API key for lookup
     let query = supabase
       .from('devices')
       .select('id, name, avatar_config, model_3d_url, current_version_id, pending_command, ai_prompt')
@@ -53,9 +54,9 @@ Deno.serve(async (req) => {
     const { data: device, error: fetchError } = await query.single()
 
     if (fetchError || !device) {
-      console.warn(`[Heartbeat] ❌ Dispositivo não encontrado — id: ${deviceId || 'N/A'}, apiKey: ${apiKey ? apiKey.substring(0, 8) + '...' : 'N/A'}`)
+      console.warn(`[Heartbeat] ❌ Dispositivo não encontrado — id: ${deviceId || 'N/A'}, apiKey: ${apiKey ? apiKey.substring(0, 8) + '...' : 'N/A'}, error: ${fetchError?.message || 'no data'}`)
       return new Response(
-        JSON.stringify({ error: 'Dispositivo não encontrado' }),
+        JSON.stringify({ error: 'Dispositivo não encontrado', detail: fetchError?.message || 'not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
