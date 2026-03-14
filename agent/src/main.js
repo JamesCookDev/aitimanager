@@ -405,12 +405,18 @@ async function fetchHtml() {
     'apikey': getAnonKey(),
     'Content-Type': 'application/json',
   };
+  if (deviceId) headers['x-totem-device-id'] = deviceId;
   if (apiKey) headers['x-totem-api-key'] = apiKey;
-  else headers['x-totem-device-id'] = deviceId;
   if (lastEtag) headers['If-None-Match'] = lastEtag;
+
+  debug('Fetch HTML → ' + url + ' (device: ' + (deviceId || 'api_key').substring(0, 8) + '…)');
 
   const res = await httpRequest(url, { method: 'GET', headers: headers });
   if (res.status === 304) return { html: null, changed: false };
+  if (res.status === 404) {
+    warn('totem-html 404 — dispositivo não encontrado no backend');
+    throw new Error('Device not found (404)');
+  }
   if (res.status >= 200 && res.status < 300) {
     if (res.headers.etag) lastEtag = res.headers.etag;
     return { html: res.body, changed: true };
