@@ -69,14 +69,31 @@ const DISTRIBUTION = {
 function DownloadButton() {
   const dist = DISTRIBUTION.windows;
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = dist.url;
-    link.download = dist.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Download iniciado!');
+  const handleDownload = async () => {
+    toast.info('Preparando download...');
+    try {
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cWNsdG1lbmlvdHpib3dieHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ0NDUsImV4cCI6MjA4NzAyMDQ0NX0.IxBMzeC6VUhe8lRE0yELuZM-4YdzgBo5dsCdddp1C_s';
+      const res = await fetch(dist.url, {
+        headers: { 'apikey': anonKey },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Download falhou' }));
+        toast.error(err.error || 'Erro ao baixar instalador');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = dist.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Download concluído!');
+    } catch {
+      toast.error('Erro ao baixar. Tente novamente.');
+    }
   };
 
   return (
