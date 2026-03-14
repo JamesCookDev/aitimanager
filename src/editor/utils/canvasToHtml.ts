@@ -319,236 +319,373 @@ ${hasMultiplePages ? `
   </script>
 ` : ''}
 ${idleScreenEnabled ? `
-<!-- Idle Screen / Screensaver -->
+<!-- Netflix-style Idle Screen -->
 <style>
   #idle-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 99999; opacity: 0; pointer-events: none;
-    transition: opacity 1s ease;
-    background: #000;
-    overflow: hidden;
+    transition: opacity 0.8s ease; background: #141414;
+    overflow: hidden; font-family: 'Inter', 'Helvetica Neue', sans-serif;
   }
   #idle-screen.active { opacity: 1; pointer-events: auto; }
-  #idle-screen .idle-bg {
+
+  /* ── Billboard hero ── */
+  #idle-screen .nf-billboard {
+    position: absolute; top: 0; left: 0; width: 100%; height: 75%;
+    overflow: hidden;
+  }
+  #idle-screen .nf-hero-img {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: cover; opacity: 0; transition: opacity 1.5s ease;
-    animation: kenburns 20s ease infinite alternate;
+    object-fit: cover; opacity: 0;
+    transition: opacity 1.2s ease, transform 8s ease;
+    transform: scale(1);
   }
-  #idle-screen .idle-bg.visible { opacity: 0.45; }
-  @keyframes kenburns {
-    0% { transform: scale(1) translate(0, 0); }
-    100% { transform: scale(1.15) translate(-2%, -1%); }
+  #idle-screen .nf-hero-img.active {
+    opacity: 1; transform: scale(1.05);
   }
-  #idle-screen .idle-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.85) 100%);
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 60px 50px; gap: 24px;
+  #idle-screen .nf-billboard-gradient {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 65%;
+    background: linear-gradient(0deg, #141414 0%, rgba(20,20,20,0.9) 30%, rgba(20,20,20,0.4) 60%, transparent 100%);
+    pointer-events: none;
   }
-  #idle-screen .idle-clock {
-    position: absolute; top: 50px; left: 50px; right: 50px;
-    display: flex; justify-content: space-between; align-items: flex-start;
+  #idle-screen .nf-billboard-side {
+    position: absolute; top: 0; left: 0; width: 40%; height: 100%;
+    background: linear-gradient(90deg, rgba(20,20,20,0.6) 0%, transparent 100%);
+    pointer-events: none;
   }
-  #idle-screen .idle-time {
-    font-size: 72px; font-weight: 200; color: #fff;
-    font-family: 'Inter', sans-serif; letter-spacing: -2px;
+
+  /* ── Info overlay on billboard ── */
+  #idle-screen .nf-info {
+    position: absolute; bottom: 28%; left: 50px; right: 50px;
+    display: flex; flex-direction: column; gap: 16px;
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
   }
-  #idle-screen .idle-date {
-    font-size: 18px; color: rgba(255,255,255,0.6);
-    font-family: 'Inter', sans-serif; text-align: right; line-height: 1.5;
+  #idle-screen .nf-info.visible { opacity: 1; transform: translateY(0); }
+  #idle-screen .nf-info-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; color: rgba(255,255,255,0.5);
+    text-transform: uppercase; letter-spacing: 3px; font-weight: 500;
   }
-  #idle-screen .idle-texts {
-    display: flex; flex-direction: column; gap: 12px;
-    max-height: 600px; overflow: hidden;
+  #idle-screen .nf-info-tag::before {
+    content: ''; display: block; width: 4px; height: 20px;
+    background: #e50914; border-radius: 2px;
   }
-  #idle-screen .idle-title {
-    font-size: 36px; font-weight: 700; color: #fff;
-    font-family: 'Inter', sans-serif; line-height: 1.2;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  #idle-screen .nf-info-title {
+    font-size: 48px; font-weight: 800; color: #fff;
+    line-height: 1.1; letter-spacing: -1px;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+    max-width: 80%;
   }
-  #idle-screen .idle-subtitle {
-    font-size: 18px; color: rgba(255,255,255,0.7);
-    font-family: 'Inter', sans-serif; line-height: 1.4;
+  #idle-screen .nf-info-desc {
+    font-size: 18px; color: rgba(255,255,255,0.75);
+    line-height: 1.5; max-width: 70%;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
   }
-  #idle-screen .idle-thumbnails {
-    display: flex; gap: 12px; overflow: hidden; padding-top: 16px;
+
+  /* ── Clock top-right ── */
+  #idle-screen .nf-clock {
+    position: absolute; top: 40px; right: 50px;
+    text-align: right; z-index: 5;
   }
-  #idle-screen .idle-thumb {
-    width: 160px; height: 120px; border-radius: 12px; object-fit: cover;
-    border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0;
+  #idle-screen .nf-clock-time {
+    font-size: 56px; font-weight: 200; color: #fff;
+    letter-spacing: -2px; line-height: 1;
   }
-  #idle-screen .idle-hint {
-    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-    font-size: 13px; color: rgba(255,255,255,0.35);
-    font-family: 'Inter', sans-serif; letter-spacing: 2px; text-transform: uppercase;
-    animation: pulse-hint 2s ease infinite;
+  #idle-screen .nf-clock-date {
+    font-size: 15px; color: rgba(255,255,255,0.45);
+    margin-top: 6px; line-height: 1.4;
   }
-  @keyframes pulse-hint { 0%,100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+
+  /* ── Carousel row at bottom ── */
+  #idle-screen .nf-row {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    padding: 0 50px 50px;
+  }
+  #idle-screen .nf-row-title {
+    font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.6);
+    margin-bottom: 14px; text-transform: uppercase; letter-spacing: 2px;
+  }
+  #idle-screen .nf-carousel {
+    display: flex; gap: 14px; overflow: hidden;
+    transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  #idle-screen .nf-card {
+    flex-shrink: 0; width: 200px; height: 280px;
+    border-radius: 8px; overflow: hidden; position: relative;
+    cursor: pointer; transition: transform 0.35s ease, box-shadow 0.35s ease;
+    border: 2px solid transparent;
+  }
+  #idle-screen .nf-card.active-card {
+    border-color: #fff; transform: scale(1.08);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  #idle-screen .nf-card img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  #idle-screen .nf-card-overlay {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    padding: 12px 10px 10px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+  }
+  #idle-screen .nf-card-label {
+    font-size: 12px; font-weight: 600; color: #fff;
+    line-height: 1.3; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  #idle-screen .nf-progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 3px;
+    background: #e50914; border-radius: 0 0 8px 8px;
+    transition: width linear;
+  }
+
+  /* ── Hint ── */
+  #idle-screen .nf-hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; color: rgba(255,255,255,0.25);
+    letter-spacing: 3px; text-transform: uppercase;
+    animation: nf-pulse 2.5s ease infinite;
+  }
+  @keyframes nf-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }
 </style>
 <div id="idle-screen">
-  <div class="idle-overlay">
-    <div class="idle-clock">
-      <div class="idle-time" id="idle-time"></div>
-      <div class="idle-date" id="idle-date"></div>
-    </div>
-    <div class="idle-texts" id="idle-texts"></div>
-    <div class="idle-thumbnails" id="idle-thumbnails"></div>
+  <div class="nf-billboard">
+    <div class="nf-billboard-side"></div>
+    <div class="nf-billboard-gradient"></div>
   </div>
-  <div class="idle-hint">Toque para continuar</div>
+  <div class="nf-info" id="nf-info">
+    <div class="nf-info-tag">Em destaque</div>
+    <div class="nf-info-title" id="nf-info-title"></div>
+    <div class="nf-info-desc" id="nf-info-desc"></div>
+  </div>
+  <div class="nf-clock">
+    <div class="nf-clock-time" id="nf-clock-time"></div>
+    <div class="nf-clock-date" id="nf-clock-date"></div>
+  </div>
+  <div class="nf-row">
+    <div class="nf-row-title">Destaques</div>
+    <div class="nf-carousel" id="nf-carousel"></div>
+  </div>
+  <div class="nf-hint">Toque para continuar</div>
 </div>
 <script>
 (function() {
   var IDLE_TIMEOUT = ${idleScreenTimeout} * 1000;
+  var SLIDE_INTERVAL = 7000;
   var screen = document.getElementById('idle-screen');
   var timer = null;
   var slideTimer = null;
+  var progressTimer = null;
   var isActive = false;
 
-  // Extract content from DOM
   function extractContent() {
-    var images = [];
-    var texts = [];
+    var items = []; // {image, title, desc}
+    var seenImages = {};
+    var seenTitles = {};
 
-    // Collect images
-    document.querySelectorAll('img').forEach(function(img) {
-      if (img.closest('#idle-screen')) return;
-      var src = img.src || img.getAttribute('src');
-      if (src && !src.includes('qrserver') && !src.includes('data:') && src.length > 10) {
-        images.push(src);
-      }
+    // Strategy 1: Pair images with nearby text (per page/section)
+    var containers = document.querySelectorAll('[data-page], [data-view], .page, section, article, .card, [class*="card"], [class*="item"], [class*="slide"]');
+    if (containers.length === 0) containers = [document.body];
+
+    containers.forEach(function(container) {
+      if (container.closest('#idle-screen')) return;
+      var imgs = container.querySelectorAll('img');
+      imgs.forEach(function(img) {
+        var src = img.src || img.getAttribute('src');
+        if (!src || src.includes('qrserver') || src.includes('data:') || src.length < 10 || seenImages[src]) return;
+        seenImages[src] = true;
+
+        // Find closest title/text
+        var parent = img.closest('[data-page], [data-view], .card, article, section, [class*="card"], [class*="item"], [class*="slide"]') || img.parentElement;
+        var titleEl = parent ? parent.querySelector('h1,h2,h3,[data-editable],strong,b') : null;
+        var title = titleEl ? (titleEl.textContent || '').trim() : '';
+
+        // Find description text
+        var descEls = parent ? parent.querySelectorAll('p, span, div') : [];
+        var desc = '';
+        for (var d = 0; d < descEls.length; d++) {
+          var t = (descEls[d].textContent || '').trim();
+          if (t.length > 15 && t.length < 300 && t !== title) { desc = t; break; }
+        }
+
+        if (title && !seenTitles[title]) {
+          seenTitles[title] = true;
+          items.push({ image: src, title: title, desc: desc });
+        } else if (!title) {
+          items.push({ image: src, title: '', desc: '' });
+        }
+      });
     });
 
-    // Collect background images from styles
+    // Strategy 2: Background images
     document.querySelectorAll('[style]').forEach(function(el) {
       if (el.closest('#idle-screen')) return;
       var bg = el.style.backgroundImage;
       if (bg && bg.includes('url(')) {
         var match = bg.match(/url\\(['"]?([^'"\\)]+)['"]?\\)/);
-        if (match && match[1] && !match[1].includes('qrserver')) images.push(match[1]);
+        if (match && match[1] && !seenImages[match[1]] && !match[1].includes('qrserver')) {
+          seenImages[match[1]] = true;
+          var t = '';
+          var heading = el.querySelector('h1,h2,h3,[data-editable]');
+          if (heading) t = (heading.textContent || '').trim();
+          items.push({ image: match[1], title: t, desc: '' });
+        }
       }
     });
 
-    // Collect carousel/video poster images
+    // Strategy 3: Video posters
     document.querySelectorAll('video[poster]').forEach(function(v) {
-      if (v.poster) images.push(v.poster);
+      if (!seenImages[v.poster]) {
+        seenImages[v.poster] = true;
+        items.push({ image: v.poster, title: '', desc: '' });
+      }
     });
 
-    // Collect texts - prioritize headings and larger text
-    var selectors = ['h1','h2','h3','[data-editable]','strong','b','button'];
-    selectors.forEach(function(sel) {
-      document.querySelectorAll(sel).forEach(function(el) {
-        if (el.closest('#idle-screen')) return;
-        var t = (el.textContent || '').trim();
-        if (t.length > 2 && t.length < 200 && texts.indexOf(t) === -1) {
-          texts.push(t);
-        }
-      });
-    });
-
-    // Also extract from data-page elements (all pages, not just visible)
-    document.querySelectorAll('[data-page]').forEach(function(page) {
-      page.querySelectorAll('img').forEach(function(img) {
-        var src = img.src || img.getAttribute('src');
-        if (src && !src.includes('qrserver') && !src.includes('data:') && images.indexOf(src) === -1) {
-          images.push(src);
-        }
-      });
-      page.querySelectorAll('h1,h2,h3,[data-editable],strong').forEach(function(el) {
-        var t = (el.textContent || '').trim();
-        if (t.length > 2 && t.length < 200 && texts.indexOf(t) === -1) {
-          texts.push(t);
-        }
-      });
-    });
-
-    // Extract from embedded HTML (iframes with srcdoc or raw HTML)
+    // Strategy 4: Embedded events in scripts
     document.querySelectorAll('script').forEach(function(s) {
       try {
-        var content = s.textContent || '';
-        var eventMatch = content.match(/var\\s+events\\s*=\\s*(\\[.*?\\]);/s);
-        if (eventMatch) {
-          var events = JSON.parse(eventMatch[1].replace(/'/g, '"'));
-          events.forEach(function(ev) {
-            if (ev.title && texts.indexOf(ev.title) === -1) texts.push(ev.title);
-            if (ev.image && images.indexOf(ev.image) === -1) images.push(ev.image);
-            if (ev.img && images.indexOf(ev.img) === -1) images.push(ev.img);
+        var c = s.textContent || '';
+        var m = c.match(/var\\s+events\\s*=\\s*(\\[.*?\\]);/s);
+        if (m) {
+          var evts = JSON.parse(m[1].replace(/'/g, '"'));
+          evts.forEach(function(ev) {
+            var img = ev.image || ev.img || '';
+            if (img && !seenImages[img]) {
+              seenImages[img] = true;
+              items.push({
+                image: img,
+                title: ev.title || ev.name || '',
+                desc: ev.description || ev.date || ev.local || ''
+              });
+            }
           });
         }
       } catch(e) {}
     });
 
-    return { images: images.filter(function(v,i,a){ return a.indexOf(v) === i; }), texts: texts };
+    // Collect orphan titles (without images) for fallback
+    var orphanTexts = [];
+    document.querySelectorAll('h1,h2,h3,[data-editable]').forEach(function(el) {
+      if (el.closest('#idle-screen')) return;
+      var t = (el.textContent || '').trim();
+      if (t.length > 2 && t.length < 200 && !seenTitles[t]) {
+        seenTitles[t] = true;
+        orphanTexts.push(t);
+      }
+    });
+
+    // Assign orphan titles to untitled items
+    var orphanIdx = 0;
+    items.forEach(function(item) {
+      if (!item.title && orphanIdx < orphanTexts.length) {
+        item.title = orphanTexts[orphanIdx++];
+      }
+    });
+
+    return items.length > 0 ? items : [{ image: '', title: 'Tela de Descanso', desc: '' }];
   }
 
-  var content = { images: [], texts: [] };
-  var currentSlide = 0;
-  var bgElements = [];
+  var items = [];
+  var currentIndex = 0;
+  var heroImgs = [];
 
-  function buildIdleScreen() {
-    content = extractContent();
+  function buildScreen() {
+    items = extractContent();
+    var billboard = screen.querySelector('.nf-billboard');
+    // Remove old hero images
+    billboard.querySelectorAll('.nf-hero-img').forEach(function(el) { el.remove(); });
+    heroImgs = [];
 
-    // Build background images
-    var existing = screen.querySelectorAll('.idle-bg');
-    existing.forEach(function(el) { el.remove(); });
-    bgElements = [];
-
-    content.images.slice(0, 8).forEach(function(src) {
+    // Create hero images (max 10)
+    items.slice(0, 10).forEach(function(item, i) {
+      if (!item.image) return;
       var img = document.createElement('img');
-      img.className = 'idle-bg';
-      img.src = src;
+      img.className = 'nf-hero-img';
+      img.src = item.image;
       img.onerror = function() { img.style.display = 'none'; };
-      screen.insertBefore(img, screen.firstChild);
-      bgElements.push(img);
+      billboard.insertBefore(img, billboard.firstChild);
+      heroImgs.push(img);
     });
 
-    // Build texts
-    var textsContainer = document.getElementById('idle-texts');
-    textsContainer.innerHTML = '';
-    content.texts.slice(0, 5).forEach(function(t, i) {
-      var div = document.createElement('div');
-      div.className = i === 0 ? 'idle-title' : 'idle-subtitle';
-      div.textContent = t;
-      textsContainer.appendChild(div);
+    // Build carousel cards
+    var carousel = document.getElementById('nf-carousel');
+    carousel.innerHTML = '';
+    items.forEach(function(item, i) {
+      var card = document.createElement('div');
+      card.className = 'nf-card' + (i === 0 ? ' active-card' : '');
+      card.innerHTML =
+        (item.image ? '<img src="' + item.image + '" alt="" onerror="this.parentElement.style.background=\\'#333\\'">' : '<div style="width:100%;height:100%;background:#333"></div>') +
+        '<div class="nf-card-overlay"><div class="nf-card-label">' + (item.title || 'Item ' + (i + 1)) + '</div></div>' +
+        '<div class="nf-progress-bar" style="width:0%"></div>';
+      carousel.appendChild(card);
     });
 
-    // Build thumbnails
-    var thumbsContainer = document.getElementById('idle-thumbnails');
-    thumbsContainer.innerHTML = '';
-    content.images.slice(0, 5).forEach(function(src) {
-      var img = document.createElement('img');
-      img.className = 'idle-thumb';
-      img.src = src;
-      img.onerror = function() { img.style.display = 'none'; };
-      thumbsContainer.appendChild(img);
-    });
-
-    currentSlide = 0;
-    showSlide(0);
+    currentIndex = 0;
+    showItem(0);
   }
 
-  function showSlide(index) {
-    bgElements.forEach(function(img, i) {
-      img.classList.toggle('visible', i === index);
-      // Vary the ken burns direction per slide
-      img.style.animationDuration = (15 + (i % 3) * 5) + 's';
-      img.style.animationDirection = i % 2 === 0 ? 'alternate' : 'alternate-reverse';
+  function showItem(index) {
+    currentIndex = index;
+    var item = items[index] || items[0];
+
+    // Hero image
+    heroImgs.forEach(function(img, i) {
+      img.classList.toggle('active', i === index);
+      // Reset transform for re-triggering zoom
+      if (i === index) {
+        img.style.transform = 'scale(1)';
+        void img.offsetWidth; // force reflow
+        img.style.transform = 'scale(1.05)';
+      }
     });
+
+    // Info
+    var info = document.getElementById('nf-info');
+    var titleEl = document.getElementById('nf-info-title');
+    var descEl = document.getElementById('nf-info-desc');
+    info.classList.remove('visible');
+    setTimeout(function() {
+      titleEl.textContent = item.title || '';
+      descEl.textContent = item.desc || '';
+      if (item.title) info.classList.add('visible');
+    }, 200);
+
+    // Card active state
+    var cards = screen.querySelectorAll('.nf-card');
+    cards.forEach(function(c, i) { c.classList.toggle('active-card', i === index); });
+
+    // Scroll carousel to keep active visible
+    var carousel = document.getElementById('nf-carousel');
+    var activeCard = cards[index];
+    if (activeCard) {
+      var scrollLeft = activeCard.offsetLeft - 50;
+      carousel.style.transform = 'translateX(-' + Math.max(0, scrollLeft) + 'px)';
+    }
+
+    // Progress bar animation
+    var progressBars = screen.querySelectorAll('.nf-progress-bar');
+    progressBars.forEach(function(bar) { bar.style.width = '0%'; bar.style.transition = 'none'; });
+    if (progressBars[index]) {
+      void progressBars[index].offsetWidth;
+      progressBars[index].style.transition = 'width ' + (SLIDE_INTERVAL / 1000) + 's linear';
+      progressBars[index].style.width = '100%';
+    }
   }
 
-  function nextSlide() {
-    if (bgElements.length === 0) return;
-    currentSlide = (currentSlide + 1) % bgElements.length;
-    showSlide(currentSlide);
+  function nextItem() {
+    var next = (currentIndex + 1) % items.length;
+    showItem(next);
   }
 
   function updateClock() {
     var now = new Date();
-    var timeEl = document.getElementById('idle-time');
-    var dateEl = document.getElementById('idle-date');
+    var timeEl = document.getElementById('nf-clock-time');
+    var dateEl = document.getElementById('nf-clock-date');
     if (timeEl) timeEl.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     if (dateEl) {
-      dateEl.innerHTML = now.toLocaleDateString('pt-BR', { weekday: 'long' }).charAt(0).toUpperCase() +
-        now.toLocaleDateString('pt-BR', { weekday: 'long' }).slice(1) +
+      var weekday = now.toLocaleDateString('pt-BR', { weekday: 'long' });
+      dateEl.innerHTML = weekday.charAt(0).toUpperCase() + weekday.slice(1) +
         '<br>' + now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     }
   }
@@ -556,10 +693,10 @@ ${idleScreenEnabled ? `
   function activate() {
     if (isActive) return;
     isActive = true;
-    buildIdleScreen();
+    buildScreen();
     updateClock();
     screen.classList.add('active');
-    slideTimer = setInterval(function() { nextSlide(); updateClock(); }, 6000);
+    slideTimer = setInterval(function() { nextItem(); updateClock(); }, SLIDE_INTERVAL);
   }
 
   function deactivate() {
@@ -575,19 +712,15 @@ ${idleScreenEnabled ? `
     timer = setTimeout(activate, IDLE_TIMEOUT);
   }
 
-  // Listen for user interaction
   ['click', 'touchstart', 'mousemove', 'keydown'].forEach(function(evt) {
     document.addEventListener(evt, function() {
-      if (isActive) { deactivate(); }
-      else { resetTimer(); }
+      if (isActive) { deactivate(); } else { resetTimer(); }
     }, { passive: true });
   });
 
-  // Dismiss idle screen on touch
   screen.addEventListener('click', deactivate);
   screen.addEventListener('touchstart', deactivate);
 
-  // Start timer
   resetTimer();
 })();
 </script>
