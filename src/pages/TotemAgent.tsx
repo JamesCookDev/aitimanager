@@ -162,7 +162,7 @@ export default function TotemAgent() {
   const enrollmentExpires = org?.enrollment_expires_at;
   const isExpired = enrollmentExpires ? new Date(enrollmentExpires) < new Date() : false;
 
-  const autoRegisteredCount = devices?.filter((d: any) => d.registration_method === 'enrollment' || d.registration_method === 'hardware').length ?? 0;
+  const autoRegisteredCount = devices?.filter(d => d.registration_method === 'enrollment' || d.registration_method === 'hardware').length ?? 0;
 
   const steps = [
     {
