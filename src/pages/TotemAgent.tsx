@@ -56,9 +56,10 @@ function HeroSection({ orgName }: { orgName?: string }) {
 }
 
 /* ─── distribution config ─── */
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://iwqcltmeniotzbowbxzg.supabase.co';
 const DISTRIBUTION = {
   windows: {
-    url: '', // Set to the real .exe/.zip URL when available
+    url: `${SUPABASE_URL}/storage/v1/object/public/agent-dist/TotemAgent-Instalador.zip`,
     fileName: 'TotemAgent-Instalador.zip',
     label: 'Baixar Instalador Windows',
     description: 'Compatível com Windows 10/11 (64-bit)',
@@ -67,18 +68,22 @@ const DISTRIBUTION = {
 
 function DownloadButton() {
   const dist = DISTRIBUTION.windows;
-  const available = !!dist.url;
 
-  const handleDownload = () => {
-    if (!available) {
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(dist.url, { method: 'HEAD' });
+      if (!res.ok) {
+        toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = dist.url;
+      link.download = dist.fileName;
+      link.click();
+      toast.success('Download iniciado!');
+    } catch {
       toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
-      return;
     }
-    const link = document.createElement('a');
-    link.href = dist.url;
-    link.download = dist.fileName;
-    link.click();
-    toast.success('Download iniciado!');
   };
 
   return (

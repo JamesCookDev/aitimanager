@@ -68,3 +68,15 @@ jobs:
             Instalador Windows (64-bit) — extraia o ZIP e execute `instalar.bat`.
           files: TotemAgent-Instalador.zip
           make_latest: true
+
+      - name: Upload to Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          curl -X POST \
+            "${SUPABASE_URL}/storage/v1/object/agent-dist/TotemAgent-Instalador.zip" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            -H "Content-Type: application/zip" \
+            -H "x-upsert: true" \
+            --data-binary @TotemAgent-Instalador.zip
