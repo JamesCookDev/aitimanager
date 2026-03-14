@@ -70,16 +70,21 @@ function DownloadButton() {
   const dist = DISTRIBUTION.windows;
   const available = !!dist.url;
 
-  const handleDownload = () => {
-    if (!available) {
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(dist.url, { method: 'HEAD' });
+      if (!res.ok) {
+        toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = dist.url;
+      link.download = dist.fileName;
+      link.click();
+      toast.success('Download iniciado!');
+    } catch {
       toast.info('O instalador estará disponível em breve. Entre em contato com o suporte.');
-      return;
     }
-    const link = document.createElement('a');
-    link.href = dist.url;
-    link.download = dist.fileName;
-    link.click();
-    toast.success('Download iniciado!');
   };
 
   return (
