@@ -435,13 +435,6 @@ export default function TotemAgent() {
     toast.success('Código copiado!');
   };
 
-  const downloadInstaller = () => {
-    const link = document.createElement('a');
-    link.href = '/sync-worker.js';
-    link.download = 'totem-agent.js';
-    link.click();
-    toast.success('Download iniciado!');
-  };
 
   return (
     <div className="min-h-screen bg-background">
