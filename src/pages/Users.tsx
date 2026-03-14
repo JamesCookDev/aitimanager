@@ -85,6 +85,7 @@ export default function UsersPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [credentialsDialog, setCredentialsDialog] = useState<{ email: string; password: string } | null>(null);
 
   const [formEmail, setFormEmail] = useState('');
   const [formName, setFormName] = useState('');
