@@ -47,7 +47,7 @@ async function handleEnrollment(
   if (existing) {
     return jsonResponse({
       success: true, registered: false,
-      device: { id: existing.id, name: existing.name, api_key: existing.api_key },
+      device: { id: existing.id, name: existing.name, api_key: existing.api_key, org_id: org.id },
       organization: org.name,
       message: 'Dispositivo já registrado',
     })
