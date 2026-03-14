@@ -283,32 +283,6 @@ export default function DeviceDetail() {
         {/* DETAILS TAB */}
         <TabsContent value="details" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* API Key */}
-            <Card className="card-industrial">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Key className="w-4 h-4 text-primary" /> Chave de API
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-input rounded-lg p-3 border border-border">
-                  <div className="flex items-center justify-between gap-2">
-                    <code className="text-xs font-mono text-foreground break-all">
-                      {showApiKey ? device.api_key : '••••••••••••••••••••••••'}
-                    </code>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowApiKey(!showApiKey)}>
-                        {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyApiKey}>
-                        <CopyIcon className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Device Info */}
             <Card className="card-industrial">
               <CardHeader className="pb-3">
