@@ -805,54 +805,309 @@ Seletor de largura (320px a 720px) para visualizar o canvas em diferentes resolu
 
 ---
 
-## 10. Sincronização com Hardware (Totem)
+## 10. Sincronização com Hardware (Totem) — Guia Completo
 
-### 10.1 Sync Worker (`public/sync-worker.js`)
+### 10.1 Visão Geral da Arquitetura de Sincronização
 
-O Sync Worker (v6.0+) é um script Node.js autônomo que:
+O sistema utiliza uma arquitetura de **HTML estático com polling baseado em ETag**. O Hub (dashboard web) gera HTML autônomo e o armazena no banco de dados. O hardware local (sync-worker) periodicamente verifica se há atualizações e baixa o novo HTML quando disponível.
 
-1. **Serve HTML** via HTTP na porta 8080
-2. **Faz polling** da Edge Function `totem-html` a cada 15s
-3. **Usa ETags** para evitar downloads desnecessários
-4. **Gerencia o navegador** em modo quiosque (auto-detecta Chromium/Chrome)
-5. **Supervisor embutido** reinicia automaticamente em caso de falha (até 10 vezes em 60s)
-6. **Escuta comandos remotos** (restart, reload, sync)
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    FLUXO DE SINCRONIZAÇÃO                        │
+│                                                                  │
+│  ┌─────────────┐    Publica HTML     ┌──────────────────────┐   │
+│  │  Page Builder │ ──────────────────► │  devices.published_  │   │
+│  │  (Hub Web)   │                     │  html + updated_at   │   │
+│  └─────────────┘                     └──────────┬───────────┘   │
+│                                                  │               │
+│                    Edge Function                 │               │
+│                    totem-html                    │               │
+│                    (GET + ETag)                  │               │
+│                                                  │               │
+│  ┌─────────────────┐    Polling 15s    ┌────────▼──────────┐   │
+│  │  Sync Worker     │ ◄───────────────── │  Lovable Cloud    │   │
+│  │  (Node.js local) │    304 | 200+HTML  │  (Backend)        │   │
+│  └────────┬────────┘                    └──────────────────┘   │
+│           │                                                     │
+│           │  Salva index.html                                   │
+│           │  Live reload (4s check)                             │
+│           ▼                                                     │
+│  ┌─────────────────┐                                           │
+│  │  Navegador Kiosk │                                           │
+│  │  (Chromium/Edge) │                                           │
+│  │  localhost:8080   │                                           │
+│  └─────────────────┘                                           │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-### 10.2 Live Reload
+### 10.2 Como Funciona Passo a Passo
 
-O worker injeta um script no `index.html` local que monitora o endpoint interno `/__totem_version` a cada 4 segundos. Quando o HTML é atualizado, o `htmlRevision` é incrementado, disparando o recarregamento instantâneo do navegador quiosque.
+#### Fase 1: Publicação (Hub → Banco de Dados)
 
-### 10.3 Uso
+1. Admin abre o **Page Builder** e seleciona um dispositivo
+2. Edita o layout no canvas (1080×1920px)
+3. Clica em **"Publicar"**
+4. `canvasToHtml()` converte o canvas em HTML/CSS autônomo
+5. O HTML é salvo em `devices.published_html` (coluna TEXT)
+6. `devices.updated_at` é atualizado automaticamente (usado como ETag)
+
+#### Fase 2: Detecção de Atualização (Hardware → Cloud)
+
+7. O Sync Worker faz polling a cada **15 segundos** na Edge Function `totem-html`
+8. O request inclui:
+   - Header `x-totem-api-key: <api_key>` (identifica o dispositivo)
+   - Header `If-None-Match: "<timestamp>"` (ETag da última versão conhecida)
+9. A Edge Function compara o ETag:
+   - **Se igual:** Retorna `304 Not Modified` (sem corpo, economiza banda)
+   - **Se diferente:** Retorna `200` com o HTML completo e novo ETag
+
+#### Fase 3: Atualização Local (Worker → Navegador)
+
+10. Worker recebe o novo HTML e salva como `index.html` local
+11. Injeta script de **auto-reload** no HTML (se não existir)
+12. Incrementa o `htmlRevision` interno
+13. O navegador kiosk verifica `/__totem_version` a cada **4 segundos**
+14. Detecta que `revision` mudou → **recarrega a página automaticamente**
+
+#### Fase 4: Heartbeat (Hardware → Cloud)
+
+15. Worker envia heartbeat a cada **30 segundos** via `totem-heartbeat`
+16. Payload inclui: `worker_version`, `http_port`, `uptime_seconds`
+17. Cloud atualiza `devices.last_ping` → Dashboard mostra status online
+18. Se há `pending_command`, o heartbeat retorna o comando
+
+### 10.3 Protocolo de Comunicação
+
+| Endpoint | Método | Frequência | Header de Auth | Função |
+|----------|--------|------------|----------------|--------|
+| `totem-html` | GET | 15s | `x-totem-api-key` | Busca HTML publicado (com ETag) |
+| `totem-heartbeat` | POST | 30s | `x-totem-api-key` | Registra status online + telemetria |
+| `totem-poll-command` | GET | 5s | `x-totem-api-key` | Verifica comandos pendentes |
+| `totem-command-report` | POST | On-demand | `x-totem-api-key` | Reporta resultado de comando |
+| `totem-config` | GET | On-demand | `x-totem-api-key` | Config unificada (UI + IA) |
+| `ai-config` | GET | On-demand | `x-totem-api-key` | Apenas config de IA |
+
+### 10.4 Sync Worker (`public/sync-worker.js`) — v7.0
+
+Script Node.js autônomo com as seguintes responsabilidades:
+
+| Componente | Descrição |
+|------------|-----------|
+| **Servidor HTTP** | Serve `index.html` na porta 8080 com endpoints de health e versão |
+| **Polling de HTML** | Verifica `totem-html` a cada 15s usando ETags |
+| **Heartbeat** | Envia status a cada 30s via `totem-heartbeat` |
+| **Comandos Remotos** | Polling de comandos a cada 5s via `totem-poll-command` |
+| **Kiosk Manager** | Auto-detecta e abre Chromium/Chrome/Edge em modo kiosk |
+| **Live Reload** | Injeta script que recarrega o navegador automaticamente |
+| **Supervisor** | Reinicia automaticamente em caso de crash (até 10x em 60s) |
+| **Backup** | Cria `.bak` do HTML antes de sobrescrever |
+
+### 10.5 ⭐ GUIA: Configurar uma Máquina Nova
+
+#### Pré-requisitos
+- **Node.js** 18+ instalado
+- **Chromium, Chrome ou Edge** instalado
+- Acesso à internet
+
+#### Passo 1: Criar o Dispositivo no Hub
+
+1. Acesse o Dashboard → **Dispositivos** → **"Novo Dispositivo"**
+2. Preencha: Nome, Descrição, Localização, Organização
+3. O sistema gera automaticamente:
+   - `id` (UUID do dispositivo)
+   - `api_key` (UUID de autenticação)
+4. **Copie a API Key** — você vai precisar dela no próximo passo
+
+#### Passo 2: Preparar o Diretório no Hardware
 
 ```bash
-# No diretório do hardware
-node sync-worker.js              # Servidor + polling + kiosk
-node sync-worker.js --no-kiosk   # Sem abrir navegador
-node sync-worker.js --setup      # Apenas setup inicial
+# Crie uma pasta para o totem
+mkdir ~/totem
+cd ~/totem
+
+# Baixe o sync-worker.js do projeto publicado
+curl -o sync-worker.js https://aitimanager.lovable.app/sync-worker.js
 ```
 
-### 10.4 Variáveis do Worker (`.env`)
+#### Passo 3: Criar o Arquivo `.env`
+
+Crie um arquivo `.env` no mesmo diretório do `sync-worker.js`:
 
 ```env
-VITE_CMS_API_URL=https://xxx.supabase.co/functions/v1
-VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_TOTEM_DEVICE_ID=<uuid-do-dispositivo>
-API_KEY=<uuid-da-api-key>
-SYNC_INTERVAL_MS=15000
+# ══════════════════════════════════════════════════════════
+#  CONFIGURAÇÃO DO TOTEM — Obrigatório
+# ══════════════════════════════════════════════════════════
+
+# URL base do Supabase (NÃO ALTERE)
+VITE_SUPABASE_URL=https://iwqcltmeniotzbowbxzg.supabase.co
+
+# Anon Key do projeto (NÃO ALTERE)
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cWNsdG1lbmlvdHpib3dieHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ0NDUsImV4cCI6MjA4NzAyMDQ0NX0.IxBMzeC6VUhe8lRE0yELuZM-4YdzgBo5dsCdddp1C_s
+
+# ★ COLE AQUI a API Key do dispositivo (copiada do Hub)
+API_KEY=cole-a-api-key-aqui
+
+# ══════════════════════════════════════════════════════════
+#  CONFIGURAÇÃO OPCIONAL
+# ══════════════════════════════════════════════════════════
+
+# Porta do servidor local (padrão: 8080)
 HTTP_PORT=8080
-KIOSK_URL=http://localhost:8080
-KIOSK_DELAY_MS=3000
-KIOSK_BROWSER=<caminho-do-navegador>  # auto-detecta
+
+# Intervalo de polling em ms (padrão: 15000 = 15s)
+SYNC_INTERVAL_MS=15000
+
+# Debug detalhado
+VERBOSE=true
 ```
 
-### 10.5 Comandos Remotos
+**⚠️ Mínimo necessário:** Apenas `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `API_KEY`. O worker deriva `VITE_CMS_API_URL` automaticamente da URL do Supabase.
 
-| Comando | Ação |
-|---------|------|
-| `restart` | Reinicia o processo do totem |
-| `sync` | Força sincronização de HTML |
-| `reload` | Recarrega a página do totem |
+#### Passo 4: Iniciar o Worker
+
+```bash
+# Modo completo (servidor + polling + kiosk)
+node sync-worker.js
+
+# Sem abrir navegador (para testar em background)
+node sync-worker.js --no-kiosk
+
+# Apenas setup inicial (baixa HTML e sai)
+node sync-worker.js --setup
+```
+
+#### Passo 5: Verificar que Está Funcionando
+
+Após iniciar, você deve ver no terminal:
+
+```
+╔══════════════════════════════════════════════════╗
+║         TOTEM WORKER  v7.0.0                     ║
+║         HTTP Server + HTML Updater + Auto-Restart ║
+╚══════════════════════════════════════════════════╝
+
+[Totem] ✅ .env encontrado
+[Totem] API URL      : https://xxx.supabase.co/functions/v1
+[Totem] Device ID    : (via API key)
+[Totem] HTTP Port    : 8080
+[Totem] Intervalo    : 15s
+[Totem] 🌐 Servidor HTTP em http://localhost:8080
+[Totem] ✅ HTML atualizado (42.3 KB)
+[Totem] 💓 Heartbeat ativo (a cada 30s)
+```
+
+**No Hub (Dashboard):**
+- O dispositivo deve aparecer como **🟢 Online** em poucos segundos
+- A coluna "Último Ping" mostra o tempo decorrido
+
+#### Passo 6: Publicar um Layout
+
+1. No Hub, vá em **Page Builder** → selecione o dispositivo
+2. Crie ou importe um layout
+3. Clique em **"Publicar"**
+4. Em até **15 segundos**, o totem atualiza automaticamente
+
+#### Passo 7 (Opcional): Configurar Inicialização Automática
+
+**Linux (systemd):**
+```ini
+[Unit]
+Description=Totem Sync Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=totem
+WorkingDirectory=/home/totem/totem
+ExecStart=/usr/bin/node sync-worker.js
+Restart=always
+RestartSec=10
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Windows (Task Scheduler):**
+- Programa: `node.exe`
+- Argumentos: `C:\totem\sync-worker.js`
+- Trigger: "Ao fazer logon"
+- Marcar: "Executar com privilégios máximos"
+
+### 10.6 Comandos Remotos
+
+Enviados pelo Hub e consumidos pelo worker via polling (5s):
+
+| Comando | Ação no Worker | Uso |
+|---------|---------------|-----|
+| `sync` | Limpa ETag e força download do HTML | Após publicar layout |
+| `reload` | Mesmo que `sync` | Recarregar página |
+| `reload_config` | Mesmo que `sync` | Após alterar config de IA |
+| `restart` | `process.exit(75)` → supervisor reinicia | Problemas no worker |
+
+**Ciclo de um comando:**
+```
+Hub: INSERT command_logs (status='pending')
+Hub: UPDATE devices SET pending_command='sync'
+  ↓ (5s polling)
+Worker: GET totem-poll-command → recebe 'sync'
+Worker: Executa o comando
+Worker: POST totem-command-report (status='executed' ou 'failed')
+Cloud: UPDATE command_logs SET status='executed', executed_at=now()
+Cloud: UPDATE devices SET pending_command=NULL
+```
+
+### 10.7 Live Reload — Como Funciona
+
+O worker injeta um script no `index.html` servido que monitora mudanças:
+
+```
+Worker:                              Navegador Kiosk:
+┌─────────────────┐                 ┌─────────────────┐
+│ htmlRevision = 1 │                 │ GET /__totem_    │
+│                  │ ←──── 4s ────── │ version          │
+│ Responde:        │                 │ last = 1         │
+│ { revision: 1 }  │                 │ (sem mudança)    │
+│                  │                 │                  │
+│ ... novo HTML    │                 │                  │
+│ htmlRevision = 2 │                 │                  │
+│                  │ ←──── 4s ────── │ GET /__totem_    │
+│ Responde:        │                 │ version          │
+│ { revision: 2 }  │                 │ last ≠ 2         │
+│                  │                 │ → RELOAD!        │
+└─────────────────┘                 └─────────────────┘
+```
+
+### 10.8 Resolução de Problemas
+
+| Problema | Causa Provável | Solução |
+|----------|----------------|---------|
+| Totem mostra "Aguardando publicação..." | Nenhum layout foi publicado | Publique um layout no Page Builder |
+| Totem offline no Dashboard | Worker não está rodando ou sem internet | Verifique o processo e a conexão |
+| HTML não atualiza | ETag travado ou erro de rede | Envie comando `sync` pelo Hub |
+| Worker crashando em loop | Erro de configuração no `.env` | Verifique `API_KEY` e URLs |
+| Navegador não abre | Chromium/Chrome não encontrado | Instale ou configure `KIOSK_BROWSER` |
+| `401 Unauthorized` | API Key inválida ou expirada | Verifique `API_KEY` no `.env` vs Hub |
+| `304` constante mas HTML antigo | Cache local corrompido | Delete `index.html` e reinicie |
+
+### 10.9 Variáveis do Worker (Resumo)
+
+| Variável | Obrigatória | Default | Descrição |
+|----------|:-----------:|---------|-----------|
+| `VITE_SUPABASE_URL` | ✅ | — | URL base do projeto |
+| `VITE_SUPABASE_ANON_KEY` | ✅ | — | Chave pública do projeto |
+| `API_KEY` | ✅* | — | API Key do dispositivo |
+| `VITE_TOTEM_DEVICE_ID` | ✅* | — | *Alternativa ao API_KEY |
+| `VITE_CMS_API_URL` | ❌ | Auto-derivado | URL das Edge Functions |
+| `HTTP_PORT` | ❌ | `8080` | Porta do servidor HTTP |
+| `SYNC_INTERVAL_MS` | ❌ | `15000` | Intervalo de polling (ms) |
+| `KIOSK_URL` | ❌ | `localhost:8080` | URL que o kiosk abre |
+| `KIOSK_DELAY_MS` | ❌ | `3000` | Delay antes de abrir kiosk |
+| `KIOSK_BROWSER` | ❌ | `auto` | Caminho do navegador |
+| `VERBOSE` | ❌ | `false` | Logs detalhados |
+
+*Pelo menos um entre `API_KEY` e `VITE_TOTEM_DEVICE_ID` é obrigatório.
 
 ---
 
