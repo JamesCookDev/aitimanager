@@ -493,7 +493,7 @@ ${idleScreenEnabled ? `
       var imgs = container.querySelectorAll('img');
       imgs.forEach(function(img) {
         var src = img.src || img.getAttribute('src');
-        if (!src || src.includes('qrserver') || src.includes('data:') || src.length < 10 || seenImages[src]) return;
+        if (!src || src.includes('qrserver') || src.length < 10 || seenImages[src]) return;
         seenImages[src] = true;
 
         // Find closest title/text
