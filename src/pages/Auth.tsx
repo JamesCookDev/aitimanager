@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wifi, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import { Wifi, Activity, AlertTriangle, Loader2, KeyRound } from 'lucide-react';
 import logoAitinet from '@/assets/logo-aitinet.png';
 import { toast } from 'sonner';
 import { SocialLogin } from '@/components/auth/SocialLogin';
@@ -24,6 +25,12 @@ export default function Auth() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupName, setSignupName] = useState('');
 
+  // Password change state (for first login)
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -35,7 +42,7 @@ export default function Auth() {
     );
   }
 
-  if (user) {
+  if (user && !mustChangePassword) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -49,11 +56,51 @@ export default function Auth() {
       toast.error('Falha na autenticação', {
         description: error.message,
       });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Check if user must change password
+    const { data: { user: loggedUser } } = await supabase.auth.getUser();
+    if (loggedUser?.user_metadata?.must_change_password) {
+      setMustChangePassword(true);
+      toast.info('Você precisa definir uma nova senha para continuar.');
     } else {
       toast.success('Acesso concedido');
     }
 
     setIsSubmitting(false);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: { must_change_password: false },
+      });
+
+      if (error) throw error;
+
+      toast.success('Senha alterada com sucesso!');
+      setMustChangePassword(false);
+      // Will redirect to dashboard via the Navigate check
+    } catch (error: any) {
+      toast.error('Erro ao alterar senha', { description: error.message });
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -74,6 +121,76 @@ export default function Auth() {
 
     setIsSubmitting(false);
   };
+
+  // Password change screen
+  if (mustChangePassword) {
+    return (
+      <div className="min-h-screen bg-background industrial-grid relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
+          <div className="w-full max-w-md animate-fade-in">
+            <Card className="card-industrial">
+              <CardHeader className="text-center pb-2">
+                <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                  <KeyRound className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-2xl font-bold">
+                  Defina sua Senha
+                </CardTitle>
+                <CardDescription>
+                  Por segurança, você precisa criar uma nova senha antes de continuar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nova Senha</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="bg-input border-border"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="bg-input border-border"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={changingPassword}
+                  >
+                    {changingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      'Salvar Nova Senha'
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background industrial-grid relative overflow-hidden">

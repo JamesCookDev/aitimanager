@@ -566,6 +566,63 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => { if (!open) setCredentialsDialog(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              Credenciais do Usuário
+            </DialogTitle>
+            <DialogDescription>
+              Copie e envie essas credenciais para o usuário. Ele será obrigado a trocar a senha no primeiro login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Email</Label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.email || ''} readOnly className="font-mono" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(credentialsDialog?.email || '');
+                    toast.success('Email copiado!');
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Senha temporária</Label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.password || ''} readOnly className="font-mono" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(credentialsDialog?.password || '');
+                    toast.success('Senha copiada!');
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                ⚠️ O usuário será obrigado a definir uma nova senha no primeiro login.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setCredentialsDialog(null)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
