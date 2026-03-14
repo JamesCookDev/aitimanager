@@ -157,9 +157,9 @@ export default function TotemAgent() {
     toast.success('Download iniciado! Siga as instruções de instalação.');
   };
 
-  const enrollmentKey = (org as any)?.enrollment_key;
-  const enrollmentEnabled = (org as any)?.enrollment_enabled ?? false;
-  const enrollmentExpires = (org as any)?.enrollment_expires_at;
+  const enrollmentKey = org?.enrollment_key;
+  const enrollmentEnabled = org?.enrollment_enabled ?? false;
+  const enrollmentExpires = org?.enrollment_expires_at;
   const isExpired = enrollmentExpires ? new Date(enrollmentExpires) < new Date() : false;
 
   const autoRegisteredCount = devices?.filter((d: any) => d.registration_method === 'enrollment' || d.registration_method === 'hardware').length ?? 0;
