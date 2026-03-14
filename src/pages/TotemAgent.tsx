@@ -105,7 +105,7 @@ const STEPS = [
   {
     icon: MousePointerClick,
     title: 'Instale',
-    desc: 'Execute o instalador. Ele cuida de tudo automaticamente.',
+    desc: 'Execute o instalador na máquina do totem. Ele configura tudo automaticamente, sem precisar de conhecimento técnico.',
   },
   {
     icon: Power,
