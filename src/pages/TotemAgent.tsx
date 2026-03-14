@@ -100,7 +100,7 @@ const STEPS = [
   {
     icon: Download,
     title: 'Baixe',
-    desc: 'Clique no botão acima e salve o instalador na máquina que será seu totem.',
+    desc: 'Clique no botão acima e salve o instalador na máquina que será seu totem. Não é necessário instalar nada antes.',
   },
   {
     icon: MousePointerClick,
