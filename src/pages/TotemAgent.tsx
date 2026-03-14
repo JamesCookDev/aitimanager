@@ -83,7 +83,7 @@ export default function TotemAgent() {
       if (!orgId) throw new Error('Sem organização');
       const { error } = await supabase
         .from('organizations')
-        .update({ enrollment_enabled: enabled } as any)
+        .update({ enrollment_enabled: enabled })
         .eq('id', orgId);
       if (error) throw error;
     },
