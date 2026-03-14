@@ -1,0 +1,70 @@
+name: Build Totem Agent
+
+on:
+  push:
+    paths:
+      - 'agent/**'
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: agent
+        run: npm install
+
+      - name: Build Windows executable
+        working-directory: agent
+        run: npx pkg src/main.js --target node18-win-x64 --output dist/totem-agent.exe --compress GZip
+
+      - name: Prepare distribution package
+        working-directory: agent
+        run: node scripts/prepare-dist.js
+
+      - name: Create ZIP
+        working-directory: agent/dist
+        run: zip -r TotemAgent-Instalador.zip totem-agent-win/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TotemAgent-Instalador
+          path: agent/dist/TotemAgent-Instalador.zip
+          retention-days: 90
+
+  release:
+    needs: build-windows
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: TotemAgent-Instalador
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./agent/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: agent-v${{ steps.version.outputs.version }}
+          name: Totem Agent v${{ steps.version.outputs.version }}
+          body: |
+            ## Totem Agent v${{ steps.version.outputs.version }}
+            
+            Instalador Windows (64-bit) — extraia o ZIP e execute `instalar.bat`.
+          files: TotemAgent-Instalador.zip
+          make_latest: true
