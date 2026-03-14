@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from './StatusBadge';
 import { Device, getDeviceStatus } from '@/types/database';
-import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2 } from 'lucide-react';
+import { Eye, RotateCcw, MapPin, Building2, Loader2, Trash2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,

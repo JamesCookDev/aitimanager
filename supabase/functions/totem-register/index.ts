@@ -5,76 +5,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-totem-api-key, x-totem-device-id',
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+function defaultAvatarConfig() {
+  return {
+    colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
+    material: { metalness: 0.1, roughness: 0.8 },
+    animation: 'idle',
   }
+}
 
-  if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Método não permitido' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    const body = await req.json()
-    const { hardware_id, org_id, name, description, location, enrollment_key } = body
-
-    // ── Modo 1: Auto-registro via Enrollment Key (sem auth) ─────
-    // O totem envia enrollment_key + hardware_id no primeiro boot.
-    if (enrollment_key && hardware_id) {
-      return await handleEnrollment(supabaseAdmin, { enrollment_key, hardware_id, name, location, description })
-    }
-
-    // ── Modo 2: Auto-registro por hardware_id + org_id (legado) ──
-    if (hardware_id && org_id) {
-      return await handleHardwareRegister(supabaseAdmin, { hardware_id, org_id, name, location, description })
-    }
-
-    // ── Modo 3: Registro manual via Hub (com auth) ──────────────
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return jsonResponse({ error: 'enrollment_key + hardware_id obrigatórios para auto-registro, ou Authorization header para registro manual' }, 400)
-    }
-
-    return await handleManualRegister(supabaseAdmin, req, { name, description, location, org_id })
-  } catch (error) {
-    console.error('Erro ao registrar totem:', error)
-    return jsonResponse({ error: 'Erro interno do servidor' }, 500)
-  }
-})
-
-// ── Enrollment Key flow ─────────────────────────────────────────
+// ── Modo 1: Enrollment Key (novo fluxo SaaS) ───────────────────
 async function handleEnrollment(
-  supabase: any,
-  { enrollment_key, hardware_id, name, location, description }: any
+  supabase: ReturnType<typeof createClient>,
+  { enrollment_key, hardware_id, name, location, description }: Record<string, string>
 ) {
-  // Find org by enrollment key
   const { data: org, error: orgErr } = await supabase
     .from('organizations')
     .select('id, name, enrollment_enabled, enrollment_expires_at')
     .eq('enrollment_key', enrollment_key)
     .single()
 
-  if (orgErr || !org) {
-    return jsonResponse({ error: 'Chave de ativação inválida' }, 404)
-  }
-
-  if (!org.enrollment_enabled) {
-    return jsonResponse({ error: 'Ativação automática desabilitada para esta organização' }, 403)
-  }
-
+  if (orgErr || !org) return jsonResponse({ error: 'Chave de ativação inválida' }, 404)
+  if (!org.enrollment_enabled) return jsonResponse({ error: 'Ativação automática desabilitada para esta organização' }, 403)
   if (org.enrollment_expires_at && new Date(org.enrollment_expires_at) < new Date()) {
     return jsonResponse({ error: 'Chave de ativação expirada' }, 403)
   }
 
-  // Check if device already exists
   const { data: existing } = await supabase
     .from('devices')
     .select('id, name, api_key')
@@ -83,11 +45,10 @@ async function handleEnrollment(
     .single()
 
   if (existing) {
-    console.log(`[Enrollment] Dispositivo já registrado: ${existing.name} (${existing.id})`)
     return jsonResponse({
-      success: true,
-      registered: false,
+      success: true, registered: false,
       device: { id: existing.id, name: existing.name, api_key: existing.api_key },
+      organization: org.name,
       message: 'Dispositivo já registrado',
     })
   }
@@ -97,7 +58,7 @@ async function handleEnrollment(
     .from('devices')
     .insert({
       name: deviceName,
-      description: description || `Auto-registrado via chave de ativação`,
+      description: description || 'Auto-registrado via chave de ativação',
       location: location || null,
       org_id: org.id,
       hardware_id,
@@ -112,20 +73,19 @@ async function handleEnrollment(
     return jsonResponse({ error: 'Erro ao criar dispositivo' }, 500)
   }
 
-  console.log(`[Enrollment] ✅ Novo dispositivo via enrollment: ${device.name} (${device.id})`)
+  console.log(`[Enrollment] ✅ ${device.name} (${device.id})`)
   return jsonResponse({
-    success: true,
-    registered: true,
+    success: true, registered: true,
     device: { id: device.id, name: device.name, api_key: device.api_key },
     organization: org.name,
     message: 'Dispositivo registrado com sucesso',
   }, 201)
 }
 
-// ── Legacy hardware_id + org_id flow ────────────────────────────
+// ── Modo 2: Legacy hardware_id + org_id ─────────────────────────
 async function handleHardwareRegister(
-  supabase: any,
-  { hardware_id, org_id, name, location, description }: any
+  supabase: ReturnType<typeof createClient>,
+  { hardware_id, org_id, name, location, description }: Record<string, string>
 ) {
   const { data: org, error: orgErr } = await supabase
     .from('organizations')
@@ -133,9 +93,7 @@ async function handleHardwareRegister(
     .eq('id', org_id)
     .single()
 
-  if (orgErr || !org) {
-    return jsonResponse({ error: 'Organização não encontrada' }, 404)
-  }
+  if (orgErr || !org) return jsonResponse({ error: 'Organização não encontrada' }, 404)
 
   const { data: existing } = await supabase
     .from('devices')
@@ -145,10 +103,8 @@ async function handleHardwareRegister(
     .single()
 
   if (existing) {
-    console.log(`[Register] Dispositivo já registrado: ${existing.name} (${existing.id})`)
     return jsonResponse({
-      success: true,
-      registered: false,
+      success: true, registered: false,
       device: { id: existing.id, name: existing.name, api_key: existing.api_key },
       message: 'Dispositivo já registrado',
     })
@@ -174,22 +130,20 @@ async function handleHardwareRegister(
     return jsonResponse({ error: 'Erro ao criar dispositivo' }, 500)
   }
 
-  console.log(`[Register] ✅ Novo dispositivo auto-registrado: ${device.name} (${device.id})`)
+  console.log(`[Register] ✅ ${device.name} (${device.id})`)
   return jsonResponse({
-    success: true,
-    registered: true,
+    success: true, registered: true,
     device: { id: device.id, name: device.name, api_key: device.api_key },
     message: 'Dispositivo registrado com sucesso',
   }, 201)
 }
 
-// ── Manual register via Hub (authenticated) ─────────────────────
+// ── Modo 3: Registro manual via Hub (autenticado) ───────────────
 async function handleManualRegister(
-  supabaseAdmin: any,
-  req: Request,
-  { name, description, location, org_id }: any
+  supabaseAdmin: ReturnType<typeof createClient>,
+  authHeader: string,
+  { name, description, location, org_id }: Record<string, string | null>
 ) {
-  const authHeader = req.headers.get('authorization')!
   const supabaseUser = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -197,43 +151,19 @@ async function handleManualRegister(
   )
 
   const { data: { user }, error: authError } = await supabaseUser.auth.getUser()
-  if (authError || !user) {
-    return jsonResponse({ error: 'Usuário não autenticado' }, 401)
-  }
+  if (authError || !user) return jsonResponse({ error: 'Usuário não autenticado' }, 401)
+  if (!name || !org_id) return jsonResponse({ error: 'Nome e org_id são obrigatórios' }, 400)
 
-  if (!name || !org_id) {
-    return jsonResponse({ error: 'Nome e org_id são obrigatórios' }, 400)
-  }
+  const { data: profile } = await supabaseAdmin.from('profiles').select('org_id').eq('id', user.id).single()
+  const { data: role } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', user.id).single()
 
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('org_id')
-    .eq('id', user.id)
-    .single()
-
-  const { data: role } = await supabaseAdmin
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single()
-
-  const isSuperAdmin = role?.role === 'super_admin'
-  const isOrgAdmin = profile?.org_id === org_id
-
-  if (!isSuperAdmin && !isOrgAdmin) {
+  if (role?.role !== 'super_admin' && profile?.org_id !== org_id) {
     return jsonResponse({ error: 'Sem permissão para esta organização' }, 403)
   }
 
   const { data: device, error: createError } = await supabaseAdmin
     .from('devices')
-    .insert({
-      name,
-      description,
-      location,
-      org_id,
-      registration_method: 'manual',
-      avatar_config: defaultAvatarConfig(),
-    })
+    .insert({ name, description, location, org_id, registration_method: 'manual', avatar_config: defaultAvatarConfig() })
     .select()
     .single()
 
@@ -243,31 +173,42 @@ async function handleManualRegister(
   }
 
   return jsonResponse({
-    success: true,
-    registered: true,
+    success: true, registered: true,
     device: { id: device.id, name: device.name, api_key: device.api_key },
     message: 'Dispositivo registrado com sucesso',
   }, 201)
 }
 
-// ── Helpers ─────────────────────────────────────────────────────
-function jsonResponse(data: any, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
+// ── Entry point ─────────────────────────────────────────────────
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+  if (req.method !== 'POST') return jsonResponse({ error: 'Método não permitido' }, 405)
 
-function defaultAvatarConfig() {
-  return {
-    colors: { shirt: '#1E3A8A', pants: '#1F2937', shoes: '#000000' },
-    material: { metalness: 0.1, roughness: 0.8 },
-    animation: 'idle',
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    const body = await req.json()
+    const { hardware_id, org_id, name, description, location, enrollment_key } = body
+
+    if (enrollment_key && hardware_id) {
+      return await handleEnrollment(supabaseAdmin, { enrollment_key, hardware_id, name, location, description })
+    }
+
+    if (hardware_id && org_id) {
+      return await handleHardwareRegister(supabaseAdmin, { hardware_id, org_id, name, location, description })
+    }
+
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return jsonResponse({ error: 'enrollment_key + hardware_id obrigatórios para auto-registro, ou Authorization header para registro manual' }, 400)
+    }
+
+    return await handleManualRegister(supabaseAdmin, authHeader, { name, description, location, org_id })
+  } catch (error) {
+    console.error('Erro ao registrar totem:', error)
+    return jsonResponse({ error: 'Erro interno do servidor' }, 500)
   }
-}
-
-function createClient(url: string, key: string, options?: any) {
-  // Re-import to avoid scope issues in helper functions
-  const { createClient: cc } = await import('https://esm.sh/@supabase/supabase-js@2.49.1')
-  return cc(url, key, options)
-}
+})
