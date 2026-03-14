@@ -357,6 +357,44 @@ export default function DeviceDetail() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* Advanced / Technical */}
+            <Collapsible className="lg:col-span-2">
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group w-full py-2">
+                <Settings2 className="w-4 h-4" />
+                <span>Configurações Avançadas</span>
+                <ChevronDown className="w-4 h-4 ml-auto group-data-[state=open]:rotate-180 transition-transform" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="card-industrial mt-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Key className="w-4 h-4 text-muted-foreground" /> Identificador do Dispositivo
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Usado internamente para identificar este totem. Normalmente não é necessário manipular diretamente.
+                    </p>
+                    <div className="bg-input rounded-lg p-3 border border-border">
+                      <div className="flex items-center justify-between gap-2">
+                        <code className="text-xs font-mono text-foreground break-all">
+                          {showApiKey ? device.api_key : '••••••••••••••••••••••••'}
+                        </code>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowApiKey(!showApiKey)}>
+                            {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyApiKey}>
+                            <CopyIcon className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </TabsContent>
 
