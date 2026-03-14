@@ -1,0 +1,37 @@
+{
+  "name": "totem-agent",
+  "version": "9.0.0",
+  "description": "Totem Agent — Agente instalável para totems com provisionamento automático",
+  "main": "src/main.js",
+  "bin": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "start:no-kiosk": "node src/main.js --no-kiosk",
+    "reset": "node src/main.js --reset",
+    "build:win": "pkg src/main.js --target node18-win-x64 --output dist/totem-agent.exe --compress GZip",
+    "build:win:arm": "pkg src/main.js --target node18-win-arm64 --output dist/totem-agent-arm64.exe --compress GZip",
+    "build:linux": "pkg src/main.js --target node18-linux-x64 --output dist/totem-agent --compress GZip",
+    "build:all": "npm run build:win && npm run build:linux",
+    "dist": "npm run build:win && node scripts/prepare-dist.js"
+  },
+  "pkg": {
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist",
+    "assets": [
+      "assets/**/*"
+    ]
+  },
+  "keywords": [
+    "totem",
+    "digital-signage",
+    "kiosk",
+    "agent"
+  ],
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
