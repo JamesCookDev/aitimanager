@@ -45,8 +45,8 @@ serve(async (req) => {
 
     const { action, ...payload } = await req.json();
 
+    // ── LIST ──
     if (action === "list") {
-      // List all profiles with roles
       const { data: profiles, error } = await adminClient
         .from("profiles")
         .select("*")
@@ -65,6 +65,7 @@ serve(async (req) => {
       });
     }
 
+    // ── INVITE ──
     if (action === "invite") {
       const { email, full_name, org_id, role } = payload;
 
@@ -74,49 +75,41 @@ serve(async (req) => {
         });
       }
 
-      // Create user with admin API (temporary password, email confirmed)
-      const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
+      // Generate readable temporary password
+      const tempPassword = "Temp" + crypto.randomUUID().slice(0, 8) + "!";
+
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
         password: tempPassword,
-        user_metadata: { full_name: full_name || email },
+        user_metadata: {
+          full_name: full_name || email,
+          must_change_password: true,
+        },
       });
 
       if (createError) throw createError;
 
-      // Update profile with org_id
       await adminClient
         .from("profiles")
         .update({ org_id, full_name: full_name || null })
         .eq("id", newUser.user.id);
 
-      // Assign role
       await adminClient.from("user_roles").insert({
         user_id: newUser.user.id,
         role,
       });
 
-      // Generate password reset link and send email so user can set their own password
-      const siteUrl = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "https://aitimanager.lovable.app";
-      const { error: resetError } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: {
-          redirectTo: `${siteUrl}/auth?type=recovery`,
-        },
-      });
-
-      if (resetError) {
-        console.error("Failed to generate recovery link:", resetError.message);
-        // Don't fail the invite, just warn
-      }
-
-      return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
+      return new Response(JSON.stringify({
+        success: true,
+        user_id: newUser.user.id,
+        temp_password: tempPassword,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // ── UPDATE ──
     if (action === "update") {
       const { user_id, org_id, role, full_name } = payload;
 
@@ -138,6 +131,32 @@ serve(async (req) => {
       });
     }
 
+    // ── CHANGE PASSWORD (any authenticated user for themselves) ──
+    if (action === "change_password") {
+      const { user_id, new_password } = payload;
+
+      if (!user_id || !new_password) {
+        return new Response(JSON.stringify({ error: "user_id e new_password obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Users can change their own password, super_admin can change anyone's
+      if (user_id !== caller.id) {
+        // Already verified caller is super_admin
+      }
+
+      await adminClient.auth.admin.updateUser(user_id, {
+        password: new_password,
+        user_metadata: { must_change_password: false },
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── DELETE ──
     if (action === "delete") {
       const { user_id } = payload;
       if (user_id === caller.id) {

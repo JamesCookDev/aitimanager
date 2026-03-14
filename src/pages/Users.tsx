@@ -62,6 +62,8 @@ import {
   Mail,
   Check,
   X,
+  Copy,
+  KeyRound,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -85,6 +87,7 @@ export default function UsersPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [credentialsDialog, setCredentialsDialog] = useState<{ email: string; password: string } | null>(null);
 
   const [formEmail, setFormEmail] = useState('');
   const [formName, setFormName] = useState('');
@@ -161,8 +164,15 @@ export default function UsersPage() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Usuário convidado com sucesso!');
+      toast.success('Usuário criado com sucesso!');
       setInviteDialogOpen(false);
+      
+      // Show temp credentials dialog
+      setCredentialsDialog({
+        email: formEmail.trim(),
+        password: data.temp_password,
+      });
+      
       resetForm();
       fetchData();
     } catch (error: any) {
@@ -556,6 +566,63 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => { if (!open) setCredentialsDialog(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              Credenciais do Usuário
+            </DialogTitle>
+            <DialogDescription>
+              Copie e envie essas credenciais para o usuário. Ele será obrigado a trocar a senha no primeiro login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Email</Label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.email || ''} readOnly className="font-mono" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(credentialsDialog?.email || '');
+                    toast.success('Email copiado!');
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Senha temporária</Label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.password || ''} readOnly className="font-mono" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(credentialsDialog?.password || '');
+                    toast.success('Senha copiada!');
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                ⚠️ O usuário será obrigado a definir uma nova senha no primeiro login.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setCredentialsDialog(null)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
