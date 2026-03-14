@@ -73,10 +73,10 @@ async function handleEnrollment(
     return jsonResponse({ error: 'Erro ao criar dispositivo' }, 500)
   }
 
-  console.log(`[Enrollment] ✅ ${device.name} (${device.id})`)
+  console.log(`[Enrollment] ✅ ${device.name} (${device.id}) → org ${org.id}`)
   return jsonResponse({
     success: true, registered: true,
-    device: { id: device.id, name: device.name, api_key: device.api_key },
+    device: { id: device.id, name: device.name, api_key: device.api_key, org_id: org.id },
     organization: org.name,
     message: 'Dispositivo registrado com sucesso',
   }, 201)
