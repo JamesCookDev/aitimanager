@@ -83,7 +83,7 @@ export default function TotemAgent() {
       if (!orgId) throw new Error('Sem organização');
       const { error } = await supabase
         .from('organizations')
-        .update({ enrollment_enabled: enabled } as any)
+        .update({ enrollment_enabled: enabled })
         .eq('id', orgId);
       if (error) throw error;
     },
@@ -99,7 +99,7 @@ export default function TotemAgent() {
       if (!orgId) throw new Error('Sem organização');
       const { error } = await supabase
         .from('organizations')
-        .update({ enrollment_key: crypto.randomUUID() } as any)
+        .update({ enrollment_key: crypto.randomUUID() })
         .eq('id', orgId);
       if (error) throw error;
     },
@@ -127,7 +127,7 @@ export default function TotemAgent() {
           location: totemLocation.trim() || null,
           org_id: orgId,
           registration_method: 'manual',
-        } as any)
+        })
         .select('name, api_key')
         .single();
 
@@ -157,12 +157,12 @@ export default function TotemAgent() {
     toast.success('Download iniciado! Siga as instruções de instalação.');
   };
 
-  const enrollmentKey = (org as any)?.enrollment_key;
-  const enrollmentEnabled = (org as any)?.enrollment_enabled ?? false;
-  const enrollmentExpires = (org as any)?.enrollment_expires_at;
+  const enrollmentKey = org?.enrollment_key;
+  const enrollmentEnabled = org?.enrollment_enabled ?? false;
+  const enrollmentExpires = org?.enrollment_expires_at;
   const isExpired = enrollmentExpires ? new Date(enrollmentExpires) < new Date() : false;
 
-  const autoRegisteredCount = devices?.filter((d: any) => d.registration_method === 'enrollment' || d.registration_method === 'hardware').length ?? 0;
+  const autoRegisteredCount = devices?.filter(d => d.registration_method === 'enrollment' || d.registration_method === 'hardware').length ?? 0;
 
   const steps = [
     {
@@ -450,7 +450,7 @@ export default function TotemAgent() {
             </CardHeader>
             <CardContent>
               <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
-                {devices.map((device: any) => {
+                {devices.map((device) => {
                   const online = isOnline(device.last_ping);
                   const isAutoRegistered = device.registration_method === 'enrollment' || device.registration_method === 'hardware';
                   return (
