@@ -26,6 +26,10 @@ interface Props {
   onSetIdleTimeout: (seconds: number) => void;
   onSetPageBgColor?: (viewId: string, color: string) => void;
   onSetParent?: (viewId: string, parentId: string | null) => void;
+  idleScreenEnabled?: boolean;
+  idleScreenTimeout?: number;
+  onSetIdleScreen?: (enabled: boolean) => void;
+  onSetIdleScreenTimeout?: (seconds: number) => void;
 }
 
 export function PagesPanel({
