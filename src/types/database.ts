@@ -69,6 +69,9 @@ export interface Device {
   command_sent_at: string | null;
   ai_prompt: string | null;
   ui_config: Record<string, unknown> | null;
+  hardware_id: string | null;
+  registration_method: string | null;
+  published_html: string | null;
   created_at: string;
   updated_at: string;
   // Computed field
