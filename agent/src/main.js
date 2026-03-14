@@ -505,15 +505,24 @@ const EXIT_CODE_REMOTE_RESTART = 75;
 
 async function checkRemoteCommand() {
   const apiKey = getApiKey();
+  const deviceId = getDeviceId();
   const apiUrl = getCmsApiUrl();
-  if (!apiKey || !apiUrl) return null;
+  if (!apiKey && !deviceId) return null;
 
   try {
+    const headers = {
+      'apikey': getAnonKey(),
+    };
+    if (deviceId) headers['x-totem-device-id'] = deviceId;
+    if (apiKey) headers['x-totem-api-key'] = apiKey;
+
     const res = await httpRequest(apiUrl + '/totem-poll-command', {
       method: 'GET',
-      headers: { 'x-totem-api-key': apiKey },
+      headers: headers,
     });
-    return JSON.parse(res.body).command || null;
+    const cmd = JSON.parse(res.body).command || null;
+    if (cmd) log('📩 Comando recebido via poll: "' + cmd + '"');
+    return cmd;
   } catch (err) {
     debug('Poll-command: ' + err.message);
     return null;
